@@ -1,0 +1,37 @@
+package client;
+
+enum OPCODE {
+  SET = 1;
+  GET = 2;
+}
+
+// Set 
+message Set {
+  message Request {
+    required bytes key = 1;
+    required bytes value = 2;
+    optional bytes uuid = 3;
+  }
+  message Response {
+    required int32 status = 1;
+    optional bytes msg = 2;
+  }
+}
+
+message GetResponse {
+    required bool hit = 1;
+    optional bytes value = 2;
+    required bool success = 4;
+    optional bool uuid_expired = 5;
+}
+
+// Get 
+message Get {
+  message Request {
+    required bytes key = 1;
+  }
+  message Response {
+    required int32 status = 1;
+    optional bytes value = 2;
+  }
+}
