@@ -55,8 +55,26 @@ class Cmd {
   virtual ~Cmd() {}
   virtual Status Init(const void *buf, size_t count) = 0;
   virtual void Do() = 0;
+
   google::protobuf::Message* Response() {
     return response_;
+  }
+
+  bool is_write() const {
+    return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite);
+  }
+  uint16_t flag_type() const {
+    return flag_ & kCmdFlagsMaskType;
+  }
+  bool is_local() const {
+    return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal);
+  }
+  // Others need to be suspended when a suspend command run
+  bool is_suspend() const {
+    return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend);
+  }
+  Status result() {
+    return result_;
   }
 
  protected:

@@ -27,10 +27,12 @@ void SetCmd::Do() {
   if (!s.ok()) {
     response->set_status(1);
     response->set_msg(result_.ToString());
+    result_ = slash::Status::Corruption(s.ToString());
     LOG(ERROR) << "command failed: Set, caz " << s.ToString();
   } else {
     response->set_status(0);
     DLOG(INFO) << "Set key(" << request->key() << ") ok";
+    result_ = slash::Status::OK();
   }
 
   response_ = response;
@@ -54,10 +56,12 @@ void GetCmd::Do() {
   nemo::Status s = zp_server->db()->Get(request->key(), &value);
   if (!s.ok()) {
     response->set_status(1);
+    result_ = slash::Status::Corruption(s.ToString());
     LOG(ERROR) << "command failed: Get, caz " << s.ToString();
   } else {
     response->set_status(0);
     response->set_value(value);
+    result_ = slash::Status::OK();
     DLOG(INFO) << "Get key(" << request->key() << ") ok";
   }
   

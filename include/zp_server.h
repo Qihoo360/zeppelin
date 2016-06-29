@@ -3,6 +3,7 @@
 
 #include <memory>
 #include "zp_options.h"
+#include "zp_binlog.h"
 
 #include "pb_conn.h"
 #include "pb_cli.h"
@@ -35,6 +36,8 @@ class ZPServer {
   const std::shared_ptr<nemo::Nemo> db() {
     return db_;
   }
+
+  Binlog* logger_;
 
  private:
   ZPOptions options_;

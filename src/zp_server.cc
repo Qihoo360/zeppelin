@@ -25,6 +25,8 @@ ZPServer::ZPServer(const ZPOptions& options)
   }
 
   zp_dispatch_thread_ = new ZPDispatchThread(options_.local_port, worker_num_, zp_worker_thread_, 3000);
+
+  logger_ = new Binlog(options_.log_path);
 }
 
 ZPServer::~ZPServer() {

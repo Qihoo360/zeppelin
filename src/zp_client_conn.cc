@@ -18,6 +18,7 @@ ZPClientConn::ZPClientConn(int fd, std::string ip_port, pink::Thread* thread) :
 ZPClientConn::~ZPClientConn() {
 }
 
+// Msg is  [ length (int32) | msg_code (int32) | pb_msg (length bytes) ]
 int ZPClientConn::DealMessage() {
   uint32_t buf;
   memcpy((char *)(&buf), rbuf_ + 4, sizeof(uint32_t));
@@ -36,39 +37,25 @@ int ZPClientConn::DealMessage() {
     LOG(ERROR) << "command Init failed, " << s.ToString();
   }
 
+  if (cmd->is_write()) {
+    // TODO add RecordLock for write cmd
+  }
+
   set_is_reply(true);
   cmd->Do();
 
-  res_ = cmd->Response();
+  if (cmd->is_write()) {
+    if (cmd->result().ok()) {
+      // Restore Message
+      std::string raw_msg(rbuf_, header_len_);
+      zp_server->logger_->Lock();
+      zp_server->logger_->Put(raw_msg);
+      zp_server->logger_->Unlock();
+    }
+    // TODO add RecordLock for write cmd
+  }
 
-//  switch (msg_code) {
-//    case client::OPCODE::Set: {
-//      break;
-//    }
-//
-//    case client::OPCODE::Get: {
-//      client::Get_Request request;
-//      client::Get_Response* response = new client::Get_Response;
-//      request.ParseFromArray(rbuf_ + 8, header_len_ - 4);
-//
-//      std::string value;
-//      Status result = server_thGet_->server_->floyd_->Get(request.key(), value);
-//      if (!result.ok()) {
-//        response->set_status(1);
-//        LOG_ERROR("Get failed %s", result.ToString().c_str());
-//      } else if (result.ok()) {
-//        response->set_status(0);
-//        response->set_value(value);
-//        LOG_INFO ("Get key(%s) ok!", request.key().c_str());
-//      }
-//      res_ = response;
-//      break;
-//    }
-//
-//    default:
-//      LOG_INFO ("invalid msg_code %d\n", msg_code);
-//      break;
-//  }
+  res_ = cmd->Response();
 
   return 0;
 }

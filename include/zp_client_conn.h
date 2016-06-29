@@ -22,6 +22,7 @@ class ZPClientConn : public pink::PbConn {
   }
 
  private:
+
   ZPWorkerThread* self_thread_;
 };
 
