@@ -3,14 +3,13 @@
 
 #include <queue>
 
+#include "zp_util.h"
 #include "zp_command.h"
 #include "zp_client_conn.h"
 
 #include "worker_thread.h"
 #include "slash_mutex.h"
 #include "env.h"
-
-struct WorkerCronTask;
 
 class ZPWorkerThread : public pink::WorkerThread<ZPClientConn> {
  public:
@@ -45,7 +44,7 @@ class ZPWorkerThread : public pink::WorkerThread<ZPClientConn> {
     last_time_us_ = cur_time_us;
   }
 
-  Cmd* GetCmd(const client::OPCODE& op) {
+  Cmd* GetCmd(const int op) {
     return GetCmdFromTable(op, cmds_);
   }
 
@@ -66,9 +65,5 @@ class ZPWorkerThread : public pink::WorkerThread<ZPClientConn> {
   void ClientKillAll();
 };
 
-struct WorkerCronTask {
-  int task;
-  std::string ip_port;
-};
 
 #endif

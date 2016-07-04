@@ -1,30 +1,27 @@
-#include "zp_client_conn.h"
+#include "zp_sync_conn.h"
 
-#include <vector>
-#include <algorithm>
 #include <glog/logging.h>
-
-#include "zp_worker_thread.h"
 #include "zp_server.h"
+#include "zp_binlog_receiver_thread.h"
 
 extern ZPServer* zp_server;
 
-////// ZPClientConn //////
-ZPClientConn::ZPClientConn(int fd, std::string ip_port, pink::Thread* thread) :
+ZPSyncConn::ZPSyncConn(int fd, std::string ip_port, pink::Thread* thread) :
   PbConn(fd, ip_port) {
-  self_thread_ = dynamic_cast<ZPWorkerThread*>(thread);
+//  self_thread_ = reinterpret_cast<ZPBinlogReceiverThread*>(thread);
+  self_thread_ = dynamic_cast<ZPBinlogReceiverThread*>(thread);
 }
 
-ZPClientConn::~ZPClientConn() {
+ZPSyncConn::~ZPSyncConn() {
 }
 
-// Msg is  [ length (int32) | msg_code (int32) | pb_msg (length bytes) ]
-int ZPClientConn::DealMessage() {
+int ZPSyncConn::DealMessage() {
   uint32_t buf;
   memcpy((char *)(&buf), rbuf_ + 4, sizeof(uint32_t));
   uint32_t msg_code = ntohl(buf);
-  LOG(INFO) << "DealMessage msg_code:" << msg_code;
+  DLOG(INFO) << "Receiver DealMessage msg_code:" << msg_code;
 
+  self_thread_->PlusThreadQuerynum();
 
   Cmd* cmd = self_thread_->GetCmd(static_cast<client::OPCODE>(msg_code));
   if (cmd == NULL) {
@@ -37,18 +34,22 @@ int ZPClientConn::DealMessage() {
     LOG(ERROR) << "command Init failed, " << s.ToString();
   }
 
+  DLOG(INFO) << "s1. cmd->Init then Do";
   if (cmd->is_write()) {
     // TODO add RecordLock for write cmd
     zp_server->mutex_record_.Lock(cmd->key());
   }
 
-  set_is_reply(true);
+  // do not reply
+  set_is_reply(false);
   cmd->Do();
+
+  DLOG(INFO) << "s2. cmd->Do end";
 
   if (cmd->is_write()) {
     if (cmd->result().ok()) {
       // Restore Message
-      std::string raw_msg(rbuf_, header_len_ + 4);
+      std::string raw_msg(rbuf_, header_len_);
       zp_server->logger_->Lock();
       zp_server->logger_->Put(raw_msg);
       zp_server->logger_->Unlock();
@@ -57,8 +58,7 @@ int ZPClientConn::DealMessage() {
     zp_server->mutex_record_.Unlock(cmd->key());
   }
 
-  res_ = cmd->Response();
+  //res_ = cmd->Response();
 
   return 0;
 }
-

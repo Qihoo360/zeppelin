@@ -1,12 +1,19 @@
 #include "zp_server.h"
 
 #include <glog/logging.h>
+#include "server_control.pb.h"
 
 #include "zp_worker_thread.h"
 #include "zp_dispatch_thread.h"
 
 ZPServer::ZPServer(const ZPOptions& options)
-  : options_(options) {
+  : options_(options),
+  repl_state_(ReplState::kNoConnect),
+  is_seed(options.local_ip == options.seed_ip && options.local_port == options.seed_port)
+  {
+
+  DLOG(INFO) << "is_seed " << is_seed;
+  pthread_rwlock_init(&state_rw_, NULL);
 
   // Create nemo handle
   nemo::Options option;
@@ -21,93 +28,123 @@ ZPServer::ZPServer(const ZPOptions& options)
   // Create thread
   worker_num_ = 2; 
   for (int i = 0; i < worker_num_; i++) {
-    zp_worker_thread_[i] = new ZPWorkerThread(1000);
+    zp_worker_thread_[i] = new ZPWorkerThread(kWorkerCronInterval);
   }
 
-  zp_dispatch_thread_ = new ZPDispatchThread(options_.local_port, worker_num_, zp_worker_thread_, 3000);
+  zp_dispatch_thread_ = new ZPDispatchThread(options_.local_port, worker_num_, zp_worker_thread_, kDispatchCronInterval);
+  zp_ping_thread_ = new ZPPingThread();
+  zp_heartbeat_thread_ = new ZPHeartbeatThread(options_.local_port + kPortShiftHeartbeat, kHeartbeatCronInterval);
+  zp_binlog_receiver_thread_ = new ZPBinlogReceiverThread(options_.local_port + kPortShiftSync, kBinlogReceiverCronInterval);
 
   logger_ = new Binlog(options_.log_path);
+
+  // TODO rm
+  //LOG(INFO) << "local_host " << options_.local_ip << ":" << options.local_port;
 }
 
 ZPServer::~ZPServer() {
+  delete zp_heartbeat_thread_;
+  delete zp_ping_thread_;
   delete zp_dispatch_thread_;
 
   for (int i = 0; i < worker_num_; i++) {
     delete zp_worker_thread_[i];
   }
+
+  delete zp_binlog_receiver_thread_;
+  
+  // TODO 
+  if (is_seed) {
+    delete zp_heartbeat_thread_;
+  } else {
+    delete zp_ping_thread_;
+  }
+  pthread_rwlock_destroy(&state_rw_);
 }
 
 Status ZPServer::Start() {
   zp_dispatch_thread_->StartThread();
+  zp_binlog_receiver_thread_->StartThread();
+
+  if (is_seed) {
+    // TODO seed or normal both need
+    zp_heartbeat_thread_->StartThread();
+  } else {
+    zp_ping_thread_->StartThread();
+  }
 
   LOG(INFO) << "ZPServer started on port:" <<  options_.local_port << ", seed is " << options_.seed_ip.c_str() << ":" << options_.seed_port;
-  server_mutex.Lock();
-  server_mutex.Lock();
+  server_mutex_.Lock();
+  server_mutex_.Lock();
   return Status::OK();
 }
 
-////// ServerConn //////
-//ZPServerConn::ZPServerConn(int fd, std::string &ip_port, pink::Thread *thread)
-//    : PbConn(fd, ip_port) {
-//  server_thread_ = dynamic_cast<ZPServerThread *>(thread);
-//}
-//
-//int ZPServerConn::DealMessage() {
-//  uint32_t buf;
-//  memcpy((char *)(&buf), rbuf_ + 4, sizeof(uint32_t));
-//  uint32_t msg_code = ntohl(buf);
-//  LOG_INFO ("deal message msg_code:%d\n", msg_code);
-//
-//  set_is_reply(true);
-//
-//  switch (msg_code) {
-//    case client::OPCODE::WRITE: {
-//      client::Write_Request request;
-//      client::Write_Response* response = new client::Write_Response;
-//      request.ParseFromArray(rbuf_ + 8, header_len_ - 4);
-//
-//      Status result = server_thread_->server_->ZP_->Write(request.key(), request.value());
-//      if (!result.ok()) {
-//        response->set_status(1);
-//        response->set_msg(result.ToString());
-//        LOG_ERROR("write failed %s", result.ToString().c_str());
-//      } else {
-//        response->set_status(0);
-//        LOG_INFO ("write key(%s) ok!", request.key().c_str());
-//      }
-//      res_ = response;
-//      break;
-//    }
-//
-//    case client::OPCODE::READ: {
-//      client::Read_Request request;
-//      client::Read_Response* response = new client::Read_Response;
-//      request.ParseFromArray(rbuf_ + 8, header_len_ - 4);
-//
-//      std::string value;
-//      Status result = server_thread_->server_->ZP_->Read(request.key(), value);
-//      if (!result.ok()) {
-//        response->set_status(1);
-//        LOG_ERROR("read failed %s", result.ToString().c_str());
-//      } else if (result.ok()) {
-//        response->set_status(0);
-//        response->set_value(value);
-//        LOG_INFO ("read key(%s) ok!", request.key().c_str());
-//      }
-//      res_ = response;
-//      break;
-//    }
-//
-//    default:
-//      LOG_INFO ("invalid msg_code %d\n", msg_code);
-//      break;
-//  }
-//
-//  return 0;
-//}
-//
-//////// ServerThread //////
-//ZPServerThread::ZPServerThread(int port, ZPServer *server)
-//    : HolyThread<ZPServerConn>(port) {
-//  server_ = server;
-//}
+bool ZPServer::FindSlave(const Node& node) {
+  for (auto iter = slaves_.begin(); iter != slaves_.end(); iter++) {
+    if (iter->node == node) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool ZPServer::ShouldJoin() {
+  slash::RWLock l(&state_rw_, false);
+  DLOG(INFO) <<  "repl_state: " << repl_state_;
+  return !is_seed && repl_state_ == ReplState::kNoConnect;
+}
+
+// slave_mutex should be held
+Status ZPServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t offset) {
+  // Sanity check
+  uint32_t cur_filenum = 0;
+  uint64_t cur_offset = 0;
+  logger_->GetProducerStatus(&cur_filenum, &cur_offset);
+  if (cur_filenum < filenum || (cur_filenum == filenum && cur_offset < offset)) {
+    return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
+  }
+
+  slash::SequentialFile *readfile;
+  std::string confile = NewFileName(logger_->filename, filenum);
+  if (!slash::FileExists(confile)) {
+    // Not found binlog specified by filenum
+    //return Status::Incomplete("Bgsaving and DBSync first");
+    return Status::InvalidArgument("AddBinlogSender invalid binlog filenum");
+  }
+
+  if (!slash::NewSequentialFile(confile, &readfile).ok()) {
+    return Status::IOError("AddBinlogSender new sequtialfile");
+  }
+
+  ZPBinlogSenderThread* sender = new ZPBinlogSenderThread(slave.node.ip, slave.node.port + kPortShiftSync, readfile, filenum, offset);
+
+  slave.sender = sender;
+
+  if (sender->trim() == 0) {
+    sender->StartThread();
+    pthread_t tid = sender->thread_id();
+    slave.sender_tid = tid;
+
+    LOG(INFO) << "AddBinlogSender ok, tid is " << slave.sender_tid << " hd_fd: " << slave.hb_fd;
+    // Add sender
+//    slash::MutexLock l(&slave_mutex_);
+    slaves_.push_back(slave);
+
+    return Status::OK();
+  } else {
+    LOG(WARNING) << "AddBinlogSender failed";
+    return Status::NotFound("AddBinlogSender bad sender");
+  }
+}
+
+void ZPServer::DeleteSlave(int fd) {
+  slash::MutexLock l(&slave_mutex_);
+  for (auto iter = slaves_.begin(); iter != slaves_.end(); iter++) {
+    if (iter->hb_fd == fd) {
+      delete static_cast<ZPBinlogSenderThread*>(iter->sender);
+      slaves_.erase(iter);
+      LOG(INFO) << "Delete slave success";
+      break;
+    }
+  }
+}

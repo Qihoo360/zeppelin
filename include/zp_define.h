@@ -1,11 +1,34 @@
 #ifndef ZP_DEFINE_H
 #define ZP_DEFINE_H
 
-#define ZP_MAX_WORKER_THREAD_NUM 24
+#include <string>
+
+const int kMaxWorkerThread = 4;
 
 const std::string kZPVersion = "0.0.1";
 const std::string kZPPidFile = "zp.pid";
 
+////// Server State /////
+enum ReplState {
+  kNoConnect = 0,
+  kConnect = 1,
+};
+
+const int kPortShiftHeartbeat = 100;
+const int kPortShiftSync = 200;
+
+const int kPingInterval = 3;
+const int kHeartbeatCronInterval = 9000;
+const int kDispatchCronInterval = 5000;
+//const int kDispathCronInterval = 3000;
+const int kWorkerCronInterval = 5000;
+//const int kWorkerCronInterval = 1000;
+const int kBinlogReceiverCronInterval = 6000;
+//const int kBinlogReceiverCronInterval = 1000;
+
+
+
+////// Binlog related //////
 // the block size that we read and write from write2file
 // the default size is 64KB
 const size_t kBlockSize = 64 * 1024;
@@ -18,27 +41,12 @@ const std::string kBinlogPrefix = "binlog";
 
 const std::string kManifest = "manifest";
 
-//struct ClientInfo {
-//  int fd;
-//  std::string ip_port;
-//  int last_interaction;
-//};
-//
-////slave item
-//struct SlaveItem {
-//  int64_t sid;
-//  std::string ip_port;
-//  int port;
-//  pthread_t sender_tid;
-//  int hb_fd;
-//  int stage;
-//  void* sender;
-//  struct timeval create_time;
-//};
+
 
 //#define SLAVE_ITEM_STAGE_ONE 1
 //#define SLAVE_ITEM_STAGE_TWO 2
-//
+
+
 ////repl_state_
 //#define ZP_REPL_NO_CONNECT 0
 //#define ZP_REPL_CONNECT 1
@@ -57,8 +65,6 @@ const std::string kManifest = "manifest";
  */
 //uint64_t kBinlogSize = 128; 
 //const uint64_t kBinlogSize = 1024 * 1024 * 100;
-
-
 
 
 /*

@@ -64,9 +64,10 @@ void ParseArgs(int argc, char* argv[], ZPOptions& options) {
     {"local_port", required_argument, NULL, 'p'},
     {"data_path", required_argument, NULL, 'd'},
     {"log_path", required_argument, NULL, 'l'},
+    {"help", no_argument, NULL, 'h'},
     {NULL, 0, NULL, 0}, };
 
-  const char* short_options = "I:P:p:d:l:";
+  const char* short_options = "I:P:p:d:l:h";
 
   int ch, longindex;
   while ((ch = getopt_long(argc, argv, short_options, long_options,
@@ -87,6 +88,9 @@ void ParseArgs(int argc, char* argv[], ZPOptions& options) {
       case 'l':
         options.log_path = optarg;
         break;
+      case 'h':
+        Usage();
+        exit(0);
       default:
         break;
     }

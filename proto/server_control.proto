@@ -1,0 +1,34 @@
+package ServerControl;
+
+enum OPCODE {
+  JOIN = 1;
+  PING = 2;
+}
+
+message Node {
+  required bytes ip = 1;
+  required int32 port = 2;
+}
+
+// Join 
+message Join {
+  message Request {
+    required Node node = 1;
+    required int32 filenum = 2 [default = 0];
+    required int32 offset = 3 [default = 0];
+  }
+  message Response {
+    required int32 status = 1;
+    optional bytes msg = 2;
+  }
+}
+
+// Ping 
+message Ping {
+  message Request {
+    required Node node = 1;
+  }
+  message Response {
+    required int32 status = 1;
+  }
+}

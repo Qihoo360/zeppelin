@@ -5,7 +5,7 @@ ZPOptions::ZPOptions()
   : seed_ip("127.0.0.1"),
     seed_port(8001),
     local_ip("127.0.0.1"),
-    local_port(9866),
+    local_port(8001),
     data_path("./data"),
     log_path("./log") {
     }

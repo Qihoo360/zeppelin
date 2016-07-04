@@ -18,13 +18,6 @@ message Set {
   }
 }
 
-message GetResponse {
-    required bool hit = 1;
-    optional bytes value = 2;
-    required bool success = 4;
-    optional bool uuid_expired = 5;
-}
-
 // Get 
 message Get {
   message Request {

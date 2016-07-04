@@ -2,9 +2,6 @@
 
 #include <glog/logging.h>
 
-#define TASK_KILL 0
-#define TASK_KILLALL 1
-
 ZPWorkerThread::ZPWorkerThread(int cron_interval)
   : WorkerThread::WorkerThread(cron_interval),
     thread_querynum_(0),
@@ -12,10 +9,12 @@ ZPWorkerThread::ZPWorkerThread(int cron_interval)
     last_time_us_(slash::NowMicros()),
     last_sec_thread_querynum_(0) {
       cmds_.reserve(300);
-      InitCmdTable(&cmds_);
+      InitClientCmdTable(&cmds_);
     }
 
 ZPWorkerThread::~ZPWorkerThread() {
+  DestoryCmdTable(cmds_);
+
   should_exit_ = true;
   pthread_join(thread_id(), NULL);
   LOG(INFO) << "A worker thread " << thread_id() << " exit!!!";

@@ -29,9 +29,6 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* Set_Response_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Set_Response_reflection_ = NULL;
-const ::google::protobuf::Descriptor* GetResponse_descriptor_ = NULL;
-const ::google::protobuf::internal::GeneratedMessageReflection*
-  GetResponse_reflection_ = NULL;
 const ::google::protobuf::Descriptor* Get_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Get_reflection_ = NULL;
@@ -99,25 +96,7 @@ void protobuf_AssignDesc_client_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(Set_Response));
-  GetResponse_descriptor_ = file->message_type(1);
-  static const int GetResponse_offsets_[4] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GetResponse, hit_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GetResponse, value_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GetResponse, success_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GetResponse, uuid_expired_),
-  };
-  GetResponse_reflection_ =
-    new ::google::protobuf::internal::GeneratedMessageReflection(
-      GetResponse_descriptor_,
-      GetResponse::default_instance_,
-      GetResponse_offsets_,
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GetResponse, _has_bits_[0]),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(GetResponse, _unknown_fields_),
-      -1,
-      ::google::protobuf::DescriptorPool::generated_pool(),
-      ::google::protobuf::MessageFactory::generated_factory(),
-      sizeof(GetResponse));
-  Get_descriptor_ = file->message_type(2);
+  Get_descriptor_ = file->message_type(1);
   static const int Get_offsets_[1] = {
   };
   Get_reflection_ =
@@ -182,8 +161,6 @@ void protobuf_RegisterTypes(const ::std::string&) {
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     Set_Response_descriptor_, &Set_Response::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-    GetResponse_descriptor_, &GetResponse::default_instance());
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     Get_descriptor_, &Get::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     Get_Request_descriptor_, &Get_Request::default_instance());
@@ -200,8 +177,6 @@ void protobuf_ShutdownFile_client_2eproto() {
   delete Set_Request_reflection_;
   delete Set_Response::default_instance_;
   delete Set_Response_reflection_;
-  delete GetResponse::default_instance_;
-  delete GetResponse_reflection_;
   delete Get::default_instance_;
   delete Get_reflection_;
   delete Get_Request::default_instance_;
@@ -220,24 +195,20 @@ void protobuf_AddDesc_client_2eproto() {
     "\n\014client.proto\022\006client\"c\n\003Set\0323\n\007Request"
     "\022\013\n\003key\030\001 \002(\014\022\r\n\005value\030\002 \002(\014\022\014\n\004uuid\030\003 \001"
     "(\014\032\'\n\010Response\022\016\n\006status\030\001 \002(\005\022\013\n\003msg\030\002 "
-    "\001(\014\"P\n\013GetResponse\022\013\n\003hit\030\001 \002(\010\022\r\n\005value"
-    "\030\002 \001(\014\022\017\n\007success\030\004 \002(\010\022\024\n\014uuid_expired\030"
-    "\005 \001(\010\"H\n\003Get\032\026\n\007Request\022\013\n\003key\030\001 \002(\014\032)\n\010"
-    "Response\022\016\n\006status\030\001 \002(\005\022\r\n\005value\030\002 \001(\014*"
-    "\032\n\006OPCODE\022\007\n\003SET\020\001\022\007\n\003GET\020\002", 307);
+    "\001(\014\"H\n\003Get\032\026\n\007Request\022\013\n\003key\030\001 \002(\014\032)\n\010Re"
+    "sponse\022\016\n\006status\030\001 \002(\005\022\r\n\005value\030\002 \001(\014*\032\n"
+    "\006OPCODE\022\007\n\003SET\020\001\022\007\n\003GET\020\002", 225);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "client.proto", &protobuf_RegisterTypes);
   Set::default_instance_ = new Set();
   Set_Request::default_instance_ = new Set_Request();
   Set_Response::default_instance_ = new Set_Response();
-  GetResponse::default_instance_ = new GetResponse();
   Get::default_instance_ = new Get();
   Get_Request::default_instance_ = new Get_Request();
   Get_Response::default_instance_ = new Get_Response();
   Set::default_instance_->InitAsDefaultInstance();
   Set_Request::default_instance_->InitAsDefaultInstance();
   Set_Response::default_instance_->InitAsDefaultInstance();
-  GetResponse::default_instance_->InitAsDefaultInstance();
   Get::default_instance_->InitAsDefaultInstance();
   Get_Request::default_instance_->InitAsDefaultInstance();
   Get_Response::default_instance_->InitAsDefaultInstance();
@@ -987,337 +958,6 @@ void Set::Swap(Set* other) {
   ::google::protobuf::Metadata metadata;
   metadata.descriptor = Set_descriptor_;
   metadata.reflection = Set_reflection_;
-  return metadata;
-}
-
-
-// ===================================================================
-
-#ifndef _MSC_VER
-const int GetResponse::kHitFieldNumber;
-const int GetResponse::kValueFieldNumber;
-const int GetResponse::kSuccessFieldNumber;
-const int GetResponse::kUuidExpiredFieldNumber;
-#endif  // !_MSC_VER
-
-GetResponse::GetResponse()
-  : ::google::protobuf::Message() {
-  SharedCtor();
-}
-
-void GetResponse::InitAsDefaultInstance() {
-}
-
-GetResponse::GetResponse(const GetResponse& from)
-  : ::google::protobuf::Message() {
-  SharedCtor();
-  MergeFrom(from);
-}
-
-void GetResponse::SharedCtor() {
-  _cached_size_ = 0;
-  hit_ = false;
-  value_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  success_ = false;
-  uuid_expired_ = false;
-  ::memset(_has_bits_, 0, sizeof(_has_bits_));
-}
-
-GetResponse::~GetResponse() {
-  SharedDtor();
-}
-
-void GetResponse::SharedDtor() {
-  if (value_ != &::google::protobuf::internal::kEmptyString) {
-    delete value_;
-  }
-  if (this != default_instance_) {
-  }
-}
-
-void GetResponse::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-}
-const ::google::protobuf::Descriptor* GetResponse::descriptor() {
-  protobuf_AssignDescriptorsOnce();
-  return GetResponse_descriptor_;
-}
-
-const GetResponse& GetResponse::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_client_2eproto();
-  return *default_instance_;
-}
-
-GetResponse* GetResponse::default_instance_ = NULL;
-
-GetResponse* GetResponse::New() const {
-  return new GetResponse;
-}
-
-void GetResponse::Clear() {
-  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    hit_ = false;
-    if (has_value()) {
-      if (value_ != &::google::protobuf::internal::kEmptyString) {
-        value_->clear();
-      }
-    }
-    success_ = false;
-    uuid_expired_ = false;
-  }
-  ::memset(_has_bits_, 0, sizeof(_has_bits_));
-  mutable_unknown_fields()->Clear();
-}
-
-bool GetResponse::MergePartialFromCodedStream(
-    ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
-  ::google::protobuf::uint32 tag;
-  while ((tag = input->ReadTag()) != 0) {
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required bool hit = 1;
-      case 1: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
-                 input, &hit_)));
-          set_has_hit();
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(18)) goto parse_value;
-        break;
-      }
-
-      // optional bytes value = 2;
-      case 2: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_value:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
-                input, this->mutable_value()));
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(32)) goto parse_success;
-        break;
-      }
-
-      // required bool success = 4;
-      case 4: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_success:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
-                 input, &success_)));
-          set_has_success();
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(40)) goto parse_uuid_expired;
-        break;
-      }
-
-      // optional bool uuid_expired = 5;
-      case 5: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_uuid_expired:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
-                 input, &uuid_expired_)));
-          set_has_uuid_expired();
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectAtEnd()) return true;
-        break;
-      }
-
-      default: {
-      handle_uninterpreted:
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-          return true;
-        }
-        DO_(::google::protobuf::internal::WireFormat::SkipField(
-              input, tag, mutable_unknown_fields()));
-        break;
-      }
-    }
-  }
-  return true;
-#undef DO_
-}
-
-void GetResponse::SerializeWithCachedSizes(
-    ::google::protobuf::io::CodedOutputStream* output) const {
-  // required bool hit = 1;
-  if (has_hit()) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(1, this->hit(), output);
-  }
-
-  // optional bytes value = 2;
-  if (has_value()) {
-    ::google::protobuf::internal::WireFormatLite::WriteBytes(
-      2, this->value(), output);
-  }
-
-  // required bool success = 4;
-  if (has_success()) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(4, this->success(), output);
-  }
-
-  // optional bool uuid_expired = 5;
-  if (has_uuid_expired()) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(5, this->uuid_expired(), output);
-  }
-
-  if (!unknown_fields().empty()) {
-    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
-        unknown_fields(), output);
-  }
-}
-
-::google::protobuf::uint8* GetResponse::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
-  // required bool hit = 1;
-  if (has_hit()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(1, this->hit(), target);
-  }
-
-  // optional bytes value = 2;
-  if (has_value()) {
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
-        2, this->value(), target);
-  }
-
-  // required bool success = 4;
-  if (has_success()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(4, this->success(), target);
-  }
-
-  // optional bool uuid_expired = 5;
-  if (has_uuid_expired()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(5, this->uuid_expired(), target);
-  }
-
-  if (!unknown_fields().empty()) {
-    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
-        unknown_fields(), target);
-  }
-  return target;
-}
-
-int GetResponse::ByteSize() const {
-  int total_size = 0;
-
-  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required bool hit = 1;
-    if (has_hit()) {
-      total_size += 1 + 1;
-    }
-
-    // optional bytes value = 2;
-    if (has_value()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::BytesSize(
-          this->value());
-    }
-
-    // required bool success = 4;
-    if (has_success()) {
-      total_size += 1 + 1;
-    }
-
-    // optional bool uuid_expired = 5;
-    if (has_uuid_expired()) {
-      total_size += 1 + 1;
-    }
-
-  }
-  if (!unknown_fields().empty()) {
-    total_size +=
-      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
-        unknown_fields());
-  }
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-  return total_size;
-}
-
-void GetResponse::MergeFrom(const ::google::protobuf::Message& from) {
-  GOOGLE_CHECK_NE(&from, this);
-  const GetResponse* source =
-    ::google::protobuf::internal::dynamic_cast_if_available<const GetResponse*>(
-      &from);
-  if (source == NULL) {
-    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
-  } else {
-    MergeFrom(*source);
-  }
-}
-
-void GetResponse::MergeFrom(const GetResponse& from) {
-  GOOGLE_CHECK_NE(&from, this);
-  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from.has_hit()) {
-      set_hit(from.hit());
-    }
-    if (from.has_value()) {
-      set_value(from.value());
-    }
-    if (from.has_success()) {
-      set_success(from.success());
-    }
-    if (from.has_uuid_expired()) {
-      set_uuid_expired(from.uuid_expired());
-    }
-  }
-  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
-}
-
-void GetResponse::CopyFrom(const ::google::protobuf::Message& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-void GetResponse::CopyFrom(const GetResponse& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool GetResponse::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000005) != 0x00000005) return false;
-
-  return true;
-}
-
-void GetResponse::Swap(GetResponse* other) {
-  if (other != this) {
-    std::swap(hit_, other->hit_);
-    std::swap(value_, other->value_);
-    std::swap(success_, other->success_);
-    std::swap(uuid_expired_, other->uuid_expired_);
-    std::swap(_has_bits_[0], other->_has_bits_[0]);
-    _unknown_fields_.Swap(&other->_unknown_fields_);
-    std::swap(_cached_size_, other->_cached_size_);
-  }
-}
-
-::google::protobuf::Metadata GetResponse::GetMetadata() const {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::Metadata metadata;
-  metadata.descriptor = GetResponse_descriptor_;
-  metadata.reflection = GetResponse_reflection_;
   return metadata;
 }
 

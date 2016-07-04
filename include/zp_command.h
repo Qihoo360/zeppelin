@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include "client.pb.h"
+#include "server_control.pb.h"
 #include "slash_string.h"
 #include "slash_status.h"
 
@@ -55,6 +56,7 @@ class Cmd {
   virtual ~Cmd() {}
   virtual Status Init(const void *buf, size_t count) = 0;
   virtual void Do() = 0;
+  virtual std::string key() { return ""; }
 
   google::protobuf::Message* Response() {
     return response_;
@@ -91,8 +93,9 @@ class Cmd {
 };
 
 // Method for Cmd Table
-void InitCmdTable(std::unordered_map<int, Cmd*> *cmd_table);
-Cmd* GetCmdFromTable(const client::OPCODE op, const std::unordered_map<int, Cmd*> &cmd_table);
+void InitClientCmdTable(std::unordered_map<int, Cmd*> *cmd_table);
+void InitServerControlCmdTable(std::unordered_map<int, Cmd*> *cmd_table);
+Cmd* GetCmdFromTable(const int op, const std::unordered_map<int, Cmd*> &cmd_table);
 void DestoryCmdTable(std::unordered_map<int, Cmd*> &cmd_table);
 
 #endif

@@ -11,9 +11,12 @@ extern ZPServer *zp_server;
 Status SetCmd::Init(const void *buf, size_t count) {
   client::Set_Request* request = new client::Set_Request;
   request->ParseFromArray(buf, count);
+  key_ = request->key();
   
   request_ = request;
   assert(request_ != NULL);
+
+  DLOG(INFO) << "SetCmd::Init key(" << request->key() << ") ok";
 
   return Status::OK();
 }
