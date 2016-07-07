@@ -1,4 +1,4 @@
-#include "zp_server.h"
+#include "zp_data_server.h"
 
 #include <glog/logging.h>
 #include "server_control.pb.h"
@@ -6,12 +6,9 @@
 #include "zp_worker_thread.h"
 #include "zp_dispatch_thread.h"
 
-ZPServer::ZPServer(const ZPOptions& options)
+ZPDataServer::ZPDataServer(const ZPOptions& options)
   : options_(options),
-  repl_state_(ReplState::kNoConnect),
-  is_seed(options.local_ip == options.seed_ip && options.local_port == options.seed_port)
-  {
-
+  repl_state_(ReplState::kNoConnect) {
   DLOG(INFO) << "is_seed " << is_seed;
   pthread_rwlock_init(&state_rw_, NULL);
 
@@ -33,7 +30,7 @@ ZPServer::ZPServer(const ZPOptions& options)
 
   zp_dispatch_thread_ = new ZPDispatchThread(options_.local_port, worker_num_, zp_worker_thread_, kDispatchCronInterval);
   zp_ping_thread_ = new ZPPingThread();
-  zp_heartbeat_thread_ = new ZPHeartbeatThread(options_.local_port + kPortShiftHeartbeat, kHeartbeatCronInterval);
+ // zp_heartbeat_thread_ = new ZPHeartbeatThread(options_.local_port + kPortShiftHeartbeat, kHeartbeatCronInterval);
   zp_binlog_receiver_thread_ = new ZPBinlogReceiverThread(options_.local_port + kPortShiftSync, kBinlogReceiverCronInterval);
 
   logger_ = new Binlog(options_.log_path);
@@ -42,8 +39,8 @@ ZPServer::ZPServer(const ZPOptions& options)
   //LOG(INFO) << "local_host " << options_.local_ip << ":" << options.local_port;
 }
 
-ZPServer::~ZPServer() {
-  delete zp_heartbeat_thread_;
+ZPDataServer::~ZPDataServer() {
+  //delete zp_heartbeat_thread_;
   delete zp_ping_thread_;
   delete zp_dispatch_thread_;
 
@@ -54,32 +51,26 @@ ZPServer::~ZPServer() {
   delete zp_binlog_receiver_thread_;
   
   // TODO 
-  if (is_seed) {
-    delete zp_heartbeat_thread_;
-  } else {
-    delete zp_ping_thread_;
-  }
+  delete zp_ping_thread_;
+
   pthread_rwlock_destroy(&state_rw_);
 }
 
-Status ZPServer::Start() {
+Status ZPDataServer::Start() {
   zp_dispatch_thread_->StartThread();
   zp_binlog_receiver_thread_->StartThread();
 
-  if (is_seed) {
     // TODO seed or normal both need
-    zp_heartbeat_thread_->StartThread();
-  } else {
+   // zp_heartbeat_thread_->StartThread();
     zp_ping_thread_->StartThread();
-  }
 
-  LOG(INFO) << "ZPServer started on port:" <<  options_.local_port << ", seed is " << options_.seed_ip.c_str() << ":" << options_.seed_port;
+  LOG(INFO) << "ZPDataServer started on port:" <<  options_.local_port << ", seed is " << options_.seed_ip.c_str() << ":" << options_.seed_port;
   server_mutex_.Lock();
   server_mutex_.Lock();
   return Status::OK();
 }
 
-bool ZPServer::FindSlave(const Node& node) {
+bool ZPDataServer::FindSlave(const Node& node) {
   for (auto iter = slaves_.begin(); iter != slaves_.end(); iter++) {
     if (iter->node == node) {
       return true;
@@ -88,14 +79,14 @@ bool ZPServer::FindSlave(const Node& node) {
   return false;
 }
 
-bool ZPServer::ShouldJoin() {
+bool ZPDataServer::ShouldJoin() {
   slash::RWLock l(&state_rw_, false);
   DLOG(INFO) <<  "repl_state: " << repl_state_;
   return !is_seed && repl_state_ == ReplState::kNoConnect;
 }
 
 // slave_mutex should be held
-Status ZPServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t offset) {
+Status ZPDataServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t offset) {
   // Sanity check
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
@@ -137,7 +128,7 @@ Status ZPServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t of
   }
 }
 
-void ZPServer::DeleteSlave(int fd) {
+void ZPDataServer::DeleteSlave(int fd) {
   slash::MutexLock l(&slave_mutex_);
   for (auto iter = slaves_.begin(); iter != slaves_.end(); iter++) {
     if (iter->hb_fd == fd) {

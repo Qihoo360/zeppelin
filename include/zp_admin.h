@@ -25,4 +25,6 @@ class JoinCmd : public Cmd {
 };
 
 
+void InitClientCmdTable(std::unordered_map<int, Cmd*> *cmd_table);
+
 #endif

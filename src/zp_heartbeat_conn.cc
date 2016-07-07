@@ -1,12 +1,12 @@
 #include "zp_heartbeat_conn.h"
 
 #include <glog/logging.h>
-#include "zp_server.h"
+#include "zp_data_server.h"
 #include "zp_admin.h"
 
 #include "slash_string.h"
 
-extern ZPServer *zp_server;
+extern ZPDataServer *zp_data_server;
 
 ZPHeartbeatConn::ZPHeartbeatConn(int fd, std::string ip_port, pink::Thread* thread) :
   PbConn(fd, ip_port) {
@@ -72,7 +72,7 @@ int ZPHeartbeatConn::DealMessage() {
 //  } else if (argv_[0] == "spci") {
 //    int64_t sid = -1;
 //    slash::string2l(argv_[1].data(), argv_[1].size(), &sid);
-//    zp_server->MayUpdateSlavesMap(sid, fd());
+//    zp_data_server->MayUpdateSlavesMap(sid, fd());
 //    memcpy(wbuf_ + wbuf_len_, "+OK\r\n", 5);
 //    wbuf_len_ += 5;
 //  } else {

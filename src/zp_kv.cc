@@ -1,12 +1,12 @@
 #include "zp_kv.h"
 
 #include <glog/logging.h>
-#include "zp_server.h"
+#include "zp_data_server.h"
 
 #include "slash_string.h"
 #include "nemo.h"
 
-extern ZPServer *zp_server;
+extern ZPDataServer *zp_data_server;
 
 Status SetCmd::Init(const void *buf, size_t count) {
   client::Set_Request* request = new client::Set_Request;
@@ -26,7 +26,7 @@ void SetCmd::Do() {
   client::Set_Response* response = new client::Set_Response;
 
   //int32_t ttl;
-  nemo::Status s = zp_server->db()->Set(request->key(), request->value());
+  nemo::Status s = zp_data_server->db()->Set(request->key(), request->value());
   if (!s.ok()) {
     response->set_status(1);
     response->set_msg(result_.ToString());
@@ -56,7 +56,7 @@ void GetCmd::Do() {
   client::Get_Response* response = new client::Get_Response;
 
   std::string value;
-  nemo::Status s = zp_server->db()->Get(request->key(), &value);
+  nemo::Status s = zp_data_server->db()->Get(request->key(), &value);
   if (!s.ok()) {
     response->set_status(1);
     result_ = slash::Status::Corruption(s.ToString());

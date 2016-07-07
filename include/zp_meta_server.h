@@ -1,5 +1,5 @@
-#ifndef ZP_SERVER_H
-#define ZP_SERVER_H
+#ifndef ZP_MASTER_SERVER_H
+#define ZP_MASTER_SERVER_H
 
 #include <string>
 #include <memory>
@@ -7,10 +7,7 @@
 #include "zp_binlog.h"
 #include "zp_meta.h"
 #include "zp_define.h"
-#include "zp_ping_thread.h"
-#include "zp_heartbeat_thread.h"
-#include "zp_binlog_sender_thread.h"
-#include "zp_binlog_receiver_thread.h"
+//#include "zp_heartbeat_thread.h"
 
 #include "pb_conn.h"
 #include "pb_cli.h"
@@ -23,19 +20,19 @@
 
 using slash::Status;
 
-class ZPServer;
-class ZPServerConn;
-class ZPServerThread;
+class ZPMetaServer;
+//class ZPMetaServerConn;
+//class ZPMetaServerThread;
 
-class ZPWorkerThread;
-class ZPDispatchThread;
+//class ZPWorkerThread;
+//class ZPDispatchThread;
 
 
-class ZPServer {
+class ZPMetaServer {
  public:
 
-  explicit ZPServer(const ZPOptions& option);
-  virtual ~ZPServer();
+  explicit ZPMetaServer(const ZPOptions& option);
+  virtual ~ZPMetaServer();
   Status Start();
   
   Status Set(const std::string &key, const std::string &value);
@@ -57,17 +54,12 @@ class ZPServer {
     return options_.local_port;
   }
 
-  bool FindSlave(const Node& node);
-  Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
-  void DeleteSlave(int fd);
-  bool ShouldJoin();
-
   Binlog* logger_;
 
   slash::Mutex slave_mutex_;
   std::vector<SlaveItem> slaves_;
 
-  slash::RecordMutex mutex_record_;
+  //slash::RecordMutex mutex_record_;
 
  private:
 
@@ -80,17 +72,11 @@ class ZPServer {
 
   // Server related
   int worker_num_;
-  ZPWorkerThread* zp_worker_thread_[kMaxWorkerThread];
-  ZPDispatchThread* zp_dispatch_thread_;
-  ZPPingThread* zp_ping_thread_;
-  ZPHeartbeatThread* zp_heartbeat_thread_;
-  ZPBinlogReceiverThread* zp_binlog_receiver_thread_;
+  //ZPWorkerThread* zp_worker_thread_[kMaxWorkerThread];
+  //ZPDispatchThread* zp_dispatch_thread_;
 
   // State related
   pthread_rwlock_t state_rw_;
-  int repl_state_;  
-  bool is_seed;
-
 };
 
 #endif

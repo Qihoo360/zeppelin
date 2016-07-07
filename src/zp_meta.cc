@@ -5,12 +5,12 @@
 #include <sstream>
 #include <glog/logging.h>
 
-#include "zp_data_server.h"
+#include "zp_meta_server.h"
 #include "zp_options.h"
 
 #include "env.h"
 
-ZPDataServer* zp_data_server;
+ZPMetaServer* zp_meta_server;
 
 void Usage();
 void ParseArgs(int argc, char* argv[], ZPOptions& options);
@@ -38,9 +38,9 @@ int main(int argc, char** argv) {
 
   signal(SIGPIPE, SIG_IGN);
 
-  zp_data_server = new ZPDataServer(options);
+  zp_meta_server = new ZPMetaServer(options);
 
-  zp_data_server->Start();
+  zp_meta_server->Start();
 
   printf ("Exit\n");
 
@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 
 void Usage() {
   printf ("Usage:\n"
-          "  ./output/bin/zp --floyd_ip ip1 --floyd_port port1 --local_port local_port --data_path path --log_path path\n");
+          "  ./output/bin/zp-master --floyd_ip ip1 --floyd_port port1 --local_port local_port --data_path path --log_path path\n");
 }
 
 void ParseArgs(int argc, char* argv[], ZPOptions& options) {

@@ -1,10 +1,10 @@
 #include "zp_sync_conn.h"
 
 #include <glog/logging.h>
-#include "zp_server.h"
+#include "zp_data_server.h"
 #include "zp_binlog_receiver_thread.h"
 
-extern ZPServer* zp_server;
+extern ZPDataServer* zp_data_server;
 
 ZPSyncConn::ZPSyncConn(int fd, std::string ip_port, pink::Thread* thread) :
   PbConn(fd, ip_port) {
@@ -37,7 +37,7 @@ int ZPSyncConn::DealMessage() {
   DLOG(INFO) << "s1. cmd->Init then Do";
   if (cmd->is_write()) {
     // TODO add RecordLock for write cmd
-    zp_server->mutex_record_.Lock(cmd->key());
+    zp_data_server->mutex_record_.Lock(cmd->key());
   }
 
   // do not reply
@@ -50,12 +50,12 @@ int ZPSyncConn::DealMessage() {
     if (cmd->result().ok()) {
       // Restore Message
       std::string raw_msg(rbuf_, header_len_);
-      zp_server->logger_->Lock();
-      zp_server->logger_->Put(raw_msg);
-      zp_server->logger_->Unlock();
+      zp_data_server->logger_->Lock();
+      zp_data_server->logger_->Put(raw_msg);
+      zp_data_server->logger_->Unlock();
     }
     // TODO add RecordLock for write cmd
-    zp_server->mutex_record_.Unlock(cmd->key());
+    zp_data_server->mutex_record_.Unlock(cmd->key());
   }
 
   //res_ = cmd->Response();

@@ -1,12 +1,22 @@
 #include "zp_admin.h"
 
 #include <glog/logging.h>
-#include "zp_server.h"
+#include "zp_meta_server.h"
 
 #include "slash_string.h"
 #include "nemo.h"
 
-extern ZPServer *zp_server;
+extern ZPMetaServer *zp_meta_server;
+
+void InitServerControlCmdTable(std::unordered_map<int, Cmd*> *cmd_table) {
+  // Join
+  Cmd* joinptr = new JoinCmd(kCmdFlagsWrite);
+  cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(ServerControl::OPCODE::JOIN), joinptr));
+
+  // Ping
+  Cmd* pingptr = new PingCmd(kCmdFlagsRead);
+  cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(ServerControl::OPCODE::PING), pingptr));
+}
 
 Status JoinCmd::Init(const void *buf, size_t count) {
   ServerControl::Join_Request* request = new ServerControl::Join_Request;
@@ -25,28 +35,28 @@ void JoinCmd::Do() {
   slash::Status s;
   Node node(request->node().ip(), request->node().port());
 
-  slash::MutexLock l(&(zp_server->slave_mutex_));
-  if (!zp_server->FindSlave(node)) {
-    SlaveItem si;
-    si.node = node;
-    si.hb_fd = fd_;
-    gettimeofday(&si.create_time, NULL);
-    si.sender = NULL;
+ // slash::MutexLock l(&(zp_meta_server->slave_mutex_));
+ // if (!zp_meta_server->FindSlave(node)) {
+ //   SlaveItem si;
+ //   si.node = node;
+ //   si.hb_fd = fd_;
+ //   gettimeofday(&si.create_time, NULL);
+ //   si.sender = NULL;
 
-    LOG(INFO) << "Join a new node(" << node.ip << ", " << node.port << ")";
-    s = zp_server->AddBinlogSender(si, request->filenum(), request->offset());
+ //   LOG(INFO) << "Join a new node(" << node.ip << ", " << node.port << ")";
+ //   s = zp_meta_server->AddBinlogSender(si, request->filenum(), request->offset());
 
-    if (!s.ok()) {
-      response->set_status(1);
-      response->set_msg(result_.ToString());
-      result_ = slash::Status::Corruption(s.ToString());
-      LOG(ERROR) << "command failed: Join, caz " << s.ToString();
-    } else {
-      response->set_status(0);
-      DLOG(INFO) << "Join node ok";
-      result_ = slash::Status::OK();
-    }
-  }
+ //   if (!s.ok()) {
+ //     response->set_status(1);
+ //     response->set_msg(result_.ToString());
+ //     result_ = slash::Status::Corruption(s.ToString());
+ //     LOG(ERROR) << "command failed: Join, caz " << s.ToString();
+ //   } else {
+ //     response->set_status(0);
+ //     DLOG(INFO) << "Join node ok";
+ //     result_ = slash::Status::OK();
+ //   }
+ // }
 
   response_ = response;
 }
@@ -67,16 +77,16 @@ void PingCmd::Do() {
 
   Node node(request->node().ip(), request->node().port());
 
-  slash::MutexLock l(&(zp_server->slave_mutex_));
-  if (!zp_server->FindSlave(node)) {
-    LOG(WARNING) << "receive Ping from unknown node(" << node.ip << ", " << node.port << ")";
-    response->set_status(1);
-    result_ = slash::Status::Corruption("unrecognized");
-  } else {
-    response->set_status(0);
-    DLOG(INFO) << "receive Ping from node(" << node.ip << ":" << node.port << ")";
-    result_ = slash::Status::OK();
-  }
+//  slash::MutexLock l(&(zp_meta_server->slave_mutex_));
+//  if (!zp_meta_server->FindSlave(node)) {
+//    LOG(WARNING) << "receive Ping from unknown node(" << node.ip << ", " << node.port << ")";
+//    response->set_status(1);
+//    result_ = slash::Status::Corruption("unrecognized");
+//  } else {
+//    response->set_status(0);
+//    DLOG(INFO) << "receive Ping from node(" << node.ip << ":" << node.port << ")";
+//    result_ = slash::Status::OK();
+//  }
 
   response_ = response;
 }

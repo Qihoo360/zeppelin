@@ -22,4 +22,14 @@ class GetCmd : public Cmd {
   virtual void Do();
 };
 
+void InitClientCmdTable(std::unordered_map<int, Cmd*> *cmd_table) {
+  //Kv
+  ////SetCmd
+  Cmd* setptr = new SetCmd(kCmdFlagsWrite);
+  cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(client::OPCODE::SET), setptr));
+  ////GetCmd
+  Cmd* getptr = new GetCmd(kCmdFlagsRead);
+  cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(client::OPCODE::GET), getptr));
+}
+
 #endif

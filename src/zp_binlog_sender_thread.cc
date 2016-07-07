@@ -3,7 +3,7 @@
 #include <glog/logging.h>
 #include <poll.h>
 
-#include "zp_server.h"
+#include "zp_data_server.h"
 #include "zp_define.h"
 #include "pb_cli.h"
 
@@ -11,7 +11,7 @@ using slash::Status;
 using slash::Slice;
 using pink::PbCli;
 
-extern ZPServer* zp_server;
+extern ZPDataServer* zp_data_server;
 
 ZPBinlogSenderThread::ZPBinlogSenderThread(std::string &ip, int port, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset)
   : con_offset_(con_offset),
@@ -198,7 +198,7 @@ Status ZPBinlogSenderThread::Parse(std::string &scratch) {
   uint32_t pro_num;
   uint64_t pro_offset;
 
-  Binlog* logger = zp_server->logger_;
+  Binlog* logger = zp_data_server->logger_;
   while (!should_exit_) {
     logger->GetProducerStatus(&pro_num, &pro_offset);
     if (filenum_ == pro_num && con_offset_ == pro_offset) {
@@ -212,7 +212,7 @@ Status ZPBinlogSenderThread::Parse(std::string &scratch) {
 
     //DLOG(INFO) << "BinlogSender after Parse a msg return " << s.ToString() << " filenum_" << filenum_ << ", con_offset " << con_offset_;
     if (s.IsEndFile()) {
-      std::string confile = NewFileName(zp_server->logger_->filename, filenum_ + 1);
+      std::string confile = NewFileName(zp_data_server->logger_->filename, filenum_ + 1);
 
       // Roll to next File
       if (slash::FileExists(confile)) {

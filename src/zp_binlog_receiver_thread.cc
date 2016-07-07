@@ -1,10 +1,10 @@
 #include "zp_binlog_receiver_thread.h"
 
 #include <glog/logging.h>
-#include "zp_server.h"
+//#include "zp_data_server.h"
 #include "zp_command.h"
 
-extern ZPServer* zp_server;
+//extern ZPDataServer* zp_data_server;
 
 ZPBinlogReceiverThread::ZPBinlogReceiverThread(int port, int cron_interval)
   : HolyThread::HolyThread(port, cron_interval),
@@ -26,15 +26,15 @@ ZPBinlogReceiverThread::~ZPBinlogReceiverThread() {
 
 bool ZPBinlogReceiverThread::AccessHandle(std::string& ip) {
 //  if (ip == "127.0.0.1") {
-//    ip = zp_server->host();
+//    ip = zp_data_server->host();
 //  }
 //
-//  if (ThreadClientNum() != 0 || !zp_server->ShouldAccessConnAsMaster(ip)) {
+//  if (ThreadClientNum() != 0 || !zp_data_server->ShouldAccessConnAsMaster(ip)) {
 //    LOG(WARNING) << "BinlogReceiverThread AccessHandle failed: " << ip;
 //    return false;
 //  }
 //
-  //zp_server->PlusMasterConnection();
+  //zp_data_server->PlusMasterConnection();
   return true;
 }
 
@@ -81,5 +81,5 @@ void ZPBinlogReceiverThread::KillAll() {
       iter = conns_.erase(iter);
     }
   }
-  //zp_server->MinusMasterConnection();
+  //zp_data_server->MinusMasterConnection();
 }

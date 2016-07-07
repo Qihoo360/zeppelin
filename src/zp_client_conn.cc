@@ -5,9 +5,9 @@
 #include <glog/logging.h>
 
 #include "zp_worker_thread.h"
-#include "zp_server.h"
+#include "zp_data_server.h"
 
-extern ZPServer* zp_server;
+extern ZPDataServer* zp_data_server;
 
 ////// ZPClientConn //////
 ZPClientConn::ZPClientConn(int fd, std::string ip_port, pink::Thread* thread) :
@@ -39,7 +39,7 @@ int ZPClientConn::DealMessage() {
 
   if (cmd->is_write()) {
     // TODO add RecordLock for write cmd
-    zp_server->mutex_record_.Lock(cmd->key());
+    zp_data_server->mutex_record_.Lock(cmd->key());
   }
 
   set_is_reply(true);
@@ -49,12 +49,12 @@ int ZPClientConn::DealMessage() {
     if (cmd->result().ok()) {
       // Restore Message
       std::string raw_msg(rbuf_, header_len_ + 4);
-      zp_server->logger_->Lock();
-      zp_server->logger_->Put(raw_msg);
-      zp_server->logger_->Unlock();
+      zp_data_server->logger_->Lock();
+      zp_data_server->logger_->Put(raw_msg);
+      zp_data_server->logger_->Unlock();
     }
     // TODO add RecordLock for write cmd
-    zp_server->mutex_record_.Unlock(cmd->key());
+    zp_data_server->mutex_record_.Unlock(cmd->key());
   }
 
   res_ = cmd->Response();

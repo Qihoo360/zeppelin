@@ -3,9 +3,9 @@
 #include <glog/logging.h>
 
 #include "zp_client_conn.h"
-#include "zp_server.h"
+#include "zp_data_server.h"
 
-extern ZPServer* g_zp_server;
+extern ZPDataServer* g_zp_data_server;
 
 ZPDispatchThread::ZPDispatchThread(int port, int work_num, ZPWorkerThread** ZP_worker_thread, int cron_interval)
   : DispatchThread::DispatchThread(port, work_num,

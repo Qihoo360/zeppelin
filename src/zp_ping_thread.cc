@@ -1,9 +1,9 @@
 #include "zp_ping_thread.h"
 
 #include <glog/logging.h>
-#include "zp_server.h"
+#include "zp_data_server.h"
 
-extern ZPServer* zp_server;
+extern ZPDataServer* zp_data_server;
 
 ZPPingThread::~ZPPingThread() {
   should_exit_ = true;
@@ -17,21 +17,21 @@ pink::Status ZPPingThread::Send() {
   if (!is_first_send_) {
     ServerControl::Ping_Request request;
     ServerControl::Node* node = request.mutable_node();
-    node->set_ip(zp_server->local_ip());
-    node->set_port(zp_server->local_port());
+    node->set_ip(zp_data_server->local_ip());
+    node->set_port(zp_data_server->local_port());
 
-    DLOG(INFO) << "Ping " << zp_server->local_ip() << ":" << zp_server->local_port();
+    DLOG(INFO) << "Ping " << zp_data_server->local_ip() << ":" << zp_data_server->local_port();
     cli_->set_opcode(ServerControl::OPCODE::PING);
     return cli_->Send(&request);
   } else {
     ServerControl::Join_Request request;
     ServerControl::Node* node = request.mutable_node();
-    node->set_ip(zp_server->local_ip());
-    node->set_port(zp_server->local_port());
+    node->set_ip(zp_data_server->local_ip());
+    node->set_port(zp_data_server->local_port());
 
     uint32_t filenum = 0;
     uint64_t offset = 0;
-    zp_server->logger_->GetProducerStatus(&filenum, &offset);
+    zp_data_server->logger_->GetProducerStatus(&filenum, &offset);
     request.set_filenum(filenum);
     request.set_offset(offset);
 
@@ -40,7 +40,7 @@ pink::Status ZPPingThread::Send() {
 
     LOG(INFO) << "Join with SyncPoint (" << filenum << ", " << offset << ")";
     LOG(INFO) << "          Node (" << request.node().ip() << ":" << request.node().port() << ")";
-    LOG(INFO) << "          Local (" << zp_server->local_ip() << ":" << zp_server->local_port() << ")";
+    LOG(INFO) << "          Local (" << zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
     return cli_->Send(&request);
   }
 }
@@ -84,9 +84,9 @@ void* ZPPingThread::ThreadMain() {
 
   pink::Status s;
 
-  while (!should_exit_ && zp_server->ShouldJoin()) {
+  while (!should_exit_ && zp_data_server->ShouldJoin()) {
     // Connect with heartbeat port
-    s = cli_->Connect(zp_server->seed_ip(), zp_server->seed_port() + kPortShiftHeartbeat);
+    s = cli_->Connect(zp_data_server->seed_ip(), zp_data_server->seed_port() + kPortShiftHeartbeat);
 
     if (s.ok()) {
       cli_->set_send_timeout(1000);
@@ -94,7 +94,7 @@ void* ZPPingThread::ThreadMain() {
       connect_retry_times = 0;
 
       // TODO ping connect ok
-      //zp_server->PlusMasterConnection();
+      //zp_data_server->PlusMasterConnection();
 
       // Send && Recv
       while (!should_exit_) {
@@ -120,17 +120,17 @@ void* ZPPingThread::ThreadMain() {
         gettimeofday(&now, NULL);
         if (now.tv_sec - last_interaction.tv_sec > 30) {
           LOG(WARNING) << "Ping leader timeout";
-          //zp_server->zp_binlog_receiver_thread()->KillBinlogSender();
+          //zp_data_server->zp_binlog_receiver_thread()->KillBinlogSender();
           break;
         }
       }
 
-      //zp_server->MinusMasterConnection();
+      //zp_data_server->MinusMasterConnection();
     } else if (s.IsTimeout()) {
       LOG(WARNING) << "PingThread, Connect timeout once";
       if ((++connect_retry_times) >= 30) {
         LOG(WARNING) << "PingThread, Connect timeout 30 times, disconnect with master";
-        //zp_server->zp_binlog_receiver_thread()->KillBinlogSender();
+        //zp_data_server->zp_binlog_receiver_thread()->KillBinlogSender();
         connect_retry_times = 0;
       }
     } else {
