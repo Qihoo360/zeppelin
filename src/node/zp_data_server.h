@@ -51,6 +51,12 @@ class ZPDataServer {
   int seed_port() {
     return options_.seed_port;
   }
+  std::string meta_ip() {
+    return options_.seed_ip;
+  }
+  int meta_port() {
+    return options_.seed_port;
+  }
   std::string local_ip() {
     return options_.local_ip;
   }
@@ -63,6 +69,10 @@ class ZPDataServer {
   void DeleteSlave(int fd);
   bool ShouldJoin();
   void JoinDone();
+
+  bool ShouldJoinMeta();
+  void PlusMetaServerConns();
+  void MinusMetaServerConns();
 
   Binlog* logger_;
 
@@ -93,6 +103,12 @@ class ZPDataServer {
   pthread_rwlock_t state_rw_;
   int repl_state_;  
   bool is_seed;
+
+  // Meta State related
+  pthread_rwlock_t meta_state_rw_;
+  std::atomic<bool> should_rejoin_;
+  int meta_state_;
+  int meta_server_conns_;
 
 };
 

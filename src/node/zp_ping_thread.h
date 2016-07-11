@@ -30,6 +30,7 @@ class ZPPingThread : public pink::Thread {
 
   int sockfd_;
   ZPPbCli *cli_;
+//  pink::PbCli *cli_;
 
   virtual void* ThreadMain();
 
