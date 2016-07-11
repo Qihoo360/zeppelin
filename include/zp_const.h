@@ -11,12 +11,14 @@ const std::string kZPPidFile = "zp.pid";
 ////// Server State /////
 enum ReplState {
   kNoConnect = 0,
-  kConnect = 1,
+  kShouldConnect = 1,
+  kConnected = 2,
 };
 
 const int kPortShiftDataCmd = 100;
 const int kPortShiftSync = 200;
 
+const int kTrySyncInterval = 2;
 const int kPingInterval = 3;
 const int kMetaCmdCronInterval = 9000;
 const int kDispatchCronInterval = 5000;

@@ -9,6 +9,7 @@
 #include "zp_const.h"
 #include "zp_metacmd_worker_thread.h"
 #include "zp_ping_thread.h"
+#include "zp_trysync_thread.h"
 #include "zp_binlog_sender_thread.h"
 #include "zp_binlog_receiver_thread.h"
 
@@ -61,6 +62,7 @@ class ZPDataServer {
   Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
   void DeleteSlave(int fd);
   bool ShouldJoin();
+  void JoinDone();
 
   Binlog* logger_;
 
@@ -85,6 +87,7 @@ class ZPDataServer {
   ZPPingThread* zp_ping_thread_;
   ZPMetacmdWorkerThread* zp_metacmd_worker_thread_;
   ZPBinlogReceiverThread* zp_binlog_receiver_thread_;
+  ZPTrySyncThread* zp_trysync_thread_;
 
   // State related
   pthread_rwlock_t state_rw_;

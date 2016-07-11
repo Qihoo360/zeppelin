@@ -39,7 +39,7 @@ bool ZPBinlogReceiverThread::AccessHandle(std::string& ip) {
 }
 
 void ZPBinlogReceiverThread::CronHandle() {
-  DLOG(INFO) << "ZPBinlogReceiverThread, CronTask---";
+  //DLOG(INFO) << "ZPBinlogReceiverThread, CronTask---";
   ResetLastSecQuerynum();
   {
     WorkerCronTask t;

@@ -25,7 +25,6 @@ int ZPMetacmdConn::DealMessage() {
     LOG(ERROR) << "unsupported type: " << (int)request_.type();
     return -1;
   }
-  
 
   // for now, only one cmd SYNC
   switch (request_.type()) {
@@ -44,23 +43,7 @@ int ZPMetacmdConn::DealMessage() {
     // TODO add RecordLock for write cmd
   }
 
-  res_ = cmd->Response();
+  res_ = &response_;
 
-  return 0;
-  
-//  set_is_reply(true);
-//  if (argv_[0] == "ping") {
-//    memcpy(wbuf_ + wbuf_len_, "+PONG\r\n", 7);
-//    wbuf_len_ += 7;
-//  } else if (argv_[0] == "spci") {
-//    int64_t sid = -1;
-//    slash::string2l(argv_[1].data(), argv_[1].size(), &sid);
-//    zp_data_server->MayUpdateSlavesMap(sid, fd());
-//    memcpy(wbuf_ + wbuf_len_, "+OK\r\n", 5);
-//    wbuf_len_ += 5;
-//  } else {
-//    memcpy(wbuf_ + wbuf_len_, "-ERR What the fuck are u sending\r\n", 34);
-//    wbuf_len_ += 34;
-//  }
   return 0;
 }

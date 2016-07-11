@@ -42,29 +42,29 @@ void ZPMetacmdWorkerThread::CronHandle() {
   }
 
   // erase it in slaves_;
-  {
-    slash::MutexLock l(&zp_data_server->slave_mutex_);
-    std::vector<SlaveItem>::iterator iter = zp_data_server->slaves_.begin();
-    while (iter != zp_data_server->slaves_.end()) {
-      DLOG(INFO) << " ip_port: " << iter->node.ip << " port " << iter->node.port << " sender_tid: " << iter->sender_tid << " sync_fd: " << iter->sync_fd << " sender: " << iter->sender << " create_time: " << iter->create_time.tv_sec;
-      if (!FindSlave(iter->sync_fd)) {
-   //   if ((iter->stage == SLAVE_ITEM_STAGE_ONE && now.tv_sec - iter->create_time.tv_sec > 30)
-   //       || (iter->stage == SLAVE_ITEM_STAGE_TWO && !FindSlave(iter->hb_fd))) {
-   //     //pthread_kill(iter->tid);
-
-        // Kill BinlogSender
-        LOG(WARNING) << "Erase slave (" << iter->node.ip << ":" << iter->node.port << ") from slaves map of heartbeat thread";
-        {
-          // TODO
-          //zp_data_server->slave_mutex_.Unlock();
-          //zp_data_server->DeleteSlave(iter->hb_fd);
-          //zp_data_server->slave_mutex_.Lock();
-        }
-        continue;
-      }
-      iter++;
-    }
-  }
+//  {
+//    slash::MutexLock l(&zp_data_server->slave_mutex_);
+//    std::vector<SlaveItem>::iterator iter = zp_data_server->slaves_.begin();
+//    while (iter != zp_data_server->slaves_.end()) {
+//      DLOG(INFO) << " ip_port: " << iter->node.ip << " port " << iter->node.port << " sender_tid: " << iter->sender_tid << " sync_fd: " << iter->sync_fd << " sender: " << iter->sender << " create_time: " << iter->create_time.tv_sec;
+//      if (!FindSlave(iter->sync_fd)) {
+//   //   if ((iter->stage == SLAVE_ITEM_STAGE_ONE && now.tv_sec - iter->create_time.tv_sec > 30)
+//   //       || (iter->stage == SLAVE_ITEM_STAGE_TWO && !FindSlave(iter->hb_fd))) {
+//   //     //pthread_kill(iter->tid);
+//
+//        // Kill BinlogSender
+//        LOG(WARNING) << "Erase slave (" << iter->node.ip << ":" << iter->node.port << ") ";
+//        {
+//          // TODO
+//          zp_data_server->slave_mutex_.Unlock();
+//          zp_data_server->DeleteSlave(iter->sync_fd);
+//          zp_data_server->slave_mutex_.Lock();
+//        }
+//        continue;
+//      }
+//      iter++;
+//    }
+//  }
 }
 
 bool ZPMetacmdWorkerThread::AccessHandle(std::string& ip) {

@@ -31,7 +31,6 @@ void SyncCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res)
  if (!zp_data_server->FindSlave(node)) {
    SlaveItem si;
    si.node = node;
-   si.sync_fd = fd_;
    gettimeofday(&si.create_time, NULL);
    si.sender = NULL;
 

@@ -9,7 +9,6 @@
 ZPDataServer::ZPDataServer(const ZPOptions& options)
   : options_(options),
   repl_state_(ReplState::kNoConnect) {
-  DLOG(INFO) << "is_seed " << is_seed;
   pthread_rwlock_init(&state_rw_, NULL);
 
   // Create nemo handle
@@ -33,6 +32,7 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
   zp_metacmd_worker_thread_ = new ZPMetacmdWorkerThread(options_.local_port + kPortShiftDataCmd, kMetaCmdCronInterval);
  
   zp_binlog_receiver_thread_ = new ZPBinlogReceiverThread(options_.local_port + kPortShiftSync, kBinlogReceiverCronInterval);
+  zp_trysync_thread_ = new ZPTrySyncThread();
 
   logger_ = new Binlog(options_.log_path);
 
@@ -42,8 +42,10 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
 
 ZPDataServer::~ZPDataServer() {
   //delete zp_heartbeat_thread_;
+  delete zp_trysync_thread_;
   delete zp_ping_thread_;
   delete zp_dispatch_thread_;
+  delete zp_metacmd_worker_thread_;
 
   for (int i = 0; i < worker_num_; i++) {
     delete zp_worker_thread_[i];
@@ -62,8 +64,15 @@ Status ZPDataServer::Start() {
   zp_binlog_receiver_thread_->StartThread();
 
   zp_ping_thread_->StartThread();
+  zp_trysync_thread_->StartThread();
+  zp_metacmd_worker_thread_->StartThread();
 
+  // TEST 
   LOG(INFO) << "ZPDataServer started on port:" <<  options_.local_port << ", seed is " << options_.seed_ip.c_str() << ":" << options_.seed_port;
+  if (options_.local_port != options_.seed_port || options_.local_ip != options_.seed_ip) {
+    repl_state_ = ReplState::kShouldConnect;
+  }
+
   server_mutex_.Lock();
   server_mutex_.Lock();
   return Status::OK();
@@ -78,10 +87,18 @@ bool ZPDataServer::FindSlave(const Node& node) {
   return false;
 }
 
+// TODO rm for Test
 bool ZPDataServer::ShouldJoin() {
   slash::RWLock l(&state_rw_, false);
   DLOG(INFO) <<  "repl_state: " << repl_state_;
-  return !is_seed && repl_state_ == ReplState::kNoConnect;
+  return repl_state_ == ReplState::kShouldConnect;
+}
+
+void ZPDataServer::JoinDone() {
+  slash::RWLock l(&state_rw_, true);
+  if (repl_state_ == ReplState::kShouldConnect) {
+    repl_state_ = ReplState::kConnected;
+  }
 }
 
 // slave_mutex should be held
