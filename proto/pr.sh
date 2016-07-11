@@ -1,28 +1,40 @@
 #!/bin/sh
 
+###################
 # Client.proto
+###################
 protoc -I=./ --cpp_out=./ ./client.proto
 
 HEADER=client.pb.h
 SRC=client.pb.cc
 
 cp ${HEADER} ../include
-cp ${SRC} ../src
+cp ${SRC} ../src/node/
 cp ${HEADER} ../sdk/
 cp ${SRC} ../sdk
 rm ${HEADER}
 rm ${SRC}
 
 
-# server_control.proto
+#####################
+# zp_data_control.proto
+###################
+protoc -I=./ --cpp_out=./ zp_data_control.proto
 
-protoc -I=./ --cpp_out=./ server_control.proto
+SERVER_HEADER=zp_data_control.pb.h
+SERVER_SRC=zp_data_control.pb.cc
 
-SERVER_HEADER=server_control.pb.h
-SERVER_SRC=server_control.pb.cc
+mv ${SERVER_HEADER} ../include
+mv ${SERVER_SRC} ../src/node/
 
-cp ${SERVER_HEADER} ../include
-cp ${SERVER_SRC} ../src
-rm ${SERVER_HEADER}
-rm ${SERVER_SRC}
+#####################
+# zp_meta.proto
+###################
+protoc -I=./ --cpp_out=./ zp_meta.proto
+
+SERVER_HEADER=zp_meta.pb.h
+SERVER_SRC=zp_meta.pb.cc
+
+mv ${SERVER_HEADER} ../include
+mv ${SERVER_SRC} ../src/meta/
 

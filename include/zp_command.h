@@ -7,7 +7,7 @@
 #include <unordered_map>
 
 #include "client.pb.h"
-#include "server_control.pb.h"
+#include "zp_data_control.pb.h"
 #include "slash_string.h"
 #include "slash_status.h"
 
@@ -54,8 +54,10 @@ class Cmd {
  public:
   Cmd(int flag) : flag_(flag) {}
   virtual ~Cmd() {}
-  virtual Status Init(const void *buf, size_t count) = 0;
-  virtual void Do() = 0;
+
+  // TODO may be stall
+  virtual Status Init(const void *buf, size_t count) { return Status::OK(); }
+  virtual void Do(google::protobuf::Message *request, google::protobuf::Message *response) = 0;
   virtual std::string key() { return ""; }
 
   google::protobuf::Message* Response() {
@@ -93,8 +95,8 @@ class Cmd {
 };
 
 // Method for Cmd Table
-void InitClientCmdTable(std::unordered_map<int, Cmd*> *cmd_table);
-void InitServerControlCmdTable(std::unordered_map<int, Cmd*> *cmd_table);
+//void InitClientCmdTable(std::unordered_map<int, Cmd*> *cmd_table);
+//void InitServerControlCmdTable(std::unordered_map<int, Cmd*> *cmd_table);
 Cmd* GetCmdFromTable(const int op, const std::unordered_map<int, Cmd*> &cmd_table);
 void DestoryCmdTable(std::unordered_map<int, Cmd*> &cmd_table);
 
