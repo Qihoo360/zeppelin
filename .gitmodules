@@ -10,3 +10,6 @@
 [submodule "third/glog"]
 	path = third/glog
 	url = https://github.com/google/glog.git
+[submodule "third/floyd"]
+	path = third/floyd
+	url = https://github.com/baotiao/floyd.git
