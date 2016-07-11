@@ -14,9 +14,19 @@ enum ReplState {
   kShouldConnect = 1,
   kConnected = 2,
 };
+enum MetaState {
+  kMetaConnect = 1,
+  kMetaConnecting = 2,
+  kMetaConnected = 3,
+};
 
+// Data port shift
 const int kPortShiftDataCmd = 100;
 const int kPortShiftSync = 200;
+
+// Meta port shift
+const int kMetaPortShiftHb = 100;
+
 
 const int kTrySyncInterval = 2;
 const int kPingInterval = 3;

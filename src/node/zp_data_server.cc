@@ -8,6 +8,8 @@
 
 ZPDataServer::ZPDataServer(const ZPOptions& options)
   : options_(options),
+  should_rejoin_(false),
+  meta_state_(MetaState::kMetaConnect),
   repl_state_(ReplState::kNoConnect) {
   pthread_rwlock_init(&state_rw_, NULL);
 
@@ -101,6 +103,12 @@ void ZPDataServer::JoinDone() {
   }
 }
 
+bool ZPDataServer::ShouldJoinMeta() {
+  slash::RWLock l(&meta_state_rw_, false);
+  DLOG(INFO) <<  "meta_state: " << meta_state_;
+  return meta_state_ == MetaState::kMetaConnect;
+}
+
 // slave_mutex should be held
 Status ZPDataServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t offset) {
   // Sanity check
@@ -155,3 +163,24 @@ void ZPDataServer::DeleteSlave(int fd) {
     }
   }
 }
+
+void ZPDataServer::PlusMetaServerConns() {
+  slash::RWLock l(&meta_state_rw_, true);
+  if (meta_server_conns_ < 2) {
+    if ((++meta_server_conns_) >= 2) {
+      meta_state_ = MetaState::kMetaConnected;
+      meta_server_conns_ = 2;
+    }
+  }
+}
+
+void ZPDataServer::MinusMetaServerConns() {
+  slash::RWLock l(&meta_state_rw_, true);
+  if (meta_server_conns_ > 0) {
+    if ((--meta_server_conns_) <= 0) {
+      meta_state_ = MetaState::kMetaConnect;
+      meta_server_conns_ = 0;
+    }
+  }
+}
+
