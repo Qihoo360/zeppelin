@@ -83,10 +83,10 @@ bool ZPMetacmdWorkerThread::AccessHandle(std::string& ip) {
 //
 //  LOG(WARNING) << "HeartbeatThread deny connection: " << ip;
 //  return false;
-  if (ip == zp_data_server->meta_ip() && conns_.size() == 0) {
+ // if (ip == zp_data_server->meta_ip() && conns_.size() == 0) {
     zp_data_server->PlusMetaServerConns();
     return true;
-  }
+ // }
   LOG(WARNING) << "Deny connection from " << ip << " current conns size: " << conns_.size();
   return false;
 }

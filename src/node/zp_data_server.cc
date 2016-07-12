@@ -192,7 +192,7 @@ void ZPDataServer::BecomeSlave(const std::string& master_ip, int master_port) {
   role_ = Role::kNodeSlave;
   repl_state_ = ReplState::kShouldConnect;
   master_ip_ = master_ip;
-  master_port = master_port;
+  master_port_ = master_port;
   }
 }
 

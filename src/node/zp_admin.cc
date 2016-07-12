@@ -59,7 +59,7 @@ void SyncCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res)
    gettimeofday(&si.create_time, NULL);
    si.sender = NULL;
 
-   LOG(INFO) << "Sync a new node(" << node.ip << ", " << node.port << ")";
+   LOG(INFO) << "Sync a new node(" << node.ip << ":" << node.port << ") filenum " << sync.filenum() << ", offset " << sync.offset();
    s = zp_data_server->AddBinlogSender(si, sync.filenum(), sync.offset());
 
    ZPMeta::MetaCmdResponse_Status* status = response->mutable_status();

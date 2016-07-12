@@ -76,6 +76,7 @@ void* ZPTrySyncThread::ThreadMain() {
 
     // Connect with Leader port
     s = cli_->Connect(zp_data_server->master_ip(), zp_data_server->master_port() + kPortShiftDataCmd);
+    DLOG(WARNING) << "TrySync connect(" << zp_data_server->master_ip() << ":" << zp_data_server->master_port() + kPortShiftDataCmd << ")" << s.ToString();
     if (s.ok()) {
       cli_->set_send_timeout(1000);
       cli_->set_recv_timeout(1000);
