@@ -7,7 +7,7 @@
 #include <unordered_map>
 
 #include "client.pb.h"
-#include "zp_data_control.pb.h"
+#include "zp_meta.pb.h"
 #include "slash_string.h"
 #include "slash_status.h"
 

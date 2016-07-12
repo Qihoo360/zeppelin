@@ -28,7 +28,7 @@ int ZPMetacmdConn::DealMessage() {
 
   // for now, only one cmd SYNC
   switch (request_.type()) {
-    case ZPDataControl::DataCmdRequest_TYPE::DataCmdRequest_TYPE_SYNC: {
+    case ZPMeta::MetaCmd_Type::MetaCmd_Type_SYNC: {
       cmd->Do(&request_, &response_);
       DLOG(INFO) << "Receive Sync cmd";
       set_is_reply(true);

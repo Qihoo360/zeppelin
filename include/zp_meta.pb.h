@@ -40,17 +40,19 @@ class MetaCmd;
 class MetaCmd_Join;
 class MetaCmd_Ping;
 class MetaCmd_Update;
+class MetaCmd_Sync;
 class MetaCmdResponse;
 class MetaCmdResponse_Status;
 
 enum MetaCmd_Type {
   MetaCmd_Type_JOIN = 1,
   MetaCmd_Type_PING = 2,
-  MetaCmd_Type_UPDATE = 3
+  MetaCmd_Type_UPDATE = 3,
+  MetaCmd_Type_SYNC = 4
 };
 bool MetaCmd_Type_IsValid(int value);
 const MetaCmd_Type MetaCmd_Type_Type_MIN = MetaCmd_Type_JOIN;
-const MetaCmd_Type MetaCmd_Type_Type_MAX = MetaCmd_Type_UPDATE;
+const MetaCmd_Type MetaCmd_Type_Type_MAX = MetaCmd_Type_SYNC;
 const int MetaCmd_Type_Type_ARRAYSIZE = MetaCmd_Type_Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* MetaCmd_Type_descriptor();
@@ -66,11 +68,12 @@ inline bool MetaCmd_Type_Parse(
 enum MetaCmdResponse_Type {
   MetaCmdResponse_Type_JOIN = 1,
   MetaCmdResponse_Type_PING = 2,
-  MetaCmdResponse_Type_UPDATE = 3
+  MetaCmdResponse_Type_UPDATE = 3,
+  MetaCmdResponse_Type_SYNC = 4
 };
 bool MetaCmdResponse_Type_IsValid(int value);
 const MetaCmdResponse_Type MetaCmdResponse_Type_Type_MIN = MetaCmdResponse_Type_JOIN;
-const MetaCmdResponse_Type MetaCmdResponse_Type_Type_MAX = MetaCmdResponse_Type_UPDATE;
+const MetaCmdResponse_Type MetaCmdResponse_Type_Type_MAX = MetaCmdResponse_Type_SYNC;
 const int MetaCmdResponse_Type_Type_ARRAYSIZE = MetaCmdResponse_Type_Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* MetaCmdResponse_Type_descriptor();
@@ -542,6 +545,110 @@ class MetaCmd_Update : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class MetaCmd_Sync : public ::google::protobuf::Message {
+ public:
+  MetaCmd_Sync();
+  virtual ~MetaCmd_Sync();
+
+  MetaCmd_Sync(const MetaCmd_Sync& from);
+
+  inline MetaCmd_Sync& operator=(const MetaCmd_Sync& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const MetaCmd_Sync& default_instance();
+
+  void Swap(MetaCmd_Sync* other);
+
+  // implements Message ----------------------------------------------
+
+  MetaCmd_Sync* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const MetaCmd_Sync& from);
+  void MergeFrom(const MetaCmd_Sync& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required .ZPMeta.Node node = 1;
+  inline bool has_node() const;
+  inline void clear_node();
+  static const int kNodeFieldNumber = 1;
+  inline const ::ZPMeta::Node& node() const;
+  inline ::ZPMeta::Node* mutable_node();
+  inline ::ZPMeta::Node* release_node();
+  inline void set_allocated_node(::ZPMeta::Node* node);
+
+  // required int32 filenum = 2 [default = 0];
+  inline bool has_filenum() const;
+  inline void clear_filenum();
+  static const int kFilenumFieldNumber = 2;
+  inline ::google::protobuf::int32 filenum() const;
+  inline void set_filenum(::google::protobuf::int32 value);
+
+  // required int32 offset = 3 [default = 0];
+  inline bool has_offset() const;
+  inline void clear_offset();
+  static const int kOffsetFieldNumber = 3;
+  inline ::google::protobuf::int32 offset() const;
+  inline void set_offset(::google::protobuf::int32 value);
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd.Sync)
+ private:
+  inline void set_has_node();
+  inline void clear_has_node();
+  inline void set_has_filenum();
+  inline void clear_has_filenum();
+  inline void set_has_offset();
+  inline void clear_has_offset();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::ZPMeta::Node* node_;
+  ::google::protobuf::int32 filenum_;
+  ::google::protobuf::int32 offset_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static MetaCmd_Sync* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class MetaCmd : public ::google::protobuf::Message {
  public:
   MetaCmd();
@@ -597,11 +704,13 @@ class MetaCmd : public ::google::protobuf::Message {
   typedef MetaCmd_Join Join;
   typedef MetaCmd_Ping Ping;
   typedef MetaCmd_Update Update;
+  typedef MetaCmd_Sync Sync;
 
   typedef MetaCmd_Type Type;
   static const Type JOIN = MetaCmd_Type_JOIN;
   static const Type PING = MetaCmd_Type_PING;
   static const Type UPDATE = MetaCmd_Type_UPDATE;
+  static const Type SYNC = MetaCmd_Type_SYNC;
   static inline bool Type_IsValid(int value) {
     return MetaCmd_Type_IsValid(value);
   }
@@ -659,6 +768,15 @@ class MetaCmd : public ::google::protobuf::Message {
   inline ::ZPMeta::MetaCmd_Update* release_update();
   inline void set_allocated_update(::ZPMeta::MetaCmd_Update* update);
 
+  // optional .ZPMeta.MetaCmd.Sync sync = 5;
+  inline bool has_sync() const;
+  inline void clear_sync();
+  static const int kSyncFieldNumber = 5;
+  inline const ::ZPMeta::MetaCmd_Sync& sync() const;
+  inline ::ZPMeta::MetaCmd_Sync* mutable_sync();
+  inline ::ZPMeta::MetaCmd_Sync* release_sync();
+  inline void set_allocated_sync(::ZPMeta::MetaCmd_Sync* sync);
+
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd)
  private:
   inline void set_has_type();
@@ -669,16 +787,19 @@ class MetaCmd : public ::google::protobuf::Message {
   inline void clear_has_ping();
   inline void set_has_update();
   inline void clear_has_update();
+  inline void set_has_sync();
+  inline void clear_has_sync();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::ZPMeta::MetaCmd_Join* join_;
   ::ZPMeta::MetaCmd_Ping* ping_;
   ::ZPMeta::MetaCmd_Update* update_;
+  ::ZPMeta::MetaCmd_Sync* sync_;
   int type_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -844,6 +965,7 @@ class MetaCmdResponse : public ::google::protobuf::Message {
   static const Type JOIN = MetaCmdResponse_Type_JOIN;
   static const Type PING = MetaCmdResponse_Type_PING;
   static const Type UPDATE = MetaCmdResponse_Type_UPDATE;
+  static const Type SYNC = MetaCmdResponse_Type_SYNC;
   static inline bool Type_IsValid(int value) {
     return MetaCmdResponse_Type_IsValid(value);
   }
@@ -1208,6 +1330,92 @@ MetaCmd_Update::mutable_info() {
 
 // -------------------------------------------------------------------
 
+// MetaCmd_Sync
+
+// required .ZPMeta.Node node = 1;
+inline bool MetaCmd_Sync::has_node() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void MetaCmd_Sync::set_has_node() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void MetaCmd_Sync::clear_has_node() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void MetaCmd_Sync::clear_node() {
+  if (node_ != NULL) node_->::ZPMeta::Node::Clear();
+  clear_has_node();
+}
+inline const ::ZPMeta::Node& MetaCmd_Sync::node() const {
+  return node_ != NULL ? *node_ : *default_instance_->node_;
+}
+inline ::ZPMeta::Node* MetaCmd_Sync::mutable_node() {
+  set_has_node();
+  if (node_ == NULL) node_ = new ::ZPMeta::Node;
+  return node_;
+}
+inline ::ZPMeta::Node* MetaCmd_Sync::release_node() {
+  clear_has_node();
+  ::ZPMeta::Node* temp = node_;
+  node_ = NULL;
+  return temp;
+}
+inline void MetaCmd_Sync::set_allocated_node(::ZPMeta::Node* node) {
+  delete node_;
+  node_ = node;
+  if (node) {
+    set_has_node();
+  } else {
+    clear_has_node();
+  }
+}
+
+// required int32 filenum = 2 [default = 0];
+inline bool MetaCmd_Sync::has_filenum() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void MetaCmd_Sync::set_has_filenum() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void MetaCmd_Sync::clear_has_filenum() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void MetaCmd_Sync::clear_filenum() {
+  filenum_ = 0;
+  clear_has_filenum();
+}
+inline ::google::protobuf::int32 MetaCmd_Sync::filenum() const {
+  return filenum_;
+}
+inline void MetaCmd_Sync::set_filenum(::google::protobuf::int32 value) {
+  set_has_filenum();
+  filenum_ = value;
+}
+
+// required int32 offset = 3 [default = 0];
+inline bool MetaCmd_Sync::has_offset() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void MetaCmd_Sync::set_has_offset() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void MetaCmd_Sync::clear_has_offset() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void MetaCmd_Sync::clear_offset() {
+  offset_ = 0;
+  clear_has_offset();
+}
+inline ::google::protobuf::int32 MetaCmd_Sync::offset() const {
+  return offset_;
+}
+inline void MetaCmd_Sync::set_offset(::google::protobuf::int32 value) {
+  set_has_offset();
+  offset_ = value;
+}
+
+// -------------------------------------------------------------------
+
 // MetaCmd
 
 // required .ZPMeta.MetaCmd.Type type = 1;
@@ -1344,6 +1552,44 @@ inline void MetaCmd::set_allocated_update(::ZPMeta::MetaCmd_Update* update) {
     set_has_update();
   } else {
     clear_has_update();
+  }
+}
+
+// optional .ZPMeta.MetaCmd.Sync sync = 5;
+inline bool MetaCmd::has_sync() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void MetaCmd::set_has_sync() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void MetaCmd::clear_has_sync() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void MetaCmd::clear_sync() {
+  if (sync_ != NULL) sync_->::ZPMeta::MetaCmd_Sync::Clear();
+  clear_has_sync();
+}
+inline const ::ZPMeta::MetaCmd_Sync& MetaCmd::sync() const {
+  return sync_ != NULL ? *sync_ : *default_instance_->sync_;
+}
+inline ::ZPMeta::MetaCmd_Sync* MetaCmd::mutable_sync() {
+  set_has_sync();
+  if (sync_ == NULL) sync_ = new ::ZPMeta::MetaCmd_Sync;
+  return sync_;
+}
+inline ::ZPMeta::MetaCmd_Sync* MetaCmd::release_sync() {
+  clear_has_sync();
+  ::ZPMeta::MetaCmd_Sync* temp = sync_;
+  sync_ = NULL;
+  return temp;
+}
+inline void MetaCmd::set_allocated_sync(::ZPMeta::MetaCmd_Sync* sync) {
+  delete sync_;
+  sync_ = sync;
+  if (sync) {
+    set_has_sync();
+  } else {
+    clear_has_sync();
   }
 }
 

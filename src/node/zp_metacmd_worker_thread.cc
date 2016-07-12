@@ -10,7 +10,7 @@ extern ZPDataServer* zp_data_server;
 
 ZPMetacmdWorkerThread::ZPMetacmdWorkerThread(int port, int cron_interval) :
   HolyThread::HolyThread(port, cron_interval) {
-  InitDataControlCmdTable(&cmds_);
+  InitMetaCmdTable(&cmds_);
 }
 
 ZPMetacmdWorkerThread::~ZPMetacmdWorkerThread() {

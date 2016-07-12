@@ -16,16 +16,16 @@ rm ${HEADER}
 rm ${SRC}
 
 
-#####################
-# zp_data_control.proto
-###################
-protoc -I=./ --cpp_out=./ zp_data_control.proto
-
-SERVER_HEADER=zp_data_control.pb.h
-SERVER_SRC=zp_data_control.pb.cc
-
-mv ${SERVER_HEADER} ../include
-mv ${SERVER_SRC} ../src/node/
+######################
+## zp_data_control.proto
+####################
+#protoc -I=./ --cpp_out=./ zp_data_control.proto
+#
+#SERVER_HEADER=zp_data_control.pb.h
+#SERVER_SRC=zp_data_control.pb.cc
+#
+#mv ${SERVER_HEADER} ../include
+#mv ${SERVER_SRC} ../src/node/
 
 #####################
 # zp_meta.proto

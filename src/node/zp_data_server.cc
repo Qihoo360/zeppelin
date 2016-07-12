@@ -1,7 +1,6 @@
 #include "zp_data_server.h"
 
 #include <glog/logging.h>
-#include "zp_data_control.pb.h"
 
 #include "zp_data_worker_thread.h"
 #include "zp_data_dispatch_thread.h"

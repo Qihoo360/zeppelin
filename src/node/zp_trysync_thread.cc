@@ -15,12 +15,12 @@ ZPTrySyncThread::~ZPTrySyncThread() {
 pink::Status ZPTrySyncThread::Send() {
   std::string wbuf_str;
 
-  ZPDataControl::DataCmdRequest request;
-  ZPDataControl::DataCmdRequest_Sync* sync = request.mutable_sync();
+  ZPMeta::MetaCmd request;
+  ZPMeta::MetaCmd_Sync* sync = request.mutable_sync();
 
-  request.set_type(ZPDataControl::DataCmdRequest_TYPE::DataCmdRequest_TYPE_SYNC);
+  request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_SYNC);
 
-  ZPDataControl::Node* node = sync->mutable_node();
+  ZPMeta::Node* node = sync->mutable_node();
   node->set_ip(zp_data_server->local_ip());
   node->set_port(zp_data_server->local_port());
 
@@ -37,7 +37,7 @@ pink::Status ZPTrySyncThread::Send() {
 }
 
 pink::Status ZPTrySyncThread::Recv() {
-  ZPDataControl::DataCmdResponse response;
+  ZPMeta::MetaCmdResponse response;
   pink::Status result = cli_->Recv(&response); 
 
   DLOG(INFO) << "TrySync receive: " << result.ToString();
@@ -47,8 +47,8 @@ pink::Status ZPTrySyncThread::Recv() {
   }
 
   switch (response.type()) {
-    case ZPDataControl::DataCmdResponse_TYPE::DataCmdResponse_TYPE_SYNC: {
-      if (response.status().status() == 0) {
+    case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_SYNC: {
+      if (response.status().code() == 0) {
         DLOG(INFO) << "TrySync recv success.";
         return pink::Status::OK(); 
       } else {

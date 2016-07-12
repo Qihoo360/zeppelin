@@ -2,7 +2,7 @@
 #define ZP_METACMD_CONN_H
 
 #include <glog/logging.h>
-#include "zp_data_control.pb.h"
+#include "zp_meta.pb.h"
 
 #include "pb_conn.h"
 #include "pink_thread.h"
@@ -19,8 +19,8 @@ class ZPMetacmdConn: public pink::PbConn {
  private:
   ZPMetacmdWorkerThread* self_thread_;
 
-  ZPDataControl::DataCmdRequest request_;
-  ZPDataControl::DataCmdResponse response_;
+  ZPMeta::MetaCmd request_;
+  ZPMeta::MetaCmdResponse response_;
 };
 
 #endif

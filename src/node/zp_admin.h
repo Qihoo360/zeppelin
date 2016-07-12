@@ -17,6 +17,6 @@ class SyncCmd : public Cmd {
   int fd_;
 };
 
-void InitDataControlCmdTable(std::unordered_map<int, Cmd*> *cmd_table);
+void InitMetaCmdTable(std::unordered_map<int, Cmd*> *cmd_table);
 
 #endif
