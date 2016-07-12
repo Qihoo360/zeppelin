@@ -26,12 +26,16 @@ int ZPMetacmdConn::DealMessage() {
     return -1;
   }
 
-  // for now, only one cmd SYNC
+  cmd->Do(&request_, &response_);
+  set_is_reply(true);
+
   switch (request_.type()) {
     case ZPMeta::MetaCmd_Type::MetaCmd_Type_SYNC: {
-      cmd->Do(&request_, &response_);
       DLOG(INFO) << "Receive Sync cmd";
-      set_is_reply(true);
+      break;
+    }
+    case ZPMeta::MetaCmd_Type::MetaCmd_Type_UPDATE: {
+      DLOG(INFO) << "Receive Update cmd";
       break;
     }
   }
