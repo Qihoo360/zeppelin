@@ -9,6 +9,11 @@ const std::string kZPVersion = "0.0.1";
 const std::string kZPPidFile = "zp.pid";
 
 ////// Server State /////
+enum Role {
+  kNodeSingle = 0,
+  kNodeMaster = 1,
+  kNodeSlave = 2,
+};
 enum ReplState {
   kNoConnect = 0,
   kShouldConnect = 1,

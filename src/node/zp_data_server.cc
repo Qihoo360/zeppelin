@@ -9,7 +9,8 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
   : options_(options),
   should_rejoin_(false),
   meta_state_(MetaState::kMetaConnect),
-  repl_state_(ReplState::kNoConnect) {
+  repl_state_(ReplState::kNoConnect),
+  role_(Role::kNodeSingle) {
   pthread_rwlock_init(&state_rw_, NULL);
 
   // Create nemo handle
@@ -70,9 +71,9 @@ Status ZPDataServer::Start() {
 
   // TEST 
   LOG(INFO) << "ZPDataServer started on port:" <<  options_.local_port << ", seed is " << options_.seed_ip.c_str() << ":" << options_.seed_port;
-  if (options_.local_port != options_.seed_port || options_.local_ip != options_.seed_ip) {
-    repl_state_ = ReplState::kShouldConnect;
-  }
+//  if (options_.local_port != options_.seed_port || options_.local_ip != options_.seed_ip) {
+//    repl_state_ = ReplState::kShouldConnect;
+//  }
 
   server_mutex_.Lock();
   server_mutex_.Lock();
@@ -160,6 +161,38 @@ void ZPDataServer::DeleteSlave(int fd) {
       LOG(INFO) << "Delete slave success";
       break;
     }
+  }
+}
+
+void ZPDataServer::BecomeMaster() {
+  LOG(INFO) << "BecomeMaster";
+  zp_binlog_receiver_thread_->KillBinlogSender();
+
+  {
+  slash::RWLock l(&state_rw_, true);
+  role_ = Role::kNodeMaster;
+  repl_state_ = ReplState::kNoConnect;
+  master_ip_ = "";
+  master_port_ = -1;
+  }
+}
+
+void ZPDataServer::BecomeSlave(const std::string& master_ip, int master_port) {
+  LOG(INFO) << "BecomeSlave, master ip: " << master_ip << " master port: " << master_port;
+  {
+  slash::MutexLock l(&slave_mutex_);
+  for (auto iter = slaves_.begin(); iter != slaves_.end(); iter++) {
+    delete static_cast<ZPBinlogSenderThread*>(iter->sender);
+    iter = slaves_.erase(iter);
+    LOG(INFO) << "Delete slave success";
+  }
+  }
+  {
+  slash::RWLock l(&state_rw_, true);
+  role_ = Role::kNodeSlave;
+  repl_state_ = ReplState::kShouldConnect;
+  master_ip_ = master_ip;
+  master_port = master_port;
   }
 }
 

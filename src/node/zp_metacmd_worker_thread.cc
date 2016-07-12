@@ -19,27 +19,27 @@ ZPMetacmdWorkerThread::~ZPMetacmdWorkerThread() {
 
 void ZPMetacmdWorkerThread::CronHandle() {
   //	find out timeout slave and kill them 
-  struct timeval now;
-  gettimeofday(&now, NULL);
-  {
-    slash::RWLock l(&rwlock_, true); // Use WriteLock to iterate the conns_
-    std::map<int, void*>::iterator iter = conns_.begin();
-    while (iter != conns_.end()) {
-      DLOG(INFO) << "Slave:  now.tv_sec:" << now.tv_sec << ", last_inter:" << static_cast<ZPMetacmdConn*>(iter->second)->last_interaction().tv_sec;
-      if (now.tv_sec - static_cast<ZPMetacmdConn*>(iter->second)->last_interaction().tv_sec > 20) {
-        LOG(INFO) << "Find Timeout Slave: " << static_cast<ZPMetacmdConn*>(iter->second)->ip_port();
-        close(iter->first);
-        // erase item in slaves_
-        // TODO
-        //zp_data_server->DeleteSlave(iter->first);
-
-        delete(static_cast<ZPMetacmdConn*>(iter->second));
-        iter = conns_.erase(iter);
-        continue;
-      }
-      iter++;
-    }
-  }
+//  struct timeval now;
+//  gettimeofday(&now, NULL);
+//  {
+//    slash::RWLock l(&rwlock_, true); // Use WriteLock to iterate the conns_
+//    std::map<int, void*>::iterator iter = conns_.begin();
+//    while (iter != conns_.end()) {
+//      DLOG(INFO) << "Slave:  now.tv_sec:" << now.tv_sec << ", last_inter:" << static_cast<ZPMetacmdConn*>(iter->second)->last_interaction().tv_sec;
+//      if (now.tv_sec - static_cast<ZPMetacmdConn*>(iter->second)->last_interaction().tv_sec > 20) {
+//        LOG(INFO) << "Find Timeout Slave: " << static_cast<ZPMetacmdConn*>(iter->second)->ip_port();
+//        close(iter->first);
+//        // erase item in slaves_
+//        // TODO
+//        //zp_data_server->DeleteSlave(iter->first);
+//
+//        delete(static_cast<ZPMetacmdConn*>(iter->second));
+//        iter = conns_.erase(iter);
+//        continue;
+//      }
+//      iter++;
+//    }
+//  }
 
   // erase it in slaves_;
 //  {
@@ -68,9 +68,9 @@ void ZPMetacmdWorkerThread::CronHandle() {
 }
 
 bool ZPMetacmdWorkerThread::AccessHandle(std::string& ip) {
- // if (ip == "127.0.0.1") {
- //   ip = zp_data_server->host();
- // }
+  if (ip == "127.0.0.1") {
+    ip = zp_data_server->local_ip();
+  }
 
 // TODO
 //  slash::MutexLock l(&zp_data_server->slave_mutex_);
@@ -83,11 +83,11 @@ bool ZPMetacmdWorkerThread::AccessHandle(std::string& ip) {
 //
 //  LOG(WARNING) << "HeartbeatThread deny connection: " << ip;
 //  return false;
-  return true;
-}
-
-bool ZPMetacmdWorkerThread::FindSlave(int fd) {
-  slash::RWLock(&rwlock_, false);
-  return conns_.find(fd) != conns_.end();
+  if (ip == zp_data_server->meta_ip() && conns_.size() == 0) {
+    zp_data_server->PlusMetaServerConns();
+    return true;
+  }
+  LOG(WARNING) << "Deny connection from " << ip << " current conns size: " << conns_.size();
+  return false;
 }
 
