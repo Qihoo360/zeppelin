@@ -74,18 +74,18 @@ class Cluster {
 
   //pink::PbCli pb_cli_;
 
-  ZPPbCli *pb_cli_;
+  pink::PbCli *pb_cli_;
 };
 
-class ZPPbCli : public pink::PbCli {
- public:
-  void set_opcode(int opcode) {
-    opcode_ = opcode;
-  }
- private:
-  virtual void BuildWbuf();
-  int32_t opcode_;
-};
+//class ZPPbCli : public pink::PbCli {
+// public:
+//  void set_opcode(int opcode) {
+//    opcode_ = opcode;
+//  }
+// private:
+//  virtual void BuildWbuf();
+//  int32_t opcode_;
+//};
 
 } // namespace client
 #endif

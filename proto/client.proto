@@ -1,30 +1,41 @@
 package client;
 
-enum OPCODE {
+enum Type {
   SET = 1;
   GET = 2;
 }
 
-// Set 
-message Set {
-  message Request {
+message CmdRequest {
+  required Type type = 1;
+
+  message Set {
     required bytes key = 1;
     required bytes value = 2;
     optional bytes uuid = 3;
   }
-  message Response {
+
+  optional Set set = 2;
+
+  message Get {
+    required bytes key = 1;
+    optional bytes uuid = 2;
+  }
+  optional Get get = 3;
+}
+
+
+message CmdResponse {
+  required Type type = 1;
+
+  message Set {
     required int32 status = 1;
     optional bytes msg = 2;
   }
-}
+  optional Set set = 2;
 
-// Get 
-message Get {
-  message Request {
-    required bytes key = 1;
-  }
-  message Response {
+  message Get {
     required int32 status = 1;
     optional bytes value = 2;
   }
+  optional Get get = 3;
 }

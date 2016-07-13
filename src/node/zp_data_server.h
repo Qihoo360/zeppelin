@@ -69,8 +69,8 @@ class ZPDataServer {
   void DeleteSlave(int fd);
   void BecomeMaster();
   void BecomeSlave(const std::string& master_ip, int port);
-  bool ShouldJoin();
-  void JoinDone();
+  bool ShouldTrySync();
+  void TrySyncDone();
 
   bool ShouldJoinMeta();
   void PlusMetaServerConns();

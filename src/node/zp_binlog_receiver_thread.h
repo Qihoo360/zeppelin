@@ -53,7 +53,7 @@ class ZPBinlogReceiverThread : public pink::HolyThread<ZPSyncConn> {
     return num;
   }
 
-  Cmd* GetCmd(const client::OPCODE& op) {
+  Cmd* GetCmd(const int op) {
     return GetCmdFromTable(op, cmds_);
   }
 

@@ -85,7 +85,7 @@ class Cluster {
 
   ZPHeartbeatThread* hb_thread_;
   pink::PbCli* meta_cli_;
-  ZPPbCli *pb_cli_;
+  pink::PbCli* pb_cli_;
 };
 
 class ZPPbCli : public pink::PbCli {

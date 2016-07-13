@@ -89,7 +89,7 @@ void Option::ParseFromArgs(int argc, char *argv[]) {
 ////// Cluster //////
 Cluster::Cluster(const Option& option)
   : option_(option),
-  pb_cli_(new ZPPbCli) {
+  pb_cli_(new pink::PbCli) {
   Init();
 }
 
@@ -100,6 +100,7 @@ void Cluster::Init() {
   }
   // TEST use the first server
   pink::Status result = pb_cli_->Connect(option_.servers[0].ip, option_.servers[0].port);
+  LOG_INFO ("cluster connect(%s:%d) %s", option_.servers[0].ip, option_.servers[0].port, result.ToString().c_str());
   if (!result.ok()) {
     LOG_ERROR("cluster connect error, %s", result.ToString().c_str());
   }
@@ -107,12 +108,13 @@ void Cluster::Init() {
 
 Status Cluster::Set(const std::string& key, const std::string& value) {
 
-  Set_Request request;
+  CmdRequest request;
+  request.set_type(Type::SET);
 
-  request.set_key(key);
-  request.set_value(value);
+  CmdRequest_Set* set_req = request.mutable_set();
+  set_req->set_key(key);
+  set_req->set_value(value);
 
-  pb_cli_->set_opcode(OPCODE::SET);
 
   pink::Status result = pb_cli_->Send(&request);
   if (!result.ok()) {
@@ -120,23 +122,23 @@ Status Cluster::Set(const std::string& key, const std::string& value) {
     return Status::IOError("Send failed, " + result.ToString());
   }
 
-  Set_Response response;
+  CmdResponse response;
   result = pb_cli_->Recv(&response);
   if (!result.ok()) {
     LOG_ERROR("Recv error: %s", result.ToString().c_str());
     return Status::IOError("Recv failed, " + result.ToString());
   }
 
-  LOG_INFO("Set OK, status is %d, msg is %s\n", response.status(), response.msg().c_str());
+  LOG_INFO("Set OK, status is %d, msg is %s\n", response.set().status(), response.set().msg().c_str());
   return Status::OK();
 }
 
 Status Cluster::Get(const std::string& key, std::string* value) {
+  CmdRequest request;
+  request.set_type(Type::GET);
 
-  Get_Request request;
-  request.set_key(key);
-
-  pb_cli_->set_opcode(OPCODE::GET);
+  CmdRequest_Get* get_req = request.mutable_get();
+  get_req->set_key(key);
 
   pink::Status result = pb_cli_->Send(&request);
   if (!result.ok()) {
@@ -144,31 +146,31 @@ Status Cluster::Get(const std::string& key, std::string* value) {
     return Status::IOError("Send failed, " + result.ToString());
   }
 
-  Get_Response response;
+  CmdResponse response;
   result = pb_cli_->Recv(&response);
   if (!result.ok()) {
     LOG_ERROR("Recv error: %s", result.ToString().c_str());
     return Status::IOError("Recv failed, " + result.ToString());
   }
 
-  *value = response.value();
+  *value = response.get().value();
 
-  LOG_INFO("Get OK, status is %d, value is %s\n", response.status(), response.value().c_str());
+  LOG_INFO("Get OK, status is %d, value is %s\n", response.get().status(), response.get().value().c_str());
   return Status::OK();
 }
 
 ////// ZPPbCli //////
-void ZPPbCli::BuildWbuf() {
-  uint32_t len;
-  wbuf_len_ = msg_->ByteSize();
-  len = htonl(wbuf_len_ + 4);
-  memcpy(wbuf_, &len, sizeof(uint32_t));
-  len = htonl(opcode_);
-  memcpy(wbuf_ + 4, &len, sizeof(uint32_t));
-  msg_->SerializeToArray(wbuf_ + 8, wbuf_len_);
-  wbuf_len_ += 8;
-
-  //printf ("wbuf_[0-4]  bytesize=%d len=%d\n", wbuf_len_, len);
-}
+//void ZPPbCli::BuildWbuf() {
+//  uint32_t len;
+//  wbuf_len_ = msg_->ByteSize();
+//  len = htonl(wbuf_len_ + 4);
+//  memcpy(wbuf_, &len, sizeof(uint32_t));
+//  len = htonl(opcode_);
+//  memcpy(wbuf_ + 4, &len, sizeof(uint32_t));
+//  msg_->SerializeToArray(wbuf_ + 8, wbuf_len_);
+//  wbuf_len_ += 8;
+//
+//  //printf ("wbuf_[0-4]  bytesize=%d len=%d\n", wbuf_len_, len);
+//}
 
 } // namespace client

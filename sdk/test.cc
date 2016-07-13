@@ -28,12 +28,12 @@ int main(int argc, char* argv[]) {
   std::string key = "test_key";
   std::string value = "test_value1";
   
- // result = cluster.Set(key, value);
- // if (result.ok()) {
- //   printf ("Set ok\n");
- // } else {
- //   printf ("Set failed, %s\n", result.ToString().c_str());
- // }
+  result = cluster.Set(key, value);
+  if (result.ok()) {
+    printf ("Set ok\n");
+  } else {
+    printf ("Set failed, %s\n", result.ToString().c_str());
+  }
 
   printf ("\n=====Test Get==========\n");
 

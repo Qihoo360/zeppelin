@@ -23,6 +23,9 @@ class ZPDataClientConn : public pink::PbConn {
 
  private:
 
+  client::CmdRequest request_;
+  client::CmdResponse response_;
+
   ZPDataWorkerThread* self_thread_;
 };
 

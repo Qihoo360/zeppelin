@@ -7,10 +7,10 @@
 
 ZPDataServer::ZPDataServer(const ZPOptions& options)
   : options_(options),
-  should_rejoin_(false),
-  meta_state_(MetaState::kMetaConnect),
+  role_(Role::kNodeSingle),
   repl_state_(ReplState::kNoConnect),
-  role_(Role::kNodeSingle) {
+  should_rejoin_(false),
+  meta_state_(MetaState::kMetaConnect) {
   pthread_rwlock_init(&state_rw_, NULL);
 
   // Create nemo handle
@@ -89,14 +89,13 @@ bool ZPDataServer::FindSlave(const Node& node) {
   return false;
 }
 
-// TODO rm for Test
-bool ZPDataServer::ShouldJoin() {
+bool ZPDataServer::ShouldTrySync() {
   slash::RWLock l(&state_rw_, false);
   DLOG(INFO) <<  "repl_state: " << repl_state_;
   return repl_state_ == ReplState::kShouldConnect;
 }
 
-void ZPDataServer::JoinDone() {
+void ZPDataServer::TrySyncDone() {
   slash::RWLock l(&state_rw_, true);
   if (repl_state_ == ReplState::kShouldConnect) {
     repl_state_ = ReplState::kConnected;

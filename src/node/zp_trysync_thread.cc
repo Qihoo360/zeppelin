@@ -30,7 +30,7 @@ pink::Status ZPTrySyncThread::Send() {
   sync->set_filenum(filenum);
   sync->set_offset(offset);
 
-  LOG(INFO) << "Join with SyncPoint (" << filenum << ", " << offset << ")";
+  LOG(INFO) << "TrySync with SyncPoint (" << filenum << ", " << offset << ")";
   LOG(INFO) << "          Node (" << sync->node().ip() << ":" << sync->node().port() << ")";
   LOG(INFO) << "          Local (" << zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
   return cli_->Send(&request);
@@ -69,7 +69,7 @@ void* ZPTrySyncThread::ThreadMain() {
   pink::Status s;
 
   while (!should_exit_) {
-    if (!zp_data_server->ShouldJoin()) {
+    if (!zp_data_server->ShouldTrySync()) {
       sleep(kTrySyncInterval);
       continue;
     }
@@ -90,7 +90,7 @@ void* ZPTrySyncThread::ThreadMain() {
       if (s.ok()) {
         s = Recv();
         if (s.ok()) {
-          zp_data_server->JoinDone();
+          zp_data_server->TrySyncDone();
         } else {
           DLOG(WARNING) << "TrySync recv failed once, " << s.ToString();
         }

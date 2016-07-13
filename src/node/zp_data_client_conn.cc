@@ -18,21 +18,28 @@ ZPDataClientConn::ZPDataClientConn(int fd, std::string ip_port, pink::Thread* th
 ZPDataClientConn::~ZPDataClientConn() {
 }
 
-// Msg is  [ length (int32) | msg_code (int32) | pb_msg (length bytes) ]
+// Msg is  [ length (int32) | pb_msg (length bytes) ]
 int ZPDataClientConn::DealMessage() {
-  uint32_t buf;
-  memcpy((char *)(&buf), rbuf_ + 4, sizeof(uint32_t));
-  uint32_t msg_code = ntohl(buf);
-  LOG(INFO) << "DealMessage msg_code:" << msg_code;
+  request_.ParseFromArray(rbuf_ + 4, header_len_);
+  // TODO test only
+  switch (request_.type()) {
+    case client::Type::SET: {
+      DLOG(INFO) << "Receive Set cmd";
+      break;
+    }
+    case client::Type::GET: {
+      DLOG(INFO) << "Receive Get cmd";
+      break;
+    }
+  }
 
-
-  Cmd* cmd = self_thread_->GetCmd(static_cast<client::OPCODE>(msg_code));
+  Cmd* cmd = self_thread_->GetCmd(static_cast<int>(request_.type()));
   if (cmd == NULL) {
-    LOG(ERROR) << "unsupported msg_code: " << msg_code;
+    LOG(ERROR) << "unsupported type: " << (int)request_.type();
     return -1;
   }
 
-  Status s = cmd->Init(rbuf_ + 8, header_len_ - 4);
+  Status s = cmd->Init(&request_);
   if (!s.ok()) {
     LOG(ERROR) << "command Init failed, " << s.ToString();
   }
@@ -42,10 +49,8 @@ int ZPDataClientConn::DealMessage() {
     zp_data_server->mutex_record_.Lock(cmd->key());
   }
 
+  cmd->Do(&request_, &response_);
   set_is_reply(true);
-
-  // TODO  change the protocol
-  cmd->Do(NULL, NULL);
 
   if (cmd->is_write()) {
     if (cmd->result().ok()) {
@@ -59,7 +64,7 @@ int ZPDataClientConn::DealMessage() {
     zp_data_server->mutex_record_.Unlock(cmd->key());
   }
 
-  res_ = cmd->Response();
+  res_ = &response_;
 
   return 0;
 }

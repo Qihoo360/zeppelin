@@ -12,72 +12,59 @@ void InitClientCmdTable(std::unordered_map<int, Cmd*> *cmd_table) {
   //Kv
   ////SetCmd
   Cmd* setptr = new SetCmd(kCmdFlagsWrite);
-  cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(client::OPCODE::SET), setptr));
+  cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SET), setptr));
   ////GetCmd
   Cmd* getptr = new GetCmd(kCmdFlagsRead);
-  cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(client::OPCODE::GET), getptr));
+  cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::GET), getptr));
 }
 
-Status SetCmd::Init(const void *buf, size_t count) {
-  client::Set_Request* request = new client::Set_Request;
-  request->ParseFromArray(buf, count);
-  key_ = request->key();
-  
-  request_ = request;
-  assert(request_ != NULL);
-
-  DLOG(INFO) << "SetCmd::Init key(" << request->key() << ") ok";
+// We use static_cast instead of dynamic_cast, caz we know exactly the Derived class type.
+Status SetCmd::Init(google::protobuf::Message *req) {
+  client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
+  key_ = request->set().key();
 
   return Status::OK();
 }
 
 void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res) {
-  client::Set_Request* request = dynamic_cast<client::Set_Request*>(request_);
-  client::Set_Response* response = new client::Set_Response;
+  client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
+  client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+
+  client::CmdResponse_Set* set_res = response->mutable_set();
+  response->set_type(client::Type::SET);
 
   //int32_t ttl;
-  nemo::Status s = zp_data_server->db()->Set(request->key(), request->value());
+  nemo::Status s = zp_data_server->db()->Set(request->set().key(), request->set().value());
   if (!s.ok()) {
-    response->set_status(1);
-    response->set_msg(result_.ToString());
+    set_res->set_status(1);
+    set_res->set_msg(result_.ToString());
     result_ = slash::Status::Corruption(s.ToString());
     LOG(ERROR) << "command failed: Set, caz " << s.ToString();
   } else {
-    response->set_status(0);
-    DLOG(INFO) << "Set key(" << request->key() << ") ok";
+    set_res->set_status(0);
+    DLOG(INFO) << "Set key(" << key_ << ") ok";
     result_ = slash::Status::OK();
   }
-
-  response_ = response;
-}
-
-Status GetCmd::Init(const void *buf, size_t count) {
-  client::Get_Request* request = new client::Get_Request;
-  request->ParseFromArray(buf, count);
-  
-  request_ = request;
-  assert(request_ != NULL);
-
-  return Status::OK();
 }
 
 void GetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res) {
-  client::Get_Request* request = dynamic_cast<client::Get_Request*>(request_);
-  client::Get_Response* response = new client::Get_Response;
+  client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
+  client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+
+  client::CmdResponse_Get* get_res = response->mutable_get();
+  response->set_type(client::Type::GET);
 
   std::string value;
-  nemo::Status s = zp_data_server->db()->Get(request->key(), &value);
+  nemo::Status s = zp_data_server->db()->Get(request->get().key(), &value);
   if (!s.ok()) {
-    response->set_status(1);
+    get_res->set_status(1);
     result_ = slash::Status::Corruption(s.ToString());
     LOG(ERROR) << "command failed: Get, caz " << s.ToString();
   } else {
-    response->set_status(0);
-    response->set_value(value);
+    get_res->set_status(0);
+    get_res->set_value(value);
     result_ = slash::Status::OK();
-    DLOG(INFO) << "Get key(" << request->key() << ") ok";
+    DLOG(INFO) << "Get key(" << request->get().key() << ") ok";
   }
-  
-  response_ = response;
 }
 

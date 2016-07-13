@@ -16,25 +16,32 @@ ZPSyncConn::~ZPSyncConn() {
 }
 
 int ZPSyncConn::DealMessage() {
-  uint32_t buf;
-  memcpy((char *)(&buf), rbuf_ + 4, sizeof(uint32_t));
-  uint32_t msg_code = ntohl(buf);
-  DLOG(INFO) << "Receiver DealMessage msg_code:" << msg_code;
+  request_.ParseFromArray(rbuf_ + 4, header_len_);
+  // TODO test only
+  switch (request_.type()) {
+    case client::Type::SET: {
+      DLOG(INFO) << "SyncConn Receive Set cmd";
+      break;
+    }
+    case client::Type::GET: {
+      DLOG(INFO) << "SyncConn Receive Get cmd";
+      break;
+    }
+  }
 
   self_thread_->PlusThreadQuerynum();
 
-  Cmd* cmd = self_thread_->GetCmd(static_cast<client::OPCODE>(msg_code));
+  Cmd* cmd = self_thread_->GetCmd(static_cast<int>(request_.type()));
   if (cmd == NULL) {
-    LOG(ERROR) << "unsupported msg_code: " << msg_code;
+    LOG(ERROR) << "unsupported type: " << (int)request_.type();
     return -1;
   }
 
-  Status s = cmd->Init(rbuf_ + 8, header_len_ - 4);
+  Status s = cmd->Init(&request_);
   if (!s.ok()) {
     LOG(ERROR) << "command Init failed, " << s.ToString();
   }
 
-  DLOG(INFO) << "s1. cmd->Init then Do";
   if (cmd->is_write()) {
     // TODO add RecordLock for write cmd
     zp_data_server->mutex_record_.Lock(cmd->key());
@@ -42,9 +49,7 @@ int ZPSyncConn::DealMessage() {
 
   // do not reply
   set_is_reply(false);
-  cmd->Do(NULL, NULL);
-
-  DLOG(INFO) << "s2. cmd->Do end";
+  cmd->Do(&request_, &response_);
 
   if (cmd->is_write()) {
     if (cmd->result().ok()) {
@@ -58,6 +63,7 @@ int ZPSyncConn::DealMessage() {
     zp_data_server->mutex_record_.Unlock(cmd->key());
   }
 
+  res_ = &response_;
   //res_ = cmd->Response();
 
   return 0;

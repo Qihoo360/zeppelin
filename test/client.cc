@@ -90,7 +90,7 @@ void Option::ParseFromArgs(int argc, char *argv[]) {
 Cluster::Cluster(const Option& option)
   : option_(option),
   meta_cli_(new pink::PbCli),
-  pb_cli_(new ZPPbCli) {
+  pb_cli_(new pink::PbCli) {
   Init();
 }
 
@@ -120,12 +120,13 @@ Status Cluster::Set(const std::string& key, const std::string& value, std::strin
   pink::Status result = pb_cli_->Connect(ip, port);
   LOG_INFO("connect DataServer(%s:%d), %s", ip.c_str(), port, result.ToString().c_str());
 
-  Set_Request request;
+  CmdRequest request;
+  request.set_type(Type::SET);
 
-  request.set_key(key);
-  request.set_value(value);
+  CmdRequest_Set* set_req = request.mutable_set();
+  set_req->set_key(key);
+  set_req->set_value(value);
 
-  pb_cli_->set_opcode(OPCODE::SET);
 
   result = pb_cli_->Send(&request);
   if (!result.ok()) {
@@ -133,7 +134,7 @@ Status Cluster::Set(const std::string& key, const std::string& value, std::strin
     return Status::IOError("Send failed, " + result.ToString());
   }
 
-  Set_Response response;
+  CmdResponse response;
   result = pb_cli_->Recv(&response);
   if (!result.ok()) {
     LOG_ERROR("Recv error: %s", result.ToString().c_str());
@@ -141,7 +142,7 @@ Status Cluster::Set(const std::string& key, const std::string& value, std::strin
   }
 
   pb_cli_->Close();
-  LOG_INFO("Set OK, status is %d, msg is %s\n", response.status(), response.msg().c_str());
+  LOG_INFO("Set OK, status is %d, msg is %s\n", response.set().status(), response.set().msg().c_str());
   return Status::OK();
 }
 
@@ -168,10 +169,11 @@ Status Cluster::Get(const std::string& key, std::string* value, std::string ip, 
   pink::Status result = pb_cli_->Connect(ip, port);
   LOG_INFO("connect DataServer(%s:%d), %s", ip.c_str(), port, result.ToString().c_str());
 
-  Get_Request request;
-  request.set_key(key);
+  CmdRequest request;
+  request.set_type(Type::GET);
 
-  pb_cli_->set_opcode(OPCODE::GET);
+  CmdRequest_Get* get_req = request.mutable_get();
+  get_req->set_key(key);
 
   result = pb_cli_->Send(&request);
   if (!result.ok()) {
@@ -179,17 +181,17 @@ Status Cluster::Get(const std::string& key, std::string* value, std::string ip, 
     return Status::IOError("Send failed, " + result.ToString());
   }
 
-  Get_Response response;
+  CmdResponse response;
   result = pb_cli_->Recv(&response);
   if (!result.ok()) {
     LOG_ERROR("Recv error: %s", result.ToString().c_str());
     return Status::IOError("Recv failed, " + result.ToString());
   }
 
-  *value = response.value();
+  *value = response.get().value();
 
   pb_cli_->Close();
-  LOG_INFO("Get OK, status is %d, value is %s\n", response.status(), response.value().c_str());
+  LOG_INFO("Get OK, status is %d, value is %s\n", response.get().status(), response.get().value().c_str());
   return Status::OK();
 }
 

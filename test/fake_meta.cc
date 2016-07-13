@@ -62,7 +62,8 @@ int main(int argc, char* argv[]) {
 
   handle_update(cluster, 8001, 8002, 8003);
 
-  sleep(30);
+  sleep(40);
+  printf ("\n\n============================================\n=================Update Again =============\n\n");
   handle_update(cluster, 8002, 8001, 8003);
 
   while (1) {
