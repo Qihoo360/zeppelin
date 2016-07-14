@@ -51,9 +51,12 @@ INCLUDE_PATH = -I./include/ \
 			   -I$(THIRD_PATH)/glog/src/ \
 			   -I$(THIRD_PATH)/nemo/output/include/ \
 			   -I$(THIRD_PATH)/slash/output/include/ \
-			   -I$(THIRD_PATH)/pink/output/include/
+			   -I$(THIRD_PATH)/pink/output/include/ \
+			   -I$(THIRD_PATH)/floyd/output/include/
+
 
 LIB_PATH = -L./ \
+		   -L$(THIRD_PATH)/floyd/output/lib/ \
 		   -L$(THIRD_PATH)/nemo/output/lib/ \
 		   -L$(THIRD_PATH)/slash/output/lib/ \
 		   -L$(THIRD_PATH)/pink/output/lib/ \
@@ -64,7 +67,9 @@ LIBS = -lpthread \
 	   -lprotobuf \
 	   -lglog \
 	   -lnemo \
+	   -lfloyd \
 	   -lslash \
+	   -lleveldb \
 	   -lrocksdb \
 		 -lpink \
 	   -lz \
@@ -99,7 +104,7 @@ all: $(ZP_META) $(ZP_NODE)
 	@echo "Success, go, go, go..."
 
 
-$(ZP_META): $(NEMO) $(GLOG) $(PINK) $(SLASH) $(COMMON_OBJS) $(META_OBJS)
+$(ZP_META): $(FLOYD) $(GLOG) $(PINK) $(SLASH) $(COMMON_OBJS) $(META_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJS) $(META_OBJS) $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(LIBS) 
 
 $(ZP_NODE): $(NEMO) $(GLOG) $(PINK) $(SLASH) $(COMMON_OBJS) $(NODE_OBJS)
@@ -107,6 +112,9 @@ $(ZP_NODE): $(NEMO) $(GLOG) $(PINK) $(SLASH) $(COMMON_OBJS) $(NODE_OBJS)
 
 $(OBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) $(INCLUDE_PATH) -c $< -o $@  
+
+$(FLOYD):
+	make -C $(THIRD_PATH)/floyd/
 
 $(NEMO):
 	make -C $(THIRD_PATH)/nemo/

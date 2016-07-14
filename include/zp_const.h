@@ -26,6 +26,7 @@ const int kPortShiftSync = 200;
 
 // Meta port shift
 const int kMetaPortShiftHb = 100;
+const int kMetaPortShiftFY = 200;
 
 
 const int kTrySyncInterval = 2;

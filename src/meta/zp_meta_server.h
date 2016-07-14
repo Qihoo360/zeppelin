@@ -16,17 +16,9 @@
 #include "slash_status.h"
 #include "slash_mutex.h"
 
-#include "nemo.h"
+#include "floyd.h"
 
 using slash::Status;
-
-class ZPMetaServer;
-//class ZPMetaServerConn;
-//class ZPMetaServerThread;
-
-//class ZPWorkerThread;
-//class ZPDispatchThread;
-
 
 class ZPMetaServer {
  public:
@@ -36,10 +28,6 @@ class ZPMetaServer {
   Status Start();
   
   Status Set(const std::string &key, const std::string &value);
-
-  const std::shared_ptr<nemo::Nemo> db() {
-    return db_;
-  }
 
   std::string seed_ip() {
     return options_.seed_ip;
@@ -54,29 +42,13 @@ class ZPMetaServer {
     return options_.local_port;
   }
 
-  Binlog* logger_;
-
-  slash::Mutex slave_mutex_;
-  std::vector<SlaveItem> slaves_;
-
-  //slash::RecordMutex mutex_record_;
-
  private:
 
+  floyd::Floyd* floyd_;
   ZPOptions options_;
 
-  slash::Mutex server_mutex_;
-
-  // DB
-  std::shared_ptr<nemo::Nemo> db_;
-
-  // Server related
-  int worker_num_;
-  //ZPWorkerThread* zp_worker_thread_[kMaxWorkerThread];
-  //ZPDispatchThread* zp_dispatch_thread_;
-
-  // State related
   pthread_rwlock_t state_rw_;
+  slash::Mutex server_mutex_;
 };
 
 #endif
