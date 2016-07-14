@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 
+#include "zp_heartbeat_thread.h"
+#include "zp_meta.pb.h"
+
 #include "pb_cli.h"
 #include "slash_status.h"
 
@@ -63,29 +66,37 @@ struct Option {
 class Cluster {
  public:
   Cluster(const Option& option);
+  ~Cluster() {
+    delete hb_thread_;
+    delete meta_cli_;
+    //delete pb_cli_;
+  }
 
-  Status Set(const std::string& key, const std::string& value);
-  Status Get(const std::string& key, std::string* value);
+  Status Get(const std::string& key, std::string* value, std::string ip, int port);
+  Status Set(const std::string& key, const std::string& value, std::string ip, int port);
+  Status Update(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse &response, std::string ip, int port);
+  //Status Sync(const std::string& ip, int port, int filenum = 0, int64_t offset = 0);
+
 
  private:
   void Init();
 
   Option option_;
 
-  //pink::PbCli pb_cli_;
-
-  pink::PbCli *pb_cli_;
+  ZPHeartbeatThread* hb_thread_;
+  pink::PbCli* meta_cli_;
+  pink::PbCli* pb_cli_;
 };
 
-//class ZPPbCli : public pink::PbCli {
-// public:
-//  void set_opcode(int opcode) {
-//    opcode_ = opcode;
-//  }
-// private:
-//  virtual void BuildWbuf();
-//  int32_t opcode_;
-//};
+class ZPPbCli : public pink::PbCli {
+ public:
+  void set_opcode(int opcode) {
+    opcode_ = opcode;
+  }
+ private:
+  virtual void BuildWbuf();
+  int32_t opcode_;
+};
 
 } // namespace client
 #endif

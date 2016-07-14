@@ -15,8 +15,6 @@ class ZPMetacmdWorkerThread : public pink::HolyThread<ZPMetacmdConn> {
   virtual void CronHandle();
   virtual bool AccessHandle(std::string& ip_port);
 
-  bool FindSlave(int fd);
-
   Cmd* GetCmd(const int op) {
     return GetCmdFromTable(op, cmds_);
   }

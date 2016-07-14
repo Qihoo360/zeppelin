@@ -14,7 +14,6 @@ ZPPingThread::~ZPPingThread() {
 }
 
 pink::Status ZPPingThread::Send() {
-  return pink::Status::OK();
   std::string wbuf_str;
   if (!is_first_send_) {
     ZPMeta::MetaCmd request;
@@ -33,6 +32,7 @@ pink::Status ZPPingThread::Send() {
     node->set_ip(zp_data_server->local_ip());
     node->set_port(zp_data_server->local_port());
 
+    DLOG(INFO) << "Ping Join " << zp_data_server->local_ip() << ":" << zp_data_server->local_port();
     request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_JOIN);
     return cli_->Send(&request);
   }
@@ -42,7 +42,7 @@ pink::Status ZPPingThread::RecvProc() {
   pink::Status result;
   ZPMeta::MetaCmdResponse response;
   result = cli_->Recv(&response); 
-  DLOG(INFO) << "Join recv: " << result.ToString();
+  DLOG(INFO) << "Ping recv: " << result.ToString();
   if (!result.ok()) {
     LOG(WARNING) << "Join recv failed " << result.ToString();
   } else {
@@ -79,6 +79,7 @@ void* ZPPingThread::ThreadMain() {
     // Connect with heartbeat port
     s = cli_->Connect(zp_data_server->meta_ip(), zp_data_server->meta_port() + kMetaPortShiftHb);
     if (s.ok()) {
+      DLOG(INFO) << "Ping connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftHb << ") ok!";
       cli_->set_send_timeout(1000);
       cli_->set_recv_timeout(1000);
       connect_retry_times = 0;
@@ -93,6 +94,7 @@ void* ZPPingThread::ThreadMain() {
           DLOG(WARNING) << "Ping send failed once, " << s.ToString();
           break;
         }
+        DLOG(INFO) << "Ping send ok!";
 
         s = RecvProc();
         if (!s.ok()) {
@@ -101,7 +103,7 @@ void* ZPPingThread::ThreadMain() {
         }
 
         gettimeofday(&last_interaction, NULL);
-        DLOG(INFO) << "Ping master success";
+        DLOG(INFO) << "Ping MetaServer success";
         sleep(kPingInterval);
       }
 

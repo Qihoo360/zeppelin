@@ -21,12 +21,14 @@ int main(int argc, char* argv[]) {
 
   client::Cluster cluster(option);
 
+  Status result;
+
   printf ("\n=====Test Set==========\n");
 
   std::string key = "test_key";
-  std::string value = "test_value";
+  std::string value = "test_value1";
   
-  Status result = cluster.Set(key, value);
+  result = cluster.Set(key, value);
   if (result.ok()) {
     printf ("Set ok\n");
   } else {
@@ -35,6 +37,7 @@ int main(int argc, char* argv[]) {
 
   printf ("\n=====Test Get==========\n");
 
+  value = "";
   result = cluster.Get(key, &value);
   if (result.ok()) {
     printf ("Get ok, value is %s\n", value.c_str());

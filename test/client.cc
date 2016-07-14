@@ -89,6 +89,7 @@ void Option::ParseFromArgs(int argc, char *argv[]) {
 ////// Cluster //////
 Cluster::Cluster(const Option& option)
   : option_(option),
+  meta_cli_(new pink::PbCli),
   pb_cli_(new pink::PbCli) {
   Init();
 }
@@ -99,14 +100,25 @@ void Cluster::Init() {
     abort();
   }
   // TEST use the first server
-  pink::Status result = pb_cli_->Connect(option_.servers[0].ip, option_.servers[0].port);
-  LOG_INFO ("cluster connect(%s:%d) %s", option_.servers[0].ip, option_.servers[0].port, result.ToString().c_str());
-  if (!result.ok()) {
-    LOG_ERROR("cluster connect error, %s", result.ToString().c_str());
-  }
+ // pink::Status result = pb_cli_->Connect("127.0.0.1", 8001);
+ // LOG_INFO("connect DataServer(127.0.0.1:8001), %s", result.ToString().c_str());
+  //pink::Status result = pb_cli_->Connect(option_.servers[0].ip, option_.servers[0].port);
+  //LOG_INFO("connect DataServer(%s:%d), %s", option_.servers[0].ip.c_str(), option_.servers[0].port, result.ToString().c_str());
+//  if (!result.ok()) {
+//    LOG_ERROR("cluster connect(%s:%d) error, %s", option_.servers[0].ip, option_.servers[0].port, result.ToString().c_str());
+//  }
+
+  //result = meta_cli_->Connect("127.0.0.1", 8101);
+  //LOG_INFO("connect DataServer's MetacmdWorker(127.0.0.1:8101), %s", result.ToString().c_str());
+  //LOG_INFO("connect DataServer's MetacmdWorker(%s:%d), %s", option_.servers[0].ip.c_str(), option_.servers[0].port + 100, result.ToString().c_str());
+
+  hb_thread_ = new ZPHeartbeatThread(option_.servers[0].port + 100, 2000);
+  hb_thread_->StartThread();
 }
 
-Status Cluster::Set(const std::string& key, const std::string& value) {
+Status Cluster::Set(const std::string& key, const std::string& value, std::string ip, int port) {
+  pink::Status result = pb_cli_->Connect(ip, port);
+  LOG_INFO("connect DataServer(%s:%d), %s", ip.c_str(), port, result.ToString().c_str());
 
   CmdRequest request;
   request.set_type(Type::SET);
@@ -116,7 +128,7 @@ Status Cluster::Set(const std::string& key, const std::string& value) {
   set_req->set_value(value);
 
 
-  pink::Status result = pb_cli_->Send(&request);
+  result = pb_cli_->Send(&request);
   if (!result.ok()) {
     LOG_ERROR("Send error: %s", result.ToString().c_str());
     return Status::IOError("Send failed, " + result.ToString());
@@ -129,18 +141,41 @@ Status Cluster::Set(const std::string& key, const std::string& value) {
     return Status::IOError("Recv failed, " + result.ToString());
   }
 
+  pb_cli_->Close();
   LOG_INFO("Set OK, status is %d, msg is %s\n", response.set().status(), response.set().msg().c_str());
   return Status::OK();
 }
 
-Status Cluster::Get(const std::string& key, std::string* value) {
+Status Cluster::Update(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse &response, std::string ip, int port) {
+  pink::Status result = meta_cli_->Connect(ip, port);
+  LOG_INFO("connect DataServer's MetacmdWorker(%s:%d), %s", ip.c_str(), port, result.ToString().c_str());
+  result = meta_cli_->Send(&request);
+  if (!result.ok()) {
+    LOG_ERROR("Update Send error: %s", result.ToString().c_str());
+    return Status::IOError("Update Send failed, " + result.ToString());
+  }
+
+  result = meta_cli_->Recv(&response);
+  if (!result.ok()) {
+    LOG_ERROR("Update Recv error: %s", result.ToString().c_str());
+    return Status::IOError("Update Recv failed, " + result.ToString());
+  }
+
+  meta_cli_->Close();
+  return Status::OK();
+}
+
+Status Cluster::Get(const std::string& key, std::string* value, std::string ip, int port) {
+  pink::Status result = pb_cli_->Connect(ip, port);
+  LOG_INFO("connect DataServer(%s:%d), %s", ip.c_str(), port, result.ToString().c_str());
+
   CmdRequest request;
   request.set_type(Type::GET);
 
   CmdRequest_Get* get_req = request.mutable_get();
   get_req->set_key(key);
 
-  pink::Status result = pb_cli_->Send(&request);
+  result = pb_cli_->Send(&request);
   if (!result.ok()) {
     LOG_ERROR("Send error: %s", result.ToString().c_str());
     return Status::IOError("Send failed, " + result.ToString());
@@ -155,22 +190,23 @@ Status Cluster::Get(const std::string& key, std::string* value) {
 
   *value = response.get().value();
 
+  pb_cli_->Close();
   LOG_INFO("Get OK, status is %d, value is %s\n", response.get().status(), response.get().value().c_str());
   return Status::OK();
 }
 
 ////// ZPPbCli //////
-//void ZPPbCli::BuildWbuf() {
-//  uint32_t len;
-//  wbuf_len_ = msg_->ByteSize();
-//  len = htonl(wbuf_len_ + 4);
-//  memcpy(wbuf_, &len, sizeof(uint32_t));
-//  len = htonl(opcode_);
-//  memcpy(wbuf_ + 4, &len, sizeof(uint32_t));
-//  msg_->SerializeToArray(wbuf_ + 8, wbuf_len_);
-//  wbuf_len_ += 8;
-//
-//  //printf ("wbuf_[0-4]  bytesize=%d len=%d\n", wbuf_len_, len);
-//}
+void ZPPbCli::BuildWbuf() {
+  uint32_t len;
+  wbuf_len_ = msg_->ByteSize();
+  len = htonl(wbuf_len_ + 4);
+  memcpy(wbuf_, &len, sizeof(uint32_t));
+  len = htonl(opcode_);
+  memcpy(wbuf_ + 4, &len, sizeof(uint32_t));
+  msg_->SerializeToArray(wbuf_ + 8, wbuf_len_);
+  wbuf_len_ += 8;
+
+  //printf ("wbuf_[0-4]  bytesize=%d len=%d\n", wbuf_len_, len);
+}
 
 } // namespace client

@@ -45,11 +45,11 @@ class ZPDataServer {
     return db_;
   }
 
-  std::string seed_ip() {
-    return options_.seed_ip;
+  std::string master_ip() {
+    return master_ip_;
   }
-  int seed_port() {
-    return options_.seed_port;
+  int master_port() {
+    return master_port_;
   }
   std::string meta_ip() {
     return options_.seed_ip;
@@ -67,8 +67,10 @@ class ZPDataServer {
   bool FindSlave(const Node& node);
   Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
   void DeleteSlave(int fd);
-  bool ShouldJoin();
-  void JoinDone();
+  void BecomeMaster();
+  void BecomeSlave(const std::string& master_ip, int port);
+  bool ShouldTrySync();
+  void TrySyncDone();
 
   bool ShouldJoinMeta();
   void PlusMetaServerConns();
@@ -101,8 +103,10 @@ class ZPDataServer {
 
   // State related
   pthread_rwlock_t state_rw_;
+  int role_;
   int repl_state_;  
-  bool is_seed;
+  std::string master_ip_;
+  int master_port_;
 
   // Meta State related
   pthread_rwlock_t meta_state_rw_;

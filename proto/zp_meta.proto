@@ -16,6 +16,7 @@ message MetaCmd {
     JOIN = 1;
     PING = 2;
     UPDATE = 3;
+    SYNC = 4;
   }
 
   required Type type = 1;
@@ -37,6 +38,14 @@ message MetaCmd {
     repeated Partitions info = 1;
   }
   optional Update update = 4;
+
+  // Sync
+  message Sync {
+    required Node node = 1;
+    required int32 filenum = 2 [default = 0];
+    required int32 offset = 3 [default = 0];
+  }
+  optional Sync sync = 5; 
 }
 
 
@@ -45,11 +54,11 @@ message MetaCmdResponse {
     JOIN = 1;
     PING = 2;
     UPDATE = 3;
+    SYNC = 4;
   }
 
   required Type type = 1;
 
-  // Join 
   message Status {
     required int32 code = 1;
     optional bytes msg = 2;

@@ -7,7 +7,7 @@
 #include <unordered_map>
 
 #include "client.pb.h"
-#include "zp_data_control.pb.h"
+#include "zp_meta.pb.h"
 #include "slash_string.h"
 #include "slash_status.h"
 
@@ -56,13 +56,10 @@ class Cmd {
   virtual ~Cmd() {}
 
   // TODO may be stall
-  virtual Status Init(const void *buf, size_t count) { return Status::OK(); }
+  //virtual Status Init(const void *buf, size_t count) { return Status::OK(); }
+  virtual Status Init(google::protobuf::Message *req) { return Status::OK(); }
   virtual void Do(google::protobuf::Message *request, google::protobuf::Message *response) = 0;
   virtual std::string key() { return ""; }
-
-  google::protobuf::Message* Response() {
-    return response_;
-  }
 
   bool is_write() const {
     return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite);
