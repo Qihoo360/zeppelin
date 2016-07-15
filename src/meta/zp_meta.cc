@@ -10,7 +10,7 @@
 
 #include "env.h"
 
-ZPMetaServer* zp_meta_server;
+ZPMetaServer* g_zp_meta_server;
 
 void Usage();
 void ParseArgs(int argc, char* argv[], ZPOptions& options);

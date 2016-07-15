@@ -1,6 +1,8 @@
 #ifndef ZP_MASTER_SERVER_H
 #define ZP_MASTER_SERVER_H
 
+#include <stdio.h>
+#include <sys/time.h>
 #include <string>
 #include <memory>
 #include "zp_options.h"
@@ -20,6 +22,11 @@
 
 using slash::Status;
 
+// key in floyd is zpmeta##id
+const std::string ZP_META_KEY_PREFIX = "zpmeta##";
+
+typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
+
 class ZPMetaServer {
  public:
 
@@ -28,6 +35,7 @@ class ZPMetaServer {
   Status Start();
   
   Status Set(const std::string &key, const std::string &value);
+  Status Get(const std::string &key, std::string &value);
 
   std::string seed_ip() {
     return options_.seed_ip;
@@ -42,10 +50,16 @@ class ZPMetaServer {
     return options_.local_port;
   }
 
+  void CheckNodeAlive();
+
  private:
 
   floyd::Floyd* floyd_;
   ZPOptions options_;
+  slash::Mutex alive_mutext_;
+  NodeAliveMap node_alive_;
+
+  ZPMetaUpdateThread update_thread_;
 
   pthread_rwlock_t state_rw_;
   slash::Mutex server_mutex_;
