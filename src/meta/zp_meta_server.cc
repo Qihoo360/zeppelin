@@ -32,11 +32,11 @@ Status ZPMetaServer::Start() {
   return Status::OK();
 }
 
-void CheckNodeAlive() {
-  slash::MutexLock(node_alive_);
+void ZPMetaServer::CheckNodeAlive() {
+  slash::MutexLock l(&alive_mutext_);
   struct timeval now;
   gettimeofday(&now, NULL);
-  NodeAliveMap::Iterator it = node_alive_.begin();
+  NodeAliveMap::iterator it = node_alive_.begin();
   for (; it != node_alive_.end(); ++it) {
     if (now.tv_sec - (it->second).tv_sec > NODE_ALIVE_LEASE) {
       update_thread_.ScheduleUpdate(it->first, ZPMetaUpdateOP::OP_REMOVE);

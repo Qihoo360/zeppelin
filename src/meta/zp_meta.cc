@@ -38,9 +38,9 @@ int main(int argc, char** argv) {
 
   signal(SIGPIPE, SIG_IGN);
 
-  zp_meta_server = new ZPMetaServer(options);
+  g_zp_meta_server = new ZPMetaServer(options);
 
-  zp_meta_server->Start();
+  g_zp_meta_server->Start();
 
   printf ("Exit\n");
 
