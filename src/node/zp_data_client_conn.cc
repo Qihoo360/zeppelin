@@ -31,6 +31,10 @@ int ZPDataClientConn::DealMessage() {
       DLOG(INFO) << "Receive Get cmd";
       break;
     }
+    case client::Type::SYNC: {
+      DLOG(INFO) << "Receive Sync cmd";
+      break;
+    }
   }
 
   Cmd* cmd = self_thread_->GetCmd(static_cast<int>(request_.type()));

@@ -11,11 +11,15 @@ extern ZPDataServer *zp_data_server;
 void InitClientCmdTable(std::unordered_map<int, Cmd*> *cmd_table) {
   //Kv
   ////SetCmd
-  Cmd* setptr = new SetCmd(kCmdFlagsWrite);
+  Cmd* setptr = new SetCmd(kCmdFlagsKv | kCmdFlagsWrite);
   cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SET), setptr));
   ////GetCmd
-  Cmd* getptr = new GetCmd(kCmdFlagsRead);
+  Cmd* getptr = new GetCmd(kCmdFlagsKv | kCmdFlagsRead);
   cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::GET), getptr));
+
+  // Sync
+  Cmd* syncptr = new SyncCmd(kCmdFlagsAdmin | kCmdFlagsRead);
+  cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SYNC), syncptr));
 }
 
 // We use static_cast instead of dynamic_cast, caz we know exactly the Derived class type.
@@ -68,3 +72,36 @@ void GetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res) 
   }
 }
 
+// Sync between nodes
+void SyncCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res) {
+  client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
+  client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+  client::CmdRequest_Sync sync = request->sync();
+
+  slash::Status s;
+  Node node(sync.node().ip(), sync.node().port());
+
+  response->set_type(client::Type::SYNC);
+  slash::MutexLock l(&(zp_data_server->slave_mutex_));
+  if (!zp_data_server->FindSlave(node)) {
+    SlaveItem si;
+    si.node = node;
+    gettimeofday(&si.create_time, NULL);
+    si.sender = NULL;
+
+    LOG(INFO) << "Sync a new node(" << node.ip << ":" << node.port << ") filenum " << sync.filenum() << ", offset " << sync.offset();
+    s = zp_data_server->AddBinlogSender(si, sync.filenum(), sync.offset());
+
+    client::CmdResponse_Status* status = response->mutable_status();
+    if (!s.ok()) {
+      status->set_code(1);
+      status->set_msg(result_.ToString());
+      result_ = slash::Status::Corruption(s.ToString());
+      LOG(ERROR) << "command failed: Sync, caz " << s.ToString();
+    } else {
+      status->set_code(0);
+      DLOG(INFO) << "Sync node ok";
+      result_ = slash::Status::OK();
+    }
+  }
+}

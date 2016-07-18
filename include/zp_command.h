@@ -19,6 +19,8 @@ using slash::Status;
 const std::string kCmdNameSet = "set";
 const std::string kCmdNameGet = "get";
 const std::string kCmdNameDel = "del";
+//Sync
+const std::string kCmdNameSync = "sync";
 
 enum CmdFlagsMask {
   kCmdFlagsMaskRW               = 1,
@@ -32,12 +34,8 @@ enum CmdFlagsMask {
 enum CmdFlags {
   kCmdFlagsRead           = 0, //default rw
   kCmdFlagsWrite          = 1,
-  kCmdFlagsAdmin          = 0, //default type
   kCmdFlagsKv             = 2,
-  kCmdFlagsHash           = 4,
-  kCmdFlagsList           = 6,
-  kCmdFlagsSet            = 8,
-  kCmdFlagsZset           = 10,
+  kCmdFlagsAdmin          = 4, 
   // kCmdFlagsBit            = 12,
   kCmdFlagsNoLocal        = 0, //default nolocal
   kCmdFlagsLocal          = 16,
@@ -66,6 +64,9 @@ class Cmd {
   }
   uint16_t flag_type() const {
     return flag_ & kCmdFlagsMaskType;
+  }
+  bool is_admin() const {
+    return ((flag_ & kCmdFlagsMaskType) == kCmdFlagsAdmin);
   }
   bool is_local() const {
     return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal);

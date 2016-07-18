@@ -1,12 +1,27 @@
 package client;
 
 enum Type {
+  SYNC = 0;
   SET = 1;
   GET = 2;
 }
 
+message Node {
+  required bytes ip = 1;
+  required int32 port = 2;
+}
+
 message CmdRequest {
   required Type type = 1;
+
+  // Sync
+  message Sync {
+    required Node node = 1;
+    required int32 filenum = 2 [default = 0];
+    required int32 offset = 3 [default = 0];
+  }
+  optional Sync sync = 2; 
+
 
   message Set {
     required bytes key = 1;
@@ -14,28 +29,34 @@ message CmdRequest {
     optional bytes uuid = 3;
   }
 
-  optional Set set = 2;
+  optional Set set = 3;
 
   message Get {
     required bytes key = 1;
     optional bytes uuid = 2;
   }
-  optional Get get = 3;
+  optional Get get = 4;
 }
-
 
 message CmdResponse {
   required Type type = 1;
+
+  // only sync use status
+  message Status {
+    required int32 code = 1;
+    optional bytes msg = 2;
+  }
+  required Status status = 2;
 
   message Set {
     required int32 status = 1;
     optional bytes msg = 2;
   }
-  optional Set set = 2;
+  optional Set set = 3;
 
   message Get {
     required int32 status = 1;
     optional bytes value = 2;
   }
-  optional Get get = 3;
+  optional Get get = 4;
 }

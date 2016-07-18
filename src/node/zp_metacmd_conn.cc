@@ -30,14 +30,16 @@ int ZPMetacmdConn::DealMessage() {
   set_is_reply(true);
 
   switch (request_.type()) {
-    case ZPMeta::MetaCmd_Type::MetaCmd_Type_SYNC: {
-      DLOG(INFO) << "Receive Sync cmd";
-      break;
-    }
+  //  case ZPMeta::MetaCmd_Type::MetaCmd_Type_SYNC: {
+  //    DLOG(INFO) << "Receive Sync cmd";
+  //    break;
+  //  }
     case ZPMeta::MetaCmd_Type::MetaCmd_Type_UPDATE: {
       DLOG(INFO) << "Receive Update cmd";
       break;
     }
+    default:
+      DLOG(INFO) << "unsupported cmd type:" << request_.type();
   }
 
   if (cmd->is_write()) {

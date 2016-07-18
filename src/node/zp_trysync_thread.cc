@@ -15,12 +15,12 @@ ZPTrySyncThread::~ZPTrySyncThread() {
 pink::Status ZPTrySyncThread::Send() {
   std::string wbuf_str;
 
-  ZPMeta::MetaCmd request;
-  ZPMeta::MetaCmd_Sync* sync = request.mutable_sync();
+  client::CmdRequest request;
+  client::CmdRequest_Sync* sync = request.mutable_sync();
 
-  request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_SYNC);
+  request.set_type(client::Type::SYNC);
 
-  ZPMeta::Node* node = sync->mutable_node();
+  client::Node* node = sync->mutable_node();
   node->set_ip(zp_data_server->local_ip());
   node->set_port(zp_data_server->local_port());
 
@@ -37,7 +37,7 @@ pink::Status ZPTrySyncThread::Send() {
 }
 
 pink::Status ZPTrySyncThread::Recv() {
-  ZPMeta::MetaCmdResponse response;
+  client::CmdResponse response;
   pink::Status result = cli_->Recv(&response); 
 
   DLOG(INFO) << "TrySync receive: " << result.ToString();
@@ -47,7 +47,7 @@ pink::Status ZPTrySyncThread::Recv() {
   }
 
   switch (response.type()) {
-    case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_SYNC: {
+    case client::Type::SYNC: {
       if (response.status().code() == 0) {
         DLOG(INFO) << "TrySync recv success.";
         return pink::Status::OK(); 
@@ -75,7 +75,7 @@ void* ZPTrySyncThread::ThreadMain() {
     }
 
     // Connect with Leader port
-    s = cli_->Connect(zp_data_server->master_ip(), zp_data_server->master_port() + kPortShiftDataCmd);
+    s = cli_->Connect(zp_data_server->master_ip(), zp_data_server->master_port());
     DLOG(WARNING) << "TrySync connect(" << zp_data_server->master_ip() << ":" << zp_data_server->master_port() + kPortShiftDataCmd << ")" << s.ToString();
     if (s.ok()) {
       cli_->set_send_timeout(1000);
