@@ -19,11 +19,13 @@
 #include "slash_mutex.h"
 
 #include "floyd.h"
+#include "zp_meta_update_thread.h"
 
 using slash::Status;
 
 // key in floyd is zpmeta##id
 const std::string ZP_META_KEY_PREFIX = "zpmeta##";
+const int NODE_ALIVE_LEASE = 3;
 
 typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
 

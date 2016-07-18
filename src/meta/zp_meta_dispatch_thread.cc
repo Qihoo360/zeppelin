@@ -1,8 +1,9 @@
 #include <glog/logging.h>
 #include "zp_meta_dispatch_thread.h"
 
-#include "zp_meta_client_conn.h"
 #include "zp_meta_server.h"
+#include "zp_meta_client_conn.h"
+#include "zp_meta_worker_thread.h"
 
 extern ZPMetaServer* g_zp_meta_server;
 
@@ -21,9 +22,9 @@ void ZPMetaDispatchThread::CronHandle() {
   uint64_t server_querynum = 0;
   uint64_t server_current_qps = 0;
   for (int i = 0; i < work_num(); i++) {
-    slash::RWLock(&(((ZPDataWorkerThread**)worker_thread())[i]->rwlock_), false);
-    server_querynum += ((ZPDataWorkerThread**)worker_thread())[i]->thread_querynum();
-    server_current_qps += ((ZPDataWorkerThread**)worker_thread())[i]->last_sec_thread_querynum();
+    slash::RWLock(&(((ZPMetaWorkerThread**)worker_thread())[i]->rwlock_), false);
+    server_querynum += ((ZPMetaWorkerThread**)worker_thread())[i]->thread_querynum();
+    server_current_qps += ((ZPMetaWorkerThread**)worker_thread())[i]->last_sec_thread_querynum();
   }
   LOG(INFO) << "ClientNum: " << ClientNum() << " ServerQueryNum: " << server_querynum << " ServerCurrentQps: " << server_current_qps;
   
@@ -31,10 +32,10 @@ void ZPMetaDispatchThread::CronHandle() {
   g_zp_meta_server->CheckNodeAlive();
 }
 
-int ZPDataDispatchThread::ClientNum() {
+int ZPMetaDispatchThread::ClientNum() {
   int num = 0;
   for (int i = 0; i < work_num(); i++) {
-    num += ((ZPDataWorkerThread**)worker_thread())[i]->ThreadClientNum();
+    num += ((ZPMetaWorkerThread**)worker_thread())[i]->ThreadClientNum();
   }
   return num;
 }
