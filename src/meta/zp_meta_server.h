@@ -56,9 +56,12 @@ class ZPMetaServer {
 
  private:
 
+  friend class JoinCmd;
+  friend class PingCmd;
+
   floyd::Floyd* floyd_;
   ZPOptions options_;
-  slash::Mutex alive_mutext_;
+  slash::Mutex alive_mutex_;
   NodeAliveMap node_alive_;
 
   ZPMetaUpdateThread update_thread_;

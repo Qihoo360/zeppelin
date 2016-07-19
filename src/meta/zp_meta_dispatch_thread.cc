@@ -5,7 +5,7 @@
 #include "zp_meta_client_conn.h"
 #include "zp_meta_worker_thread.h"
 
-extern ZPMetaServer* g_zp_meta_server;
+extern ZPMetaServer* zp_meta_server;
 
 ZPMetaDispatchThread::ZPMetaDispatchThread(int port, int work_num, ZPMetaWorkerThread** worker_thread, int cron_interval)
   : DispatchThread::DispatchThread(port, work_num,
@@ -29,7 +29,7 @@ void ZPMetaDispatchThread::CronHandle() {
   LOG(INFO) << "ClientNum: " << ClientNum() << " ServerQueryNum: " << server_querynum << " ServerCurrentQps: " << server_current_qps;
   
   // Check alive
-  g_zp_meta_server->CheckNodeAlive();
+  zp_meta_server->CheckNodeAlive();
 }
 
 int ZPMetaDispatchThread::ClientNum() {

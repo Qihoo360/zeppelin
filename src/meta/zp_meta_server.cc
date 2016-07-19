@@ -33,7 +33,7 @@ Status ZPMetaServer::Start() {
 }
 
 void ZPMetaServer::CheckNodeAlive() {
-  slash::MutexLock l(&alive_mutext_);
+  slash::MutexLock l(&alive_mutex_);
   struct timeval now;
   gettimeofday(&now, NULL);
   NodeAliveMap::iterator it = node_alive_.begin();

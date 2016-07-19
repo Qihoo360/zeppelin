@@ -1,24 +1,24 @@
 #ifndef ZP_META_WORKER_THREAD_H
 #define ZP_META_WORKER_THREAD_H
 
-#include <queue>
+#include <unordered_map>
 
+#include "env.h"
+#include "slash_mutex.h"
+#include "worker_thread.h"
+
+#include "zp_util.h"
+#include "zp_command.h"
 #include "zp_meta_client_conn.h"
 
-#include "worker_thread.h"
-#include "slash_mutex.h"
-#include "env.h"
-#include "zp_util.h"
+class ZPMetaClientConn;
 
 class ZPMetaWorkerThread : public pink::WorkerThread<ZPMetaClientConn> {
  public:
   ZPMetaWorkerThread(int cron_interval = 0);
   virtual ~ZPMetaWorkerThread();
-  virtual void CronHandle();
 
-  //int64_t ThreadClientList(std::vector<ClientInfo> *clients = NULL);
-  bool ThreadClientKill(std::string ip_port = "");
-  int ThreadClientNum();
+	int ThreadClientNum();
 
   uint64_t thread_querynum() {
     slash::RWLock(&rwlock_, false);
@@ -43,25 +43,16 @@ class ZPMetaWorkerThread : public pink::WorkerThread<ZPMetaClientConn> {
     last_time_us_ = cur_time_us;
   }
 
-  //Cmd* GetCmd(const int op) {
-  //  return GetCmdFromTable(op, cmds_);
-  //}
+  void InitClientCmdTable();
+  Cmd* GetCmd(const int op);
 
  private:
-  slash::Mutex mutex_; // protect cron_task_
-  std::queue<WorkerCronTask> cron_tasks_;
-
-  //std::unordered_map<int, Cmd*> cmds_;
+  std::unordered_map<int, Cmd*> cmds_;
 
   uint64_t thread_querynum_;
   uint64_t last_thread_querynum_;
   uint64_t last_time_us_;
   uint64_t last_sec_thread_querynum_;
-
-  void AddCronTask(WorkerCronTask task);
-  bool FindClient(std::string ip_port);
-  void ClientKill(std::string ip_port);
-  void ClientKillAll();
 };
 
 

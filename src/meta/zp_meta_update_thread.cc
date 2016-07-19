@@ -2,7 +2,7 @@
 #include "zp_meta.pb.h"
 #include "zp_meta_server.h"
 
-extern ZPMetaServer* g_zp_meta_server;
+extern ZPMetaServer* zp_meta_server;
 
 const int UPDATE_RETRY_TIME = 3;
 
@@ -34,11 +34,14 @@ slash::Status ZPMetaUpdateThread::MetaUpdate(const std::string ip, int port, ZPM
   return s;
 }
 
+ZPMetaUpdateThread::ZPMetaUpdateThread() {
+}
+
 slash::Status ZPMetaUpdateThread::UpdateFloyd(const std::string &ip, int port, ZPMetaUpdateOP op, ZPMeta::Partitions &partitions) {
   // Load from Floyd
   std::string key(ZP_META_KEY_PREFIX), value;
   key += "1"; //Only one partition now
-  slash::Status s = g_zp_meta_server->Get(key, value);
+  slash::Status s = zp_meta_server->Get(key, value);
   if (!s.ok()) {
     //TODO error log
     return s;
@@ -62,7 +65,7 @@ slash::Status ZPMetaUpdateThread::UpdateFloyd(const std::string &ip, int port, Z
     //TODO error log
     return Status::Corruption("Serialize error");
   }
-  return g_zp_meta_server->Set(key, new_value);
+  return zp_meta_server->Set(key, new_value);
 }
 
 slash::Status ZPMetaUpdateThread::UpdateSender(const std::string &ip, int port, ZPMetaUpdateOP op) {

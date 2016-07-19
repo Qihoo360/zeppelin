@@ -10,7 +10,7 @@
 
 #include "env.h"
 
-ZPMetaServer* g_zp_meta_server;
+ZPMetaServer* zp_meta_server;
 
 void Usage();
 void ParseArgs(int argc, char* argv[], ZPOptions& options);
@@ -38,9 +38,9 @@ int main(int argc, char** argv) {
 
   signal(SIGPIPE, SIG_IGN);
 
-  g_zp_meta_server = new ZPMetaServer(options);
+  zp_meta_server = new ZPMetaServer(options);
 
-  g_zp_meta_server->Start();
+  zp_meta_server->Start();
 
   printf ("Exit\n");
 

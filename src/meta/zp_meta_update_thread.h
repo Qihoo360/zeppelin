@@ -1,5 +1,6 @@
 #ifndef ZP_META_UPDATE_THREAD_H
 #define ZP_META_UPDATE_THREAD_H
+
 #include <string>
 #include <unordered_map>
 #include "slash_string.h"
@@ -41,8 +42,6 @@ public:
   }
 
   static void DoMetaUpdate(void *);
-  
-
 
 private:
   DataCliMap data_sender_;

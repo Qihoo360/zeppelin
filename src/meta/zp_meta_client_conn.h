@@ -1,19 +1,17 @@
 #ifndef ZP_META_CLIENT_CONN_H
 #define ZP_META_CLIENT_CONN_H
 
-#include <string>
-
-#include "client.pb.h"
-
-#include "pb_conn.h"
 #include "pink_thread.h"
+#include "pb_conn.h"
 
+#include "zp_meta.pb.h"
+#include "zp_meta_worker_thread.h"
 
 class ZPMetaWorkerThread;
 
 class ZPMetaClientConn : public pink::PbConn {
  public:
-  ZPMetaClientConn(int fd, std::string ip_port, pink::Thread *thread);
+  ZPMetaClientConn(int fd, std::string ip_port, pink::Thread* thread);
   virtual ~ZPMetaClientConn();
 
   virtual int DealMessage();
@@ -22,11 +20,11 @@ class ZPMetaClientConn : public pink::PbConn {
   }
 
  private:
-
-  client::CmdRequest request_;
-  client::CmdResponse response_;
+  ZPMeta::MetaCmd request_;
+  ZPMeta::MetaCmdResponse response_;
 
   ZPMetaWorkerThread* self_thread_;
 };
+
 
 #endif
