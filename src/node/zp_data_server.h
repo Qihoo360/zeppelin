@@ -64,6 +64,10 @@ class ZPDataServer {
     return options_.local_port;
   }
 
+  ZPMetacmdWorkerThread* zp_metacmd_worker_thread() {
+    return zp_metacmd_worker_thread_;
+  };
+
   bool FindSlave(const Node& node);
   Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
   void DeleteSlave(int fd);

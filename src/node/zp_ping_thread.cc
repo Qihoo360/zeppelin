@@ -113,6 +113,7 @@ void* ZPPingThread::ThreadMain() {
         if (now.tv_sec - last_interaction.tv_sec > 30) {
           LOG(WARNING) << "Ping leader timeout";
           zp_data_server->MinusMetaServerConns();
+          zp_data_server->zp_metacmd_worker_thread()->KillMetacmdConn();
           break;
         }
       }
