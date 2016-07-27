@@ -1,5 +1,11 @@
 package ZPMeta;
 
+enum StatusCode {
+  kOk = 0;
+  kNotFound = 1;
+  kError = 2;
+}
+
 message Node {
   required bytes ip = 1;
   required int32 port = 2;
@@ -50,7 +56,7 @@ message MetaCmdResponse {
   required Type type = 1;
 
   message Status {
-    required int32 code = 1;
+    required StatusCode code = 1;
     optional bytes msg = 2;
   }
   required Status status = 2;

@@ -40,7 +40,7 @@ class CmdRequest_Sync;
 class CmdRequest_Set;
 class CmdRequest_Get;
 class CmdResponse;
-class CmdResponse_Status;
+class CmdResponse_Sync;
 class CmdResponse_Set;
 class CmdResponse_Get;
 
@@ -63,6 +63,26 @@ inline bool Type_Parse(
     const ::std::string& name, Type* value) {
   return ::google::protobuf::internal::ParseNamedEnum<Type>(
     Type_descriptor(), name, value);
+}
+enum StatusCode {
+  kOk = 0,
+  kNotFound = 1,
+  kError = 2
+};
+bool StatusCode_IsValid(int value);
+const StatusCode StatusCode_MIN = kOk;
+const StatusCode StatusCode_MAX = kError;
+const int StatusCode_ARRAYSIZE = StatusCode_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* StatusCode_descriptor();
+inline const ::std::string& StatusCode_Name(StatusCode value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    StatusCode_descriptor(), value);
+}
+inline bool StatusCode_Parse(
+    const ::std::string& name, StatusCode* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<StatusCode>(
+    StatusCode_descriptor(), name, value);
 }
 // ===================================================================
 
@@ -608,14 +628,14 @@ class CmdRequest : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
-class CmdResponse_Status : public ::google::protobuf::Message {
+class CmdResponse_Sync : public ::google::protobuf::Message {
  public:
-  CmdResponse_Status();
-  virtual ~CmdResponse_Status();
+  CmdResponse_Sync();
+  virtual ~CmdResponse_Sync();
 
-  CmdResponse_Status(const CmdResponse_Status& from);
+  CmdResponse_Sync(const CmdResponse_Sync& from);
 
-  inline CmdResponse_Status& operator=(const CmdResponse_Status& from) {
+  inline CmdResponse_Sync& operator=(const CmdResponse_Sync& from) {
     CopyFrom(from);
     return *this;
   }
@@ -629,17 +649,17 @@ class CmdResponse_Status : public ::google::protobuf::Message {
   }
 
   static const ::google::protobuf::Descriptor* descriptor();
-  static const CmdResponse_Status& default_instance();
+  static const CmdResponse_Sync& default_instance();
 
-  void Swap(CmdResponse_Status* other);
+  void Swap(CmdResponse_Sync* other);
 
   // implements Message ----------------------------------------------
 
-  CmdResponse_Status* New() const;
+  CmdResponse_Sync* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const CmdResponse_Status& from);
-  void MergeFrom(const CmdResponse_Status& from);
+  void CopyFrom(const CmdResponse_Sync& from);
+  void MergeFrom(const CmdResponse_Sync& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -662,12 +682,12 @@ class CmdResponse_Status : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required int32 code = 1;
+  // required .client.StatusCode code = 1;
   inline bool has_code() const;
   inline void clear_code();
   static const int kCodeFieldNumber = 1;
-  inline ::google::protobuf::int32 code() const;
-  inline void set_code(::google::protobuf::int32 value);
+  inline ::client::StatusCode code() const;
+  inline void set_code(::client::StatusCode value);
 
   // optional bytes msg = 2;
   inline bool has_msg() const;
@@ -681,7 +701,7 @@ class CmdResponse_Status : public ::google::protobuf::Message {
   inline ::std::string* release_msg();
   inline void set_allocated_msg(::std::string* msg);
 
-  // @@protoc_insertion_point(class_scope:client.CmdResponse.Status)
+  // @@protoc_insertion_point(class_scope:client.CmdResponse.Sync)
  private:
   inline void set_has_code();
   inline void clear_has_code();
@@ -691,7 +711,7 @@ class CmdResponse_Status : public ::google::protobuf::Message {
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::std::string* msg_;
-  ::google::protobuf::int32 code_;
+  int code_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
@@ -701,7 +721,7 @@ class CmdResponse_Status : public ::google::protobuf::Message {
   friend void protobuf_ShutdownFile_client_2eproto();
 
   void InitAsDefaultInstance();
-  static CmdResponse_Status* default_instance_;
+  static CmdResponse_Sync* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -759,12 +779,12 @@ class CmdResponse_Set : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required int32 status = 1;
-  inline bool has_status() const;
-  inline void clear_status();
-  static const int kStatusFieldNumber = 1;
-  inline ::google::protobuf::int32 status() const;
-  inline void set_status(::google::protobuf::int32 value);
+  // required .client.StatusCode code = 1;
+  inline bool has_code() const;
+  inline void clear_code();
+  static const int kCodeFieldNumber = 1;
+  inline ::client::StatusCode code() const;
+  inline void set_code(::client::StatusCode value);
 
   // optional bytes msg = 2;
   inline bool has_msg() const;
@@ -780,15 +800,15 @@ class CmdResponse_Set : public ::google::protobuf::Message {
 
   // @@protoc_insertion_point(class_scope:client.CmdResponse.Set)
  private:
-  inline void set_has_status();
-  inline void clear_has_status();
+  inline void set_has_code();
+  inline void clear_has_code();
   inline void set_has_msg();
   inline void clear_has_msg();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::std::string* msg_;
-  ::google::protobuf::int32 status_;
+  int code_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
@@ -856,17 +876,29 @@ class CmdResponse_Get : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required int32 status = 1;
-  inline bool has_status() const;
-  inline void clear_status();
-  static const int kStatusFieldNumber = 1;
-  inline ::google::protobuf::int32 status() const;
-  inline void set_status(::google::protobuf::int32 value);
+  // required .client.StatusCode code = 1;
+  inline bool has_code() const;
+  inline void clear_code();
+  static const int kCodeFieldNumber = 1;
+  inline ::client::StatusCode code() const;
+  inline void set_code(::client::StatusCode value);
 
-  // optional bytes value = 2;
+  // optional bytes msg = 2;
+  inline bool has_msg() const;
+  inline void clear_msg();
+  static const int kMsgFieldNumber = 2;
+  inline const ::std::string& msg() const;
+  inline void set_msg(const ::std::string& value);
+  inline void set_msg(const char* value);
+  inline void set_msg(const void* value, size_t size);
+  inline ::std::string* mutable_msg();
+  inline ::std::string* release_msg();
+  inline void set_allocated_msg(::std::string* msg);
+
+  // optional bytes value = 3;
   inline bool has_value() const;
   inline void clear_value();
-  static const int kValueFieldNumber = 2;
+  static const int kValueFieldNumber = 3;
   inline const ::std::string& value() const;
   inline void set_value(const ::std::string& value);
   inline void set_value(const char* value);
@@ -877,18 +909,21 @@ class CmdResponse_Get : public ::google::protobuf::Message {
 
   // @@protoc_insertion_point(class_scope:client.CmdResponse.Get)
  private:
-  inline void set_has_status();
-  inline void clear_has_status();
+  inline void set_has_code();
+  inline void clear_has_code();
+  inline void set_has_msg();
+  inline void clear_has_msg();
   inline void set_has_value();
   inline void clear_has_value();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
+  ::std::string* msg_;
   ::std::string* value_;
-  ::google::protobuf::int32 status_;
+  int code_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -951,7 +986,7 @@ class CmdResponse : public ::google::protobuf::Message {
 
   // nested types ----------------------------------------------------
 
-  typedef CmdResponse_Status Status;
+  typedef CmdResponse_Sync Sync;
   typedef CmdResponse_Set Set;
   typedef CmdResponse_Get Get;
 
@@ -964,14 +999,14 @@ class CmdResponse : public ::google::protobuf::Message {
   inline ::client::Type type() const;
   inline void set_type(::client::Type value);
 
-  // required .client.CmdResponse.Status status = 2;
-  inline bool has_status() const;
-  inline void clear_status();
-  static const int kStatusFieldNumber = 2;
-  inline const ::client::CmdResponse_Status& status() const;
-  inline ::client::CmdResponse_Status* mutable_status();
-  inline ::client::CmdResponse_Status* release_status();
-  inline void set_allocated_status(::client::CmdResponse_Status* status);
+  // optional .client.CmdResponse.Sync sync = 2;
+  inline bool has_sync() const;
+  inline void clear_sync();
+  static const int kSyncFieldNumber = 2;
+  inline const ::client::CmdResponse_Sync& sync() const;
+  inline ::client::CmdResponse_Sync* mutable_sync();
+  inline ::client::CmdResponse_Sync* release_sync();
+  inline void set_allocated_sync(::client::CmdResponse_Sync* sync);
 
   // optional .client.CmdResponse.Set set = 3;
   inline bool has_set() const;
@@ -995,8 +1030,8 @@ class CmdResponse : public ::google::protobuf::Message {
  private:
   inline void set_has_type();
   inline void clear_has_type();
-  inline void set_has_status();
-  inline void clear_has_status();
+  inline void set_has_sync();
+  inline void clear_has_sync();
   inline void set_has_set();
   inline void clear_has_set();
   inline void set_has_get();
@@ -1004,7 +1039,7 @@ class CmdResponse : public ::google::protobuf::Message {
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
-  ::client::CmdResponse_Status* status_;
+  ::client::CmdResponse_Sync* sync_;
   ::client::CmdResponse_Set* set_;
   ::client::CmdResponse_Get* get_;
   int type_;
@@ -1705,78 +1740,79 @@ inline void CmdRequest::set_allocated_get(::client::CmdRequest_Get* get) {
 
 // -------------------------------------------------------------------
 
-// CmdResponse_Status
+// CmdResponse_Sync
 
-// required int32 code = 1;
-inline bool CmdResponse_Status::has_code() const {
+// required .client.StatusCode code = 1;
+inline bool CmdResponse_Sync::has_code() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void CmdResponse_Status::set_has_code() {
+inline void CmdResponse_Sync::set_has_code() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void CmdResponse_Status::clear_has_code() {
+inline void CmdResponse_Sync::clear_has_code() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void CmdResponse_Status::clear_code() {
+inline void CmdResponse_Sync::clear_code() {
   code_ = 0;
   clear_has_code();
 }
-inline ::google::protobuf::int32 CmdResponse_Status::code() const {
-  return code_;
+inline ::client::StatusCode CmdResponse_Sync::code() const {
+  return static_cast< ::client::StatusCode >(code_);
 }
-inline void CmdResponse_Status::set_code(::google::protobuf::int32 value) {
+inline void CmdResponse_Sync::set_code(::client::StatusCode value) {
+  assert(::client::StatusCode_IsValid(value));
   set_has_code();
   code_ = value;
 }
 
 // optional bytes msg = 2;
-inline bool CmdResponse_Status::has_msg() const {
+inline bool CmdResponse_Sync::has_msg() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void CmdResponse_Status::set_has_msg() {
+inline void CmdResponse_Sync::set_has_msg() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void CmdResponse_Status::clear_has_msg() {
+inline void CmdResponse_Sync::clear_has_msg() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void CmdResponse_Status::clear_msg() {
+inline void CmdResponse_Sync::clear_msg() {
   if (msg_ != &::google::protobuf::internal::kEmptyString) {
     msg_->clear();
   }
   clear_has_msg();
 }
-inline const ::std::string& CmdResponse_Status::msg() const {
+inline const ::std::string& CmdResponse_Sync::msg() const {
   return *msg_;
 }
-inline void CmdResponse_Status::set_msg(const ::std::string& value) {
+inline void CmdResponse_Sync::set_msg(const ::std::string& value) {
   set_has_msg();
   if (msg_ == &::google::protobuf::internal::kEmptyString) {
     msg_ = new ::std::string;
   }
   msg_->assign(value);
 }
-inline void CmdResponse_Status::set_msg(const char* value) {
+inline void CmdResponse_Sync::set_msg(const char* value) {
   set_has_msg();
   if (msg_ == &::google::protobuf::internal::kEmptyString) {
     msg_ = new ::std::string;
   }
   msg_->assign(value);
 }
-inline void CmdResponse_Status::set_msg(const void* value, size_t size) {
+inline void CmdResponse_Sync::set_msg(const void* value, size_t size) {
   set_has_msg();
   if (msg_ == &::google::protobuf::internal::kEmptyString) {
     msg_ = new ::std::string;
   }
   msg_->assign(reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* CmdResponse_Status::mutable_msg() {
+inline ::std::string* CmdResponse_Sync::mutable_msg() {
   set_has_msg();
   if (msg_ == &::google::protobuf::internal::kEmptyString) {
     msg_ = new ::std::string;
   }
   return msg_;
 }
-inline ::std::string* CmdResponse_Status::release_msg() {
+inline ::std::string* CmdResponse_Sync::release_msg() {
   clear_has_msg();
   if (msg_ == &::google::protobuf::internal::kEmptyString) {
     return NULL;
@@ -1786,7 +1822,7 @@ inline ::std::string* CmdResponse_Status::release_msg() {
     return temp;
   }
 }
-inline void CmdResponse_Status::set_allocated_msg(::std::string* msg) {
+inline void CmdResponse_Sync::set_allocated_msg(::std::string* msg) {
   if (msg_ != &::google::protobuf::internal::kEmptyString) {
     delete msg_;
   }
@@ -1803,26 +1839,27 @@ inline void CmdResponse_Status::set_allocated_msg(::std::string* msg) {
 
 // CmdResponse_Set
 
-// required int32 status = 1;
-inline bool CmdResponse_Set::has_status() const {
+// required .client.StatusCode code = 1;
+inline bool CmdResponse_Set::has_code() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void CmdResponse_Set::set_has_status() {
+inline void CmdResponse_Set::set_has_code() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void CmdResponse_Set::clear_has_status() {
+inline void CmdResponse_Set::clear_has_code() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void CmdResponse_Set::clear_status() {
-  status_ = 0;
-  clear_has_status();
+inline void CmdResponse_Set::clear_code() {
+  code_ = 0;
+  clear_has_code();
 }
-inline ::google::protobuf::int32 CmdResponse_Set::status() const {
-  return status_;
+inline ::client::StatusCode CmdResponse_Set::code() const {
+  return static_cast< ::client::StatusCode >(code_);
 }
-inline void CmdResponse_Set::set_status(::google::protobuf::int32 value) {
-  set_has_status();
-  status_ = value;
+inline void CmdResponse_Set::set_code(::client::StatusCode value) {
+  assert(::client::StatusCode_IsValid(value));
+  set_has_code();
+  code_ = value;
 }
 
 // optional bytes msg = 2;
@@ -1899,37 +1936,108 @@ inline void CmdResponse_Set::set_allocated_msg(::std::string* msg) {
 
 // CmdResponse_Get
 
-// required int32 status = 1;
-inline bool CmdResponse_Get::has_status() const {
+// required .client.StatusCode code = 1;
+inline bool CmdResponse_Get::has_code() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void CmdResponse_Get::set_has_status() {
+inline void CmdResponse_Get::set_has_code() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void CmdResponse_Get::clear_has_status() {
+inline void CmdResponse_Get::clear_has_code() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void CmdResponse_Get::clear_status() {
-  status_ = 0;
-  clear_has_status();
+inline void CmdResponse_Get::clear_code() {
+  code_ = 0;
+  clear_has_code();
 }
-inline ::google::protobuf::int32 CmdResponse_Get::status() const {
-  return status_;
+inline ::client::StatusCode CmdResponse_Get::code() const {
+  return static_cast< ::client::StatusCode >(code_);
 }
-inline void CmdResponse_Get::set_status(::google::protobuf::int32 value) {
-  set_has_status();
-  status_ = value;
+inline void CmdResponse_Get::set_code(::client::StatusCode value) {
+  assert(::client::StatusCode_IsValid(value));
+  set_has_code();
+  code_ = value;
 }
 
-// optional bytes value = 2;
-inline bool CmdResponse_Get::has_value() const {
+// optional bytes msg = 2;
+inline bool CmdResponse_Get::has_msg() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void CmdResponse_Get::set_has_value() {
+inline void CmdResponse_Get::set_has_msg() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void CmdResponse_Get::clear_has_value() {
+inline void CmdResponse_Get::clear_has_msg() {
   _has_bits_[0] &= ~0x00000002u;
+}
+inline void CmdResponse_Get::clear_msg() {
+  if (msg_ != &::google::protobuf::internal::kEmptyString) {
+    msg_->clear();
+  }
+  clear_has_msg();
+}
+inline const ::std::string& CmdResponse_Get::msg() const {
+  return *msg_;
+}
+inline void CmdResponse_Get::set_msg(const ::std::string& value) {
+  set_has_msg();
+  if (msg_ == &::google::protobuf::internal::kEmptyString) {
+    msg_ = new ::std::string;
+  }
+  msg_->assign(value);
+}
+inline void CmdResponse_Get::set_msg(const char* value) {
+  set_has_msg();
+  if (msg_ == &::google::protobuf::internal::kEmptyString) {
+    msg_ = new ::std::string;
+  }
+  msg_->assign(value);
+}
+inline void CmdResponse_Get::set_msg(const void* value, size_t size) {
+  set_has_msg();
+  if (msg_ == &::google::protobuf::internal::kEmptyString) {
+    msg_ = new ::std::string;
+  }
+  msg_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CmdResponse_Get::mutable_msg() {
+  set_has_msg();
+  if (msg_ == &::google::protobuf::internal::kEmptyString) {
+    msg_ = new ::std::string;
+  }
+  return msg_;
+}
+inline ::std::string* CmdResponse_Get::release_msg() {
+  clear_has_msg();
+  if (msg_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = msg_;
+    msg_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CmdResponse_Get::set_allocated_msg(::std::string* msg) {
+  if (msg_ != &::google::protobuf::internal::kEmptyString) {
+    delete msg_;
+  }
+  if (msg) {
+    set_has_msg();
+    msg_ = msg;
+  } else {
+    clear_has_msg();
+    msg_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional bytes value = 3;
+inline bool CmdResponse_Get::has_value() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void CmdResponse_Get::set_has_value() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void CmdResponse_Get::clear_has_value() {
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline void CmdResponse_Get::clear_value() {
   if (value_ != &::google::protobuf::internal::kEmptyString) {
@@ -2018,41 +2126,41 @@ inline void CmdResponse::set_type(::client::Type value) {
   type_ = value;
 }
 
-// required .client.CmdResponse.Status status = 2;
-inline bool CmdResponse::has_status() const {
+// optional .client.CmdResponse.Sync sync = 2;
+inline bool CmdResponse::has_sync() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void CmdResponse::set_has_status() {
+inline void CmdResponse::set_has_sync() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void CmdResponse::clear_has_status() {
+inline void CmdResponse::clear_has_sync() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void CmdResponse::clear_status() {
-  if (status_ != NULL) status_->::client::CmdResponse_Status::Clear();
-  clear_has_status();
+inline void CmdResponse::clear_sync() {
+  if (sync_ != NULL) sync_->::client::CmdResponse_Sync::Clear();
+  clear_has_sync();
 }
-inline const ::client::CmdResponse_Status& CmdResponse::status() const {
-  return status_ != NULL ? *status_ : *default_instance_->status_;
+inline const ::client::CmdResponse_Sync& CmdResponse::sync() const {
+  return sync_ != NULL ? *sync_ : *default_instance_->sync_;
 }
-inline ::client::CmdResponse_Status* CmdResponse::mutable_status() {
-  set_has_status();
-  if (status_ == NULL) status_ = new ::client::CmdResponse_Status;
-  return status_;
+inline ::client::CmdResponse_Sync* CmdResponse::mutable_sync() {
+  set_has_sync();
+  if (sync_ == NULL) sync_ = new ::client::CmdResponse_Sync;
+  return sync_;
 }
-inline ::client::CmdResponse_Status* CmdResponse::release_status() {
-  clear_has_status();
-  ::client::CmdResponse_Status* temp = status_;
-  status_ = NULL;
+inline ::client::CmdResponse_Sync* CmdResponse::release_sync() {
+  clear_has_sync();
+  ::client::CmdResponse_Sync* temp = sync_;
+  sync_ = NULL;
   return temp;
 }
-inline void CmdResponse::set_allocated_status(::client::CmdResponse_Status* status) {
-  delete status_;
-  status_ = status;
-  if (status) {
-    set_has_status();
+inline void CmdResponse::set_allocated_sync(::client::CmdResponse_Sync* sync) {
+  delete sync_;
+  sync_ = sync;
+  if (sync) {
+    set_has_sync();
   } else {
-    clear_has_status();
+    clear_has_sync();
   }
 }
 
@@ -2144,6 +2252,10 @@ namespace protobuf {
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::client::Type>() {
   return ::client::Type_descriptor();
+}
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::client::StatusCode>() {
+  return ::client::StatusCode_descriptor();
 }
 
 }  // namespace google

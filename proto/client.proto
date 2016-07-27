@@ -6,6 +6,12 @@ enum Type {
   GET = 2;
 }
 
+enum StatusCode {
+  kOk = 0;
+  kNotFound = 1;
+  kError = 2;
+}
+
 message Node {
   required bytes ip = 1;
   required int32 port = 2;
@@ -42,21 +48,22 @@ message CmdResponse {
   required Type type = 1;
 
   // only sync use status
-  message Status {
-    required int32 code = 1;
+  message Sync {
+    required StatusCode code = 1;
     optional bytes msg = 2;
   }
-  required Status status = 2;
+  optional Sync sync = 2;
 
   message Set {
-    required int32 status = 1;
+    required StatusCode code = 1;
     optional bytes msg = 2;
   }
   optional Set set = 3;
 
   message Get {
-    required int32 status = 1;
-    optional bytes value = 2;
+    required StatusCode code = 1;
+    optional bytes msg = 2;
+    optional bytes value = 3;
   }
   optional Get get = 4;
 }

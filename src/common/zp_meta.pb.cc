@@ -46,6 +46,7 @@ const ::google::protobuf::Descriptor* MetaCmdResponse_Status_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   MetaCmdResponse_Status_reflection_ = NULL;
 const ::google::protobuf::EnumDescriptor* MetaCmdResponse_Type_descriptor_ = NULL;
+const ::google::protobuf::EnumDescriptor* StatusCode_descriptor_ = NULL;
 
 }  // namespace
 
@@ -186,6 +187,7 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(MetaCmdResponse_Status));
   MetaCmdResponse_Type_descriptor_ = MetaCmdResponse_descriptor_->enum_type(0);
+  StatusCode_descriptor_ = file->enum_type(0);
 }
 
 namespace {
@@ -255,12 +257,13 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "\001 \002(\0132\014.ZPMeta.Node\032\"\n\004Ping\022\032\n\004node\030\001 \002("
     "\0132\014.ZPMeta.Node\032*\n\006Update\022 \n\004info\030\001 \003(\0132"
     "\022.ZPMeta.Partitions\"&\n\004Type\022\010\n\004JOIN\020\001\022\010\n"
-    "\004PING\020\002\022\n\n\006UPDATE\020\003\"\272\001\n\017MetaCmdResponse\022"
+    "\004PING\020\002\022\n\n\006UPDATE\020\003\"\316\001\n\017MetaCmdResponse\022"
     "*\n\004type\030\001 \002(\0162\034.ZPMeta.MetaCmdResponse.T"
     "ype\022.\n\006status\030\002 \002(\0132\036.ZPMeta.MetaCmdResp"
-    "onse.Status\032#\n\006Status\022\014\n\004code\030\001 \002(\005\022\013\n\003m"
-    "sg\030\002 \001(\014\"&\n\004Type\022\010\n\004JOIN\020\001\022\010\n\004PING\020\002\022\n\n\006"
-    "UPDATE\020\003", 648);
+    "onse.Status\0327\n\006Status\022 \n\004code\030\001 \002(\0162\022.ZP"
+    "Meta.StatusCode\022\013\n\003msg\030\002 \001(\014\"&\n\004Type\022\010\n\004"
+    "JOIN\020\001\022\010\n\004PING\020\002\022\n\n\006UPDATE\020\003*0\n\nStatusCo"
+    "de\022\007\n\003kOk\020\000\022\r\n\tkNotFound\020\001\022\n\n\006kError\020\002", 718);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zp_meta.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -288,6 +291,21 @@ struct StaticDescriptorInitializer_zp_5fmeta_2eproto {
     protobuf_AddDesc_zp_5fmeta_2eproto();
   }
 } static_descriptor_initializer_zp_5fmeta_2eproto_;
+const ::google::protobuf::EnumDescriptor* StatusCode_descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return StatusCode_descriptor_;
+}
+bool StatusCode_IsValid(int value) {
+  switch(value) {
+    case 0:
+    case 1:
+    case 2:
+      return true;
+    default:
+      return false;
+  }
+}
+
 
 // ===================================================================
 
@@ -1971,14 +1989,19 @@ bool MetaCmdResponse_Status::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required int32 code = 1;
+      // required .ZPMeta.StatusCode code = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          int value;
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 input, &code_)));
-          set_has_code();
+                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
+                 input, &value)));
+          if (::ZPMeta::StatusCode_IsValid(value)) {
+            set_code(static_cast< ::ZPMeta::StatusCode >(value));
+          } else {
+            mutable_unknown_fields()->AddVarint(1, value);
+          }
         } else {
           goto handle_uninterpreted;
         }
@@ -2018,9 +2041,10 @@ bool MetaCmdResponse_Status::MergePartialFromCodedStream(
 
 void MetaCmdResponse_Status::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required int32 code = 1;
+  // required .ZPMeta.StatusCode code = 1;
   if (has_code()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->code(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      1, this->code(), output);
   }
 
   // optional bytes msg = 2;
@@ -2037,9 +2061,10 @@ void MetaCmdResponse_Status::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* MetaCmdResponse_Status::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required int32 code = 1;
+  // required .ZPMeta.StatusCode code = 1;
   if (has_code()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->code(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
+      1, this->code(), target);
   }
 
   // optional bytes msg = 2;
@@ -2060,11 +2085,10 @@ int MetaCmdResponse_Status::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required int32 code = 1;
+    // required .ZPMeta.StatusCode code = 1;
     if (has_code()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
-          this->code());
+        ::google::protobuf::internal::WireFormatLite::EnumSize(this->code());
     }
 
     // optional bytes msg = 2;

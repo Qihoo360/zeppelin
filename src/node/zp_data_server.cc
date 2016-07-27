@@ -56,8 +56,6 @@ ZPDataServer::~ZPDataServer() {
   delete zp_binlog_receiver_thread_;
   
   // TODO 
-  delete zp_ping_thread_;
-
   pthread_rwlock_destroy(&state_rw_);
 }
 

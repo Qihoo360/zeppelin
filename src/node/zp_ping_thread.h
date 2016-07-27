@@ -28,7 +28,7 @@ class ZPPingThread : public pink::Thread {
   //int64_t sid_;
   bool is_first_send_;
 
-  int sockfd_;
+  //int sockfd_;
   pink::PbCli *cli_;
 //  pink::PbCli *cli_;
 

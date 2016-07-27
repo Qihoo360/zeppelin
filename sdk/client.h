@@ -16,10 +16,6 @@ class Server;
 class Cluster;
 class ZPPbCli;
 
-enum ClientError {
-  kOk = 0,
-};
-
 class Server {
  public:
   std::string ip;

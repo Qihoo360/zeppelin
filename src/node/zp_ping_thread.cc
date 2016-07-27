@@ -77,6 +77,7 @@ void* ZPPingThread::ThreadMain() {
 
   while (!should_exit_ && zp_data_server->ShouldJoinMeta()) {
     // Connect with heartbeat port
+    DLOG(INFO) << "Ping will connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftHb << ")";
     s = cli_->Connect(zp_data_server->meta_ip(), zp_data_server->meta_port() + kMetaPortShiftHb);
     if (s.ok()) {
       DLOG(INFO) << "Ping connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftHb << ") ok!";
@@ -118,6 +119,7 @@ void* ZPPingThread::ThreadMain() {
         }
       }
 
+      cli_->Close();
     } else if (s.IsTimeout()) {
       LOG(WARNING) << "PingThread, Connect timeout once";
       if ((++connect_retry_times) >= 30) {
@@ -128,7 +130,9 @@ void* ZPPingThread::ThreadMain() {
       LOG(ERROR) << "PingThread Connect failed caz " << s.ToString();
     }
 
-    close(cli_->fd());
+    // TODO rm
+    //int ret = close(cli_->fd());
+    //printf ("pingthread close:cli_->fd()=%d ret=%d\n", cli_->fd(), ret);
     sleep(3);
   }
   return NULL;

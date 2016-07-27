@@ -83,6 +83,26 @@ inline bool MetaCmdResponse_Type_Parse(
   return ::google::protobuf::internal::ParseNamedEnum<MetaCmdResponse_Type>(
     MetaCmdResponse_Type_descriptor(), name, value);
 }
+enum StatusCode {
+  kOk = 0,
+  kNotFound = 1,
+  kError = 2
+};
+bool StatusCode_IsValid(int value);
+const StatusCode StatusCode_MIN = kOk;
+const StatusCode StatusCode_MAX = kError;
+const int StatusCode_ARRAYSIZE = StatusCode_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* StatusCode_descriptor();
+inline const ::std::string& StatusCode_Name(StatusCode value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    StatusCode_descriptor(), value);
+}
+inline bool StatusCode_Parse(
+    const ::std::string& name, StatusCode* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<StatusCode>(
+    StatusCode_descriptor(), name, value);
+}
 // ===================================================================
 
 class Node : public ::google::protobuf::Message {
@@ -743,12 +763,12 @@ class MetaCmdResponse_Status : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required int32 code = 1;
+  // required .ZPMeta.StatusCode code = 1;
   inline bool has_code() const;
   inline void clear_code();
   static const int kCodeFieldNumber = 1;
-  inline ::google::protobuf::int32 code() const;
-  inline void set_code(::google::protobuf::int32 value);
+  inline ::ZPMeta::StatusCode code() const;
+  inline void set_code(::ZPMeta::StatusCode value);
 
   // optional bytes msg = 2;
   inline bool has_msg() const;
@@ -772,7 +792,7 @@ class MetaCmdResponse_Status : public ::google::protobuf::Message {
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::std::string* msg_;
-  ::google::protobuf::int32 code_;
+  int code_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
@@ -1351,7 +1371,7 @@ inline void MetaCmd::set_allocated_update(::ZPMeta::MetaCmd_Update* update) {
 
 // MetaCmdResponse_Status
 
-// required int32 code = 1;
+// required .ZPMeta.StatusCode code = 1;
 inline bool MetaCmdResponse_Status::has_code() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -1365,10 +1385,11 @@ inline void MetaCmdResponse_Status::clear_code() {
   code_ = 0;
   clear_has_code();
 }
-inline ::google::protobuf::int32 MetaCmdResponse_Status::code() const {
-  return code_;
+inline ::ZPMeta::StatusCode MetaCmdResponse_Status::code() const {
+  return static_cast< ::ZPMeta::StatusCode >(code_);
 }
-inline void MetaCmdResponse_Status::set_code(::google::protobuf::int32 value) {
+inline void MetaCmdResponse_Status::set_code(::ZPMeta::StatusCode value) {
+  assert(::ZPMeta::StatusCode_IsValid(value));
   set_has_code();
   code_ = value;
 }
@@ -1524,6 +1545,10 @@ inline const EnumDescriptor* GetEnumDescriptor< ::ZPMeta::MetaCmd_Type>() {
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::ZPMeta::MetaCmdResponse_Type>() {
   return ::ZPMeta::MetaCmdResponse_Type_descriptor();
+}
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::ZPMeta::StatusCode>() {
+  return ::ZPMeta::StatusCode_descriptor();
 }
 
 }  // namespace google
