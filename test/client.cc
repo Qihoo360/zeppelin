@@ -142,7 +142,7 @@ Status Cluster::Set(const std::string& key, const std::string& value, std::strin
   }
 
   pb_cli_->Close();
-  LOG_INFO("Set OK, status is %d, msg is %s\n", response.set().status(), response.set().msg().c_str());
+  LOG_INFO("Set OK, status is %d, msg is %s\n", response.set().code(), response.set().msg().c_str());
   return Status::OK();
 }
 
@@ -191,7 +191,7 @@ Status Cluster::Get(const std::string& key, std::string* value, std::string ip, 
   *value = response.get().value();
 
   pb_cli_->Close();
-  LOG_INFO("Get OK, status is %d, value is %s\n", response.get().status(), response.get().value().c_str());
+  LOG_INFO("Get OK, status is %d, value is %s\n", response.get().code(), response.get().value().c_str());
   return Status::OK();
 }
 

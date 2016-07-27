@@ -40,12 +40,12 @@ void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res) 
   //int32_t ttl;
   nemo::Status s = zp_data_server->db()->Set(request->set().key(), request->set().value());
   if (!s.ok()) {
-    set_res->set_status(1);
+    set_res->set_code(client::StatusCode::kError);
     set_res->set_msg(result_.ToString());
     result_ = slash::Status::Corruption(s.ToString());
     LOG(ERROR) << "command failed: Set, caz " << s.ToString();
   } else {
-    set_res->set_status(0);
+    set_res->set_code(client::StatusCode::kOk);
     DLOG(INFO) << "Set key(" << key_ << ") ok";
     result_ = slash::Status::OK();
   }
@@ -60,15 +60,20 @@ void GetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res) 
 
   std::string value;
   nemo::Status s = zp_data_server->db()->Get(request->get().key(), &value);
-  if (!s.ok()) {
-    get_res->set_status(1);
-    result_ = slash::Status::Corruption(s.ToString());
-    LOG(ERROR) << "command failed: Get, caz " << s.ToString();
-  } else {
-    get_res->set_status(0);
+  if (s.ok()) {
+    get_res->set_code(client::StatusCode::kOk);
     get_res->set_value(value);
-    result_ = slash::Status::OK();
-    DLOG(INFO) << "Get key(" << request->get().key() << ") ok";
+    //result_ = slash::Status::OK();
+    DLOG(INFO) << "Get key(" << request->get().key() << ") ok, value is (" << value << ")";
+  } else if (s.IsNotFound()) {
+    get_res->set_code(client::StatusCode::kNotFound);
+    DLOG(INFO) << "Get key(" << request->get().key() << ") not found!";
+    //result_ = slash::Status::NotFound();
+  } else {
+    get_res->set_code(client::StatusCode::kError);
+    get_res->set_msg(s.ToString());
+    //result_ = slash::Status::Corruption(s.ToString());
+    LOG(ERROR) << "command failed: Get, caz " << s.ToString();
   }
 }
 
@@ -92,14 +97,14 @@ void SyncCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res)
     LOG(INFO) << "Sync a new node(" << node.ip << ":" << node.port << ") filenum " << sync.filenum() << ", offset " << sync.offset();
     s = zp_data_server->AddBinlogSender(si, sync.filenum(), sync.offset());
 
-    client::CmdResponse_Status* status = response->mutable_status();
+    client::CmdResponse_Sync* sync = response->mutable_sync();
     if (!s.ok()) {
-      status->set_code(1);
-      status->set_msg(result_.ToString());
+      sync->set_code(client::StatusCode::kError);
+      sync->set_msg(s.ToString());
       result_ = slash::Status::Corruption(s.ToString());
       LOG(ERROR) << "command failed: Sync, caz " << s.ToString();
     } else {
-      status->set_code(0);
+      sync->set_code(client::StatusCode::kError);
       DLOG(INFO) << "Sync node ok";
       result_ = slash::Status::OK();
     }

@@ -48,12 +48,12 @@ pink::Status ZPTrySyncThread::Recv() {
 
   switch (response.type()) {
     case client::Type::SYNC: {
-      if (response.status().code() == 0) {
+      if (response.sync().code() == 0) {
         DLOG(INFO) << "TrySync recv success.";
         return pink::Status::OK(); 
       } else {
-        DLOG(INFO) << "TrySync failed caz " << response.status().msg();
-        return pink::Status::Corruption(response.status().msg());
+        DLOG(INFO) << "TrySync failed caz " << response.sync().msg();
+        return pink::Status::Corruption(response.sync().msg());
       }
       break;
     }

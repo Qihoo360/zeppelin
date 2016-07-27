@@ -32,7 +32,7 @@ void UpdateCmd::Do(google::protobuf::Message *req, google::protobuf::Message *re
 
   response->set_type(ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_UPDATE);
   ZPMeta::MetaCmdResponse_Status* status = response->mutable_status();
-  status->set_code(0);
+  status->set_code(ZPMeta::StatusCode::kOk);
   result_ = slash::Status::OK();
   DLOG(INFO) << "update ok";
 }

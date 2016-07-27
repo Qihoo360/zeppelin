@@ -35,14 +35,29 @@ int main(int argc, char* argv[]) {
     printf ("Set failed, %s\n", result.ToString().c_str());
   }
 
-  printf ("\n=====Test Get==========\n");
+  for (int i = 0; i < 10; i++) {
+    printf ("\n=====Test Get i=%d =========\n", i);
+    value = "";
+    result = cluster.Get(key, &value);
+    if (result.ok()) {
+      printf ("Get ok, value is %s\n", value.c_str());
+    } else {
+      printf ("Get failed, %s\n", result.ToString().c_str());
+    }
 
-  value = "";
-  result = cluster.Get(key, &value);
-  if (result.ok()) {
-    printf ("Get ok, value is %s\n", value.c_str());
-  } else {
-    printf ("Get failed, %s\n", result.ToString().c_str());
+    sleep(1);
+  }
+
+  for (int i = 0; i < 5; i++ ) {
+    printf ("=====Test Get non-exist i=%d =========\n", i);
+    value = "";
+    result = cluster.Get("not_exist", &value);
+    if (result.ok()) {
+      printf ("Get non-exist ok, value is %s\n", value.c_str());
+    } else {
+      printf ("Get non-exist failed, %s\n", result.ToString().c_str());
+    }
+    sleep(1);
   }
 
   cout << "success" << endl;
