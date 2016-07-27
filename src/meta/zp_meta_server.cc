@@ -16,8 +16,7 @@ ZPMetaServer::ZPMetaServer(const ZPOptions& options)
   fy_options->data_path = options.data_path;
   fy_options->log_path = options.log_path;
 
-  floyd_ = new floyd::Floyd(*fy_options);
-  
+  floyd_ = new floyd::Floyd(*fy_options);  
 }
 
 ZPMetaServer::~ZPMetaServer() {
@@ -41,5 +40,23 @@ void ZPMetaServer::CheckNodeAlive() {
     if (now.tv_sec - (it->second).tv_sec > NODE_ALIVE_LEASE) {
       update_thread_.ScheduleUpdate(it->first, ZPMetaUpdateOP::OP_REMOVE);
     }
+  }
+}
+
+Status ZPMetaServer::Set(const std::string &key, const std::string &value) {
+  floyd::Status fs = floyd_->Write(key, value);
+	if (fs.ok()) {
+    return Status::OK();
+  } else {
+    return Status::Corruption("floyd set error!");
+  }
+}
+
+Status ZPMetaServer::Get(const std::string &key, std::string &value) {
+  floyd::Status fs = floyd_->DirtyRead(key, value);
+	if (fs.ok()) {
+    return Status::OK();
+  } else {
+    return Status::Corruption("floyd get error!");
   }
 }

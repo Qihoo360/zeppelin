@@ -66,16 +66,18 @@ LIB_PATH = -L./ \
 LIBS = -lpthread \
 	   -lprotobuf \
 	   -lglog \
-	   -lnemo \
-	   -lfloyd \
 	   -lslash \
-	   -lleveldb \
-	   -lrocksdb \
 		 -lpink \
 	   -lz \
 	   -lbz2 \
 	   -lsnappy \
 	   -lrt
+
+METALIBS = -lfloyd \
+     -lleveldb
+
+NODELIBS = -lnemo \
+     -lrocksdb
 
 FLOYD = $(THIRD_PATH)/floyd/output/lib/libfloyd.a
 NEMO = $(THIRD_PATH)/nemo/output/lib/libnemo.a
@@ -105,10 +107,10 @@ all: $(ZP_META) $(ZP_NODE)
 
 
 $(ZP_META): $(FLOYD) $(GLOG) $(PINK) $(SLASH) $(COMMON_OBJS) $(META_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJS) $(META_OBJS) $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(LIBS) 
+	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJS) $(META_OBJS) $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(METALIBS) $(LIBS) 
 
 $(ZP_NODE): $(NEMO) $(GLOG) $(PINK) $(SLASH) $(COMMON_OBJS) $(NODE_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJS) $(NODE_OBJS) $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(LIBS) 
+	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJS) $(NODE_OBJS) $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(NODELIBS) $(LIBS) 
 
 $(OBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) $(INCLUDE_PATH) -c $< -o $@  
