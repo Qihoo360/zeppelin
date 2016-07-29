@@ -24,7 +24,7 @@ void JoinCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res)
   zp_meta_server->alive_mutex_.Unlock();
   //@todo wake update thread
   //
-  status_res->set_code(0);
+  status_res->set_code(ZPMeta::StatusCode::kOk);
   status_res->set_msg("Join OK!");
   result_ = slash::Status::OK();
   DLOG(INFO) << "Join node: " << request->join().node().ip() << ":"
@@ -47,7 +47,7 @@ void PingCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res)
   zp_meta_server->node_alive_[node] = now;
   zp_meta_server->alive_mutex_.Unlock();
   
-  status_res->set_code(0);
+  status_res->set_code(ZPMeta::StatusCode::kOk);
   status_res->set_msg("Ping OK!");
   result_ = slash::Status::OK();
   DLOG(INFO) << "Receive ping from node: " << request->ping().node().ip()
