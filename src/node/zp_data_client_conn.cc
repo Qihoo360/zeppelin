@@ -20,7 +20,11 @@ ZPDataClientConn::~ZPDataClientConn() {
 
 // Msg is  [ length (int32) | pb_msg (length bytes) ]
 int ZPDataClientConn::DealMessage() {
-  request_.ParseFromArray(rbuf_ + 4, header_len_);
+  bool ret = request_.ParseFromArray(rbuf_ + 4, header_len_);
+ // if (!ret) {
+ //     DLOG(INFO) << "DealMessage  ParseFromArray failed";
+ // }
+
   // TODO test only
   switch (request_.type()) {
     case client::Type::SET: {

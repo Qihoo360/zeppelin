@@ -269,6 +269,7 @@ void* ZPBinlogSenderThread::ThreadMain() {
           s = Parse(scratch);
           //DLOG(INFO) << "BinlogSender Parse, return " << s.ToString();
 
+          //DLOG(INFO) << "BinlogSender parse(" << scratch << ")";
           if (s.IsCorruption()) {     // should exit
             LOG(WARNING) << "BinlogSender will exit caz " << s.ToString();
             //close(sockfd_);

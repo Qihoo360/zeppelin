@@ -28,11 +28,17 @@ int main(int argc, char* argv[]) {
   std::string key = "test_key";
   std::string value = "test_value1";
   
-  result = cluster.Set(key, value);
-  if (result.ok()) {
-    printf ("Set ok\n");
-  } else {
-    printf ("Set failed, %s\n", result.ToString().c_str());
+  printf ("\n=====Test Set many time==========\n");
+  for (int i = 0; i < 100000; i++) {
+    std::string nkey = key + std::to_string(i);
+    result = cluster.Set(nkey, value);
+    if (result.ok()) {
+      printf ("Set(%s) ok\n", nkey.c_str());
+    } else {
+      printf ("Set(%s) failed, %s\n", result.ToString().c_str(), nkey.c_str());
+    }
+
+    //sleep(0.1);
   }
 
   for (int i = 0; i < 10; i++) {

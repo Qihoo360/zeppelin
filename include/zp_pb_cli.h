@@ -5,18 +5,18 @@
 
 class ZPPbCli : public pink::PbCli {
  public:
-  void set_opcode(int opcode) {
-    opcode_ = opcode;
-  }
-  int32_t opcode() {
-    return opcode_;
-  }
+  //void set_opcode(int opcode) {
+  //  opcode_ = opcode;
+  //}
+  //int32_t opcode() {
+  //  return opcode_;
+  //}
 
   pink::Status SendRaw(const void *msg, size_t size);
 
  private:
-  virtual void BuildWbuf();
-  int32_t opcode_;
+  //virtual void BuildWbuf();
+  //int32_t opcode_;
 };
 
 
