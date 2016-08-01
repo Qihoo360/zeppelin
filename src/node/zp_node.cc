@@ -28,6 +28,20 @@ static void GlogInit(const ZPOptions& options) {
   ::google::InitGoogleLogging("zp");
 }
 
+void InitMetaAddr(ZPOptions &opt, std::string optarg) {
+  
+  std::string::size_type pos;
+  while(true) {
+    pos = optarg.find(",");
+    if (pos == std::string::npos) {
+      opt.meta_addr.push_back(optarg);
+      break;
+    }
+    opt.meta_addr.push_back(optarg.substr(0, pos));
+    optarg = optarg.substr(pos+1);
+  }
+}
+
 int main(int argc, char** argv) {
   ZPOptions options;
 
@@ -49,7 +63,7 @@ int main(int argc, char** argv) {
 
 void Usage() {
   printf ("Usage:\n"
-          "  ./output/bin/zp --floyd_ip ip1 --floyd_port port1 --local_port local_port --data_path path --log_path path\n");
+          "  ./zp-node --meta_addr ip1:port1,ip2:port2 --local_port local_port --data_path path --log_path path\n");
 }
 
 void ParseArgs(int argc, char* argv[], ZPOptions& options) {
@@ -59,25 +73,21 @@ void ParseArgs(int argc, char* argv[], ZPOptions& options) {
   }
 
   const struct option long_options[] = {
-    {"floyd_ip", required_argument, NULL, 'I'},
-    {"floyd_port", required_argument, NULL, 'P'},
+    {"meta_addr", required_argument, NULL, 'm'},
     {"local_port", required_argument, NULL, 'p'},
     {"data_path", required_argument, NULL, 'd'},
     {"log_path", required_argument, NULL, 'l'},
     {"help", no_argument, NULL, 'h'},
     {NULL, 0, NULL, 0}, };
 
-  const char* short_options = "I:P:p:d:l:h";
+  const char* short_options = "m:p:d:l:h";
 
   int ch, longindex;
   while ((ch = getopt_long(argc, argv, short_options, long_options,
                            &longindex)) >= 0) {
     switch (ch) {
-      case 'I':
-        options.seed_ip = optarg;
-        break;
-      case 'P':
-        options.seed_port = atoi(optarg);
+      case 'm':
+        InitMetaAddr(options, optarg);
         break;
       case 'p':
         options.local_port = atoi(optarg);

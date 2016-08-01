@@ -75,7 +75,12 @@ void* ZPPingThread::ThreadMain() {
 
   pink::Status s;
 
-  while (!should_exit_ && zp_data_server->ShouldJoinMeta()) {
+  while (!should_exit_) {
+    if(!zp_data_server->ShouldJoinMeta()) {
+      sleep(3);
+      continue;
+    }
+    zp_data_server->PickMeta();
     // Connect with heartbeat port
     DLOG(INFO) << "Ping will connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftHb << ")";
     s = cli_->Connect(zp_data_server->meta_ip(), zp_data_server->meta_port() + kMetaPortShiftHb);

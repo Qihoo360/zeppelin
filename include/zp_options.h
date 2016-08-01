@@ -2,6 +2,7 @@
 #define ZP_OPTIONS_H
 
 #include <string>
+#include <vector>
 
 class Server;
 struct ZPOptions;
@@ -29,8 +30,7 @@ class Server {
 };
 
 struct ZPOptions {
-  std::string seed_ip;
-  int seed_port; 
+  std::vector<std::string> meta_addr;
 
   std::string local_ip;
   int local_port;
