@@ -52,10 +52,10 @@ class ZPDataServer {
     return master_port_;
   }
   std::string meta_ip() {
-    return options_.seed_ip;
+    return meta_ip_;
   }
   int meta_port() {
-    return options_.seed_port;
+    return meta_port_;
   }
   std::string local_ip() {
     return options_.local_ip;
@@ -79,6 +79,7 @@ class ZPDataServer {
   bool ShouldJoinMeta();
   void PlusMetaServerConns();
   void MinusMetaServerConns();
+  void PickMeta();
 
   Binlog* logger_;
 
@@ -117,6 +118,8 @@ class ZPDataServer {
   std::atomic<bool> should_rejoin_;
   int meta_state_;
   int meta_server_conns_;
+  std::string meta_ip_;
+  long meta_port_;
 
 };
 

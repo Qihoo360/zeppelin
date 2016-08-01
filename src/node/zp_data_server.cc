@@ -1,6 +1,7 @@
 #include "zp_data_server.h"
 
 #include <glog/logging.h>
+#include <random>
 
 #include "zp_data_worker_thread.h"
 #include "zp_data_dispatch_thread.h"
@@ -68,7 +69,12 @@ Status ZPDataServer::Start() {
   zp_metacmd_worker_thread_->StartThread();
 
   // TEST 
-  LOG(INFO) << "ZPDataServer started on port:" <<  options_.local_port << ", seed is " << options_.seed_ip.c_str() << ":" << options_.seed_port;
+  LOG(INFO) << "ZPDataServer started on port:" <<  options_.local_port;
+  auto iter = options_.meta_addr.begin();
+  while (iter != options_.meta_addr.end()) {
+    LOG(INFO) << "seed is: " << *iter;
+    iter++;
+  }
 //  if (options_.local_port != options_.seed_port || options_.local_ip != options_.seed_ip) {
 //    repl_state_ = ReplState::kShouldConnect;
 //  }
@@ -213,3 +219,19 @@ void ZPDataServer::MinusMetaServerConns() {
   }
 }
 
+void ZPDataServer::PickMeta() {
+  slash::RWLock l(&meta_state_rw_, true);
+  std::random_device rd;
+  std::mt19937 mt(rd());
+  std::uniform_int_distribution<int> di(0, options_.meta_addr.size()-1);
+  int index = di(mt);
+
+  auto addr = options_.meta_addr[index];
+  auto pos = addr.find(":");
+  if (pos != std::string::npos) {
+    meta_ip_ = addr.substr(0, pos);
+    auto str_port = addr.substr(pos+1);
+    slash::string2l(str_port.data(), str_port.size(), &meta_port_); 
+  }
+  LOG(INFO) << "PickMeta ip: " << meta_ip_ << " port: " << meta_port_;
+}
