@@ -32,6 +32,8 @@ class Server {
 struct ZPOptions {
   std::vector<std::string> meta_addr;
 
+  std::string seed_ip;
+  int seed_port;
   std::string local_ip;
   int local_port;
 

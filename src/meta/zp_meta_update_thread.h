@@ -51,7 +51,7 @@ private:
   slash::Status UpdateSender(const std::string &ip, int port, ZPMetaUpdateOP op);
   void SendUpdate(ZPMeta::Partitions &Partitions);
   void UpdatePartition(ZPMeta::Partitions &partitions,
-    const std::string& ip, int port, ZPMetaUpdateOP op);
+    const std::string& ip, int port, ZPMetaUpdateOP op, int id);
   void SetMaster(ZPMeta::Partitions &partitions, const std::string &ip, int port) {
     ZPMeta::Node *master = partitions.mutable_master();
     master->set_ip(ip);

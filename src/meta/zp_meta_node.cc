@@ -14,16 +14,7 @@ void JoinCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res)
   ZPMeta::MetaCmdResponse_Status* status_res = response->mutable_status();
   response->set_type(ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_JOIN);
 
-  struct timeval now;
-  gettimeofday(&now, NULL);
-  zp_meta_server->alive_mutex_.Lock();
-  zp_meta_server->node_alive_.insert(
-    std::make_pair(slash::IpPortString(request->join().node().ip(),
-                   request->join().node().port()),
-                   now));
-  zp_meta_server->alive_mutex_.Unlock();
-  //@todo wake update thread
-  //
+  zp_meta_server->AddNodeAlive(slash::IpPortString(request->join().node().ip(), request->join().node().port()));
   status_res->set_code(ZPMeta::StatusCode::kOk);
   status_res->set_msg("Join OK!");
   result_ = slash::Status::OK();
@@ -41,11 +32,8 @@ void PingCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res)
   // Update Ping time
   std::string node = slash::IpPortString(request->ping().node().ip(),
                                          request->ping().node().port());
-  struct timeval now;
-  gettimeofday(&now, NULL);
-  zp_meta_server->alive_mutex_.Lock();
-  zp_meta_server->node_alive_[node] = now;
-  zp_meta_server->alive_mutex_.Unlock();
+  
+  zp_meta_server->UpdateNodeAlive(node);
   
   status_res->set_code(ZPMeta::StatusCode::kOk);
   status_res->set_msg("Ping OK!");

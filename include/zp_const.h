@@ -4,6 +4,7 @@
 #include <string>
 
 const int kMaxWorkerThread = 4;
+const int kMaxMetaWorkerThread = 16;
 
 const std::string kZPVersion = "0.0.1";
 const std::string kZPPidFile = "zp.pid";
@@ -28,7 +29,6 @@ enum MetaState {
 // Data port shift
 const int kPortShiftDataCmd = 100;
 const int kPortShiftSync = 200;
-
 // Meta port shift
 const int kMetaPortShiftHb = 100;
 const int kMetaPortShiftFY = 200;
@@ -38,9 +38,9 @@ const int kTrySyncInterval = 2;
 const int kPingInterval = 3;
 const int kMetaCmdCronInterval = 1;
 const int kDispatchCronInterval = 5000;
-//const int kDispathCronInterval = 3000;
+const int kMetaDispathCronInterval = 3000;
 const int kWorkerCronInterval = 5000;
-//const int kWorkerCronInterval = 1000;
+const int kMetaWorkerCronInterval = 1000;
 const int kBinlogReceiverCronInterval = 6000;
 //const int kBinlogReceiverCronInterval = 1000;
 
@@ -101,4 +101,14 @@ const uint32_t kDBSyncMaxGap = 50;
 const std::string kDBSyncModule = "document";
 
 const std::string kBgsaveInfoFile = "info";
+
+
+/*
+ * meta related
+ * key in floyd is zpmeta##id
+ */
+const int NODE_ALIVE_LEASE = 3;
+const std::string ZP_META_KEY_PREFIX = "zpmeta##";
+const int ZP_META_UPDATE_RETRY_TIME = 3;
+
 #endif

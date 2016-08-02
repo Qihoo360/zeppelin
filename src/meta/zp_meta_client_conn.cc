@@ -23,14 +23,14 @@ int ZPMetaClientConn::DealMessage() {
   request_.ParseFromArray(rbuf_ + 4, header_len_);
   // TODO test only
   switch (request_.type()) {
-		case ZPMeta::MetaCmd_Type::MetaCmd_Type_JOIN: {
+		case ZPMeta::MetaCmd_Type::MetaCmd_Type_JOIN:
       DLOG(INFO) << "Receive join cmd";
       break;
-    }
-		case ZPMeta::MetaCmd_Type::MetaCmd_Type_PING: {
+		case ZPMeta::MetaCmd_Type::MetaCmd_Type_PING:
       DLOG(INFO) << "Receive ping cmd";
       break;
-    }
+    default:
+      DLOG(INFO) << "Receive unknow meta cmd";
   }
 
   Cmd* cmd = self_thread_->GetCmd(static_cast<int>(request_.type()));

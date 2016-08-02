@@ -58,22 +58,10 @@ void ZPMetaServer::CheckNodeAlive() {
   }
 }
 
-void ZPMetaServer::AddNodeAlive(const std::string& ip_port) {
-  struct timeval now;
-  slash::MutexLock l(&alive_mutex_);
-  gettimeofday(&now, NULL);
-  node_alive_[ip_port] = now;
-  update_thread_.ScheduleUpdate(ip_port, ZPMetaUpdateOP::OP_ADD);
-}
-
 void ZPMetaServer::UpdateNodeAlive(const std::string& ip_port) {
   struct timeval now;
   slash::MutexLock l(&alive_mutex_);
   gettimeofday(&now, NULL);
-  if (node_alive_.find(ip_port) == node_alive_.end()) {
-    LOG(WARNING) << "update unknown node alive:" << ip_port;
-    return;
-  }
   node_alive_[ip_port] = now;
 }
 
@@ -90,8 +78,6 @@ Status ZPMetaServer::Get(const std::string &key, std::string &value) {
   floyd::Status fs = floyd_->DirtyRead(key, value);
 	if (fs.ok()) {
     return Status::OK();
-  } else if (fs.IsNotFound()) {
-    return Status::NotFound("not found from floyd");
   } else {
     return Status::Corruption("floyd get error!");
   }

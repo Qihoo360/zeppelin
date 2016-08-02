@@ -1,10 +1,10 @@
+#include <glog/logging.h>
+#include "zp_const.h"
 #include "zp_meta_update_thread.h"
 #include "zp_meta.pb.h"
 #include "zp_meta_server.h"
 
 extern ZPMetaServer* zp_meta_server;
-
-const int UPDATE_RETRY_TIME = 3;
 
 void ZPMetaUpdateThread::DoMetaUpdate(void *p) {
   ZPMetaUpdateThread::ZPMetaUpdateArgs *args = static_cast<ZPMetaUpdateThread::ZPMetaUpdateArgs*>(p);
@@ -22,15 +22,18 @@ slash::Status ZPMetaUpdateThread::MetaUpdate(const std::string ip, int port, ZPM
   if (!s.ok()) {
     return s;
   }
+  LOG(INFO) << "update floyd with new meta info success";
 
   // Change Clients
-  s = UpdateSender(ip, port, op);
+  s = UpdateSender(ip, port + 100, op);
   if (!s.ok()) {
-    //TODO error log
+    LOG(ERROR) << "update thread update sender failed. " << s.ToString();
   }
+  LOG(INFO) << "update sender success";
 
   // Send Update Message
   SendUpdate(partitions);
+  LOG(INFO) << "send update to data node success";
   return s;
 }
 
@@ -42,27 +45,28 @@ slash::Status ZPMetaUpdateThread::UpdateFloyd(const std::string &ip, int port, Z
   std::string key(ZP_META_KEY_PREFIX), value;
   key += "1"; //Only one partition now
   slash::Status s = zp_meta_server->Get(key, value);
-  if (!s.ok()) {
-    //TODO error log
+  if (!s.ok() && !s.IsNotFound()) {
+    LOG(ERROR) << "get current meta from floyd failed. " << s.ToString();
     return s;
   }
 
   // Deserialization
-  if (!value.empty()) {
+  partitions.Clear();
+  if (s.ok()) {
     if (!partitions.ParseFromString(value)) {
-      //TODO error log
+      LOG(ERROR) << "deserialization current meta failed, value: " << value;
       return slash::Status::Corruption("Parse failed");
     }
     assert(partitions.id() == 1);
   }
 
   // Update Partition
-  UpdatePartition(partitions, ip, port + 100, op);
+  UpdatePartition(partitions, ip, port, op, 1);
 
   // Serialization and Dump to Floyd
   std::string new_value;
   if (!partitions.SerializeToString(&new_value)) {
-    //TODO error log
+    LOG(ERROR) << "serialization new meta failed, new value: " <<  new_value;
     return Status::Corruption("Serialize error");
   }
   return zp_meta_server->Set(key, new_value);
@@ -76,8 +80,10 @@ slash::Status ZPMetaUpdateThread::UpdateSender(const std::string &ip, int port, 
       pink::PbCli *pb_cli = new pink::PbCli();
       pink::Status s = pb_cli->Connect(ip, port);
       if (!s.ok()) {
+        LOG(INFO) << "connect to " << ip << ":" << port << " failed";
         return slash::Status::Corruption(s.ToString());
       }
+      LOG(INFO) << "connect to " << ip << ":" << port << " success";
       pb_cli->set_send_timeout(1000);
       pb_cli->set_recv_timeout(1000);
       data_sender_.insert(std::pair<std::string, pink::PbCli*>(ip_port, pb_cli));
@@ -92,6 +98,7 @@ slash::Status ZPMetaUpdateThread::UpdateSender(const std::string &ip, int port, 
 
 void ZPMetaUpdateThread::SendUpdate(ZPMeta::Partitions &partitions) {
   ZPMeta::MetaCmd request;
+  request.set_type(ZPMeta::MetaCmd_Type_UPDATE);
   ZPMeta::MetaCmd_Update *update_cmd = request.mutable_update();
   ZPMeta::Partitions *p = update_cmd->add_info();
   p->CopyFrom(partitions);
@@ -111,8 +118,8 @@ void ZPMetaUpdateThread::SendUpdate(ZPMeta::Partitions &partitions) {
         response.status().code() == 0) {
       //Success
     } else {
-      //TODO error log
-      if (retry_num < UPDATE_RETRY_TIME) {
+      LOG(ERROR) << "send update failed, error:" << s.ToString() << " retry_num:" <<retry_num << ", errno : " << errno << ", errnomsg" << strerror(errno);
+      if (retry_num < ZP_META_UPDATE_RETRY_TIME) {
         ++retry_num;
       } else {
         retry_num = 0;
@@ -130,11 +137,12 @@ void ZPMetaUpdateThread::SendUpdate(ZPMeta::Partitions &partitions) {
  * So we need to Modify the partition information
  */
 void ZPMetaUpdateThread::UpdatePartition(ZPMeta::Partitions &partitions,
-    const std::string& ip, int port, ZPMetaUpdateOP op) {
+    const std::string& ip, int port, ZPMetaUpdateOP op, int id) {
   
   // First one
   if (!partitions.IsInitialized()) {
     if (ZPMetaUpdateOP::OP_ADD == op) {
+      partitions.set_id(id);
       SetMaster(partitions, ip, port);
     }
     return;
