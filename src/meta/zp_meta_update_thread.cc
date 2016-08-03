@@ -1,4 +1,4 @@
-#include <glog/logging.h>
+#include <google/protobuf/text_format.h>
 #include "zp_const.h"
 #include "zp_meta_update_thread.h"
 #include "zp_meta.pb.h"
@@ -20,6 +20,7 @@ slash::Status ZPMetaUpdateThread::MetaUpdate(const std::string ip, int port, ZPM
   ZPMeta::Partitions partitions;
   slash::Status s = UpdateFloyd(ip, port, op, partitions);
   if (!s.ok()) {
+    LOG(ERROR) << "update floyd with new meta info failed. " << s.ToString();
     return s;
   }
   LOG(INFO) << "update floyd with new meta info success";
@@ -42,8 +43,10 @@ ZPMetaUpdateThread::ZPMetaUpdateThread() {
 
 slash::Status ZPMetaUpdateThread::UpdateFloyd(const std::string &ip, int port, ZPMetaUpdateOP op, ZPMeta::Partitions &partitions) {
   // Load from Floyd
-  std::string key(ZP_META_KEY_PREFIX), value;
+  std::string key(ZP_META_KEY_PREFIX), value, text_format;
   key += "1"; //Only one partition now
+  LOG(INFO) << "zp meta partition key: " << key;
+
   slash::Status s = zp_meta_server->Get(key, value);
   if (!s.ok() && !s.IsNotFound()) {
     LOG(ERROR) << "get current meta from floyd failed. " << s.ToString();
@@ -57,6 +60,8 @@ slash::Status ZPMetaUpdateThread::UpdateFloyd(const std::string &ip, int port, Z
       LOG(ERROR) << "deserialization current meta failed, value: " << value;
       return slash::Status::Corruption("Parse failed");
     }
+    google::protobuf::TextFormat::PrintToString(partitions, &text_format);
+    LOG(INFO) << "read from floyd: [" << text_format << "]";
     assert(partitions.id() == 1);
   }
 
@@ -69,6 +74,8 @@ slash::Status ZPMetaUpdateThread::UpdateFloyd(const std::string &ip, int port, Z
     LOG(ERROR) << "serialization new meta failed, new value: " <<  new_value;
     return Status::Corruption("Serialize error");
   }
+  google::protobuf::TextFormat::PrintToString(partitions, &text_format);
+  LOG(INFO) << "wirte to floyd: [" << text_format << "]";
   return zp_meta_server->Set(key, new_value);
 }
 
@@ -158,8 +165,8 @@ void ZPMetaUpdateThread::UpdatePartition(ZPMeta::Partitions &partitions,
     partitions.clear_master();
     if (partitions.slaves_size() > 0) { 
       const ZPMeta::Node& last = partitions.slaves(partitions.slaves_size() - 1);
-      partitions.mutable_slaves()->RemoveLast();
       SetMaster(partitions, last.ip(), last.port());
+      partitions.mutable_slaves()->RemoveLast();
     }
     return;
   }

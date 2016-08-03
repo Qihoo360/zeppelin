@@ -49,12 +49,20 @@ Status ZPMetaServer::Start() {
 void ZPMetaServer::CheckNodeAlive() {
   struct timeval now;
   slash::MutexLock l(&alive_mutex_);
-  gettimeofday(&now, NULL);
+
+  std::vector<std::string> need_remove;
   NodeAliveMap::iterator it = node_alive_.begin();
+  gettimeofday(&now, NULL);
   for (; it != node_alive_.end(); ++it) {
     if (now.tv_sec - (it->second).tv_sec > NODE_ALIVE_LEASE) {
-      update_thread_.ScheduleUpdate(it->first, ZPMetaUpdateOP::OP_REMOVE);
+      need_remove.push_back(it->first);
     }
+  }
+
+  std::vector<std::string>::iterator rit = need_remove.begin();
+  for (; rit != need_remove.end(); ++rit) {
+    node_alive_.erase(*rit);
+    update_thread_.ScheduleUpdate(*rit, ZPMetaUpdateOP::OP_REMOVE);
   }
 }
 
@@ -63,6 +71,7 @@ void ZPMetaServer::AddNodeAlive(const std::string& ip_port) {
   slash::MutexLock l(&alive_mutex_);
   gettimeofday(&now, NULL);
   node_alive_[ip_port] = now;
+  LOG(INFO) << "Add Node Alive";
   update_thread_.ScheduleUpdate(ip_port, ZPMetaUpdateOP::OP_ADD);
 }
 
@@ -82,6 +91,7 @@ Status ZPMetaServer::Set(const std::string &key, const std::string &value) {
 	if (fs.ok()) {
     return Status::OK();
   } else {
+    LOG(ERROR) << "floyd write failed: " << fs.ToString();
     return Status::Corruption("floyd set error!");
   }
 }
@@ -93,6 +103,7 @@ Status ZPMetaServer::Get(const std::string &key, std::string &value) {
   } else if (fs.IsNotFound()) {
     return Status::NotFound("not found from floyd");
   } else {
+    LOG(ERROR) << "floyd read failed: " << fs.ToString();
     return Status::Corruption("floyd get error!");
   }
 }
