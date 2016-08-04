@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 
 void Usage() {
   printf ("Usage:\n"
-          "  ./output/bin/zp-master --floyd_ip ip1 --floyd_port port1 --local_port local_port --data_path path --log_path path\n");
+          "  ./output/bin/zp-master --seed_ip ip1 --seed_port port1 --local_ip local_ip --local_port local_port --data_path path --log_path path\n");
 }
 
 void ParseArgs(int argc, char* argv[], ZPOptions& options) {
@@ -59,8 +59,9 @@ void ParseArgs(int argc, char* argv[], ZPOptions& options) {
   }
 
   const struct option long_options[] = {
-    {"floyd_ip", required_argument, NULL, 'I'},
-    {"floyd_port", required_argument, NULL, 'P'},
+    {"seed_ip", required_argument, NULL, 'I'},
+    {"seed_port", required_argument, NULL, 'P'},
+    {"local_ip", required_argument, NULL, 'i'},
     {"local_port", required_argument, NULL, 'p'},
     {"data_path", required_argument, NULL, 'd'},
     {"log_path", required_argument, NULL, 'l'},
@@ -78,6 +79,9 @@ void ParseArgs(int argc, char* argv[], ZPOptions& options) {
         break;
       case 'P':
         options.seed_port = atoi(optarg);
+        break;
+      case 'i':
+        options.local_ip = optarg;
         break;
       case 'p':
         options.local_port = atoi(optarg);

@@ -2,30 +2,19 @@
 #define ZP_MASTER_SERVER_H
 
 #include <stdio.h>
-#include <sys/time.h>
 #include <string>
-#include <memory>
 #include "zp_options.h"
-#include "zp_binlog.h"
-#include "zp_meta_utils.h"
 #include "zp_const.h"
-//#include "zp_heartbeat_thread.h"
-
-#include "pb_conn.h"
-#include "pb_cli.h"
-#include "holy_thread.h"
-
 #include "slash_status.h"
 #include "slash_mutex.h"
 
 #include "floyd.h"
+#include "zp_meta_dispatch_thread.h"
+#include "zp_meta_worker_thread.h"
 #include "zp_meta_update_thread.h"
 
 using slash::Status;
 
-// key in floyd is zpmeta##id
-const std::string ZP_META_KEY_PREFIX = "zpmeta##";
-const int NODE_ALIVE_LEASE = 3;
 
 typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
 
@@ -38,6 +27,7 @@ class ZPMetaServer {
   
   Status Set(const std::string &key, const std::string &value);
   Status Get(const std::string &key, std::string &value);
+  //Status Delete(const std::string &key);
 
   std::string seed_ip() {
     return options_.seed_ip;
@@ -53,11 +43,22 @@ class ZPMetaServer {
   }
 
   void CheckNodeAlive();
+  void UpdateNodeAlive(const std::string& ip_port);
+  void AddNodeAlive(const std::string& ip_port);
+  
+  bool GetLeader(std::string& ip, int& port) {
+    int fy_port = 0;
+    bool res = floyd_->GetLeader(ip, fy_port);
+    port = fy_port - kMetaPortShiftFY;
+    return res;
+  }
 
  private:
 
-  friend class JoinCmd;
-  friend class PingCmd;
+  // Server related
+  int worker_num_;
+  ZPMetaWorkerThread* zp_meta_worker_thread_[kMaxMetaWorkerThread];
+  ZPMetaDispatchThread* zp_meta_dispatch_thread_;
 
   floyd::Floyd* floyd_;
   ZPOptions options_;
@@ -66,7 +67,7 @@ class ZPMetaServer {
 
   ZPMetaUpdateThread update_thread_;
 
-  pthread_rwlock_t state_rw_;
+  //pthread_rwlock_t state_rw_;
   slash::Mutex server_mutex_;
 };
 

@@ -373,6 +373,10 @@ void ZPDataServer::BecomeSlave(const std::string& master_ip, int master_port) {
       iter = slaves_.erase(iter);
       //LOG(INFO) << "Delete slave success";
     }
+
+    // TODO brute clear the sync point
+    logger_->SetProducerStatus(0, 0);
+    LOG(INFO) << "Reset logger to (0,0)";
   }
   {
     slash::RWLock l(&state_rw_, true);

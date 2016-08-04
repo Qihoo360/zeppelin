@@ -3,6 +3,7 @@
 
 #include "pink_thread.h"
 #include "pb_conn.h"
+#include "pb_cli.h"
 
 #include "zp_meta.pb.h"
 #include "zp_meta_worker_thread.h"
@@ -24,6 +25,19 @@ class ZPMetaClientConn : public pink::PbConn {
   ZPMeta::MetaCmdResponse response_;
 
   ZPMetaWorkerThread* self_thread_;
+
+  // Connect with leader
+  bool IsLeader();
+  pink::PbCli* leader_cli_;
+  std::string leader_ip_;
+  int leader_port_;
+  void LeaderClean() {
+    if (leader_cli_) {
+      leader_cli_->Close();
+      leader_ip_.clear();
+      leader_port_ = 0;
+    }
+  }
 };
 
 

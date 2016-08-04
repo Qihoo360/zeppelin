@@ -1,6 +1,7 @@
 #ifndef ZP_META_UPDATE_THREAD_H
 #define ZP_META_UPDATE_THREAD_H
 
+#include <glog/logging.h>
 #include <string>
 #include <unordered_map>
 #include "slash_string.h"
@@ -38,6 +39,7 @@ public:
     }
     ZPMetaUpdateArgs* arg = new ZPMetaUpdateArgs(this, ip, port, op);
     worker_.StartIfNeed();
+    LOG(INFO) << "Schedule to update thread worker";
     worker_.Schedule(&DoMetaUpdate, static_cast<void*>(arg));
   }
 
@@ -51,8 +53,9 @@ private:
   slash::Status UpdateSender(const std::string &ip, int port, ZPMetaUpdateOP op);
   void SendUpdate(ZPMeta::Partitions &Partitions);
   void UpdatePartition(ZPMeta::Partitions &partitions,
-    const std::string& ip, int port, ZPMetaUpdateOP op);
+    const std::string& ip, int port, ZPMetaUpdateOP op, int id);
   void SetMaster(ZPMeta::Partitions &partitions, const std::string &ip, int port) {
+    LOG(INFO) << "Set master ip:" << ip << " port: " << port;
     ZPMeta::Node *master = partitions.mutable_master();
     master->set_ip(ip);
     master->set_port(port);
