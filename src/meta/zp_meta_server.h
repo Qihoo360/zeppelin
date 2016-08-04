@@ -27,7 +27,7 @@ class ZPMetaServer {
   
   Status Set(const std::string &key, const std::string &value);
   Status Get(const std::string &key, std::string &value);
-  //Status Delete(const std::string &key);
+  Status Delete(const std::string &key);
 
   std::string seed_ip() {
     return options_.seed_ip;

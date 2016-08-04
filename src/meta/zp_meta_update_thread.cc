@@ -72,7 +72,7 @@ slash::Status ZPMetaUpdateThread::UpdateFloyd(const std::string &ip, int port, Z
   if (!partitions.IsInitialized()) {
     // empty partitions
     LOG(INFO) << "remove empty partition from floyd: " << key;
-    //TODO return zp_meta_server->Delete(key);
+    return zp_meta_server->Delete(key);
   }
   std::string new_value;
   if (!partitions.SerializeToString(&new_value)) {

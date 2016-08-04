@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 
 void Usage() {
   printf ("Usage:\n"
-          "  ./output/bin/zp-master --seed_ip ip1 --seed_port port1 --local_ip local_ip --local_port local_port --data_path path --log_path path\n");
+          "  ./output/bin/zp-meta --seed_ip ip1 --seed_port port1 --local_ip local_ip --local_port local_port --data_path path --log_path path\n");
 }
 
 void ParseArgs(int argc, char* argv[], ZPOptions& options) {

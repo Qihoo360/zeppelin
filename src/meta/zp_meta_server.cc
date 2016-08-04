@@ -108,12 +108,12 @@ Status ZPMetaServer::Get(const std::string &key, std::string &value) {
   }
 }
 
-//Status ZPMetaServer::Delete(const std::string &key) {
-//  floyd::Status fs = floyd_->Write(key, value);
-//	if (fs.ok()) {
-//    return Status::OK();
-//  } else {
-//    LOG(ERROR) << "floyd write failed: " << fs.ToString();
-//    return Status::Corruption("floyd set error!");
-//  }
-//}
+Status ZPMetaServer::Delete(const std::string &key) {
+  floyd::Status fs = floyd_->Delete(key);
+	if (fs.ok()) {
+    return Status::OK();
+  } else {
+    LOG(ERROR) << "floyd deletefailed: " << fs.ToString();
+    return Status::Corruption("floyd delete error!");
+  }
+}
