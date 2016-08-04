@@ -27,6 +27,7 @@ class ZPMetaServer {
   
   Status Set(const std::string &key, const std::string &value);
   Status Get(const std::string &key, std::string &value);
+  //Status Delete(const std::string &key);
 
   std::string seed_ip() {
     return options_.seed_ip;
@@ -44,6 +45,13 @@ class ZPMetaServer {
   void CheckNodeAlive();
   void UpdateNodeAlive(const std::string& ip_port);
   void AddNodeAlive(const std::string& ip_port);
+  
+  bool GetLeader(std::string& ip, int& port) {
+    int fy_port = 0;
+    bool res = floyd_->GetLeader(ip, fy_port);
+    port = fy_port - kMetaPortShiftFY;
+    return res;
+  }
 
  private:
 

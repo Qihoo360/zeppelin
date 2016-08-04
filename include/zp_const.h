@@ -30,7 +30,7 @@ enum MetaState {
 const int kPortShiftDataCmd = 100;
 const int kPortShiftSync = 200;
 // Meta port shift
-const int kMetaPortShiftHb = 100;
+const int kMetaPortShiftCmd = 100;
 const int kMetaPortShiftFY = 200;
 
 

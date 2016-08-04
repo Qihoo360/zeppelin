@@ -22,7 +22,7 @@ ZPMetaServer::ZPMetaServer(const ZPOptions& options)
   for (int i = 0; i < worker_num_ ; ++i) {
     zp_meta_worker_thread_[i] = new ZPMetaWorkerThread(kMetaWorkerCronInterval);
   }
-  zp_meta_dispatch_thread_ = new ZPMetaDispatchThread(options.local_port + kMetaPortShiftHb, worker_num_, zp_meta_worker_thread_, kMetaDispathCronInterval);
+  zp_meta_dispatch_thread_ = new ZPMetaDispatchThread(options.local_port + kMetaPortShiftCmd, worker_num_, zp_meta_worker_thread_, kMetaDispathCronInterval);
 
 
 }
@@ -107,3 +107,13 @@ Status ZPMetaServer::Get(const std::string &key, std::string &value) {
     return Status::Corruption("floyd get error!");
   }
 }
+
+//Status ZPMetaServer::Delete(const std::string &key) {
+//  floyd::Status fs = floyd_->Write(key, value);
+//	if (fs.ok()) {
+//    return Status::OK();
+//  } else {
+//    LOG(ERROR) << "floyd write failed: " << fs.ToString();
+//    return Status::Corruption("floyd set error!");
+//  }
+//}

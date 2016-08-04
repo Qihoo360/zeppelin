@@ -69,6 +69,11 @@ slash::Status ZPMetaUpdateThread::UpdateFloyd(const std::string &ip, int port, Z
   UpdatePartition(partitions, ip, port, op, 1);
 
   // Serialization and Dump to Floyd
+  if (!partitions.IsInitialized()) {
+    // empty partitions
+    LOG(INFO) << "remove empty partition from floyd: " << key;
+    //TODO return zp_meta_server->Delete(key);
+  }
   std::string new_value;
   if (!partitions.SerializeToString(&new_value)) {
     LOG(ERROR) << "serialization new meta failed, new value: " <<  new_value;
@@ -167,6 +172,8 @@ void ZPMetaUpdateThread::UpdatePartition(ZPMeta::Partitions &partitions,
       const ZPMeta::Node& last = partitions.slaves(partitions.slaves_size() - 1);
       SetMaster(partitions, last.ip(), last.port());
       partitions.mutable_slaves()->RemoveLast();
+    } else {
+      partitions.Clear();
     }
     return;
   }

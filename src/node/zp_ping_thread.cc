@@ -82,10 +82,10 @@ void* ZPPingThread::ThreadMain() {
     }
     zp_data_server->PickMeta();
     // Connect with heartbeat port
-    DLOG(INFO) << "Ping will connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftHb << ")";
-    s = cli_->Connect(zp_data_server->meta_ip(), zp_data_server->meta_port() + kMetaPortShiftHb);
+    DLOG(INFO) << "Ping will connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ")";
+    s = cli_->Connect(zp_data_server->meta_ip(), zp_data_server->meta_port() + kMetaPortShiftCmd);
     if (s.ok()) {
-      DLOG(INFO) << "Ping connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftHb << ") ok!";
+      DLOG(INFO) << "Ping connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ") ok!";
       cli_->set_send_timeout(1000);
       cli_->set_recv_timeout(1000);
       connect_retry_times = 0;
