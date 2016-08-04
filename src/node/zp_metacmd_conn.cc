@@ -39,7 +39,7 @@ int ZPMetacmdConn::DealMessage() {
       break;
     }
     default:
-      DLOG(INFO) << "unsupported cmd type:" << request_.type();
+      DLOG(INFO) << "unsupported cmd type:" << (int)request_.type();
   }
 
   if (cmd->is_write()) {

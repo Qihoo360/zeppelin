@@ -67,7 +67,8 @@ inline bool Type_Parse(
 enum StatusCode {
   kOk = 0,
   kNotFound = 1,
-  kError = 2
+  kWait = 2,
+  kError = 3
 };
 bool StatusCode_IsValid(int value);
 const StatusCode StatusCode_MIN = kOk;

@@ -15,7 +15,7 @@
 //}
 
 pink::Status ZPPbCli::SendRaw(const void *msg, size_t size) {
-  DLOG(INFO) << "SendRaw with buffer size:" << size;
+  //DLOG(INFO) << "SendRaw with buffer size:" << size;
 
   pink::Status s;
 
@@ -24,7 +24,7 @@ pink::Status ZPPbCli::SendRaw(const void *msg, size_t size) {
   size_t nleft = size;
   ssize_t nwritten;
   while (nleft > 0) {
-    if ((nwritten = write(fd(), msg + pos, nleft)) <= 0) {
+    if ((nwritten = write(fd(), (char *)msg + pos, nleft)) <= 0) {
       if (errno == EINTR) {
         nwritten = 0;
         continue;

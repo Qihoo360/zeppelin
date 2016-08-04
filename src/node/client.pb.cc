@@ -292,8 +292,9 @@ void protobuf_AddDesc_client_2eproto() {
     "\030\001 \002(\0162\022.client.StatusCode\022\013\n\003msg\030\002 \001(\014\032"
     "C\n\003Get\022 \n\004code\030\001 \002(\0162\022.client.StatusCode"
     "\022\013\n\003msg\030\002 \001(\014\022\r\n\005value\030\003 \001(\014*\"\n\004Type\022\010\n\004"
-    "SYNC\020\000\022\007\n\003SET\020\001\022\007\n\003GET\020\002*0\n\nStatusCode\022\007"
-    "\n\003kOk\020\000\022\r\n\tkNotFound\020\001\022\n\n\006kError\020\002", 794);
+    "SYNC\020\000\022\007\n\003SET\020\001\022\007\n\003GET\020\002*;\n\nStatusCode\022\007"
+    "\n\003kOk\020\000\022\r\n\tkNotFound\020\001\022\t\n\005kWait\020\002\022\n\n\006kEr"
+    "ror\020\003", 805);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "client.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -347,6 +348,7 @@ bool StatusCode_IsValid(int value) {
     case 0:
     case 1:
     case 2:
+    case 3:
       return true;
     default:
       return false;

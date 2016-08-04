@@ -15,7 +15,7 @@ using slash::Status;
 //const char* short_options = "s:";
 
 void handle_update(client::Cluster &cluster, int port1, int port2, int port3) {
-  int pid;
+  int pid = 1;
   std::string ip1 = "127.0.0.1";
   //int port1 = 8001;
   std::string ip2 = "127.0.0.1";
