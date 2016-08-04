@@ -117,7 +117,7 @@ void* ZPPingThread::ThreadMain() {
         LOG(WARNING) << "Ping timeout once";
         gettimeofday(&now, NULL);
         if (now.tv_sec - last_interaction.tv_sec > 30) {
-          LOG(WARNING) << "Ping leader timeout";
+          LOG(WARNING) << "Ping leader timeout, will resend Join";
           zp_data_server->MinusMetaServerConns();
           zp_data_server->zp_metacmd_worker_thread()->KillMetacmdConn();
           break;
@@ -130,6 +130,7 @@ void* ZPPingThread::ThreadMain() {
       if ((++connect_retry_times) >= 30) {
         LOG(WARNING) << "PingThread, Connect timeout 30 times, disconnect with meta server";
         connect_retry_times = 0;
+        is_first_send_ = true;
       }
     } else {
       LOG(ERROR) << "PingThread Connect failed caz " << s.ToString();
