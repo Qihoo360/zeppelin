@@ -263,7 +263,7 @@ void* ZPBinlogSenderThread::ThreadMain() {
     LOG(INFO) << "BinlogSender Connect slave(" << ip_ << ":" << port_ << ") " << result.ToString();
 
     if (result.ok()) {
-      while (true) {
+      while (!should_exit_) {
         // 2. Should Parse new msg;
         if (last_send_flag) {
           s = Parse(scratch);
@@ -281,7 +281,7 @@ void* ZPBinlogSenderThread::ThreadMain() {
         }
 
         // 3. After successful parse, we send msg;
-        DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
+        //DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
         result = cli_->SendRaw(scratch.data(), scratch.size());
         if (result.ok()) {
           last_send_flag = true;
@@ -294,7 +294,8 @@ void* ZPBinlogSenderThread::ThreadMain() {
     }
 
     // error
-    close(cli_->fd());
+    cli_->Close();
+    //close(cli_->fd());
     sleep(1);
   }
   return NULL;

@@ -19,6 +19,7 @@ enum ReplState {
   kNoConnect = 0,
   kShouldConnect = 1,
   kConnected = 2,
+  kWaitDBSync = 3,
 };
 enum MetaState {
   kMetaConnect = 1,
@@ -29,6 +30,8 @@ enum MetaState {
 // Data port shift
 const int kPortShiftDataCmd = 100;
 const int kPortShiftSync = 200;
+const int kPortShiftRsync = 300;
+
 // Meta port shift
 const int kMetaPortShiftCmd = 100;
 const int kMetaPortShiftFY = 200;
@@ -59,24 +62,8 @@ const std::string kBinlogPrefix = "binlog";
 
 const std::string kManifest = "manifest";
 
-
-
 //#define SLAVE_ITEM_STAGE_ONE 1
 //#define SLAVE_ITEM_STAGE_TWO 2
-
-
-////repl_state_
-//#define ZP_REPL_NO_CONNECT 0
-//#define ZP_REPL_CONNECT 1
-//#define ZP_REPL_CONNECTING 2
-//#define ZP_REPL_CONNECTED 3
-//#define ZP_REPL_WAIT_DBSYNC 4
-//
-////role
-//#define ZP_ROLE_SINGLE 0
-//#define ZP_ROLE_SLAVE 1
-//#define ZP_ROLE_MASTER 2
-
 
 /*
  * The size of Binlogfile

@@ -27,6 +27,9 @@ int ZPSyncConn::DealMessage() {
       DLOG(INFO) << "SyncConn Receive Get cmd";
       break;
     }
+    default:
+      DLOG(INFO) << "SyncConn Receive unsupported cmd";
+      break;
   }
 
   self_thread_->PlusThreadQuerynum();

@@ -69,6 +69,7 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size)
   //slash::SetMmapBoundSize(file_size);
   //slash::kMmapBoundSize = 1024 * 1024 * 100;
 
+  DLOG(INFO) << "Binlog file_size=" << file_size_;
   Status s;
 
   if (binlog_path_.back() != '/') {

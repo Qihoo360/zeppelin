@@ -7,6 +7,8 @@ const int kReplicaNum = 3;
 class Node;
 //class Leaders;
 
+#include <stdio.h>
+
 class Node {
  public:
   std::string ip;
@@ -16,6 +18,10 @@ class Node {
   Node() {}
   Node(const std::string& str);
   Node(const std::string& _ip, const int& _port) : ip(_ip), port(_port) {}
+  // TODO test
+ // ~Node() {
+ //   printf ("~Node dstor: ip=%s, port=%d\n", ip.c_str(), port);
+ // }
 
   Node(const Node& node)
       : ip(node.ip),
@@ -44,6 +50,21 @@ struct SlaveItem {
   int sync_fd;
   void* sender;
   struct timeval create_time;
+
+  SlaveItem()
+    : node(),
+    sender(NULL) {}
+  SlaveItem(const SlaveItem& item)
+    : node(item.node),
+    sender_tid(item.sender_tid),
+    sender(item.sender),
+    create_time(item.create_time) {
+      //printf ("SlaveItem Cpy cstor called\n");
+    }
+
+  //~SlaveItem() {
+  //  printf ("~SlaveItem called, node address=(%x)\n", &node);
+  //}
 };
 
 //struct ClientInfo {

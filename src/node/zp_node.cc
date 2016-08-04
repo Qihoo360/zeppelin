@@ -25,6 +25,9 @@ static void GlogInit(const ZPOptions& options) {
   FLAGS_log_dir = options.log_path;
   FLAGS_minloglevel = 0;
   FLAGS_max_log_size = 1800;
+  // TODO rm
+  FLAGS_logbufsecs = 0;
+
   ::google::InitGoogleLogging("zp");
 }
 

@@ -9,7 +9,8 @@ enum Type {
 enum StatusCode {
   kOk = 0;
   kNotFound = 1;
-  kError = 2;
+  kWait = 2;
+  kError = 3;
 }
 
 message Node {

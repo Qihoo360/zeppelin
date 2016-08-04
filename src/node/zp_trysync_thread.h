@@ -12,21 +12,31 @@
 class ZPTrySyncThread : public pink::Thread {
  public:
 
-  ZPTrySyncThread() {
+  ZPTrySyncThread()
+    : rsync_flag_(false) {
     cli_ = new pink::PbCli();
     cli_->set_connect_timeout(1500);
   }
   virtual ~ZPTrySyncThread();
 
-  pink::Status Send();
-  pink::Status Recv();
-
  private:
+
+  bool Send();
+
+  // Return value:
+  //    0 means ok;
+  //    -1 means wait 
+  //    -2 means error;
+  int Recv();
+
+  void PrepareRsync();
+  bool TryUpdateMasterOffset();
 
   // TODO maybe use uuid or serverId
 
-  int sockfd_;
+  //int sockfd_;
   pink::PbCli *cli_;
+  bool rsync_flag_;
 
   virtual void* ThreadMain();
 

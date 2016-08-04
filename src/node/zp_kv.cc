@@ -18,7 +18,7 @@ void InitClientCmdTable(std::unordered_map<int, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::GET), getptr));
 
   // Sync
-  Cmd* syncptr = new SyncCmd(kCmdFlagsAdmin | kCmdFlagsRead);
+  Cmd* syncptr = new SyncCmd(kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
   cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SYNC), syncptr));
 }
 
@@ -36,6 +36,13 @@ void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res) 
 
   client::CmdResponse_Set* set_res = response->mutable_set();
   response->set_type(client::Type::SET);
+
+  if (zp_data_server->readonly()) {
+    set_res->set_code(client::StatusCode::kError);
+    set_res->set_msg("readonly mode");
+    result_ = slash::Status::Corruption("readonly mode");
+    return;
+  }
 
   //int32_t ttl;
   nemo::Status s = zp_data_server->db()->Set(request->set().key(), request->set().value());
@@ -94,19 +101,23 @@ void SyncCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res)
     gettimeofday(&si.create_time, NULL);
     si.sender = NULL;
 
-    LOG(INFO) << "Sync a new node(" << node.ip << ":" << node.port << ") filenum " << sync.filenum() << ", offset " << sync.offset();
+    LOG(INFO) << "SyncCmd a new node(" << node.ip << ":" << node.port << ") filenum " << sync.filenum() << ", offset " << sync.offset();
     s = zp_data_server->AddBinlogSender(si, sync.filenum(), sync.offset());
 
     client::CmdResponse_Sync* sync = response->mutable_sync();
-    if (!s.ok()) {
+    if (s.ok()) {
+      sync->set_code(client::StatusCode::kOk);
+      DLOG(INFO) << "SyncCmd add node ok";
+      result_ = slash::Status::OK();
+    } else if (s.IsIncomplete()) {
+      sync->set_code(client::StatusCode::kWait);
+      DLOG(INFO) << "SyncCmd add node incomplete";
+      result_ = s;
+    } else {
       sync->set_code(client::StatusCode::kError);
       sync->set_msg(s.ToString());
       result_ = slash::Status::Corruption(s.ToString());
       LOG(ERROR) << "command failed: Sync, caz " << s.ToString();
-    } else {
-      sync->set_code(client::StatusCode::kError);
-      DLOG(INFO) << "Sync node ok";
-      result_ = slash::Status::OK();
     }
   }
 }
