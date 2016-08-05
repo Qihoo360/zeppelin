@@ -49,7 +49,9 @@ class ZPMetaServer {
   bool GetLeader(std::string& ip, int& port) {
     int fy_port = 0;
     bool res = floyd_->GetLeader(ip, fy_port);
-    port = fy_port - kMetaPortShiftFY;
+    if (res) {
+      port = fy_port - kMetaPortShiftFY;
+    }
     return res;
   }
 

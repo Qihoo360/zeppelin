@@ -11,7 +11,7 @@ extern ZPMetaServer* zp_meta_server;
 
 ////// ZPDataClientConn //////
 ZPMetaClientConn::ZPMetaClientConn(int fd, std::string ip_port, pink::Thread* thread) :
-  PbConn(fd, ip_port), leader_cli_(NULL), leader_port_(0) {
+  PbConn(fd, ip_port), leader_cli_(NULL), leader_cmd_port_(0) {
   self_thread_ = dynamic_cast<ZPMetaWorkerThread*>(thread);
 }
 
@@ -21,15 +21,15 @@ ZPMetaClientConn::~ZPMetaClientConn() {
 
 bool ZPMetaClientConn::IsLeader() {
   std::string leader_ip;
-  int leader_fy_port = 0, leader_port = 0;
-  while (!zp_meta_server->GetLeader(leader_ip, leader_fy_port)) {
+  int leader_port = 0, leader_cmd_port = 0;
+  while (!zp_meta_server->GetLeader(leader_ip, leader_port)) {
     DLOG(INFO) << "Wait leader ... ";
     // Wait leader election
     sleep(1);
   }
-  leader_port = leader_fy_port + kMetaPortShiftCmd;
   LOG(INFO) << "Leader: " << leader_ip << ":" << leader_port;
-  if (leader_ip == leader_ip_ && leader_port == leader_port_) {
+  leader_cmd_port = leader_port + kMetaPortShiftCmd;
+  if (leader_ip == leader_ip_ && leader_cmd_port == leader_cmd_port_) {
     // has connected to leader
     return false;
   }
@@ -45,10 +45,10 @@ bool ZPMetaClientConn::IsLeader() {
   // Connect to new leader
   leader_cli_ = new pink::PbCli();
   leader_ip_ = leader_ip;
-  leader_port_ = leader_port;
-  pink::Status s = leader_cli_->Connect(leader_ip_, leader_port_);
+  leader_cmd_port_ = leader_cmd_port;
+  pink::Status s = leader_cli_->Connect(leader_ip_, leader_cmd_port_);
   if (!s.ok()) {
-    LOG(ERROR) << "connect to leader: " << leader_ip_ << ":" << leader_port_ << " failed";
+    LOG(ERROR) << "connect to leader: " << leader_ip_ << ":" << leader_cmd_port_ << " failed";
   }
   leader_cli_->set_send_timeout(1000);
   leader_cli_->set_recv_timeout(1000);
@@ -75,7 +75,7 @@ int ZPMetaClientConn::DealMessage() {
   if (!IsLeader()) {
     pink::Status s = leader_cli_->Send(&request_);
     if (!s.ok()) {
-      LOG(ERROR) << "Failed to redirect message to leader" << s.ToString();
+      LOG(ERROR) << "Failed to redirect message to leader, " << s.ToString();
       return -1;
     }
     s = leader_cli_->Recv(&response_); 
