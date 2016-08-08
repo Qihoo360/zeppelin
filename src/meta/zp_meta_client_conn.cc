@@ -84,6 +84,7 @@ int ZPMetaClientConn::DealMessage() {
       return -1;
     }
     LOG(INFO) << "Receive redirect message response from leader";
+    return 0;
   }
 
   Cmd* cmd = self_thread_->GetCmd(static_cast<int>(request_.type()));
