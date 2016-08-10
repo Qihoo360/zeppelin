@@ -6,6 +6,9 @@
 
 extern ZPMetaServer* zp_meta_server;
 
+ZPMetaUpdateThread::ZPMetaUpdateThread() {
+}
+
 void ZPMetaUpdateThread::DoMetaUpdate(void *p) {
   ZPMetaUpdateThread::ZPMetaUpdateArgs *args = static_cast<ZPMetaUpdateThread::ZPMetaUpdateArgs*>(p);
   ZPMetaUpdateThread *thread = args->thread;
@@ -30,7 +33,7 @@ slash::Status ZPMetaUpdateThread::MetaUpdate(const std::string ip, int port, ZPM
   if (!s.ok()) {
     LOG(ERROR) << "update thread update sender failed. " << s.ToString();
   }
-  LOG(INFO) << "update sender success";
+  LOG(INFO) << "update sender finished";
 
   // Send Update Message
   SendUpdate(partitions);
@@ -38,50 +41,30 @@ slash::Status ZPMetaUpdateThread::MetaUpdate(const std::string ip, int port, ZPM
   return s;
 }
 
-ZPMetaUpdateThread::ZPMetaUpdateThread() {
-}
-
 slash::Status ZPMetaUpdateThread::UpdateFloyd(const std::string &ip, int port, ZPMetaUpdateOP op, ZPMeta::Partitions &partitions) {
   // Load from Floyd
-  std::string key(ZP_META_KEY_PREFIX), value, text_format;
-  key += "1"; //Only one partition now
-  LOG(INFO) << "zp meta partition key: " << key;
-
-  slash::Status s = zp_meta_server->Get(key, value);
+  partitions.Clear();
+  slash::Status s = zp_meta_server->GetPartition(1, partitions);
   if (!s.ok() && !s.IsNotFound()) {
     LOG(ERROR) << "get current meta from floyd failed. " << s.ToString();
     return s;
   }
-
-  // Deserialization
-  partitions.Clear();
-  if (s.ok()) {
-    if (!partitions.ParseFromString(value)) {
-      LOG(ERROR) << "deserialization current meta failed, value: " << value;
-      return slash::Status::Corruption("Parse failed");
-    }
-    google::protobuf::TextFormat::PrintToString(partitions, &text_format);
-    LOG(INFO) << "read from floyd: [" << text_format << "]";
-    assert(partitions.id() == 1);
-  }
+  std::string text_format;
+  google::protobuf::TextFormat::PrintToString(partitions, &text_format);
+  LOG(INFO) << "read from floyd: [" << text_format << "]";
 
   // Update Partition
   UpdatePartition(partitions, ip, port, op, 1);
 
-  // Serialization and Dump to Floyd
+  // Dump to Floyd
+  google::protobuf::TextFormat::PrintToString(partitions, &text_format);
+  LOG(INFO) << "write to floyd: [" << text_format << "]";
   if (!partitions.IsInitialized()) {
     // empty partitions
-    LOG(INFO) << "remove empty partition from floyd: " << key;
-    return zp_meta_server->Delete(key);
+    LOG(INFO) << "remove empty partition from floyd";
+    return zp_meta_server->DeletePartition(1);
   }
-  std::string new_value;
-  if (!partitions.SerializeToString(&new_value)) {
-    LOG(ERROR) << "serialization new meta failed, new value: " <<  new_value;
-    return Status::Corruption("Serialize error");
-  }
-  google::protobuf::TextFormat::PrintToString(partitions, &text_format);
-  LOG(INFO) << "wirte to floyd: [" << text_format << "]";
-  return zp_meta_server->Set(key, new_value);
+  return zp_meta_server->SetPartition(1, partitions);
 }
 
 slash::Status ZPMetaUpdateThread::UpdateSender(const std::string &ip, int port, ZPMetaUpdateOP op) {

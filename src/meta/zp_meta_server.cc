@@ -1,12 +1,13 @@
 #include <glog/logging.h>
 
+#include "slash_string.h"
 #include "zp_meta_server.h"
+#include "zp_meta.pb.h"
 
 ZPMetaServer::ZPMetaServer(const ZPOptions& options)
-  : options_(options) {
+  : options_(options), leader_cli_(NULL), leader_cmd_port_(0){
 
   //pthread_rwlock_init(&state_rw_, NULL);
-
   // Convert ZPOptions
   floyd::Options* fy_options = new floyd::Options();
   fy_options->seed_ip = options.seed_ip;
@@ -23,8 +24,6 @@ ZPMetaServer::ZPMetaServer(const ZPOptions& options)
     zp_meta_worker_thread_[i] = new ZPMetaWorkerThread(kMetaWorkerCronInterval);
   }
   zp_meta_dispatch_thread_ = new ZPMetaDispatchThread(options.local_port + kMetaPortShiftCmd, worker_num_, zp_meta_worker_thread_, kMetaDispathCronInterval);
-
-
 }
 
 ZPMetaServer::~ZPMetaServer() {
@@ -32,8 +31,8 @@ ZPMetaServer::~ZPMetaServer() {
   for (int i = 0; i < worker_num_; ++i) {
     delete zp_meta_worker_thread_[i];
   }
-
-  //pthread_rwlock_destroy(&state_rw_);
+  CleanLeader();
+  delete floyd_;
 }
 
 Status ZPMetaServer::Start() {
@@ -43,6 +42,71 @@ Status ZPMetaServer::Start() {
 
   server_mutex_.Lock();
   server_mutex_.Lock();
+  return Status::OK();
+}
+
+bool ZPMetaServer::IsLeader() {
+  std::string leader_ip;
+  int leader_port = 0, leader_cmd_port = 0;
+  while (!GetLeader(leader_ip, leader_port)) {
+    DLOG(INFO) << "Wait leader ... ";
+    // Wait leader election
+    sleep(1);
+  }
+  LOG(INFO) << "Leader: " << leader_ip << ":" << leader_port;
+
+  slash::MutexLock l(&leader_mutex_);
+  leader_cmd_port = leader_port + kMetaPortShiftCmd;
+  if (leader_ip == leader_ip_ && leader_cmd_port == leader_cmd_port_) {
+    // has connected to leader
+    return false;
+  }
+  
+  // Leader changed
+  if (leader_ip == options_.local_ip && 
+      leader_port == options_.local_port) {
+    // I am Leader
+    if (leader_ip_.empty()) {
+      BecomeLeader(); // Just become leader
+    }
+    return true;
+  }
+  CleanLeader();
+  
+  // Connect to new leader
+  leader_cli_ = new pink::PbCli();
+  leader_ip_ = leader_ip;
+  leader_cmd_port_ = leader_cmd_port;
+  pink::Status s = leader_cli_->Connect(leader_ip_, leader_cmd_port_);
+  if (!s.ok()) {
+    LOG(ERROR) << "connect to leader: " << leader_ip_ << ":" << leader_cmd_port_ << " failed";
+  }
+  leader_cli_->set_send_timeout(1000);
+  leader_cli_->set_recv_timeout(1000);
+  return false;
+}
+
+Status ZPMetaServer::BecomeLeader() {
+  ZPMeta::Partitions partitions;
+  Status s = GetPartition(1, partitions);
+  if (s.ok()) {
+    RestoreNodeAlive(partitions);
+  }
+  return s;
+}
+
+Status ZPMetaServer::RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse &response) {
+  slash::MutexLock l(&leader_mutex_);
+  pink::Status s = leader_cli_->Send(&request);
+  if (!s.ok()) {
+    LOG(ERROR) << "Failed to redirect message to leader, " << s.ToString();
+    return Status::Corruption(s.ToString());
+  }
+  s = leader_cli_->Recv(&response); 
+  if (!s.ok()) {
+    LOG(ERROR) << "Failed to get redirect message response from leader" << s.ToString();
+    return Status::Corruption(s.ToString());
+  }
   return Status::OK();
 }
 
@@ -86,19 +150,52 @@ void ZPMetaServer::UpdateNodeAlive(const std::string& ip_port) {
   node_alive_[ip_port] = now;
 }
 
-Status ZPMetaServer::Set(const std::string &key, const std::string &value) {
-  floyd::Status fs = floyd_->Write(key, value);
-	if (fs.ok()) {
-    return Status::OK();
-  } else {
-    LOG(ERROR) << "floyd write failed: " << fs.ToString();
-    return Status::Corruption("floyd set error!");
+void ZPMetaServer::RestoreNodeAlive(const ZPMeta::Partitions &partitions) {
+  if (!partitions.IsInitialized()) {
+    return;
+  }
+  struct timeval now;
+  gettimeofday(&now, NULL);
+
+  slash::MutexLock l(&alive_mutex_);
+  ZPMeta::Node master = partitions.master();
+  node_alive_[slash::IpPortString(master.ip(), master.port())] = now;
+  for (int i = 0; i < partitions.slaves_size(); ++i) {
+    const ZPMeta::Node& node = partitions.slaves(i);
+    node_alive_[slash::IpPortString(node.ip(), node.port())] = now;
   }
 }
 
-Status ZPMetaServer::Get(const std::string &key, std::string &value) {
+Status ZPMetaServer::GetPartition(uint32_t partition_id, ZPMeta::Partitions &partitions) {
+  // Load from Floyd
+  std::string value, text_format;
+  slash::Status s = GetFlat(PartitionId2Key(partition_id), value);
+  if (!s.ok()) {
+    // Error or Not Found
+    return s;
+  }
+
+  // Deserialization
+  partitions.Clear();
+  if (!partitions.ParseFromString(value)) {
+    LOG(ERROR) << "deserialization current meta failed, value: " << value;
+    return slash::Status::Corruption("Parse failed");
+  }
+  return s;
+}
+
+Status ZPMetaServer::SetPartition(uint32_t partition_id, const ZPMeta::Partitions &partitions) {
+  std::string new_value;
+  if (!partitions.SerializeToString(&new_value)) {
+    LOG(ERROR) << "serialization new meta failed, new value: " <<  new_value;
+    return Status::Corruption("Serialize error");
+  }
+  return SetFlat(PartitionId2Key(partition_id), new_value);
+}
+
+Status ZPMetaServer::GetFlat(const std::string &key, std::string &value) {
   floyd::Status fs = floyd_->DirtyRead(key, value);
-	if (fs.ok()) {
+  if (fs.ok()) {
     return Status::OK();
   } else if (fs.IsNotFound()) {
     return Status::NotFound("not found from floyd");
@@ -108,12 +205,22 @@ Status ZPMetaServer::Get(const std::string &key, std::string &value) {
   }
 }
 
-Status ZPMetaServer::Delete(const std::string &key) {
-  floyd::Status fs = floyd_->Delete(key);
-	if (fs.ok()) {
+Status ZPMetaServer::SetFlat(const std::string &key, const std::string &value) {
+  floyd::Status fs = floyd_->Write(key, value);
+  if (fs.ok()) {
     return Status::OK();
   } else {
-    LOG(ERROR) << "floyd deletefailed: " << fs.ToString();
+    LOG(ERROR) << "floyd write failed: " << fs.ToString();
+    return Status::Corruption("floyd set error!");
+  }
+}
+
+Status ZPMetaServer::DeleteFlat(const std::string &key) {
+  floyd::Status fs = floyd_->Delete(key);
+  if (fs.ok()) {
+    return Status::OK();
+  } else {
+    LOG(ERROR) << "floyd delete failed: " << fs.ToString();
     return Status::Corruption("floyd delete error!");
   }
 }

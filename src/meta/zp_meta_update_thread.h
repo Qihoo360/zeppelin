@@ -12,7 +12,6 @@
 
 typedef std::unordered_map<std::string, pink::PbCli*> DataCliMap;
 
-
 enum ZPMetaUpdateOP {
   OP_ADD,
   OP_REMOVE
@@ -54,6 +53,7 @@ private:
   void SendUpdate(ZPMeta::Partitions &Partitions);
   void UpdatePartition(ZPMeta::Partitions &partitions,
     const std::string& ip, int port, ZPMetaUpdateOP op, int id);
+
   void SetMaster(ZPMeta::Partitions &partitions, const std::string &ip, int port) {
     LOG(INFO) << "Set master ip:" << ip << " port: " << port;
     ZPMeta::Node *master = partitions.mutable_master();

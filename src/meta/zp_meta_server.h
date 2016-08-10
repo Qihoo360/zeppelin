@@ -42,10 +42,63 @@ class ZPMetaServer {
     return options_.local_port;
   }
 
+  // Alive Check
   void CheckNodeAlive();
   void UpdateNodeAlive(const std::string& ip_port);
   void AddNodeAlive(const std::string& ip_port);
   
+  // Floyd related
+  Status GetPartition(uint32_t partition_id, ZPMeta::Partitions &partitions);
+  Status SetPartition(uint32_t partition_id, const ZPMeta::Partitions &partitions);
+  Status DeletePartition(uint32_t partition_id) {
+    return DeleteFlat(PartitionId2Key(partition_id));
+  }
+
+  // Leader related
+  bool IsLeader();
+  Status RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse & response);
+
+private:
+
+  // Server related
+  int worker_num_;
+  ZPMetaWorkerThread* zp_meta_worker_thread_[kMaxMetaWorkerThread];
+  ZPMetaDispatchThread* zp_meta_dispatch_thread_;
+  ZPOptions options_;
+  slash::Mutex server_mutex_;
+
+  // Floyd related
+  floyd::Floyd* floyd_;
+  Status GetFlat(const std::string &key, std::string &value);
+  Status SetFlat(const std::string &key, const std::string &value);
+  Status DeleteFlat(const std::string &key);
+  std::string PartitionId2Key(uint32_t id) {
+    assert(id == 1);
+    std::string key(ZP_META_KEY_PREFIX);
+    key += "1"; //Only one partition now
+    return key;
+  }
+
+  // Alive Check
+  slash::Mutex alive_mutex_;
+  NodeAliveMap node_alive_;
+  ZPMetaUpdateThread update_thread_;
+  void RestoreNodeAlive(const ZPMeta::Partitions &partitions);
+
+  // Leader slave
+  slash::Mutex leader_mutex_;
+  pink::PbCli* leader_cli_;
+  std::string leader_ip_;
+  int leader_cmd_port_;
+  Status BecomeLeader();
+  void CleanLeader() {
+    if (leader_cli_) {
+      leader_cli_->Close();
+      delete leader_cli_;
+    }
+    leader_ip_.clear();
+    leader_cmd_port_ = 0;
+  }
   bool GetLeader(std::string& ip, int& port) {
     int fy_port = 0;
     bool res = floyd_->GetLeader(ip, fy_port);
@@ -54,23 +107,6 @@ class ZPMetaServer {
     }
     return res;
   }
-
- private:
-
-  // Server related
-  int worker_num_;
-  ZPMetaWorkerThread* zp_meta_worker_thread_[kMaxMetaWorkerThread];
-  ZPMetaDispatchThread* zp_meta_dispatch_thread_;
-
-  floyd::Floyd* floyd_;
-  ZPOptions options_;
-  slash::Mutex alive_mutex_;
-  NodeAliveMap node_alive_;
-
-  ZPMetaUpdateThread update_thread_;
-
-  //pthread_rwlock_t state_rw_;
-  slash::Mutex server_mutex_;
 };
 
 #endif
