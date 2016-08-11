@@ -41,6 +41,8 @@ int ZPMetaClientConn::DealMessage() {
       return -1;
     }
     LOG(INFO) << "Success redirect to leader";
+    set_is_reply(true);
+    res_ = &response_;
     return 0;
   }
 
@@ -52,7 +54,6 @@ int ZPMetaClientConn::DealMessage() {
 
   cmd->Do(&request_, &response_);
   set_is_reply(true);
-
   res_ = &response_;
 
   return 0;

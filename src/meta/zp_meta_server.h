@@ -56,7 +56,7 @@ class ZPMetaServer {
 
   // Leader related
   bool IsLeader();
-  Status RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse & response);
+  Status RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse &response);
 
 private:
 

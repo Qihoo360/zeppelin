@@ -71,9 +71,9 @@ bool ZPMetaServer::IsLeader() {
     }
     return true;
   }
-  CleanLeader();
   
   // Connect to new leader
+  CleanLeader();
   leader_cli_ = new pink::PbCli();
   leader_ip_ = leader_ip;
   leader_cmd_port_ = leader_cmd_port;
@@ -107,6 +107,9 @@ Status ZPMetaServer::RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdR
     LOG(ERROR) << "Failed to get redirect message response from leader" << s.ToString();
     return Status::Corruption(s.ToString());
   }
+  //std::string text_format;
+  //google::protobuf::TextFormat::PrintToString(response, &text_format);
+  //LOG(INFO) << "recever redirect message response from leader: [" << text_format << "]";
   return Status::OK();
 }
 
@@ -168,7 +171,7 @@ void ZPMetaServer::RestoreNodeAlive(const ZPMeta::Partitions &partitions) {
 
 Status ZPMetaServer::GetPartition(uint32_t partition_id, ZPMeta::Partitions &partitions) {
   // Load from Floyd
-  std::string value, text_format;
+  std::string value;
   slash::Status s = GetFlat(PartitionId2Key(partition_id), value);
   if (!s.ok()) {
     // Error or Not Found
