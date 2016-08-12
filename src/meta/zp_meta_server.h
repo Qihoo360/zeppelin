@@ -86,6 +86,7 @@ private:
   void RestoreNodeAlive(const ZPMeta::Partitions &partitions);
 
   // Leader slave
+  bool leader_first_time_;
   slash::Mutex leader_mutex_;
   pink::PbCli* leader_cli_;
   std::string leader_ip_;
