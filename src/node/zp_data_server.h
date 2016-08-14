@@ -69,7 +69,7 @@ class ZPDataServer {
   }
 
   std::string db_sync_path() {
-    return "./sync/";
+    return "./sync_" + std::to_string(options_.local_port) + "/";
   }
 
   std::string bgsave_path() {
@@ -153,11 +153,12 @@ class ZPDataServer {
 
   slash::RecordMutex mutex_record_;
 
+  slash::Mutex server_mutex_;
+
  private:
 
   ZPOptions options_;
 
-  slash::Mutex server_mutex_;
   pthread_rwlock_t server_rw_;
 
   // DB

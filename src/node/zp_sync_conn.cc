@@ -16,7 +16,11 @@ ZPSyncConn::~ZPSyncConn() {
 }
 
 int ZPSyncConn::DealMessage() {
-  request_.ParseFromArray(rbuf_ + 4, header_len_);
+  request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+
+  //int result = request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+  //DLOG(INFO) << "SyncConn ParseFromArray return " << result << ", cur_pos_=" << cur_pos_ << ", header_len_=" << header_len_ << ", rbuf_len=" << rbuf_len_;
+
   // TODO test only
   switch (request_.type()) {
     case client::Type::SET: {
@@ -45,26 +49,22 @@ int ZPSyncConn::DealMessage() {
     LOG(ERROR) << "command Init failed, " << s.ToString();
   }
 
-  if (cmd->is_write()) {
-    // TODO add RecordLock for write cmd
-    zp_data_server->mutex_record_.Lock(cmd->key());
-  }
-
   // do not reply
   set_is_reply(false);
+
+  zp_data_server->mutex_record_.Lock(cmd->key());
+
   cmd->Do(&request_, &response_);
 
-  if (cmd->is_write()) {
-    if (cmd->result().ok()) {
-      // Restore Message
-      std::string raw_msg(rbuf_, header_len_);
-      zp_data_server->logger_->Lock();
-      zp_data_server->logger_->Put(raw_msg);
-      zp_data_server->logger_->Unlock();
-    }
-    // TODO add RecordLock for write cmd
-    zp_data_server->mutex_record_.Unlock(cmd->key());
+  if (cmd->result().ok()) {
+    // Restore Message
+    std::string raw_msg(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4);
+    zp_data_server->logger_->Lock();
+    zp_data_server->logger_->Put(raw_msg);
+    zp_data_server->logger_->Unlock();
   }
+  
+  zp_data_server->mutex_record_.Unlock(cmd->key());
 
   res_ = &response_;
   //res_ = cmd->Response();

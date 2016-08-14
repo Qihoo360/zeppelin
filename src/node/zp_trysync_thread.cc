@@ -76,32 +76,30 @@ void* ZPTrySyncThread::ThreadMain() {
 
   while (!should_exit_) {
     if (zp_data_server->ShouldWaitDBSync()) {
-
-      if (!rsync_flag_) {
-        rsync_flag_ = true;
-
-        PrepareRsync();
-        // Start rsync
-        std::string dbsync_path = zp_data_server->db_sync_path();
-        std::string ip_port = slash::IpPortString(zp_data_server->master_ip(), zp_data_server->master_port());
-        // We append the master ip port after module name
-        // To make sure only data from current master is received
-        int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, zp_data_server->local_port() + kPortShiftRsync);
-        if (0 != ret) {
-          LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
-        }
-        LOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
-      }
-
       if (TryUpdateMasterOffset()) {
         LOG(INFO) << "Success Update Master Offset";
       }
     }
 
     if (!zp_data_server->ShouldSync()) {
-      sleep(10);
-      //sleep(kTrySyncInterval);
+      //sleep(10);
+      sleep(kTrySyncInterval);
       continue;
+    }
+
+    // Start Rsync
+    if (!rsync_flag_) {
+      rsync_flag_ = true;
+      PrepareRsync();
+      std::string dbsync_path = zp_data_server->db_sync_path();
+      std::string ip_port = slash::IpPortString(zp_data_server->master_ip(), zp_data_server->master_port());
+      // We append the master ip port after module name
+      // To make sure only data from current master is received
+      int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, zp_data_server->local_port() + kPortShiftRsync);
+      if (0 != ret) {
+        LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
+      }
+      LOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
     }
 
     // Connect with Leader port
@@ -119,6 +117,8 @@ void* ZPTrySyncThread::ThreadMain() {
       if (Send()) {
         int ret = Recv();
         if (ret == 0) {
+          rsync_flag_ = false;
+          slash::StopRsync(zp_data_server->db_sync_path());
           zp_data_server->SyncDone();
         } else if (ret == -1) {
         } else {

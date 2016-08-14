@@ -14,6 +14,10 @@ ZPMetacmdWorkerThread::ZPMetacmdWorkerThread(int port, int cron_interval) :
 }
 
 ZPMetacmdWorkerThread::~ZPMetacmdWorkerThread() {
+  // may be redunct
+  should_exit_ = true;
+  pthread_join(thread_id(), NULL);
+  DestoryCmdTable(cmds_);
   LOG(INFO) << "ZPMetacmdWorker thread " << thread_id() << " exit!!!";
 }
 

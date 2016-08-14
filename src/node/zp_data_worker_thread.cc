@@ -14,10 +14,10 @@ ZPDataWorkerThread::ZPDataWorkerThread(int cron_interval)
     }
 
 ZPDataWorkerThread::~ZPDataWorkerThread() {
-  DestoryCmdTable(cmds_);
-
   should_exit_ = true;
   pthread_join(thread_id(), NULL);
+
+  DestoryCmdTable(cmds_);
   LOG(INFO) << "A worker thread " << thread_id() << " exit!!!";
 }
 

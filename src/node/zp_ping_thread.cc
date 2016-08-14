@@ -22,7 +22,7 @@ pink::Status ZPPingThread::Send() {
     node->set_ip(zp_data_server->local_ip());
     node->set_port(zp_data_server->local_port());
 
-    DLOG(INFO) << "Ping " << zp_data_server->local_ip() << ":" << zp_data_server->local_port();
+    DLOG(INFO) << "Ping master(" << zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ") with local("<< zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
     request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_PING);
     return cli_->Send(&request);
   } else {
@@ -32,7 +32,7 @@ pink::Status ZPPingThread::Send() {
     node->set_ip(zp_data_server->local_ip());
     node->set_port(zp_data_server->local_port());
 
-    DLOG(INFO) << "Ping Join " << zp_data_server->local_ip() << ":" << zp_data_server->local_port();
+    DLOG(INFO) << "PingThead Join master(" << zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ") with local("<< zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
     request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_JOIN);
     return cli_->Send(&request);
   }
@@ -125,15 +125,13 @@ void* ZPPingThread::ThreadMain() {
       }
 
       cli_->Close();
-    } else if (s.IsTimeout()) {
-      LOG(WARNING) << "PingThread, Connect timeout once";
+    } else {
+      LOG(WARNING) << "PingThread Connect failed caz " << s.ToString();
       if ((++connect_retry_times) >= 30) {
-        LOG(WARNING) << "PingThread, Connect timeout 30 times, disconnect with meta server";
+        LOG(WARNING) << "PingThread, Connect failed 30 times, disconnect with meta server";
         connect_retry_times = 0;
         is_first_send_ = true;
       }
-    } else {
-      LOG(ERROR) << "PingThread Connect failed caz " << s.ToString();
     }
 
     // TODO rm

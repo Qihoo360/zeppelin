@@ -45,6 +45,20 @@ void InitMetaAddr(ZPOptions &opt, std::string optarg) {
   }
 }
 
+static void IntSigHandle(const int sig) {
+  LOG(INFO) << "Catch Signal " << sig << ", cleanup...";
+  zp_data_server->server_mutex_.Unlock();
+  //zp_data_server->Exit();
+}
+
+static void ZPDataSignalSetup() {
+  signal(SIGHUP, SIG_IGN);
+  signal(SIGPIPE, SIG_IGN);
+  signal(SIGINT, &IntSigHandle);
+  signal(SIGQUIT, &IntSigHandle);
+  signal(SIGTERM, &IntSigHandle);
+}
+
 int main(int argc, char** argv) {
   ZPOptions options;
 
@@ -52,15 +66,16 @@ int main(int argc, char** argv) {
 
   options.Dump();
   GlogInit(options);
-
-  signal(SIGPIPE, SIG_IGN);
+  ZPDataSignalSetup();
 
   zp_data_server = new ZPDataServer(options);
 
   zp_data_server->Start();
 
-  printf ("Exit\n");
+  //printf ("Exit\n");
+  delete zp_data_server;
 
+  ::google::ShutdownGoogleLogging();
   return 0;
 }
 

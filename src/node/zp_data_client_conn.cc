@@ -20,7 +20,10 @@ ZPDataClientConn::~ZPDataClientConn() {
 
 // Msg is  [ length (int32) | pb_msg (length bytes) ]
 int ZPDataClientConn::DealMessage() {
-  request_.ParseFromArray(rbuf_ + 4, header_len_);
+  request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+
+  //int ret = request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+  //DLOG(INFO) << "DataClientConn ParseFromArray return " << ret << ", cur_pos_=" << cur_pos_ << ", header_len_=" << header_len_ << ", rbuf_len=" << rbuf_len_;
  // if (!ret) {
  //     DLOG(INFO) << "DealMessage  ParseFromArray failed";
  // }
@@ -52,18 +55,25 @@ int ZPDataClientConn::DealMessage() {
     LOG(ERROR) << "command Init failed, " << s.ToString();
   }
 
+  set_is_reply(true);
+
   if (cmd->is_write()) {
+    // TODO  very ugly implementation for readonly
+    if (zp_data_server->readonly()) {
+      cmd->Do(&request_, &response_, true);
+      res_ = &response_;
+      return 0;
+    }
     // TODO add RecordLock for write cmd
     zp_data_server->mutex_record_.Lock(cmd->key());
   }
 
   cmd->Do(&request_, &response_);
-  set_is_reply(true);
 
   if (cmd->is_write()) {
-    if (cmd->result().ok()) {
+    if (cmd->result().ok() && request_.type() != client::Type::SYNC) {
       // Restore Message
-      std::string raw_msg(rbuf_, header_len_ + 4);
+      std::string raw_msg(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4);
       zp_data_server->logger_->Lock();
       zp_data_server->logger_->Put(raw_msg);
       zp_data_server->logger_->Unlock();

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <string>
+#include <sys/time.h>
 
 #include "client.h"
 
@@ -13,6 +14,12 @@ using slash::Status;
 //  {NULL, 0, NULL, 0}, };
 
 //const char* short_options = "s:";
+
+uint64_t NowMicros() {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return static_cast<uint64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
+}
 
 int main(int argc, char* argv[]) {
   client::Option option;
@@ -29,42 +36,46 @@ int main(int argc, char* argv[]) {
   std::string value = "test_value1";
   
   printf ("\n=====Test Set many time==========\n");
-  for (int i = 0; i < 100000; i++) {
+  int64_t st = NowMicros();
+  for (int i = 0; i < 200000; i++) {
     std::string nkey = key + std::to_string(i);
     result = cluster.Set(nkey, value);
     if (result.ok()) {
-      printf ("Set(%s) ok\n", nkey.c_str());
+      //printf ("Set(%s) ok\n", nkey.c_str());
     } else {
       printf ("Set(%s) failed, %s\n", result.ToString().c_str(), nkey.c_str());
     }
 
     //sleep(0.1);
   }
+  int64_t ed = NowMicros();
 
-  for (int i = 0; i < 10; i++) {
-    printf ("\n=====Test Get i=%d =========\n", i);
-    value = "";
-    result = cluster.Get(key, &value);
-    if (result.ok()) {
-      printf ("Get ok, value is %s\n", value.c_str());
-    } else {
-      printf ("Get failed, %s\n", result.ToString().c_str());
-    }
+  printf ("time: %ld\n", ed - st);
 
-    sleep(1);
-  }
+//  for (int i = 0; i < 100; i++) {
+//    printf ("\n=====Test Get i=%d =========\n", i);
+//    std::string nkey = key + std::to_string(i);
+//    value = "";
+//    result = cluster.Get(nkey, &value);
+//    if (result.ok()) {
+//      printf ("Get(%s) ok, value is %s\n", nkey.c_str(), value.c_str());
+//    } else {
+//      printf ("Get(%s) failed, %s\n", nkey.c_str(), result.ToString().c_str());
+//    }
+//  
+//  }
 
-  for (int i = 0; i < 5; i++ ) {
-    printf ("=====Test Get non-exist i=%d =========\n", i);
-    value = "";
-    result = cluster.Get("not_exist", &value);
-    if (result.ok()) {
-      printf ("Get non-exist ok, value is %s\n", value.c_str());
-    } else {
-      printf ("Get non-exist failed, %s\n", result.ToString().c_str());
-    }
-    sleep(1);
-  }
+  //for (int i = 0; i < 5; i++) {
+  //  printf ("=====Test Get non-exist i=%d =========\n", i);
+  //  value = "";
+  //  result = cluster.Get("not_exist", &value);
+  //  if (result.ok()) {
+  //    printf ("Get non-exist ok, value is %s\n", value.c_str());
+  //  } else {
+  //    printf ("Get non-exist failed, %s\n", result.ToString().c_str());
+  //  }
+  //  sleep(1);
+  //}
 
   cout << "success" << endl;
   return 0;

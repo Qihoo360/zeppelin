@@ -65,35 +65,37 @@ const std::string kManifest = "manifest";
 //#define SLAVE_ITEM_STAGE_ONE 1
 //#define SLAVE_ITEM_STAGE_TWO 2
 
-/*
- * The size of Binlogfile
- */
+//
+// The size of Binlogfile
+//
 //uint64_t kBinlogSize = 128; 
 //const uint64_t kBinlogSize = 1024 * 1024 * 100;
 
 
-/*
- * define reply between master and slave
- *
- */
+//
+// define reply between master and slave
+//
 const std::string kInnerReplOk = "ok";
 const std::string kInnerReplWait = "wait";
 
 const unsigned int kMaxBitOpInputKey = 12800;
 const int kMaxBitOpInputBit = 21;
-/*
- * db sync
- */
-const uint32_t kDBSyncMaxGap = 50;
+
+//
+// db sync
+//
+// TEST
+//const uint32_t kDBSyncMaxGap = 200;
+const uint32_t kDBSyncMaxGap = 1000;
 const std::string kDBSyncModule = "document";
 
 const std::string kBgsaveInfoFile = "info";
 
 
-/*
- * meta related
- * key in floyd is zpmeta##id
- */
+//
+//meta related
+//key in floyd is zpmeta##id
+//
 const int NODE_ALIVE_LEASE = 6;
 const std::string ZP_META_KEY_PREFIX = "zpmeta##";
 const int ZP_META_UPDATE_RETRY_TIME = 3;

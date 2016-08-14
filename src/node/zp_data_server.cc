@@ -15,7 +15,8 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
   repl_state_(ReplState::kNoConnect),
   readonly_(false),
   should_rejoin_(false),
-  meta_state_(MetaState::kMetaConnect) {
+  meta_state_(MetaState::kMetaConnect),
+  bgsave_engine_(NULL) {
 
   pthread_rwlock_init(&state_rw_, NULL);
   pthread_rwlock_init(&meta_state_rw_, NULL);
@@ -49,30 +50,46 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
   zp_trysync_thread_ = new ZPTrySyncThread();
 
   // TEST
-  logger_ = new Binlog(options_.log_path, 1024);
-  //logger_ = new Binlog(options_.log_path);
+  //logger_ = new Binlog(options_.log_path, 1024);
+  logger_ = new Binlog(options_.log_path);
 
   // TODO rm
   //LOG(INFO) << "local_host " << options_.local_ip << ":" << options.local_port;
 }
 
 ZPDataServer::~ZPDataServer() {
-  //delete zp_heartbeat_thread_;
-  delete zp_trysync_thread_;
-  delete zp_ping_thread_;
-  delete zp_dispatch_thread_;
-  delete zp_metacmd_worker_thread_;
+  //DLOG(INFO) << "~ZPDataServer dstor ";
+  delete bgsave_engine_;
 
+  delete zp_dispatch_thread_;
   for (int i = 0; i < worker_num_; i++) {
     delete zp_worker_thread_[i];
   }
 
+  {
+    slash::MutexLock l(&slave_mutex_);
+    std::vector<SlaveItem>::iterator iter = slaves_.begin();
+
+    while (iter != slaves_.end()) {
+      delete static_cast<ZPBinlogSenderThread*>(iter->sender);
+      iter =  slaves_.erase(iter);
+      LOG(INFO) << "Delete BinlogSender from slaves success";
+    }
+  }
+
+  delete zp_ping_thread_;
   delete zp_binlog_receiver_thread_;
-  
+  delete zp_trysync_thread_;
+  delete zp_metacmd_worker_thread_;
+
   // TODO 
   pthread_rwlock_destroy(&state_rw_);
   pthread_rwlock_destroy(&meta_state_rw_);
   pthread_rwlock_destroy(&server_rw_);
+
+  db_.reset();
+  delete logger_;
+  LOG(INFO) << "ZPDataServerThread " << pthread_self() << " exit!!!";
 }
 
 Status ZPDataServer::Start() {
@@ -96,6 +113,8 @@ Status ZPDataServer::Start() {
 
   server_mutex_.Lock();
   server_mutex_.Lock();
+
+  server_mutex_.Unlock();
   return Status::OK();
 }
 
@@ -190,7 +209,7 @@ void ZPDataServer::TryDBSync(const std::string& ip, int port, int32_t top) {
     bg_filenum = bgsave_info_.filenum;
   }
 
-  DLOG(INFO) << "TryDBSync " << ip << ":" << port << ", top filenum " << top;
+  DLOG(INFO) << "TryDBSync " << ip << ":" << port << ", top filenum " << top << ", bg_filenum=" << bg_filenum << ", bg_path=" << bg_path;
   if (bg_path.empty() || 0 != slash::IsDir(bg_path) ||                    // Bgsaving dir exist
       !slash::FileExists(NewFileName(logger_->filename, bg_filenum)) ||   // filenum can be found in binglog
       top - bg_filenum > kDBSyncMaxGap) {                                 // master is beyond too many files  
@@ -224,7 +243,7 @@ void ZPDataServer::DoDBSync(void* arg) {
   DBSyncArg *ppurge = static_cast<DBSyncArg*>(arg);
   ZPDataServer* server = ppurge->p;
 
-  sleep(3);
+  //sleep(3);
   DLOG(INFO) << "DBSync begin sendfile " << ppurge->ip << ":" << ppurge->port;
   server->DBSyncSendFile(ppurge->ip, ppurge->port);
   
@@ -241,7 +260,10 @@ void ZPDataServer::DBSyncSendFile(const std::string& ip, int port) {
   std::vector<std::string> descendant;
   if (!slash::GetDescendant(bg_path, descendant)) {
     LOG(WARNING) << "Get Descendant when try to do db sync failed";
+    return;
   }
+
+  DLOG(INFO) << "DBSyncSendFile descendant size= " << descendant.size() << " bg_path=" << bg_path;
 
   // Iterate to send files
   int ret = 0;
@@ -251,6 +273,7 @@ void ZPDataServer::DBSyncSendFile(const std::string& ip, int port) {
   slash::RsyncRemote remote(ip, port, module, db_sync_speed_ * 1024);
   for (; it != descendant.end(); ++it) {
     target_path = (*it).substr(bg_path.size() + 1);
+    DLOG(INFO) << "--- descendant: " << target_path;
     if (target_path == kBgsaveInfoFile) {
       continue;
     }
@@ -304,7 +327,7 @@ Status ZPDataServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_
   std::string confile = NewFileName(logger_->filename, filenum);
   if (!slash::FileExists(confile)) {
     // Not found binlog specified by filenum
-    TryDBSync(slave.node.ip, slave.node.port + kPortShiftRsync, filenum);
+    TryDBSync(slave.node.ip, slave.node.port + kPortShiftRsync, cur_filenum);
     return Status::Incomplete("Bgsaving and DBSync first");
     //return Status::InvalidArgument("AddBinlogSender invalid binlog filenum");
   }
@@ -496,6 +519,7 @@ void ZPDataServer::Bgsave() {
   {
     slash::MutexLock l(&bgsave_protector_);
     if (bgsave_info_.bgsaving) {
+      DLOG(INFO) << "Already bgsaving, cancel it";
       return;
     }
     bgsave_info_.bgsaving = true;
@@ -506,7 +530,7 @@ void ZPDataServer::Bgsave() {
     ClearBgsave();
     return;
   }
-  LOG(INFO) << " prepare bgsave ok";
+  LOG(INFO) << " BGsave start";
 
   // Start new thread if needed
   bgsave_thread_.StartIfNeed();

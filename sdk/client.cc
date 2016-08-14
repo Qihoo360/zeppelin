@@ -129,8 +129,15 @@ Status Cluster::Set(const std::string& key, const std::string& value) {
     return Status::IOError("Recv failed, " + result.ToString());
   }
 
-  LOG_INFO("Set OK, status is %d, msg is %s\n", response.set().code(), response.set().msg().c_str());
-  return Status::OK();
+  if (response.set().code() == StatusCode::kOk) {
+    LOG_INFO("Set OK, status is %d, msg is %s\n", response.set().code(), response.set().msg().c_str());
+    return Status::OK();
+  } else if (response.set().code() == StatusCode::kNotFound) {
+    LOG_INFO("Set Not found, status is %d, msg is %s\n", response.set().code(), response.set().msg().c_str());
+    return Status::NotFound("");
+  } else {
+    return Status::Corruption(response.set().msg());
+  }
 }
 
 Status Cluster::Get(const std::string& key, std::string* value) {

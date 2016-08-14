@@ -20,6 +20,10 @@ ZPBinlogReceiverThread::ZPBinlogReceiverThread(int port, int cron_interval)
 }
 
 ZPBinlogReceiverThread::~ZPBinlogReceiverThread() {
+  // in case cmd is in used
+  should_exit_ = true;
+  pthread_join(thread_id(), NULL);
+
   DestoryCmdTable(cmds_);
   LOG(INFO) << "BinlogReceiver thread " << thread_id() << " exit!!!";
 }

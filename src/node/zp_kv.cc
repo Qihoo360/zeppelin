@@ -26,18 +26,19 @@ void InitClientCmdTable(std::unordered_map<int, Cmd*> *cmd_table) {
 Status SetCmd::Init(google::protobuf::Message *req) {
   client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
   key_ = request->set().key();
+  DLOG(INFO) << "SetCmd Init key(" << key_ << ") ok";
 
   return Status::OK();
 }
 
-void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res) {
+void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly) {
   client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
 
   client::CmdResponse_Set* set_res = response->mutable_set();
   response->set_type(client::Type::SET);
 
-  if (zp_data_server->readonly()) {
+  if (readonly) {
     set_res->set_code(client::StatusCode::kError);
     set_res->set_msg("readonly mode");
     result_ = slash::Status::Corruption("readonly mode");
@@ -58,7 +59,7 @@ void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res) 
   }
 }
 
-void GetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res) {
+void GetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly) {
   client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
 
@@ -85,7 +86,7 @@ void GetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res) 
 }
 
 // Sync between nodes
-void SyncCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res) {
+void SyncCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly) {
   client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   client::CmdRequest_Sync sync = request->sync();
