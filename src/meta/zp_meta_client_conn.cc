@@ -21,6 +21,7 @@ ZPMetaClientConn::~ZPMetaClientConn() {
 // Msg is  [ length (int32) | pb_msg (length bytes) ]
 int ZPMetaClientConn::DealMessage() {
   request_.ParseFromArray(rbuf_ + 4, header_len_);
+  //request_.ParseFromArray(rbuf_ + 4 + cur_pos_ - header_len_, header_len_);
   // TODO test only
   switch (request_.type()) {
     case ZPMeta::MetaCmd_Type::MetaCmd_Type_JOIN:
@@ -41,6 +42,8 @@ int ZPMetaClientConn::DealMessage() {
       return -1;
     }
     LOG(INFO) << "Success redirect to leader";
+    set_is_reply(true);
+    res_ = &response_;
     return 0;
   }
 
@@ -52,7 +55,6 @@ int ZPMetaClientConn::DealMessage() {
 
   cmd->Do(&request_, &response_);
   set_is_reply(true);
-
   res_ = &response_;
 
   return 0;

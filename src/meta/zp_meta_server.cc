@@ -5,7 +5,7 @@
 #include "zp_meta.pb.h"
 
 ZPMetaServer::ZPMetaServer(const ZPOptions& options)
-  : options_(options), leader_cli_(NULL), leader_cmd_port_(0){
+  : options_(options), leader_first_time_(true), leader_cli_(NULL), leader_cmd_port_(0){
 
   //pthread_rwlock_init(&state_rw_, NULL);
   // Convert ZPOptions
@@ -66,14 +66,18 @@ bool ZPMetaServer::IsLeader() {
   if (leader_ip == options_.local_ip && 
       leader_port == options_.local_port) {
     // I am Leader
-    if (leader_ip_.empty()) {
+    if (leader_first_time_) {
+      leader_first_time_ = false;
+      CleanLeader();
+      LOG(ERROR) << "Become to leaader";
       BecomeLeader(); // Just become leader
     }
     return true;
   }
-  CleanLeader();
   
   // Connect to new leader
+  CleanLeader();
+  leader_first_time_ = true;
   leader_cli_ = new pink::PbCli();
   leader_ip_ = leader_ip;
   leader_cmd_port_ = leader_cmd_port;
@@ -90,6 +94,7 @@ Status ZPMetaServer::BecomeLeader() {
   ZPMeta::Partitions partitions;
   Status s = GetPartition(1, partitions);
   if (s.ok()) {
+    LOG(INFO) << "Restore Node Alive from floyd";
     RestoreNodeAlive(partitions);
   }
   return s;
@@ -107,6 +112,9 @@ Status ZPMetaServer::RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdR
     LOG(ERROR) << "Failed to get redirect message response from leader" << s.ToString();
     return Status::Corruption(s.ToString());
   }
+  //std::string text_format;
+  //google::protobuf::TextFormat::PrintToString(response, &text_format);
+  //LOG(INFO) << "recever redirect message response from leader: [" << text_format << "]";
   return Status::OK();
 }
 
@@ -168,7 +176,7 @@ void ZPMetaServer::RestoreNodeAlive(const ZPMeta::Partitions &partitions) {
 
 Status ZPMetaServer::GetPartition(uint32_t partition_id, ZPMeta::Partitions &partitions) {
   // Load from Floyd
-  std::string value, text_format;
+  std::string value;
   slash::Status s = GetFlat(PartitionId2Key(partition_id), value);
   if (!s.ok()) {
     // Error or Not Found
