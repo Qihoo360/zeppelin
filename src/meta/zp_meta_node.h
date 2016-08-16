@@ -6,13 +6,13 @@
 class JoinCmd : public Cmd {
  public:
   JoinCmd(int flag) : Cmd(flag) {}
-  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res);
+  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly = false);
 };
 
 class PingCmd : public Cmd {
  public:
   PingCmd(int flag) : Cmd(flag) {}
-  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res);
+  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly = false);
 };
 
 

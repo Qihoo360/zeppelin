@@ -7,7 +7,7 @@
 
 extern ZPMetaServer *zp_meta_server;
 
-void JoinCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res) {
+void JoinCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly) {
   ZPMeta::MetaCmd* request = static_cast<ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
@@ -22,7 +22,7 @@ void JoinCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res)
              << request->join().node().port();
 }
 
-void PingCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res) {
+void PingCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly) {
   ZPMeta::MetaCmd* request = static_cast<ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
