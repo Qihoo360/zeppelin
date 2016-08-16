@@ -69,7 +69,7 @@ bool ZPMetaServer::IsLeader() {
     if (leader_first_time_) {
       leader_first_time_ = false;
       CleanLeader();
-      LOG(ERROR) << "Become to leaader";
+      LOG(ERROR) << "Become to leader";
       BecomeLeader(); // Just become leader
     }
     return true;
@@ -126,7 +126,7 @@ void ZPMetaServer::CheckNodeAlive() {
   NodeAliveMap::iterator it = node_alive_.begin();
   gettimeofday(&now, NULL);
   for (; it != node_alive_.end(); ++it) {
-    if (now.tv_sec - (it->second).tv_sec > NODE_ALIVE_LEASE) {
+    if (now.tv_sec - (it->second).tv_sec > NODE_META_TIMEOUT_M) {
       need_remove.push_back(it->first);
     }
   }

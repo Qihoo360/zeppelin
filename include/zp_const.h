@@ -96,8 +96,11 @@ const std::string kBgsaveInfoFile = "info";
 //meta related
 //key in floyd is zpmeta##id
 //
-const int NODE_ALIVE_LEASE = 6;
 const std::string ZP_META_KEY_PREFIX = "zpmeta##";
 const int ZP_META_UPDATE_RETRY_TIME = 3;
+
+// timeout between node and meta server, the one for meta should large than node
+const int NODE_META_TIMEOUT_N = 10;
+const int NODE_META_TIMEOUT_M = 15;
 
 #endif

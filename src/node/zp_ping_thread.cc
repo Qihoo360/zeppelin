@@ -3,6 +3,7 @@
 #include <glog/logging.h>
 #include "zp_data_server.h"
 #include "zp_meta.pb.h"
+#include "zp_const.h"
 
 extern ZPDataServer* zp_data_server;
 
@@ -95,35 +96,45 @@ void* ZPPingThread::ThreadMain() {
 
       // Send && Recv
       while (!should_exit_) {
+        gettimeofday(&now, NULL);
+        if (now.tv_sec - last_interaction.tv_sec > NODE_META_TIMEOUT_N) {
+          gettimeofday(&last_interaction, NULL);
+          LOG(WARNING) << "Ping leader timeout, will resend Join";
+          break;
+        }
+
+        sleep(kPingInterval);
+
         s = Send();
         if (!s.ok()) {
           DLOG(WARNING) << "Ping send failed once, " << s.ToString();
-          break;
+          continue;
         }
         DLOG(INFO) << "Ping send ok!";
 
         s = RecvProc();
         if (!s.ok()) {
           DLOG(WARNING) << "Ping recv failed once, " << s.ToString();
-          break;
+          continue;
         }
 
         gettimeofday(&last_interaction, NULL);
         DLOG(INFO) << "Ping MetaServer success";
-        sleep(kPingInterval);
       }
 
-      if (s.IsTimeout()) {
-        LOG(WARNING) << "Ping timeout once";
-        gettimeofday(&now, NULL);
-        if (now.tv_sec - last_interaction.tv_sec > 30) {
-          LOG(WARNING) << "Ping leader timeout, will resend Join";
-          zp_data_server->MinusMetaServerConns();
-          zp_data_server->zp_metacmd_worker_thread()->KillMetacmdConn();
-          break;
-        }
-      }
+      //if (s.IsTimeout()) {
+      //  LOG(WARNING) << "Ping timeout once";
+      //  gettimeofday(&now, NULL);
+      //  if (now.tv_sec - last_interaction.tv_sec > 30) {
+      //    LOG(WARNING) << "Ping leader timeout, will resend Join";
+      //    zp_data_server->MinusMetaServerConns();
+      //    zp_data_server->zp_metacmd_worker_thread()->KillMetacmdConn();
+      //    break;
+      //  }
+      //}
 
+      zp_data_server->MinusMetaServerConns();
+      zp_data_server->zp_metacmd_worker_thread()->KillMetacmdConn();
       cli_->Close();
     } else {
       LOG(WARNING) << "PingThread Connect failed caz " << s.ToString();
