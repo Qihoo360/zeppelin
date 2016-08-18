@@ -49,10 +49,16 @@ class ZPDataServer {
     return db_;
   }
 
+  bool is_master() {
+    slash::RWLock l(&state_rw_, true);
+    return role_ == Role::kNodeMaster;
+  }
   std::string master_ip() {
+    slash::RWLock l(&state_rw_, false);
     return master_ip_;
   }
   int master_port() {
+    slash::RWLock l(&state_rw_, false);
     return master_port_;
   }
   std::string meta_ip() {
@@ -202,6 +208,14 @@ class ZPDataServer {
     slash::MutexLock l(&bgsave_protector_);
     bgsave_info_.Clear();
   }
+
+  // Purgelogs use
+  std::atomic<bool> purging_;
+  pink::BGThread purge_thread_;
+  static void DoPurgeDir(void* arg);
+  void PurgeDir(std::string& path);
+
+  bool FlushAll();
 
   // DBSync use
   int db_sync_speed_ = 126;

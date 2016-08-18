@@ -23,9 +23,13 @@ void UpdateCmd::Do(google::protobuf::Message *req, google::protobuf::Message *re
     const ZPMeta::Partitions& partition = update.info(i);
     const ZPMeta::Node& master = partition.master();
     LOG(INFO) << "receive Update message, master ip: " << master.ip() << " master port: " << master.port();
-    if (master.ip() != zp_data_server->local_ip() || master.port() != zp_data_server->local_port()) {
+
+    if ((master.ip() != zp_data_server->local_ip() || master.port() != zp_data_server->local_port())         // I'm not the told master
+        && (master.ip() != zp_data_server->master_ip() || master.port() != zp_data_server->master_port())) { // and there's a new master
       zp_data_server->BecomeSlave(master.ip(), master.port());
-    } else {
+    }
+    if ((master.ip() == zp_data_server->local_ip() && master.port() && zp_data_server->local_port())         // I'm the told master and
+        && (master.ip() != zp_data_server->master_ip() || master.port() != zp_data_server->master_port())) { // the told one is a new one
       zp_data_server->BecomeMaster();
     }
   }

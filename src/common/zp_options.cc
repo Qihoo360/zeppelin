@@ -24,7 +24,7 @@ ZPOptions::ZPOptions(const ZPOptions& options)
 void ZPOptions::Dump() {
   auto iter = meta_addr.begin();
   while(iter != meta_addr.end()) {
-    fprintf (stderr, "    Options.meta_addr     : %s\n", iter->c_str());
+    fprintf (stderr, "    Options.meta_addr   : %s\n", iter->c_str());
     iter++;
   }
   fprintf (stderr, "    Options.seed_ip     : %s\n", seed_ip.c_str());

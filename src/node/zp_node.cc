@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
 
 void Usage() {
   printf ("Usage:\n"
-          "  ./zp-node --meta_addr ip1:port1,ip2:port2 --local_port local_port --data_path path --log_path path\n");
+          "  ./zp-node --meta_addr ip1:port1,ip2:port2 --local_ip local_ip --local_port local_port --data_path path --log_path path\n");
 }
 
 void ParseArgs(int argc, char* argv[], ZPOptions& options) {
@@ -92,13 +92,14 @@ void ParseArgs(int argc, char* argv[], ZPOptions& options) {
 
   const struct option long_options[] = {
     {"meta_addr", required_argument, NULL, 'm'},
+    {"local_ip", required_argument, NULL, 'n'},
     {"local_port", required_argument, NULL, 'p'},
     {"data_path", required_argument, NULL, 'd'},
     {"log_path", required_argument, NULL, 'l'},
     {"help", no_argument, NULL, 'h'},
     {NULL, 0, NULL, 0}, };
 
-  const char* short_options = "m:p:d:l:h";
+  const char* short_options = "m:n:p:d:l:h";
 
   int ch, longindex;
   while ((ch = getopt_long(argc, argv, short_options, long_options,
@@ -106,6 +107,9 @@ void ParseArgs(int argc, char* argv[], ZPOptions& options) {
     switch (ch) {
       case 'm':
         InitMetaAddr(options, optarg);
+        break;
+      case 'n':
+        options.local_ip = optarg;
         break;
       case 'p':
         options.local_port = atoi(optarg);

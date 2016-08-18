@@ -200,6 +200,53 @@ bool ZPDataServer::ChangeDb(const std::string& new_path) {
   return true;
 }
 
+bool ZPDataServer::FlushAll() {
+ // TODO 
+ // {
+ //   slash::MutexLock l(&bgsave_protector_);
+ //   if (bgsave_info_.bgsaving) {
+ //     return false;
+ //   }
+ // }
+  std::string dbpath = options_.data_path;
+  if (dbpath[dbpath.length() - 1] == '/') {
+    dbpath.erase(dbpath.length() - 1);
+  }
+  int pos = dbpath.find_last_of('/');
+  dbpath = dbpath.substr(0, pos);
+  dbpath.append("/deleting");
+
+  LOG(INFO) << "Delete old db...";
+  db_.reset();
+  if (slash::RenameFile(options_.data_path, dbpath.c_str()) != 0) {
+    LOG(WARNING) << "Failed to rename db path when flushall, error: " << strerror(errno);
+    return false;
+  }
+ 
+  LOG(INFO) << "Prepare open new db...";
+  nemo::Options option;
+  db_.reset(new nemo::Nemo(options_.data_path, option));
+  assert(db_);
+  LOG(INFO) << "open new db success";
+  PurgeDir(dbpath);
+  return true; 
+}
+
+void ZPDataServer::PurgeDir(std::string& path) {
+  std::string *dir_path = new std::string(path);
+  // Start new thread if needed
+  purge_thread_.StartIfNeed();
+  purge_thread_.Schedule(&DoPurgeDir, static_cast<void*>(dir_path));
+}
+
+void ZPDataServer::DoPurgeDir(void* arg) {
+  std::string path = *(static_cast<std::string*>(arg));
+  DLOG(INFO) << "Delete dir: " << path << " start";
+  slash::DeleteDir(path);
+  DLOG(INFO) << "Delete dir: " << path << " done";
+  delete static_cast<std::string*>(arg);
+}
+
 void ZPDataServer::TryDBSync(const std::string& ip, int port, int32_t top) {
   std::string bg_path;
   uint32_t bg_filenum = 0;
@@ -399,6 +446,7 @@ void ZPDataServer::BecomeSlave(const std::string& master_ip, int master_port) {
 
     // TODO brute clear the sync point
     logger_->SetProducerStatus(0, 0);
+    FlushAll();
     LOG(INFO) << "Reset logger to (0,0)";
   }
   {

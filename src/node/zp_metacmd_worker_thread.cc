@@ -70,7 +70,8 @@ bool ZPMetacmdWorkerThread::AccessHandle(std::string& ip) {
     ip = zp_data_server->local_ip();
   }
 
-  if (ip == zp_data_server->meta_ip() && conns_.size() == 0) {
+  if (conns_.size() == 0) {
+  //if (ip == zp_data_server->meta_ip() && conns_.size() == 0) {
     zp_data_server->PlusMetaServerConns();
     return true;
   }
