@@ -22,7 +22,6 @@ ZPDataWorkerThread::~ZPDataWorkerThread() {
 }
 
 void ZPDataWorkerThread::CronHandle() {
-
   ResetLastSecQuerynum();
 
   {

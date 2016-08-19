@@ -14,6 +14,7 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
   role_(Role::kNodeSingle),
   repl_state_(ReplState::kNoConnect),
   readonly_(false),
+  should_exit_(false),
   should_rejoin_(false),
   meta_state_(MetaState::kMetaConnect),
   bgsave_engine_(NULL) {
@@ -111,10 +112,13 @@ Status ZPDataServer::Start() {
 //    repl_state_ = ReplState::kShouldConnect;
 //  }
 
-  server_mutex_.Lock();
-  server_mutex_.Lock();
-
-  server_mutex_.Unlock();
+  while (!should_exit_) {
+    usleep(100000);
+  }
+//  server_mutex_.Lock();
+//  server_mutex_.Lock();
+//
+//  server_mutex_.Unlock();
   return Status::OK();
 }
 
@@ -445,9 +449,12 @@ void ZPDataServer::BecomeSlave(const std::string& master_ip, int master_port) {
     }
 
     // TODO brute clear the sync point
-    logger_->SetProducerStatus(0, 0);
-    FlushAll();
-    LOG(INFO) << "Reset logger to (0,0)";
+    {
+      slash::RWLock l(&server_rw_, true);
+      logger_->SetProducerStatus(0, 0);
+      FlushAll();
+      LOG(INFO) << "Reset logger to (0,0)";
+    }
   }
   {
     slash::RWLock l(&state_rw_, true);

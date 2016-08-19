@@ -17,6 +17,8 @@ ZPMetacmdConn::~ZPMetacmdConn() {
 }
 
 int ZPMetacmdConn::DealMessage() {
+  self_thread_->PlusQueryNum();
+
   request_.ParseFromArray(rbuf_ + 4, header_len_);
   LOG(INFO) << "ZPMetacmdConn DealMessage type:" << (int)request_.type();
 

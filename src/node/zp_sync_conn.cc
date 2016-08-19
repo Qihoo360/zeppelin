@@ -52,6 +52,11 @@ int ZPSyncConn::DealMessage() {
   // do not reply
   set_is_reply(false);
 
+  // Add read lock for no suspend command
+  if (!cmd->is_suspend()) {
+    pthread_rwlock_rdlock(&(zp_data_server->server_rw_));
+  }
+
   zp_data_server->mutex_record_.Lock(cmd->key());
 
   cmd->Do(&request_, &response_);
@@ -65,6 +70,10 @@ int ZPSyncConn::DealMessage() {
   }
   
   zp_data_server->mutex_record_.Unlock(cmd->key());
+
+  if (!cmd->is_suspend()) {
+    pthread_rwlock_unlock(&(zp_data_server->server_rw_));
+  }
 
   res_ = &response_;
   //res_ = cmd->Response();

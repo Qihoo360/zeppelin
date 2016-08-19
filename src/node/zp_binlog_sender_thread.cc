@@ -281,7 +281,7 @@ void* ZPBinlogSenderThread::ThreadMain() {
         }
 
         // 3. After successful parse, we send msg;
-        DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_ << ", scratch size is " << scratch.size();
+        //DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_ << ", scratch size is " << scratch.size();
         result = cli_->SendRaw(scratch.data(), scratch.size());
         if (result.ok()) {
           last_send_flag = true;

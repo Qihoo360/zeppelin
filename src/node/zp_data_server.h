@@ -88,6 +88,9 @@ class ZPDataServer {
   bool readonly() {
     return readonly_;
   }
+  void Exit() {
+    should_exit_ = true;
+  }
 
   ZPMetacmdWorkerThread* zp_metacmd_worker_thread() {
     return zp_metacmd_worker_thread_;
@@ -161,11 +164,12 @@ class ZPDataServer {
 
   slash::Mutex server_mutex_;
 
+  pthread_rwlock_t server_rw_;
+
  private:
 
   ZPOptions options_;
 
-  pthread_rwlock_t server_rw_;
 
   // DB
   std::shared_ptr<nemo::Nemo> db_;
@@ -186,6 +190,7 @@ class ZPDataServer {
   std::string master_ip_;
   int master_port_;
   std::atomic<bool> readonly_;
+  std::atomic<bool> should_exit_;
 
   // Meta State related
   pthread_rwlock_t meta_state_rw_;

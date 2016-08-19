@@ -9,7 +9,11 @@
 extern ZPDataServer* zp_data_server;
 
 ZPMetacmdWorkerThread::ZPMetacmdWorkerThread(int port, int cron_interval) :
-  HolyThread::HolyThread(port, cron_interval) {
+  HolyThread::HolyThread(port, cron_interval),
+  query_num_(0),
+  last_query_num_(0), 
+  last_sec_query_num_(0),
+  last_time_us_(slash::NowMicros()) {
   InitMetaCmdTable(&cmds_);
 }
 
@@ -22,6 +26,8 @@ ZPMetacmdWorkerThread::~ZPMetacmdWorkerThread() {
 }
 
 void ZPMetacmdWorkerThread::CronHandle() {
+  ResetLastSecQuerynum();
+
   {
     WorkerCronTask t;
     slash::MutexLock l(&mutex_);

@@ -20,6 +20,7 @@ ZPDataClientConn::~ZPDataClientConn() {
 
 // Msg is  [ length (int32) | pb_msg (length bytes) ]
 int ZPDataClientConn::DealMessage() {
+  self_thread_->PlusThreadQuerynum();
   request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
 
   //int ret = request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
@@ -68,6 +69,11 @@ int ZPDataClientConn::DealMessage() {
     zp_data_server->mutex_record_.Lock(cmd->key());
   }
 
+  // Add read lock for no suspend command
+  if (!cmd->is_suspend()) {
+    pthread_rwlock_rdlock(&(zp_data_server->server_rw_));
+  }
+
   cmd->Do(&request_, &response_);
 
   if (cmd->is_write()) {
@@ -80,6 +86,10 @@ int ZPDataClientConn::DealMessage() {
     }
     // TODO add RecordLock for write cmd
     zp_data_server->mutex_record_.Unlock(cmd->key());
+  }
+
+  if (!cmd->is_suspend()) {
+    pthread_rwlock_unlock(&(zp_data_server->server_rw_));
   }
 
   res_ = &response_;

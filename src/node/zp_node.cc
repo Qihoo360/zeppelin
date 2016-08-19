@@ -47,8 +47,8 @@ void InitMetaAddr(ZPOptions &opt, std::string optarg) {
 
 static void IntSigHandle(const int sig) {
   LOG(INFO) << "Catch Signal " << sig << ", cleanup...";
-  zp_data_server->server_mutex_.Unlock();
-  //zp_data_server->Exit();
+  //zp_data_server->server_mutex_.Unlock();
+  zp_data_server->Exit();
 }
 
 static void ZPDataSignalSetup() {
