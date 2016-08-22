@@ -96,6 +96,10 @@ class ZPDataServer {
     return zp_metacmd_worker_thread_;
   };
 
+  ZPBinlogReceiverThread* zp_binlog_receiver_thread() {
+    return zp_binlog_receiver_thread_;
+  };
+
   bool FindSlave(const Node& node);
   Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
   void DeleteSlave(int fd);

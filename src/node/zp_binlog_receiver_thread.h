@@ -20,31 +20,27 @@ class ZPBinlogReceiverThread : public pink::HolyThread<ZPSyncConn> {
   virtual bool AccessHandle(std::string& ip);
   void KillBinlogSender();
 
-  uint64_t thread_querynum() {
+  uint64_t query_num() {
     slash::RWLock(&rwlock_, false);
-    return thread_querynum_;
+    return query_num_;
   }
 
-  uint64_t last_sec_thread_querynum() {
+  uint64_t last_sec_query_num() {
     slash::RWLock(&rwlock_, false);
-    return last_sec_thread_querynum_;
+    return last_sec_query_num_;
   }
 
-  uint64_t GetnPlusSerial() {
-    return serial_++;
-  }
-
-  void PlusThreadQuerynum() {
+  void PlusQueryNum() {
     slash::RWLock(&rwlock_, true);
-    thread_querynum_++;
+    query_num_++;
   }
 
   void ResetLastSecQuerynum() {
     uint64_t cur_time_ms = slash::NowMicros();
     slash::RWLock(&rwlock_, true);
-    last_sec_thread_querynum_ = (thread_querynum_ - last_thread_querynum_) * 1000000 / (cur_time_ms - last_time_us_+1);
+    last_sec_query_num_ = (query_num_ - last_query_num_) * 1000000 / (cur_time_ms - last_time_us_ + 1);
     last_time_us_ = cur_time_ms;
-    last_thread_querynum_ = thread_querynum_;
+    last_query_num_ = query_num_;
   }
 
   int32_t ThreadClientNum() {
@@ -64,10 +60,10 @@ class ZPBinlogReceiverThread : public pink::HolyThread<ZPSyncConn> {
   std::queue<WorkerCronTask> cron_tasks_;
 
   std::unordered_map<int, Cmd*> cmds_;
-  uint64_t thread_querynum_;
-  uint64_t last_thread_querynum_;
+  uint64_t query_num_;
+  uint64_t last_query_num_;
   uint64_t last_time_us_;
-  uint64_t last_sec_thread_querynum_;
+  uint64_t last_sec_query_num_;
   uint64_t serial_;
 };
 #endif

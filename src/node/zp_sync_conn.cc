@@ -16,6 +16,8 @@ ZPSyncConn::~ZPSyncConn() {
 }
 
 int ZPSyncConn::DealMessage() {
+  self_thread_->PlusQueryNum();
+
   request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
 
   //int result = request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
@@ -35,8 +37,6 @@ int ZPSyncConn::DealMessage() {
       DLOG(INFO) << "SyncConn Receive unsupported cmd";
       break;
   }
-
-  self_thread_->PlusThreadQuerynum();
 
   Cmd* cmd = self_thread_->GetCmd(static_cast<int>(request_.type()));
   if (cmd == NULL) {

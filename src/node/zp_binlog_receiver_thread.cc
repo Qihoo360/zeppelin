@@ -8,11 +8,10 @@ extern ZPDataServer* zp_data_server;
 
 ZPBinlogReceiverThread::ZPBinlogReceiverThread(int port, int cron_interval)
   : HolyThread::HolyThread(port, cron_interval),
-    thread_querynum_(0),
-    last_thread_querynum_(0),
+    query_num_(0),
+    last_query_num_(0),
     last_time_us_(slash::NowMicros()),
-    last_sec_thread_querynum_(0),
-    serial_(0) {
+    last_sec_query_num_(0) {
   cmds_.reserve(300);
   InitClientCmdTable(&cmds_);
 

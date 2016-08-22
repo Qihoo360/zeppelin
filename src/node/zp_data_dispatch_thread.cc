@@ -27,8 +27,11 @@ void ZPDataDispatchThread::CronHandle() {
   }
 
   uint64_t meta_querynum = zp_data_server->zp_metacmd_worker_thread()->query_num();
+  uint64_t sync_querynum = zp_data_server->zp_binlog_receiver_thread()->query_num();
 
-  LOG(INFO) << "ClientNum: " << ClientNum() << " ServerQueryNum: " << server_querynum << " ServerCurrentQps: " << server_current_qps
+  LOG(INFO) << "ClientNum: " << ClientNum() << " ClientQueryNum: " << server_querynum
+      << " SyncCmdNum: " << sync_querynum
+      << " ServerCurrentQps: " << server_current_qps
       << " MetaQueryNum: " << meta_querynum;
 }
 

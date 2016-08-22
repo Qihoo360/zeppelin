@@ -20,7 +20,7 @@ int ZPMetacmdConn::DealMessage() {
   self_thread_->PlusQueryNum();
 
   request_.ParseFromArray(rbuf_ + 4, header_len_);
-  LOG(INFO) << "ZPMetacmdConn DealMessage type:" << (int)request_.type();
+  DLOG(INFO) << "ZPMetacmdConn DealMessage type:" << (int)request_.type();
 
   Cmd* cmd = self_thread_->GetCmd(static_cast<int>(request_.type()));
   if (cmd == NULL) {

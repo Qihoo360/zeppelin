@@ -29,7 +29,7 @@ void UpdateCmd::Do(google::protobuf::Message *req, google::protobuf::Message *re
       zp_data_server->BecomeSlave(master.ip(), master.port());
     }
     if ((master.ip() == zp_data_server->local_ip() && master.port() && zp_data_server->local_port())         // I'm the told master and
-        && (master.ip() != zp_data_server->master_ip() || master.port() != zp_data_server->master_port())) { // the told one is a new one
+        && !zp_data_server->is_master()) { 
       zp_data_server->BecomeMaster();
     }
   }
