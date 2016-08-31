@@ -42,17 +42,29 @@ class ZPMetaServer {
     return options_.local_port;
   }
 
+  Status Distribute(int num);
+
   // Alive Check
   void CheckNodeAlive();
   void UpdateNodeAlive(const std::string& ip_port);
-  void AddNodeAlive(const std::string& ip_port);
+  Status AddNodeAlive(const std::string& ip_port);
   
   // Floyd related
-  Status GetPartition(uint32_t partition_id, ZPMeta::Partitions &partitions);
-  Status SetPartition(uint32_t partition_id, const ZPMeta::Partitions &partitions);
-  Status DeletePartition(uint32_t partition_id) {
-    return DeleteFlat(PartitionId2Key(partition_id));
-  }
+//  Status GetPartition(uint32_t partition_id, ZPMeta::Partitions &partitions);
+//  Status SetPartition(uint32_t partition_id, const ZPMeta::Partitions &partitions);
+  Status SetReplicaset(uint32_t partition_id, const ZPMeta::Replicaset &replicaset);
+  Status SetMSInfo(const ZPMeta::MetaCmd_Update &ms_info);
+//  Status DeletePartition(uint32_t partition_id) {
+//    return DeleteFlat(PartitionId2Key(partition_id));
+//  }
+  int PNums();
+  Status GetMSInfo(ZPMeta::MetaCmd_Update &ms_info);
+  Status GetAllNode(ZPMeta::Nodes &nodes);
+  void GetAllAliveNode(ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
+  bool FindNode(ZPMeta::Nodes &nodes, const std::string &ip, int port);
+  Status AddNode(const std::string &ip, int port);
+  Status SetNodeStatus(ZPMeta::Nodes &nodes, const std::string &ip, int port, int status /*0-UP 1-DOWN*/);
+  Status OffNode(const std::string &ip, int port);
 
   // Leader related
   bool IsLeader();
@@ -62,6 +74,7 @@ private:
 
   // Server related
   int worker_num_;
+  int partition_num_;
   ZPMetaWorkerThread* zp_meta_worker_thread_[kMaxMetaWorkerThread];
   ZPMetaDispatchThread* zp_meta_dispatch_thread_;
   ZPOptions options_;
@@ -83,7 +96,7 @@ private:
   slash::Mutex alive_mutex_;
   NodeAliveMap node_alive_;
   ZPMetaUpdateThread update_thread_;
-  void RestoreNodeAlive(const ZPMeta::Partitions &partitions);
+  void RestoreNodeAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes);
 
   // Leader slave
   bool leader_first_time_;

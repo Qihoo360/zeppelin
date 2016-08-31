@@ -38,32 +38,41 @@ public:
     }
     ZPMetaUpdateArgs* arg = new ZPMetaUpdateArgs(this, ip, port, op);
     worker_.StartIfNeed();
-    LOG(INFO) << "Schedule to update thread worker";
+    LOG(INFO) << "Schedule to update thread worker, update";
     worker_.Schedule(&DoMetaUpdate, static_cast<void*>(arg));
   }
 
+  void ScheduleBroadcast() {
+    worker_.StartIfNeed();
+    LOG(INFO) << "Schedule to update thread worker, broadcast";
+    worker_.Schedule(&DoMetaBroadcast, static_cast<void*>(this));
+  }
+
   static void DoMetaUpdate(void *);
+  static void DoMetaBroadcast(void *);
 
 private:
   DataCliMap data_sender_;
   pink::BGThread worker_;
   slash::Status MetaUpdate(const std::string ip, int port, ZPMetaUpdateOP op);
-  slash::Status UpdateFloyd(const std::string &ip, int port, ZPMetaUpdateOP op, ZPMeta::Partitions &partitions);
+  slash::Status MetaBroadcast();
+//  slash::Status UpdateFloyd(const std::string &ip, int port, ZPMetaUpdateOP op, ZPMeta::Partitions &partitions);
   slash::Status UpdateSender(const std::string &ip, int port, ZPMetaUpdateOP op);
-  void SendUpdate(ZPMeta::Partitions &Partitions);
-  void UpdatePartition(ZPMeta::Partitions &partitions,
-    const std::string& ip, int port, ZPMetaUpdateOP op, int id);
-
-  void SetMaster(ZPMeta::Partitions &partitions, const std::string &ip, int port) {
-    LOG(INFO) << "Set master ip:" << ip << " port: " << port;
-    ZPMeta::Node *master = partitions.mutable_master();
-    master->set_ip(ip);
-    master->set_port(port);
-  }
-
-  bool IsTheOne(const ZPMeta::Node &node, const std::string &ip, int port) {
-    return (node.ip() == ip && node.port() == port);
-  }
+  void SendUpdate(const std::string &ip, int port, ZPMeta::MetaCmd_Update &ms_info);
+  void SendUpdate(ZPMeta::MetaCmd_Update &ms_info);
+//  void UpdatePartition(ZPMeta::Partitions &partitions,
+//    const std::string& ip, int port, ZPMetaUpdateOP op, int id);
+//
+//  void SetMaster(ZPMeta::Partitions &partitions, const std::string &ip, int port) {
+//    LOG(INFO) << "Set master ip:" << ip << " port: " << port;
+//    ZPMeta::Node *master = partitions.mutable_master();
+//    master->set_ip(ip);
+//    master->set_port(port);
+//  }
+//
+//  bool IsTheOne(const ZPMeta::Node &node, const std::string &ip, int port) {
+//    return (node.ip() == ip && node.port() == port);
+//  }
 
   struct ZPMetaUpdateArgs {
     ZPMetaUpdateThread *thread;

@@ -11,6 +11,20 @@ message Node {
   required int32 port = 2;
 }
 
+message NodeStatus {
+  required Node node = 1;  
+  required int32 status = 2;
+}
+
+message Nodes {
+  repeated NodeStatus nodes = 1;
+}
+
+message Replicaset {
+  required int32 id = 1;
+  repeated Node node = 2;  
+}
+
 message Partitions {
   required int32 id = 1;
   required Node master = 2;

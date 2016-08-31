@@ -35,6 +35,9 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto();
 void protobuf_ShutdownFile_zp_5fmeta_2eproto();
 
 class Node;
+class NodeStatus;
+class Nodes;
+class Replicaset;
 class Partitions;
 class MetaCmd;
 class MetaCmd_Join;
@@ -199,6 +202,280 @@ class Node : public ::google::protobuf::Message {
 
   void InitAsDefaultInstance();
   static Node* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class NodeStatus : public ::google::protobuf::Message {
+ public:
+  NodeStatus();
+  virtual ~NodeStatus();
+
+  NodeStatus(const NodeStatus& from);
+
+  inline NodeStatus& operator=(const NodeStatus& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const NodeStatus& default_instance();
+
+  void Swap(NodeStatus* other);
+
+  // implements Message ----------------------------------------------
+
+  NodeStatus* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const NodeStatus& from);
+  void MergeFrom(const NodeStatus& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required .ZPMeta.Node node = 1;
+  inline bool has_node() const;
+  inline void clear_node();
+  static const int kNodeFieldNumber = 1;
+  inline const ::ZPMeta::Node& node() const;
+  inline ::ZPMeta::Node* mutable_node();
+  inline ::ZPMeta::Node* release_node();
+  inline void set_allocated_node(::ZPMeta::Node* node);
+
+  // required int32 status = 2;
+  inline bool has_status() const;
+  inline void clear_status();
+  static const int kStatusFieldNumber = 2;
+  inline ::google::protobuf::int32 status() const;
+  inline void set_status(::google::protobuf::int32 value);
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.NodeStatus)
+ private:
+  inline void set_has_node();
+  inline void clear_has_node();
+  inline void set_has_status();
+  inline void clear_has_status();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::ZPMeta::Node* node_;
+  ::google::protobuf::int32 status_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static NodeStatus* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class Nodes : public ::google::protobuf::Message {
+ public:
+  Nodes();
+  virtual ~Nodes();
+
+  Nodes(const Nodes& from);
+
+  inline Nodes& operator=(const Nodes& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const Nodes& default_instance();
+
+  void Swap(Nodes* other);
+
+  // implements Message ----------------------------------------------
+
+  Nodes* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const Nodes& from);
+  void MergeFrom(const Nodes& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated .ZPMeta.NodeStatus nodes = 1;
+  inline int nodes_size() const;
+  inline void clear_nodes();
+  static const int kNodesFieldNumber = 1;
+  inline const ::ZPMeta::NodeStatus& nodes(int index) const;
+  inline ::ZPMeta::NodeStatus* mutable_nodes(int index);
+  inline ::ZPMeta::NodeStatus* add_nodes();
+  inline const ::google::protobuf::RepeatedPtrField< ::ZPMeta::NodeStatus >&
+      nodes() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ZPMeta::NodeStatus >*
+      mutable_nodes();
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.Nodes)
+ private:
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::RepeatedPtrField< ::ZPMeta::NodeStatus > nodes_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static Nodes* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class Replicaset : public ::google::protobuf::Message {
+ public:
+  Replicaset();
+  virtual ~Replicaset();
+
+  Replicaset(const Replicaset& from);
+
+  inline Replicaset& operator=(const Replicaset& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const Replicaset& default_instance();
+
+  void Swap(Replicaset* other);
+
+  // implements Message ----------------------------------------------
+
+  Replicaset* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const Replicaset& from);
+  void MergeFrom(const Replicaset& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required int32 id = 1;
+  inline bool has_id() const;
+  inline void clear_id();
+  static const int kIdFieldNumber = 1;
+  inline ::google::protobuf::int32 id() const;
+  inline void set_id(::google::protobuf::int32 value);
+
+  // repeated .ZPMeta.Node node = 2;
+  inline int node_size() const;
+  inline void clear_node();
+  static const int kNodeFieldNumber = 2;
+  inline const ::ZPMeta::Node& node(int index) const;
+  inline ::ZPMeta::Node* mutable_node(int index);
+  inline ::ZPMeta::Node* add_node();
+  inline const ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node >&
+      node() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node >*
+      mutable_node();
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.Replicaset)
+ private:
+  inline void set_has_id();
+  inline void clear_has_id();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node > node_;
+  ::google::protobuf::int32 id_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static Replicaset* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -1022,6 +1299,150 @@ inline ::google::protobuf::int32 Node::port() const {
 inline void Node::set_port(::google::protobuf::int32 value) {
   set_has_port();
   port_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// NodeStatus
+
+// required .ZPMeta.Node node = 1;
+inline bool NodeStatus::has_node() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void NodeStatus::set_has_node() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void NodeStatus::clear_has_node() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void NodeStatus::clear_node() {
+  if (node_ != NULL) node_->::ZPMeta::Node::Clear();
+  clear_has_node();
+}
+inline const ::ZPMeta::Node& NodeStatus::node() const {
+  return node_ != NULL ? *node_ : *default_instance_->node_;
+}
+inline ::ZPMeta::Node* NodeStatus::mutable_node() {
+  set_has_node();
+  if (node_ == NULL) node_ = new ::ZPMeta::Node;
+  return node_;
+}
+inline ::ZPMeta::Node* NodeStatus::release_node() {
+  clear_has_node();
+  ::ZPMeta::Node* temp = node_;
+  node_ = NULL;
+  return temp;
+}
+inline void NodeStatus::set_allocated_node(::ZPMeta::Node* node) {
+  delete node_;
+  node_ = node;
+  if (node) {
+    set_has_node();
+  } else {
+    clear_has_node();
+  }
+}
+
+// required int32 status = 2;
+inline bool NodeStatus::has_status() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void NodeStatus::set_has_status() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void NodeStatus::clear_has_status() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void NodeStatus::clear_status() {
+  status_ = 0;
+  clear_has_status();
+}
+inline ::google::protobuf::int32 NodeStatus::status() const {
+  return status_;
+}
+inline void NodeStatus::set_status(::google::protobuf::int32 value) {
+  set_has_status();
+  status_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// Nodes
+
+// repeated .ZPMeta.NodeStatus nodes = 1;
+inline int Nodes::nodes_size() const {
+  return nodes_.size();
+}
+inline void Nodes::clear_nodes() {
+  nodes_.Clear();
+}
+inline const ::ZPMeta::NodeStatus& Nodes::nodes(int index) const {
+  return nodes_.Get(index);
+}
+inline ::ZPMeta::NodeStatus* Nodes::mutable_nodes(int index) {
+  return nodes_.Mutable(index);
+}
+inline ::ZPMeta::NodeStatus* Nodes::add_nodes() {
+  return nodes_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::ZPMeta::NodeStatus >&
+Nodes::nodes() const {
+  return nodes_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::ZPMeta::NodeStatus >*
+Nodes::mutable_nodes() {
+  return &nodes_;
+}
+
+// -------------------------------------------------------------------
+
+// Replicaset
+
+// required int32 id = 1;
+inline bool Replicaset::has_id() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void Replicaset::set_has_id() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void Replicaset::clear_has_id() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void Replicaset::clear_id() {
+  id_ = 0;
+  clear_has_id();
+}
+inline ::google::protobuf::int32 Replicaset::id() const {
+  return id_;
+}
+inline void Replicaset::set_id(::google::protobuf::int32 value) {
+  set_has_id();
+  id_ = value;
+}
+
+// repeated .ZPMeta.Node node = 2;
+inline int Replicaset::node_size() const {
+  return node_.size();
+}
+inline void Replicaset::clear_node() {
+  node_.Clear();
+}
+inline const ::ZPMeta::Node& Replicaset::node(int index) const {
+  return node_.Get(index);
+}
+inline ::ZPMeta::Node* Replicaset::mutable_node(int index) {
+  return node_.Mutable(index);
+}
+inline ::ZPMeta::Node* Replicaset::add_node() {
+  return node_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node >&
+Replicaset::node() const {
+  return node_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node >*
+Replicaset::mutable_node() {
+  return &node_;
 }
 
 // -------------------------------------------------------------------
