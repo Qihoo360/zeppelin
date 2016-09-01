@@ -44,27 +44,22 @@ class ZPMetaServer {
 
   Status Distribute(int num);
 
-  // Alive Check
-  void CheckNodeAlive();
-  void UpdateNodeAlive(const std::string& ip_port);
+
   Status AddNodeAlive(const std::string& ip_port);
-  
-  // Floyd related
-//  Status GetPartition(uint32_t partition_id, ZPMeta::Partitions &partitions);
-//  Status SetPartition(uint32_t partition_id, const ZPMeta::Partitions &partitions);
-  Status SetReplicaset(uint32_t partition_id, const ZPMeta::Replicaset &replicaset);
-  Status SetMSInfo(const ZPMeta::MetaCmd_Update &ms_info);
-//  Status DeletePartition(uint32_t partition_id) {
-//    return DeleteFlat(PartitionId2Key(partition_id));
-//  }
-  int PNums();
-  Status GetMSInfo(ZPMeta::MetaCmd_Update &ms_info);
   Status GetAllNode(ZPMeta::Nodes &nodes);
   void GetAllAliveNode(ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
   bool FindNode(ZPMeta::Nodes &nodes, const std::string &ip, int port);
-  Status AddNode(const std::string &ip, int port);
   Status SetNodeStatus(ZPMeta::Nodes &nodes, const std::string &ip, int port, int status /*0-UP 1-DOWN*/);
+  Status AddNode(const std::string &ip, int port);
   Status OffNode(const std::string &ip, int port);
+  void CheckNodeAlive();
+  void UpdateNodeAlive(const std::string& ip_port);
+  
+  Status SetReplicaset(uint32_t partition_id, const ZPMeta::Replicaset &replicaset);
+  Status SetMSInfo(const ZPMeta::MetaCmd_Update &ms_info);
+  Status GetMSInfo(ZPMeta::MetaCmd_Update &ms_info);
+
+  int PNums();
 
   // Leader related
   bool IsLeader();
@@ -74,7 +69,6 @@ private:
 
   // Server related
   int worker_num_;
-  int partition_num_;
   ZPMetaWorkerThread* zp_meta_worker_thread_[kMaxMetaWorkerThread];
   ZPMetaDispatchThread* zp_meta_dispatch_thread_;
   ZPOptions options_;
@@ -82,18 +76,15 @@ private:
 
   // Floyd related
   floyd::Floyd* floyd_;
-  Status GetFlat(const std::string &key, std::string &value);
-  Status SetFlat(const std::string &key, const std::string &value);
-  Status DeleteFlat(const std::string &key);
   std::string PartitionId2Key(uint32_t id) {
-    assert(id == 1);
     std::string key(ZP_META_KEY_PREFIX);
-    key += "1"; //Only one partition now
+    key += std::to_string(id);
     return key;
   }
 
   // Alive Check
   slash::Mutex alive_mutex_;
+  slash::Mutex node_mutex_;
   NodeAliveMap node_alive_;
   ZPMetaUpdateThread update_thread_;
   void RestoreNodeAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes);

@@ -17,6 +17,11 @@ void ZPMetaUpdateThread::DoMetaUpdate(void *p) {
   delete args;
 }
 
+void ZPMetaUpdateThread::DoMetaBroadcast(void *p) {
+  ZPMetaUpdateThread *thread = static_cast<ZPMetaUpdateThread*>(p);
+  thread->MetaBroadcast();
+}
+
 slash::Status ZPMetaUpdateThread::MetaUpdate(const std::string ip, int port, ZPMetaUpdateOP op) {
 
   slash::Status s;
@@ -30,7 +35,7 @@ slash::Status ZPMetaUpdateThread::MetaUpdate(const std::string ip, int port, ZPM
 
   ZPMeta::MetaCmd_Update ms_info;
 
-  if (OP_ADD == op) {
+  if (ZPMetaUpdateOP::OP_ADD == op) {
     if (zp_meta_server->PNums() == 0) {
       return s;
     }
@@ -45,7 +50,7 @@ slash::Status ZPMetaUpdateThread::MetaUpdate(const std::string ip, int port, ZPM
     SendUpdate(ip, port, ms_info);
     LOG(INFO) << "send update to data node success";
 
-  } else if (OP_REMOVE == op) {
+  } else if (ZPMetaUpdateOP::OP_REMOVE == op) {
     s = zp_meta_server->OffNode(ip, port);
     if (!s.ok()) {
       LOG(ERROR) << "UpdateThread: OffNode error, " << s.ToString();
@@ -65,11 +70,6 @@ slash::Status ZPMetaUpdateThread::MetaUpdate(const std::string ip, int port, ZPM
   return s;
 }
 
-void ZPMetaUpdateThread::DoMetaBroadcast(void *p) {
-  ZPMetaUpdateThread *thread = static_cast<ZPMetaUpdateThread*>(p);
-  thread->MetaBroadcast();
-}
-
 slash::Status ZPMetaUpdateThread::MetaBroadcast() {
   slash::Status s;
   ZPMeta::MetaCmd_Update ms_info;
@@ -84,32 +84,6 @@ slash::Status ZPMetaUpdateThread::MetaBroadcast() {
   LOG(INFO) << "send update to data node success";
   return s;
 }
-
-//slash::Status ZPMetaUpdateThread::UpdateFloyd(const std::string &ip, int port, ZPMetaUpdateOP op, ZPMeta::Partitions &partitions) {
-//  // Load from Floyd
-//  partitions.Clear();
-//  slash::Status s = zp_meta_server->GetPartition(1, partitions);
-//  if (!s.ok() && !s.IsNotFound()) {
-//    LOG(ERROR) << "get current meta from floyd failed. " << s.ToString();
-//    return s;
-//  }
-//  std::string text_format;
-//  google::protobuf::TextFormat::PrintToString(partitions, &text_format);
-//  LOG(INFO) << "read from floyd: [" << text_format << "]";
-//
-//  // Update Partition
-//  UpdatePartition(partitions, ip, port, op, 1);
-//
-//  // Dump to Floyd
-//  google::protobuf::TextFormat::PrintToString(partitions, &text_format);
-//  LOG(INFO) << "write to floyd: [" << text_format << "]";
-//  if (!partitions.IsInitialized()) {
-//    // empty partitions
-//    LOG(INFO) << "remove empty partition from floyd";
-//    return zp_meta_server->DeletePartition(1);
-//  }
-//  return zp_meta_server->SetPartition(1, partitions);
-//}
 
 slash::Status ZPMetaUpdateThread::UpdateSender(const std::string &ip, int port, ZPMetaUpdateOP op) {
   std::string ip_port = slash::IpPortString(ip, port);
@@ -196,63 +170,3 @@ void ZPMetaUpdateThread::SendUpdate(const std::string& ip, int port, ZPMeta::Met
     }
   }
 }
-
-/*
- * Something indicated by op has happend
- * So we need to Modify the partition information
- */
-//void ZPMetaUpdateThread::UpdatePartition(ZPMeta::Partitions &partitions,
-//    const std::string& ip, int port, ZPMetaUpdateOP op, int id) {
-//  
-//  // First one
-//  if (!partitions.IsInitialized()) {
-//    if (ZPMetaUpdateOP::OP_ADD == op) {
-//      partitions.set_id(id);
-//      SetMaster(partitions, ip, port);
-//    }
-//    return;
-//  }
-//
-//  // Is master
-//  ZPMeta::Node master = partitions.master();
-//  if (IsTheOne(master, ip, port)) {
-//    if (ZPMetaUpdateOP::OP_ADD == op) {
-//      return;
-//    }
-//    assert(ZPMetaUpdateOP::OP_REMOVE == op);
-//    partitions.clear_master();
-//    if (partitions.slaves_size() > 0) { 
-//      const ZPMeta::Node& last = partitions.slaves(partitions.slaves_size() - 1);
-//      SetMaster(partitions, last.ip(), last.port());
-//      partitions.mutable_slaves()->RemoveLast();
-//    } else {
-//      partitions.Clear();
-//    }
-//    return;
-//  }
-//
-//  // Is slave
-//  for (int i = 0; i < partitions.slaves_size(); ++i) {
-//    const ZPMeta::Node& node = partitions.slaves(i);
-//    if (!IsTheOne(node, ip, port)) {
-//      continue;
-//    }
-//    if (ZPMetaUpdateOP::OP_REMOVE == op) {
-//      // Move the one to last
-//      if (i != (partitions.slaves_size() - 1)) 
-//      {
-//        const ZPMeta::Node& last = partitions.slaves(partitions.slaves_size() - 1);
-//        ZPMeta::Node* to_remove = partitions.mutable_slaves(i);
-//        to_remove->CopyFrom(last);
-//      }
-//      partitions.mutable_slaves()->RemoveLast();
-//    }
-//    return;
-//  }
-//
-//  // New salve
-//  ZPMeta::Node* new_slave = partitions.add_slaves();
-//  new_slave->set_ip(ip);
-//  new_slave->set_port(port);
-//}
-

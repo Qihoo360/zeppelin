@@ -56,23 +56,9 @@ private:
   pink::BGThread worker_;
   slash::Status MetaUpdate(const std::string ip, int port, ZPMetaUpdateOP op);
   slash::Status MetaBroadcast();
-//  slash::Status UpdateFloyd(const std::string &ip, int port, ZPMetaUpdateOP op, ZPMeta::Partitions &partitions);
   slash::Status UpdateSender(const std::string &ip, int port, ZPMetaUpdateOP op);
   void SendUpdate(const std::string &ip, int port, ZPMeta::MetaCmd_Update &ms_info);
   void SendUpdate(ZPMeta::MetaCmd_Update &ms_info);
-//  void UpdatePartition(ZPMeta::Partitions &partitions,
-//    const std::string& ip, int port, ZPMetaUpdateOP op, int id);
-//
-//  void SetMaster(ZPMeta::Partitions &partitions, const std::string &ip, int port) {
-//    LOG(INFO) << "Set master ip:" << ip << " port: " << port;
-//    ZPMeta::Node *master = partitions.mutable_master();
-//    master->set_ip(ip);
-//    master->set_port(port);
-//  }
-//
-//  bool IsTheOne(const ZPMeta::Node &node, const std::string &ip, int port) {
-//    return (node.ip() == ip && node.port() == port);
-//  }
 
   struct ZPMetaUpdateArgs {
     ZPMetaUpdateThread *thread;
