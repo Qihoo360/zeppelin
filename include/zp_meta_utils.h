@@ -1,7 +1,7 @@
 #ifndef ZP_META_UTILS_H
 #define ZP_META_UTILS_H
 
-const int kReplicaNum = 3;
+const unsigned kReplicaNum = 3;
 
 // TODO 
 class Node;

@@ -60,6 +60,10 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
 
 ZPDataServer::~ZPDataServer() {
   //DLOG(INFO) << "~ZPDataServer dstor ";
+  for (auto iter = partitions_.begin(); iter != partitions_.end(); iter++) {
+    delete iter->second;
+  }
+
   delete bgsave_engine_;
 
   delete zp_dispatch_thread_;
@@ -628,5 +632,19 @@ bool ZPDataServer::Bgsaveoff() {
   if (bgsave_engine_ != NULL) {
     bgsave_engine_->StopBackup();
   }
+  return true;
+}
+
+bool ZPDataServer::UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes) {
+  if (partitions_.find(partition_id) != partitions_.end()) {
+    //TODO exist partition: update it
+    // BecomeMaster BecomeSlave
+    return true;
+  }
+
+  // New Partition
+  Partition* partition = NewPartition(options_.log_path, options_.data_path, partition_id, nodes);
+  assert(partition != NULL);
+  partitions_[partition_id] = partition;
   return true;
 }

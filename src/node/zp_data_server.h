@@ -14,6 +14,7 @@
 #include "zp_trysync_thread.h"
 #include "zp_binlog_sender_thread.h"
 #include "zp_binlog_receiver_thread.h"
+#include "zp_data_partition.h"
 
 #include "bg_thread.h"
 #include "pb_conn.h"
@@ -174,6 +175,9 @@ class ZPDataServer {
 
   ZPOptions options_;
 
+  // Partitions
+  std::map<int, Partition*> partitions_;
+  bool UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes);
 
   // DB
   std::shared_ptr<nemo::Nemo> db_;
