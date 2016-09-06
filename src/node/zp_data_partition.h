@@ -40,6 +40,7 @@ class Partition;
 Partition* NewPartition(const std::string log_path, const std::string data_path, const int partition_id, const std::vector<Node> &nodes);
 
 class Partition {
+  friend class ZPBinlogSenderThread;
  public:
   Partition(const int partition_id, const std::string &log_path, const std::string &data_path);
   ~Partition();
@@ -60,7 +61,7 @@ class Partition {
   std::string log_path_;
   std::string data_path_;
   Node master_node_;
-  Node slave_nodes_[kReplicaNum - 1];
+  std::vector<Node> slave_nodes_;
 
   // State related
   pthread_rwlock_t state_rw_;

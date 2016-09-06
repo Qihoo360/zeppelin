@@ -13,21 +13,17 @@ using pink::PbCli;
 
 extern ZPDataServer* zp_data_server;
 
-ZPBinlogSenderThread::ZPBinlogSenderThread(std::string &ip, int port, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset)
-  : con_offset_(con_offset),
-    filenum_(filenum),
-    initial_offset_(0),
-    end_of_buffer_offset_(kBlockSize),
-    queue_(queue),
-    backing_store_(new char[kBlockSize]),
-    buffer_(),
-    ip_(ip),
-    port_(port) {
-      cli_ = new ZPPbCli();
-
-      last_record_offset_ = con_offset % kBlockSize;
-      pthread_rwlock_init(&rwlock_, NULL);
-}
+ZPBinlogSenderThread::ZPBinlogSenderThread(Partition *partition, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset)
+  : partition_(partition), con_offset_(con_offset),
+  filenum_(filenum),
+  initial_offset_(0),
+  end_of_buffer_offset_(kBlockSize),
+  queue_(queue),
+  backing_store_(new char[kBlockSize]),
+  buffer_() {
+    last_record_offset_ = con_offset % kBlockSize;
+    pthread_rwlock_init(&rwlock_, NULL);
+  }
 
 ZPBinlogSenderThread::~ZPBinlogSenderThread() {
   should_exit_ = true;
@@ -37,7 +33,6 @@ ZPBinlogSenderThread::~ZPBinlogSenderThread() {
   delete queue_;
   pthread_rwlock_destroy(&rwlock_);
   delete [] backing_store_;
-  delete cli_;
 
   LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
 }
@@ -212,7 +207,7 @@ Status ZPBinlogSenderThread::Parse(std::string &scratch) {
 
     //DLOG(INFO) << "BinlogSender after Parse a msg return " << s.ToString() << " filenum_" << filenum_ << ", con_offset " << con_offset_;
     if (s.IsEndFile()) {
-      std::string confile = NewFileName(zp_data_server->logger_->filename, filenum_ + 1);
+      std::string confile = NewFileName(logger->filename, filenum_ + 1);
 
       // Roll to next File
       if (slash::FileExists(confile)) {
@@ -234,14 +229,14 @@ Status ZPBinlogSenderThread::Parse(std::string &scratch) {
       break;
     }
   }
-    
+
   if (should_exit_) {
     return Status::Corruption("should exit");
   }
   return s;
 }
 
-uint32_t ParseMsgCode(std::string* scratch) {
+uint32_t ZPBinlogSenderThread::ParseMsgCode(std::string* scratch) {
   uint32_t buf;
   memcpy((char *)(&buf), scratch->data() + 4, sizeof(uint32_t));
   uint32_t msg_code = ntohl(buf);
@@ -250,55 +245,34 @@ uint32_t ParseMsgCode(std::string* scratch) {
 }
 
 void* ZPBinlogSenderThread::ThreadMain() {
-  Status s;
-  pink::Status result;
-  bool last_send_flag = true;
   std::string scratch;
   scratch.reserve(1024 * 1024);
 
+  Status s;
   while (!should_exit_) {
-
-    // 1. Connect to slave
-    result = cli_->Connect(ip_, port_);
-    LOG(INFO) << "BinlogSender Connect slave(" << ip_ << ":" << port_ << ") " << result.ToString();
-
-    if (result.ok()) {
-      while (!should_exit_) {
-        // 2. Should Parse new msg;
-        if (last_send_flag) {
-          s = Parse(scratch);
-          //DLOG(INFO) << "BinlogSender Parse, return " << s.ToString();
-
-          //DLOG(INFO) << "BinlogSender parse(" << scratch << ")";
-          if (s.IsCorruption()) {     // should exit
-            LOG(WARNING) << "BinlogSender will exit caz " << s.ToString();
-            //close(sockfd_);
-            break;
-          } else if (s.IsIOError()) {
-            LOG(WARNING) << "BinlogSender Parse error, " << s.ToString();
-            continue;
-          }
-        }
-
-        // 3. After successful parse, we send msg;
-        //DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_ << ", scratch size is " << scratch.size();
-        result = cli_->SendRaw(scratch.data(), scratch.size());
-        if (result.ok()) {
-          last_send_flag = true;
-        } else {
-          last_send_flag = false;
-          //close(sockfd_);
-          break;
-        }
-      }
-      cli_->Close();
+    // Parse binglog
+    s = Parse(scratch);
+    if (!s.ok()) {
+      LOG(WARNING) << "BinlogSender Parse error, " << s.ToString();
+      usleep(10000);
+      continue;
     }
-
-    // error
-    //cli_->Close();
-    //close(cli_->fd());
-    sleep(1);
+    // Send binlog
+    SendToPeers(scratch);
   }
+
   return NULL;
+}
+
+void ZPBinlogSenderThread::SendToPeers(const std::string &data) {
+  Status s;
+  std::vector<Node>::iterator iter = partition_->slave_nodes_.begin();
+  while (!should_exit_ && iter != partition_->slave_nodes_.end()) {
+    s = zp_data_server->SendToPeer((*iter).ip, (*iter).port, data);
+    if (!s.ok()) {
+      LOG(ERROR) << "Failed to send to peer " << (*iter).ip << ":" << (*iter).port << ", Error: " << s.ToString();
+      sleep(1);
+    }
+  }
 }
 

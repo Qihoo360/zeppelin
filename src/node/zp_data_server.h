@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <unordered_set>
+#include <unordered_map>
 
 #include "zp_options.h"
 #include "zp_binlog.h"
@@ -170,6 +171,9 @@ class ZPDataServer {
   slash::Mutex server_mutex_;
 
   pthread_rwlock_t server_rw_;
+  
+  // Peer Client
+  Status SendToPeer(const std::string &peer_ip, int peer_port, const std::string &data);
 
  private:
 
@@ -178,6 +182,9 @@ class ZPDataServer {
   // Partitions
   std::map<int, Partition*> partitions_;
   bool UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes);
+  // Peer Client
+  slash::Mutex mutex_peers_;
+  std::unordered_map<std::string, ZPPbCli*> peers_;
 
   // DB
   std::shared_ptr<nemo::Nemo> db_;

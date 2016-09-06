@@ -90,7 +90,7 @@ Status Partition::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t o
     return Status::IOError("AddBinlogSender new sequtialfile");
   }
 
-  ZPBinlogSenderThread* sender = new ZPBinlogSenderThread(slave.node.ip, slave.node.port + kPortShiftSync, readfile, filenum, offset);
+  ZPBinlogSenderThread* sender = new ZPBinlogSenderThread(this, readfile, filenum, offset);
 
   slave.sender = sender;
 
@@ -155,7 +155,7 @@ void Partition::Init(const std::vector<Node> &nodes) {
   assert(nodes.size() == kReplicaNum);
   master_node_ = nodes.at(0); 
   for (size_t i = 1; i < nodes.size(); i++) {
-    slave_nodes_[i - 1] = nodes[i];
+    slave_nodes_.push_back(nodes[i]);
   }
 
   // Create DB handle
@@ -187,3 +187,4 @@ Partition* NewPartition(const std::string log_path, const std::string data_path,
   partition->Init(nodes);
   return partition;
 }
+
