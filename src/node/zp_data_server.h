@@ -102,6 +102,7 @@ class ZPDataServer {
     return zp_binlog_receiver_thread_;
   };
 
+
   bool FindSlave(const Node& node);
   Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
   void DeleteSlave(int fd);
@@ -172,6 +173,11 @@ class ZPDataServer {
 
   pthread_rwlock_t server_rw_;
   
+  // Partition
+  void SetPartitionTotal(uint32_t total) {
+    partition_total_ = total;
+  }
+  Partition* GetPartition(const std::string &key);
   // Peer Client
   Status SendToPeer(const std::string &peer_ip, int peer_port, const std::string &data);
 
@@ -180,8 +186,11 @@ class ZPDataServer {
   ZPOptions options_;
 
   // Partitions
+  uint32_t partition_total_;
   std::map<int, Partition*> partitions_;
   bool UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes);
+  uint32_t KeyToPartition(const std::string &key);
+
   // Peer Client
   slash::Mutex mutex_peers_;
   std::unordered_map<std::string, ZPPbCli*> peers_;

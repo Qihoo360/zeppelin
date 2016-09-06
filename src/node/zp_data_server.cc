@@ -11,6 +11,7 @@
 
 ZPDataServer::ZPDataServer(const ZPOptions& options)
   : options_(options),
+  partition_total_(0),
   role_(Role::kNodeSingle),
   repl_state_(ReplState::kNoConnect),
   readonly_(false),
@@ -684,6 +685,19 @@ Status ZPDataServer::SendToPeer(const std::string &peer_ip, int peer_port, const
     return Status::Corruption(res.ToString());
   }
   return Status::OK();
+}
+
+Partition* ZPDataServer::GetPartition(const std::string &key) {
+  uint32_t id = KeyToPartition(key);
+  if (partitions_.find(id) != partitions_.end()) {
+    return partitions_[id];
+  } else {
+    return NULL;
+  }
+}
+inline uint32_t ZPDataServer::KeyToPartition(const std::string &key) {
+  assert(partition_total_ != 0);
+  return std::hash<std::string>()(key) % partition_total_;
 }
 
 

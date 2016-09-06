@@ -9,7 +9,9 @@ class SetCmd : public Cmd {
   SetCmd(int flag) : Cmd(flag) {}
   virtual Status Init(google::protobuf::Message *req);
   virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly = false);
-  virtual std::string key() { return key_; }
+  virtual std::string key() { 
+    return key_; 
+  }
 
  private:
   std::string key_;
@@ -21,6 +23,12 @@ class GetCmd : public Cmd {
   //virtual Status Init(const void *buf, size_t count);
   //virtual void Do();
   virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly = false);
+  virtual std::string key() { 
+    return key_; 
+  }
+  
+ private:
+  std::string key_;
 };
 
 ////// Sync //////

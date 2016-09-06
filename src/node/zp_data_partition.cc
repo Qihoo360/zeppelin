@@ -6,31 +6,6 @@
 
 extern ZPDataServer* zp_data_server;
 
-//////// PartitionManager //////
-//bool PartitionManager::AddPartition(const int partition_id, const std::vector<Node>& nodes) {
-//  Partition* partition = NewPartition(data_path, partition_id, nodes);
-//
-//  assert(partition != NULL);
-//  partitions.push_back(partition);
-//  partition_index[partition_id] = partition;
-//
-//  if (partition->is_master_) {
-//    DLOG(INFO) << "Partition " << partition_id << ": becomeMaster"; 
-//    partition->BecomeMaster();
-//  } else {
-//    //partition->BecomeSlave(master.ip(), master.port());
-//  }
-//
-//  return true;
-//}
-//
-//PartitionManager::~PartitionManager() {
-//  for (auto iter = partitions.begin(); iter != partitions.end(); iter++) {
-//    delete (*iter);
-//  }
-//}
-
-////// Partition //////
 Partition::Partition(const int partition_id, const std::string &log_path, const std::string &data_path)
   : partition_id_(partition_id),
   role_(Role::kNodeSingle),
@@ -39,10 +14,16 @@ Partition::Partition(const int partition_id, const std::string &log_path, const 
     log_path_ = NewPartitionPath(log_path, partition_id_);
     data_path_ = NewPartitionPath(data_path, partition_id_);
     pthread_rwlock_init(&state_rw_, NULL);
+
+    pthread_rwlockattr_t attr;
+    pthread_rwlockattr_init(&attr);
+    pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+    pthread_rwlock_init(&partition_rw_, &attr);
   }
 
 Partition::~Partition() {
   delete logger_;
+  pthread_rwlock_destroy(&partition_rw_);
   pthread_rwlock_destroy(&state_rw_);
 }
 
@@ -186,5 +167,36 @@ Partition* NewPartition(const std::string log_path, const std::string data_path,
   Partition* partition = new Partition(partition_id, log_path, data_path);
   partition->Init(nodes);
   return partition;
+}
+
+void Partition::DoCommand(Cmd* cmd, google::protobuf::Message &req, google::protobuf::Message &res,
+    const std::string &raw_msg) {
+  std::string key = cmd->key();
+
+  // Add read lock for no suspend command
+  if (!cmd->is_suspend()) {
+    pthread_rwlock_rdlock(&partition_rw_);
+  }
+
+  mutex_record_.Lock(key);
+
+  cmd->Do(&req, &res);
+
+  if (cmd->result().ok()) {
+    // Restore Message
+    WriteBinlog(raw_msg);
+  }
+  
+  zp_data_server->mutex_record_.Unlock(key);
+
+  if (!cmd->is_suspend()) {
+    pthread_rwlock_unlock(&partition_rw_);
+  }
+}
+
+inline void Partition::WriteBinlog(const std::string &content) {
+  logger_->Lock();
+  logger_->Put(content);
+  logger_->Unlock();
 }
 
