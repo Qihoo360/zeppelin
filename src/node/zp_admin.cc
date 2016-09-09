@@ -21,24 +21,36 @@ void UpdateCmd::Do(google::protobuf::Message *req, google::protobuf::Message *re
 
   for (int i = 0; i < update.info_size(); i++) {
     const ZPMeta::Partitions& partition = update.info(i);
-    const ZPMeta::Node& master = partition.master();
-    LOG(INFO) << "receive Update message, master ip: " << master.ip() << " master port: " << master.port();
+    DLOG(INFO) << "receive Update message, master is " << partition.master().ip() << ":" << partition.master().port();
 
-    if ((master.ip() != zp_data_server->local_ip() || master.port() != zp_data_server->local_port())         // I'm not the told master
-        && (master.ip() != zp_data_server->master_ip() || master.port() != zp_data_server->master_port())) { // and there's a new master
-      zp_data_server->BecomeSlave(master.ip(), master.port());
+    std::vector<Node> nodes;
+    nodes.push_back(Node(partition.master().ip(), partition.master().port()));
+    for (int j = 0; j < partition.slaves_size(); j++) {
+      nodes.push_back(Node(partition.slaves(j).ip(), partition.slaves(j).port()));
     }
-    if ((master.ip() == zp_data_server->local_ip() && master.port() && zp_data_server->local_port())         // I'm the told master and
-        && !zp_data_server->is_master()) { 
-      zp_data_server->BecomeMaster();
+
+    bool result = zp_data_server->UpdateOrAddPartition(partition.id(), nodes);
+    if (!result) {
+      LOG(WARNING) << "AddPartition failed";
     }
+
+    //const ZPMeta::Node& master = partition.master();
+
+    //if ((master.ip() != zp_data_server->local_ip() || master.port() != zp_data_server->local_port())         // I'm not the told master
+    //    && (master.ip() != zp_data_server->master_ip() || master.port() != zp_data_server->master_port())) { // and there's a new master
+    //  zp_data_server->BecomeSlave(master.ip(), master.port());
+    //}
+    //if ((master.ip() == zp_data_server->local_ip() && master.port() && zp_data_server->local_port())         // I'm the told master and
+    //    && !zp_data_server->is_master()) { 
+    //  zp_data_server->BecomeMaster();
+    //}
   }
 
   response->set_type(ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_UPDATE);
   ZPMeta::MetaCmdResponse_Status* status = response->mutable_status();
   status->set_code(ZPMeta::StatusCode::kOk);
   result_ = slash::Status::OK();
-  DLOG(INFO) << "update ok";
+  DLOG(INFO) << "Update ok";
 }
 //Status SyncCmd::Init(const void *buf, size_t count) {
 //  return Status::OK();

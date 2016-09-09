@@ -36,6 +36,9 @@ class Node {
   bool operator==(const Node& rhs) const {
     return (ip == rhs.ip && port == rhs.port);
   }
+  bool operator!=(const Node& rhs) const {
+    return (ip != rhs.ip || port != rhs.port);
+  }
 };
 
 //class Leaders {

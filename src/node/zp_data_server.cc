@@ -639,6 +639,20 @@ bool ZPDataServer::UpdateOrAddPartition(const int partition_id, const std::vecto
   if (partitions_.find(partition_id) != partitions_.end()) {
     //TODO exist partition: update it
     // BecomeMaster BecomeSlave
+    Node current_master;
+    {
+      slash::RWLock l(&state_rw_, false);
+      current_master = Node(master_ip_, master_port_);
+    }
+    if ((nodes[0].ip != options_.local_ip || nodes[0].port != options_.local_port)  // I'm not the told master
+        && (nodes[0] != current_master)) {          // and there's a new master
+      BecomeSlave(nodes[0].ip, nodes[0].port);
+    }
+
+    if ((nodes[0].ip == options_.local_ip && nodes[0].port && options_.local_port)         // I'm the told master and
+        && !is_master()) { 
+      BecomeMaster();
+    }
     return true;
   }
 

@@ -15,7 +15,7 @@ using slash::Status;
 //const char* short_options = "s:";
 
 void handle_update(client::Cluster &cluster, int port1, int port2, int port3) {
-  int pid = 1;
+  //int pid = 1;
   std::string ip1 = "127.0.0.1";
   //int port1 = 8001;
   std::string ip2 = "127.0.0.1";
@@ -28,19 +28,22 @@ void handle_update(client::Cluster &cluster, int port1, int port2, int port3) {
   request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_UPDATE);
 
   ZPMeta::MetaCmd_Update* update = request.mutable_update();
-  ZPMeta::Partitions* partition = update->add_info();
-  partition->set_id(pid);
-  ZPMeta::Node* master = partition->mutable_master();
-  master->set_ip(ip1);
-  master->set_port(port1);
 
-  ZPMeta::Node* slave = partition->add_slaves();
-  slave->set_ip(ip2);
-  slave->set_port(port2);
+  for (int pid = 0; pid < 2; pid++) {
+    ZPMeta::Partitions* partition = update->add_info();
+    partition->set_id(pid);
+    ZPMeta::Node* master = partition->mutable_master();
+    master->set_ip(ip1);
+    master->set_port(port1);
 
-  slave = partition->add_slaves();
-  slave->set_ip(ip3);
-  slave->set_port(port3);
+    ZPMeta::Node* slave = partition->add_slaves();
+    slave->set_ip(ip2);
+    slave->set_port(port2);
+
+    slave = partition->add_slaves();
+    slave->set_ip(ip3);
+    slave->set_port(port3);
+  }
 
   ZPMeta::MetaCmdResponse response;
   Status s = cluster.Update(request, response, ip1, port1 + 100);
@@ -62,9 +65,9 @@ int main(int argc, char* argv[]) {
 
   handle_update(cluster, 8001, 8002, 8003);
 
-  sleep(50);
-  printf ("\n\n============================================\n=================Update Again =============\n\n");
-  handle_update(cluster, 8002, 8001, 8003);
+ // sleep(50);
+ // printf ("\n\n============================================\n=================Update Again =============\n\n");
+ // handle_update(cluster, 8002, 8001, 8003);
 
   while (1) {
     sleep(1);

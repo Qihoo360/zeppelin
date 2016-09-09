@@ -88,7 +88,8 @@ SLASH = $(THIRD_PATH)/slash/output/lib/libslash.a
 .PHONY: all clean
 
 
-all: $(ZP_META) $(ZP_NODE)
+#all: $(ZP_META) $(ZP_NODE)
+all: $(ZP_NODE)
 #all: 
 	@echo "COMMON_OBJS $(COMMON_OBJS)"
 	@echo "ZP_META_OBJS $(META_OBJS)"
@@ -100,7 +101,7 @@ all: $(ZP_META) $(ZP_NODE)
 	#cp -r ./conf $(OUTPUT)/
 	mkdir $(OUTPUT)/lib
 	cp -r $(SO_PATH)/*  $(OUTPUT)/lib
-	mv $(ZP_META) $(OUTPUT)/bin/
+	#mv $(ZP_META) $(OUTPUT)/bin/
 	mv $(ZP_NODE) $(OUTPUT)/bin/
 	#mkdir $(OUTPUT)/tools
 	@echo "Success, go, go, go..."

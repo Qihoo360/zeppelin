@@ -51,7 +51,7 @@ class ZPDataServer {
   }
 
   bool is_master() {
-    slash::RWLock l(&state_rw_, true);
+    slash::RWLock l(&state_rw_, false);
     return role_ == Role::kNodeMaster;
   }
   std::string master_ip() {
@@ -100,6 +100,9 @@ class ZPDataServer {
   ZPBinlogReceiverThread* zp_binlog_receiver_thread() {
     return zp_binlog_receiver_thread_;
   };
+
+  // Partition
+  bool UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes);
 
   bool FindSlave(const Node& node);
   Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
@@ -177,7 +180,6 @@ class ZPDataServer {
 
   // Partitions
   std::map<int, Partition*> partitions_;
-  bool UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes);
 
   // DB
   std::shared_ptr<nemo::Nemo> db_;
