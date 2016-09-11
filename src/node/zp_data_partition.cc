@@ -8,6 +8,7 @@ extern ZPDataServer* zp_data_server;
 
 Partition::Partition(const int partition_id, const std::string &log_path, const std::string &data_path)
   : partition_id_(partition_id),
+  readonly_(false),
   role_(Role::kNodeSingle),
   repl_state_(ReplState::kNoConnect),
   logger_(NULL) {
@@ -112,6 +113,7 @@ void Partition::BecomeMaster() {
     slash::RWLock l(&state_rw_, true);
     role_ = Role::kNodeMaster;
     repl_state_ = ReplState::kNoConnect;
+    readonly_ = false;
   }
 }
 
@@ -129,6 +131,7 @@ void Partition::BecomeSlave() {
     slash::RWLock l(&state_rw_, true);
     role_ = Role::kNodeSlave;
     repl_state_ = ReplState::kShouldConnect;
+    readonly_ = true;
   }
 }
 
@@ -169,25 +172,41 @@ Partition* NewPartition(const std::string log_path, const std::string data_path,
   return partition;
 }
 
-void Partition::DoCommand(Cmd* cmd, google::protobuf::Message &req, google::protobuf::Message &res,
-    const std::string &raw_msg) {
+void Partition::DoBinlogCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse &res, const std::string &raw_msg) {
+  DoCommand(cmd, req, res, raw_msg, true);
+}
+
+void Partition::DoCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse &res,
+    const std::string &raw_msg, bool is_from_binlog) {
   std::string key = cmd->key();
+
+  if (!is_from_binlog && cmd->is_write()) {
+    // TODO  very ugly implementation for readonly
+    if (readonly()) {
+      cmd->Do(&req, &res, true);
+      return;
+    }
+  }
 
   // Add read lock for no suspend command
   if (!cmd->is_suspend()) {
     pthread_rwlock_rdlock(&partition_rw_);
   }
 
-  mutex_record_.Lock(key);
-
-  cmd->Do(&req, &res);
-
-  if (cmd->result().ok()) {
-    // Restore Message
-    WriteBinlog(raw_msg);
+  // Add RecordLock for write cmd
+  if (cmd->is_write()) {
+    mutex_record_.Lock(key);
   }
   
-  zp_data_server->mutex_record_.Unlock(key);
+  cmd->Do(&req, &res);
+
+  if (cmd->is_write()) {
+    if (cmd->result().ok() && req.type() != client::Type::SYNC) {
+      // Restore Message
+      WriteBinlog(raw_msg);
+    }
+    mutex_record_.Unlock(key);
+  }
 
   if (!cmd->is_suspend()) {
     pthread_rwlock_unlock(&partition_rw_);

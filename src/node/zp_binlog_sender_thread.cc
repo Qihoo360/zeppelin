@@ -273,6 +273,7 @@ void ZPBinlogSenderThread::SendToPeers(const std::string &data) {
       LOG(ERROR) << "Failed to send to peer " << (*iter).ip << ":" << (*iter).port << ", Error: " << s.ToString();
       sleep(1);
     }
+    ++iter;
   }
 }
 

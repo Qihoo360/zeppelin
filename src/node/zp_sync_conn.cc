@@ -38,7 +38,7 @@ int ZPSyncConn::DealMessage() {
   if (partition == NULL) {
     LOG(ERROR) << "Error partition";
   }
-  partition->DoCommand(cmd, request_, response_, raw_msg);
+  partition->DoBinlogCommand(cmd, request_, response_, raw_msg);
 
   res_ = &response_;
   return 0;
