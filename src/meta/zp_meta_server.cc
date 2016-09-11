@@ -5,24 +5,23 @@
 #include "zp_meta.pb.h"
 
 enum ZPNodeStatus {
-  NODE_UP,
-  NODE_DOWN
+  kNodeUp,
+  kNodeDown
 };
 
 ZPMetaServer::ZPMetaServer(const ZPOptions& options)
   : worker_num_(6), options_(options), leader_first_time_(true), leader_cli_(NULL), leader_cmd_port_(0){
 
-  //pthread_rwlock_init(&state_rw_, NULL);
   // Convert ZPOptions
-  floyd::Options* fy_options = new floyd::Options();
-  fy_options->seed_ip = options.seed_ip;
-  fy_options->seed_port = options.seed_port + kMetaPortShiftFY;
-  fy_options->local_ip = options.local_ip;
-  fy_options->local_port = options.local_port + kMetaPortShiftFY;
-  fy_options->data_path = options.data_path;
-  fy_options->log_path = options.log_path;
+  floyd::Options fy_options;
+  fy_options.seed_ip = options.seed_ip;
+  fy_options.seed_port = options.seed_port + kMetaPortShiftFY;
+  fy_options.local_ip = options.local_ip;
+  fy_options.local_port = options.local_port + kMetaPortShiftFY;
+  fy_options.data_path = options.data_path;
+  fy_options.log_path = options.log_path;
 
-  floyd_ = new floyd::Floyd(*fy_options);
+  floyd_ = new floyd::Floyd(fy_options);
 
   for (int i = 0; i < worker_num_ ; ++i) {
     zp_meta_worker_thread_[i] = new ZPMetaWorkerThread(kMetaWorkerCronInterval);
@@ -81,12 +80,9 @@ Status ZPMetaServer::Delete(const std::string &key) {
   }
 }
 
-#define NEXT(j, n) ((j+1) % n)
-#define NNEXT(j, n) ((j+2) % n)
 Status ZPMetaServer::Distribute(int num) {
- 
   slash::MutexLock l(&node_mutex_);
-  if (PNums() != 0) {
+  if (PartitionNums() != 0) {
     return Status::Corruption("Already Distribute");
   }
  
@@ -104,8 +100,7 @@ Status ZPMetaServer::Distribute(int num) {
     return Status::Corruption("no nodes");
   }
 
-  int an_num = alive_nodes.size();
-  int j = 0;
+  //int an_num = alive_nodes.size();
 
   ZPMeta::Replicaset replicaset;
 
@@ -116,31 +111,28 @@ Status ZPMetaServer::Distribute(int num) {
     replicaset.Clear();
     replicaset.set_id(i);
     ZPMeta::Node *node = replicaset.add_node();
-    node->CopyFrom(alive_nodes[j].node());
+    node->CopyFrom(alive_nodes[i].node());
 
     node = replicaset.add_node();
-    node->CopyFrom(alive_nodes[NEXT(j, an_num)].node());
+    node->CopyFrom(alive_nodes[i + 1].node());
 
     node = replicaset.add_node();
-    node->CopyFrom(alive_nodes[NNEXT(j, an_num)].node());
-
+    node->CopyFrom(alive_nodes[i + 2].node());
 
     ZPMeta::Partitions *p = ms_info.add_info();
     p->set_id(i);
-    p->mutable_master()->CopyFrom(alive_nodes[j].node());
+    p->mutable_master()->CopyFrom(alive_nodes[i].node());
 
     ZPMeta::Node *slave = p->add_slaves();
-    p->mutable_master()->CopyFrom(alive_nodes[NEXT(j, an_num)].node());
+    slave->CopyFrom(alive_nodes[i + 1].node());
 
     slave = p->add_slaves();
-    p->mutable_master()->CopyFrom(alive_nodes[NNEXT(j, an_num)].node());
+    slave->CopyFrom(alive_nodes[i + 2].node());
 
     s= SetReplicaset(i, replicaset);
     if (!s.ok()) {
       return s;
     }
-
-    j++;
   }
   s = SetMSInfo(ms_info);
   if (!s.ok()) {
@@ -156,6 +148,7 @@ Status ZPMetaServer::Distribute(int num) {
   }
 
   update_thread_.ScheduleBroadcast();
+  return Status::OK();
 }
 
 Status ZPMetaServer::AddNodeAlive(const std::string& ip_port) {
@@ -177,7 +170,8 @@ Status ZPMetaServer::AddNodeAlive(const std::string& ip_port) {
   }
 
   LOG(INFO) << "Add Node Alive";
-  update_thread_.ScheduleUpdate(ip_port, ZPMetaUpdateOP::OP_ADD);
+  update_thread_.ScheduleUpdate(ip_port, ZPMetaUpdateOP::kOpAdd);
+  return Status::OK();
 }
 
 Status ZPMetaServer::GetAllNode(ZPMeta::Nodes &nodes) {
@@ -219,7 +213,8 @@ bool ZPMetaServer::FindNode(ZPMeta::Nodes &nodes, const std::string &ip, int por
   return false;
 }
 
-Status ZPMetaServer::SetNodeStatus(ZPMeta::Nodes& nodes, const std::string &ip, int port, int status /*0-NODE_UP 1-NODE_DOWN*/) {
+Status ZPMetaServer::SetNodeStatus(ZPMeta::Nodes& nodes, const std::string &ip, int port,
+    int status /*0-kNodeUp 1-kNodeDown*/) {
   std::string new_value;
   for (int i = 0; i < nodes.nodes_size(); ++i) {
     ZPMeta::NodeStatus* node_status = nodes.mutable_nodes(i);
@@ -257,7 +252,7 @@ Status ZPMetaServer::AddNode(const std::string &ip, int port) {
   bool should_add = false;
   if (s.ok()) {
     if (FindNode(nodes, ip, port)) {
-      return SetNodeStatus(nodes, ip, port, ZPNodeStatus::NODE_UP);
+      return SetNodeStatus(nodes, ip, port, ZPNodeStatus::kNodeUp);
     } else {
       should_add = true;
     }
@@ -265,7 +260,7 @@ Status ZPMetaServer::AddNode(const std::string &ip, int port) {
     ZPMeta::NodeStatus *node_status = nodes.add_nodes();
     node_status->mutable_node()->set_ip(ip);
     node_status->mutable_node()->set_port(port);
-    node_status->set_status(ZPNodeStatus::NODE_UP);
+    node_status->set_status(ZPNodeStatus::kNodeUp);
     if (!nodes.SerializeToString(&new_value)) {
       LOG(ERROR) << "serialization new meta failed, new value: " <<  new_value;
       return Status::Corruption("Serialize error");
@@ -282,7 +277,6 @@ Status ZPMetaServer::AddNode(const std::string &ip, int port) {
 }
 
 Status ZPMetaServer::OffNode(const std::string &ip, int port) {
-
   ZPMeta::Nodes nodes;
   ZPMeta::MetaCmd_Update ms_info;
 
@@ -292,7 +286,7 @@ Status ZPMetaServer::OffNode(const std::string &ip, int port) {
   if (!s.ok()) {
     return s;
   }
-  s = SetNodeStatus(nodes, ip, port, ZPNodeStatus::NODE_DOWN);
+  s = SetNodeStatus(nodes, ip, port, ZPNodeStatus::kNodeDown);
   if (!s.ok()) {
     return s;
   }
@@ -326,10 +320,7 @@ Status ZPMetaServer::OffNode(const std::string &ip, int port) {
   }
 
   s = SetMSInfo(ms_info);
-  if (!s.ok()) {
-    return s;
-  }
-
+  return s;
 }
 
 void ZPMetaServer::CheckNodeAlive() {
@@ -348,7 +339,7 @@ void ZPMetaServer::CheckNodeAlive() {
   std::vector<std::string>::iterator rit = need_remove.begin();
   for (; rit != need_remove.end(); ++rit) {
     node_alive_.erase(*rit);
-    update_thread_.ScheduleUpdate(*rit, ZPMetaUpdateOP::OP_REMOVE);
+    update_thread_.ScheduleUpdate(*rit, ZPMetaUpdateOP::kOpRemove);
   }
 }
 
@@ -397,13 +388,13 @@ Status ZPMetaServer::GetMSInfo(ZPMeta::MetaCmd_Update &ms_info) {
   }
 }
 
-int ZPMetaServer::PNums() {
+int ZPMetaServer::PartitionNums() {
   std::string value;
   floyd::Status fs = floyd_->DirtyRead(ZP_META_KEY_PN, value);
   if (fs.ok()) {
     return std::stoi(value, nullptr);
   } else {
-    LOG(ERROR) << "PNum error, " << fs.ToString();
+    LOG(ERROR) << "PartitionNum error, " << fs.ToString();
     return 0;
   }
 }
@@ -494,5 +485,29 @@ void ZPMetaServer::RestoreNodeAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes
     node_alive_[slash::IpPortString(iter->node().ip(), iter->node().port())] = now;
     iter++;
   }
+}
+
+inline void ZPMetaServer::CleanLeader() {
+  if (leader_cli_) {
+    leader_cli_->Close();
+    delete leader_cli_;
+  }
+  leader_ip_.clear();
+  leader_cmd_port_ = 0;
+}
+
+inline bool ZPMetaServer::GetLeader(std::string& ip, int& port) {
+  int fy_port = 0;
+  bool res = floyd_->GetLeader(ip, fy_port);
+  if (res) {
+    port = fy_port - kMetaPortShiftFY;
+  }
+  return res;
+}
+
+std::string PartitionId2Key(uint32_t id) {
+  std::string key(ZP_META_KEY_PREFIX);
+  key += std::to_string(id);
+  return key;
 }
 
