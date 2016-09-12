@@ -19,5 +19,16 @@ class ZPPbCli : public pink::PbCli {
   //int32_t opcode_;
 };
 
+// keep alive connection
+class ZPPbFixCli : public pink::PbCli {
+ public:
+  ZPPbFixCli(const std::string &ip, const int port);
+
+ private:
+  std::string ip_;
+  int port_;
+  bool connected;
+};
+
 
 #endif

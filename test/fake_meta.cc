@@ -63,6 +63,7 @@ int main(int argc, char* argv[]) {
 
   client::Cluster cluster(option);
 
+  sleep(3);
   handle_update(cluster, 8001, 8002, 8003);
 
  // sleep(50);

@@ -9,12 +9,13 @@
 
 #include "env.h"
 #include "slash_mutex.h"
+#include "zp_data_partition.h"
 
 
 class ZPBinlogSenderThread : public pink::Thread {
  public:
 
-  ZPBinlogSenderThread(std::string &ip, int port, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset);
+  ZPBinlogSenderThread(Partition *partition, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset);
 
   virtual ~ZPBinlogSenderThread();
 
@@ -41,6 +42,7 @@ class ZPBinlogSenderThread : public pink::Thread {
   slash::Status Consume(std::string &scratch);
   unsigned int ReadPhysicalRecord(slash::Slice *fragment);
 
+  Partition *partition_;
   uint64_t con_offset_;
   uint32_t filenum_;
 
@@ -52,14 +54,14 @@ class ZPBinlogSenderThread : public pink::Thread {
   char* const backing_store_;
   slash::Slice buffer_;
 
-  std::string ip_;
-  int port_;
-
+  //TODO add rwlock
   pthread_rwlock_t rwlock_;
 
-  ZPPbCli *cli_;
+  // TODO Cli
 
   virtual void* ThreadMain();
+  uint32_t ParseMsgCode(std::string* scratch);
+  void SendToPeers(const std::string &data);
 };
 
 #endif

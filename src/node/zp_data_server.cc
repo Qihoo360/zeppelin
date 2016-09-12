@@ -10,7 +10,8 @@
 #include "rsync.h"
 
 ZPDataServer::ZPDataServer(const ZPOptions& options)
-  : options_(options),
+  : partition_total_(0),
+  options_(options),
   role_(Role::kNodeSingle),
   repl_state_(ReplState::kNoConnect),
   readonly_(false),
@@ -26,16 +27,17 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
   pthread_rwlockattr_init(&attr);
   pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
   pthread_rwlock_init(&server_rw_, &attr);
+  pthread_rwlock_init(&partition_rw_, NULL);
 
   // Create nemo handle
-  nemo::Options option;
-  std::string db_path = options.data_path;
+  //nemo::Options option;
+  //std::string db_path = options.data_path;
 
-  LOG(INFO) << "Loading data...";
-  db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(db_path, option));
-  assert(db_);
+  //LOG(INFO) << "Loading data...";
+  //db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(db_path, option));
+  //assert(db_);
 
-  LOG(INFO) << " Success";
+  //LOG(INFO) << " Success";
 
   // Create thread
   worker_num_ = 2; 
@@ -52,16 +54,20 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
 
   // TEST
   //logger_ = new Binlog(options_.log_path, 1024);
-  logger_ = new Binlog(options_.log_path);
+  //logger_ = new Binlog(options_.log_path);
 
   // TODO rm
   //LOG(INFO) << "local_host " << options_.local_ip << ":" << options.local_port;
+  DLOG(INFO) << "ZPDataServer cstor";
 }
 
 ZPDataServer::~ZPDataServer() {
-  //DLOG(INFO) << "~ZPDataServer dstor ";
-  for (auto iter = partitions_.begin(); iter != partitions_.end(); iter++) {
-    delete iter->second;
+  DLOG(INFO) << "~ZPDataServer dstor";
+  {
+    slash::RWLock l(&partition_rw_, true);
+    for (auto iter = partitions_.begin(); iter != partitions_.end(); iter++) {
+      delete iter->second;
+    }
   }
 
   delete bgsave_engine_;
@@ -82,6 +88,15 @@ ZPDataServer::~ZPDataServer() {
     }
   }
 
+  {
+    slash::MutexLock l(&mutex_peers_);
+    std::unordered_map<std::string, ZPPbCli*>::iterator iter = peers_.begin();
+    while (iter != peers_.end()) {
+      iter->second->Close();
+      delete iter->second;
+    }
+  }
+
   delete zp_ping_thread_;
   delete zp_binlog_receiver_thread_;
   delete zp_trysync_thread_;
@@ -91,9 +106,10 @@ ZPDataServer::~ZPDataServer() {
   pthread_rwlock_destroy(&state_rw_);
   pthread_rwlock_destroy(&meta_state_rw_);
   pthread_rwlock_destroy(&server_rw_);
+  pthread_rwlock_destroy(&partition_rw_);
 
-  db_.reset();
-  delete logger_;
+  //db_.reset();
+  //delete logger_;
   LOG(INFO) << "ZPDataServerThread " << pthread_self() << " exit!!!";
 }
 
@@ -101,7 +117,9 @@ Status ZPDataServer::Start() {
   zp_dispatch_thread_->StartThread();
   zp_binlog_receiver_thread_->StartThread();
 
+  // TODO test
   zp_ping_thread_->StartThread();
+
   zp_trysync_thread_->StartThread();
   zp_metacmd_worker_thread_->StartThread();
 
@@ -370,47 +388,48 @@ void ZPDataServer::DBSyncSendFile(const std::string& ip, int port) {
 
 // slave_mutex should be held
 Status ZPDataServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t offset) {
-  // Sanity check
-  uint32_t cur_filenum = 0;
-  uint64_t cur_offset = 0;
-  logger_->GetProducerStatus(&cur_filenum, &cur_offset);
-  if (cur_filenum < filenum || (cur_filenum == filenum && cur_offset < offset)) {
-    return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
-  }
+  return Status::OK();
+  //// Sanity check
+  //uint32_t cur_filenum = 0;
+  //uint64_t cur_offset = 0;
+  //logger_->GetProducerStatus(&cur_filenum, &cur_offset);
+  //if (cur_filenum < filenum || (cur_filenum == filenum && cur_offset < offset)) {
+  //  return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
+  //}
 
-  slash::SequentialFile *readfile;
-  std::string confile = NewFileName(logger_->filename, filenum);
-  if (!slash::FileExists(confile)) {
-    // Not found binlog specified by filenum
-    TryDBSync(slave.node.ip, slave.node.port + kPortShiftRsync, cur_filenum);
-    return Status::Incomplete("Bgsaving and DBSync first");
-    //return Status::InvalidArgument("AddBinlogSender invalid binlog filenum");
-  }
+  //slash::SequentialFile *readfile;
+  //std::string confile = NewFileName(logger_->filename, filenum);
+  //if (!slash::FileExists(confile)) {
+  //  // Not found binlog specified by filenum
+  //  TryDBSync(slave.node.ip, slave.node.port + kPortShiftRsync, cur_filenum);
+  //  return Status::Incomplete("Bgsaving and DBSync first");
+  //  //return Status::InvalidArgument("AddBinlogSender invalid binlog filenum");
+  //}
 
-  if (!slash::NewSequentialFile(confile, &readfile).ok()) {
-    return Status::IOError("AddBinlogSender new sequtialfile");
-  }
+  //if (!slash::NewSequentialFile(confile, &readfile).ok()) {
+  //  return Status::IOError("AddBinlogSender new sequtialfile");
+  //}
 
-  ZPBinlogSenderThread* sender = new ZPBinlogSenderThread(slave.node.ip, slave.node.port + kPortShiftSync, readfile, filenum, offset);
+  //ZPBinlogSenderThread* sender = new ZPBinlogSenderThread(slave.node.ip, slave.node.port + kPortShiftSync, readfile, filenum, offset);
 
-  slave.sender = sender;
+  //slave.sender = sender;
 
-  if (sender->trim() == 0) {
-    sender->StartThread();
-    pthread_t tid = sender->thread_id();
-    slave.sender_tid = tid;
+  //if (sender->trim() == 0) {
+  //  sender->StartThread();
+  //  pthread_t tid = sender->thread_id();
+  //  slave.sender_tid = tid;
 
-    LOG(INFO) << "AddBinlogSender ok, tid is " << slave.sender_tid;
-    // Add sender
-//    slash::MutexLock l(&slave_mutex_);
-    slaves_.push_back(slave);
-    DLOG(INFO) << " slaves_ size=" << slaves_.size();
+  //  LOG(INFO) << "AddBinlogSender ok, tid is " << slave.sender_tid;
+  //  // Add sender
+////    slash::MutexLock l(&slave_mutex_);
+  //  slaves_.push_back(slave);
+  //  DLOG(INFO) << " slaves_ size=" << slaves_.size();
 
-    return Status::OK();
-  } else {
-    LOG(WARNING) << "AddBinlogSender failed";
-    return Status::NotFound("AddBinlogSender bad sender");
-  }
+  //  return Status::OK();
+  //} else {
+  //  LOG(WARNING) << "AddBinlogSender failed";
+  //  return Status::NotFound("AddBinlogSender bad sender");
+  //}
 }
 
 void ZPDataServer::DeleteSlave(int fd) {
@@ -636,29 +655,78 @@ bool ZPDataServer::Bgsaveoff() {
 }
 
 bool ZPDataServer::UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes) {
-  if (partitions_.find(partition_id) != partitions_.end()) {
+  auto iter = partitions_.find(partition_id);
+  if (iter != partitions_.end()) {
     //TODO exist partition: update it
     // BecomeMaster BecomeSlave
-    Node current_master;
-    {
-      slash::RWLock l(&state_rw_, false);
-      current_master = Node(master_ip_, master_port_);
-    }
+    Partition* partition = iter->second;
+    Node current_master = partition->master_node();
+
     if ((nodes[0].ip != options_.local_ip || nodes[0].port != options_.local_port)  // I'm not the told master
         && (nodes[0] != current_master)) {          // and there's a new master
-      BecomeSlave(nodes[0].ip, nodes[0].port);
+      partition->Update(nodes);
+      partition->BecomeSlave();
+    }
+    if ((nodes[0].ip == options_.local_ip && nodes[0].port == options_.local_port)  // I'm the told master and
+        && !partition->is_master()) {
+      partition->Update(nodes);
+      partition->BecomeMaster();
     }
 
-    if ((nodes[0].ip == options_.local_ip && nodes[0].port && options_.local_port)         // I'm the told master and
-        && !is_master()) { 
-      BecomeMaster();
-    }
     return true;
   }
 
   // New Partition
   Partition* partition = NewPartition(options_.log_path, options_.data_path, partition_id, nodes);
   assert(partition != NULL);
-  partitions_[partition_id] = partition;
+  {
+    slash::RWLock l(&partition_rw_, true);
+    DLOG(INFO) << "DataServer hold partition_rw ->";
+    partitions_[partition_id] = partition;
+    DLOG(INFO) << "DataServer release partition_rw <-";
+  }
+
   return true;
 }
+
+Status ZPDataServer::SendToPeer(const std::string &peer_ip, int peer_port, const std::string &data) {
+  pink::Status res;
+  std::string ip_port = slash::IpPortString(peer_ip, peer_port);
+
+  slash::MutexLock pl(&mutex_peers_);
+  std::unordered_map<std::string, ZPPbCli*>::iterator iter = peers_.find(ip_port);
+  if (iter == peers_.end()) {
+    ZPPbCli *cli = new ZPPbCli();
+    res = cli->Connect(peer_ip, peer_port);
+    if (!res.ok()) {
+      delete cli;
+      return Status::Corruption(res.ToString());
+    }
+    iter = (peers_.insert(std::pair<std::string, ZPPbCli*>(ip_port, cli))).first;
+  }
+
+  res = iter->second->SendRaw(data.data(), data.size());
+  if (!res.ok()) {
+    // Remove when second Failed, retry outside
+    iter->second->Close();
+    delete iter->second;
+    peers_.erase(iter);
+    return Status::Corruption(res.ToString());
+  }
+  return Status::OK();
+}
+
+Partition* ZPDataServer::GetPartition(const std::string &key) {
+  uint32_t id = KeyToPartition(key);
+  if (partitions_.find(id) != partitions_.end()) {
+    return partitions_[id];
+  } else {
+    return NULL;
+  }
+}
+inline uint32_t ZPDataServer::KeyToPartition(const std::string &key) {
+  assert(partition_total_ != 0);
+  return std::hash<std::string>()(key) % partition_total_;
+}
+
+

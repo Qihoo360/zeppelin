@@ -247,17 +247,24 @@ class CmdRequest_Sync : public ::google::protobuf::Message {
   inline ::client::Node* release_node();
   inline void set_allocated_node(::client::Node* node);
 
-  // required int32 filenum = 2 [default = 0];
+  // required int32 partition_id = 2;
+  inline bool has_partition_id() const;
+  inline void clear_partition_id();
+  static const int kPartitionIdFieldNumber = 2;
+  inline ::google::protobuf::int32 partition_id() const;
+  inline void set_partition_id(::google::protobuf::int32 value);
+
+  // required int32 filenum = 3 [default = 0];
   inline bool has_filenum() const;
   inline void clear_filenum();
-  static const int kFilenumFieldNumber = 2;
+  static const int kFilenumFieldNumber = 3;
   inline ::google::protobuf::int32 filenum() const;
   inline void set_filenum(::google::protobuf::int32 value);
 
-  // required int32 offset = 3 [default = 0];
+  // required int32 offset = 4 [default = 0];
   inline bool has_offset() const;
   inline void clear_offset();
-  static const int kOffsetFieldNumber = 3;
+  static const int kOffsetFieldNumber = 4;
   inline ::google::protobuf::int32 offset() const;
   inline void set_offset(::google::protobuf::int32 value);
 
@@ -265,6 +272,8 @@ class CmdRequest_Sync : public ::google::protobuf::Message {
  private:
   inline void set_has_node();
   inline void clear_has_node();
+  inline void set_has_partition_id();
+  inline void clear_has_partition_id();
   inline void set_has_filenum();
   inline void clear_has_filenum();
   inline void set_has_offset();
@@ -273,11 +282,12 @@ class CmdRequest_Sync : public ::google::protobuf::Message {
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::client::Node* node_;
+  ::google::protobuf::int32 partition_id_;
   ::google::protobuf::int32 filenum_;
   ::google::protobuf::int32 offset_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -1196,15 +1206,37 @@ inline void CmdRequest_Sync::set_allocated_node(::client::Node* node) {
   }
 }
 
-// required int32 filenum = 2 [default = 0];
-inline bool CmdRequest_Sync::has_filenum() const {
+// required int32 partition_id = 2;
+inline bool CmdRequest_Sync::has_partition_id() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void CmdRequest_Sync::set_has_filenum() {
+inline void CmdRequest_Sync::set_has_partition_id() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void CmdRequest_Sync::clear_has_filenum() {
+inline void CmdRequest_Sync::clear_has_partition_id() {
   _has_bits_[0] &= ~0x00000002u;
+}
+inline void CmdRequest_Sync::clear_partition_id() {
+  partition_id_ = 0;
+  clear_has_partition_id();
+}
+inline ::google::protobuf::int32 CmdRequest_Sync::partition_id() const {
+  return partition_id_;
+}
+inline void CmdRequest_Sync::set_partition_id(::google::protobuf::int32 value) {
+  set_has_partition_id();
+  partition_id_ = value;
+}
+
+// required int32 filenum = 3 [default = 0];
+inline bool CmdRequest_Sync::has_filenum() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void CmdRequest_Sync::set_has_filenum() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void CmdRequest_Sync::clear_has_filenum() {
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline void CmdRequest_Sync::clear_filenum() {
   filenum_ = 0;
@@ -1218,15 +1250,15 @@ inline void CmdRequest_Sync::set_filenum(::google::protobuf::int32 value) {
   filenum_ = value;
 }
 
-// required int32 offset = 3 [default = 0];
+// required int32 offset = 4 [default = 0];
 inline bool CmdRequest_Sync::has_offset() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
+  return (_has_bits_[0] & 0x00000008u) != 0;
 }
 inline void CmdRequest_Sync::set_has_offset() {
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000008u;
 }
 inline void CmdRequest_Sync::clear_has_offset() {
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline void CmdRequest_Sync::clear_offset() {
   offset_ = 0;

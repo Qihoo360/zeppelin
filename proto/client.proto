@@ -24,8 +24,9 @@ message CmdRequest {
   // Sync
   message Sync {
     required Node node = 1;
-    required int32 filenum = 2 [default = 0];
-    required int32 offset = 3 [default = 0];
+    required int32 partition_id = 2;
+    required int32 filenum = 3 [default = 0];
+    required int32 offset = 4 [default = 0];
   }
   optional Sync sync = 2; 
 

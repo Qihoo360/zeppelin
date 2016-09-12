@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <unordered_set>
+#include <unordered_map>
 
 #include "zp_options.h"
 #include "zp_binlog.h"
@@ -101,8 +102,6 @@ class ZPDataServer {
     return zp_binlog_receiver_thread_;
   };
 
-  // Partition
-  bool UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes);
 
   bool FindSlave(const Node& node);
   Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
@@ -158,6 +157,7 @@ class ZPDataServer {
     bgsave_info_.bgsaving = false;
   }
 
+
   bool ShouldJoinMeta();
   void PlusMetaServerConns();
   void MinusMetaServerConns();
@@ -173,13 +173,31 @@ class ZPDataServer {
   slash::Mutex server_mutex_;
 
   pthread_rwlock_t server_rw_;
+  
+  // Partition
+  pthread_rwlock_t partition_rw_;
+  bool UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes);
+  uint32_t partition_total_;
+  std::map<int, Partition*> partitions_;
+
+  void SetPartitionTotal(uint32_t total) {
+    partition_total_ = total;
+  }
+  Partition* GetPartition(const std::string &key);
+  // Peer Client
+  Status SendToPeer(const std::string &peer_ip, int peer_port, const std::string &data);
 
  private:
 
   ZPOptions options_;
 
   // Partitions
-  std::map<int, Partition*> partitions_;
+  //bool UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes);
+  uint32_t KeyToPartition(const std::string &key);
+
+  // Peer Client
+  slash::Mutex mutex_peers_;
+  std::unordered_map<std::string, ZPPbCli*> peers_;
 
   // DB
   std::shared_ptr<nemo::Nemo> db_;

@@ -39,3 +39,11 @@ pink::Status ZPPbCli::SendRaw(const void *msg, size_t size) {
 
   return s;
 }
+
+////// ZPPbFixCli//////
+ZPPbFixCli::ZPPbFixCli(const std::string &ip, const int port)
+  : PbCli(),
+    ip_(ip),
+    port_(port),
+    connected(false) {
+}

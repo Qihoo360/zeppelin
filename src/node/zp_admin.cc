@@ -19,9 +19,10 @@ void UpdateCmd::Do(google::protobuf::Message *req, google::protobuf::Message *re
   ZPMeta::MetaCmdResponse* response = dynamic_cast<ZPMeta::MetaCmdResponse*>(res);
   ZPMeta::MetaCmd_Update update = request->update();
 
+  DLOG(INFO) << "receive Update message, will handle " << update.info_size() << " Partitions.";
   for (int i = 0; i < update.info_size(); i++) {
     const ZPMeta::Partitions& partition = update.info(i);
-    DLOG(INFO) << "receive Update message, master is " << partition.master().ip() << ":" << partition.master().port();
+    DLOG(INFO) << " - handle Partition " << partition.id() << ": master is " << partition.master().ip() << ":" << partition.master().port();
 
     std::vector<Node> nodes;
     nodes.push_back(Node(partition.master().ip(), partition.master().port()));
