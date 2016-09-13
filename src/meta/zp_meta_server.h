@@ -1,5 +1,5 @@
-#ifndef ZP_MASTER_SERVER_H
-#define ZP_MASTER_SERVER_H
+#ifndef ZP_META_SERVER_H
+#define ZP_META_SERVER_H
 
 #include <stdio.h>
 #include <string>
@@ -15,7 +15,6 @@
 
 using slash::Status;
 
-
 typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
 
 class ZPMetaServer {
@@ -24,11 +23,6 @@ class ZPMetaServer {
   explicit ZPMetaServer(const ZPOptions& option);
   virtual ~ZPMetaServer();
   Status Start();
-  
-  Status Set(const std::string &key, const std::string &value);
-  Status Get(const std::string &key, std::string &value);
-  Status Delete(const std::string &key);
-
   std::string seed_ip() {
     return options_.seed_ip;
   }
@@ -42,24 +36,16 @@ class ZPMetaServer {
     return options_.local_port;
   }
 
-  Status Distribute(int num);
-
-
+  // Node alive related
   Status AddNodeAlive(const std::string& ip_port);
-  Status GetAllNode(ZPMeta::Nodes &nodes);
-  void GetAllAliveNode(ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
-  bool FindNode(ZPMeta::Nodes &nodes, const std::string &ip, int port);
-  Status SetNodeStatus(ZPMeta::Nodes &nodes, const std::string &ip, int port, int status /*0-UP 1-DOWN*/);
-  Status AddNode(const std::string &ip, int port);
-  Status OffNode(const std::string &ip, int port);
   void CheckNodeAlive();
   void UpdateNodeAlive(const std::string& ip_port);
   
-  Status SetReplicaset(uint32_t partition_id, const ZPMeta::Replicaset &replicaset);
-  Status SetMSInfo(const ZPMeta::MetaCmd_Update &ms_info);
+  // Floyd related
+  Status Distribute(int num);
   Status GetMSInfo(ZPMeta::MetaCmd_Update &ms_info);
-
-  int PNums();
+  int PartitionNums();
+  Status OffNode(const std::string &ip, int port);
 
   // Leader related
   bool IsLeader();
@@ -76,11 +62,16 @@ private:
 
   // Floyd related
   floyd::Floyd* floyd_;
-  std::string PartitionId2Key(uint32_t id) {
-    std::string key(ZP_META_KEY_PREFIX);
-    key += std::to_string(id);
-    return key;
-  }
+  Status Set(const std::string &key, const std::string &value);
+  Status Get(const std::string &key, std::string &value);
+  Status Delete(const std::string &key);
+  Status GetAllNode(ZPMeta::Nodes &nodes);
+  void GetAllAliveNode(ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
+  bool FindNode(ZPMeta::Nodes &nodes, const std::string &ip, int port);
+  Status SetNodeStatus(ZPMeta::Nodes &nodes, const std::string &ip, int port, int status /*0-UP 1-DOWN*/);
+  Status AddNode(const std::string &ip, int port);
+  Status SetReplicaset(uint32_t partition_id, const ZPMeta::Replicaset &replicaset);
+  Status SetMSInfo(const ZPMeta::MetaCmd_Update &ms_info);
 
   // Alive Check
   slash::Mutex alive_mutex_;
@@ -96,22 +87,10 @@ private:
   std::string leader_ip_;
   int leader_cmd_port_;
   Status BecomeLeader();
-  void CleanLeader() {
-    if (leader_cli_) {
-      leader_cli_->Close();
-      delete leader_cli_;
-    }
-    leader_ip_.clear();
-    leader_cmd_port_ = 0;
-  }
-  bool GetLeader(std::string& ip, int& port) {
-    int fy_port = 0;
-    bool res = floyd_->GetLeader(ip, fy_port);
-    if (res) {
-      port = fy_port - kMetaPortShiftFY;
-    }
-    return res;
-  }
+  void CleanLeader();
+  bool GetLeader(std::string& ip, int& port);
 };
+
+std::string PartitionId2Key(uint32_t id);
 
 #endif

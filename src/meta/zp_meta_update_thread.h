@@ -13,40 +13,17 @@
 typedef std::unordered_map<std::string, pink::PbCli*> DataCliMap;
 
 enum ZPMetaUpdateOP {
-  OP_ADD,
-  OP_REMOVE
+  kOpAdd,
+  kOpRemove
 };
 
 class ZPMetaUpdateThread {
 public:
   ZPMetaUpdateThread();
-  
-  ~ZPMetaUpdateThread() {
-    worker_.Stop();
-    DataCliMap::iterator it = data_sender_.begin();
-    for (; it != data_sender_.end(); ++it) {
-      (it->second)->Close();
-      delete it->second;
-    }
-  }
+  ~ZPMetaUpdateThread();
 
-  void ScheduleUpdate(const std::string ip_port, ZPMetaUpdateOP op) {
-    std::string ip;
-    int port;
-    if (!slash::ParseIpPortString(ip_port, ip, port)) {
-      return;
-    }
-    ZPMetaUpdateArgs* arg = new ZPMetaUpdateArgs(this, ip, port, op);
-    worker_.StartIfNeed();
-    LOG(INFO) << "Schedule to update thread worker, update";
-    worker_.Schedule(&DoMetaUpdate, static_cast<void*>(arg));
-  }
-
-  void ScheduleBroadcast() {
-    worker_.StartIfNeed();
-    LOG(INFO) << "Schedule to update thread worker, broadcast";
-    worker_.Schedule(&DoMetaBroadcast, static_cast<void*>(this));
-  }
+  void ScheduleUpdate(const std::string ip_port, ZPMetaUpdateOP op);
+  void ScheduleBroadcast();
 
   static void DoMetaUpdate(void *);
   static void DoMetaBroadcast(void *);

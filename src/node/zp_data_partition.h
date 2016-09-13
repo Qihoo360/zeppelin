@@ -6,6 +6,7 @@
 #include <functional>
 
 #include "zp_const.h"
+#include "client.pb.h"
 #include "zp_options.h"
 #include "zp_binlog.h"
 #include "zp_meta_utils.h"
@@ -24,6 +25,10 @@ class Partition {
  public:
   Partition(const int partition_id, const std::string &log_path, const std::string &data_path);
   ~Partition();
+  
+  bool readonly() {
+    return readonly_;
+  }
 
   bool FindSlave(const Node& node);
   Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
@@ -42,8 +47,9 @@ class Partition {
   void Init(const std::vector<Node> &nodes);
   void Update(const std::vector<Node> &nodes);
 
-  void DoCommand(Cmd* cmd, google::protobuf::Message &req, google::protobuf::Message &res,
-     const std::string &raw_msg);
+  void DoBinlogCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse &res, const std::string &raw_msg);
+  void DoCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse &res,
+     const std::string &raw_msg, bool is_from_binlog = false);
 
   int partition_id() {
     slash::RWLock l(&state_rw_, false);
@@ -67,6 +73,7 @@ class Partition {
   std::string data_path_;
   Node master_node_;
   std::vector<Node> slave_nodes_;
+  std::atomic<bool> readonly_;
 
   // State related
   pthread_rwlock_t state_rw_;

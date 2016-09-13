@@ -23,12 +23,6 @@ int ZPDataClientConn::DealMessage() {
   self_thread_->PlusThreadQuerynum();
   request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
 
-  //int ret = request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
-  //DLOG(INFO) << "DataClientConn ParseFromArray return " << ret << ", cur_pos_=" << cur_pos_ << ", header_len_=" << header_len_ << ", rbuf_len=" << rbuf_len_;
- // if (!ret) {
- //     DLOG(INFO) << "DealMessage  ParseFromArray failed";
- // }
-
   // TODO test only
   switch (request_.type()) {
     case client::Type::SET: {
@@ -57,43 +51,14 @@ int ZPDataClientConn::DealMessage() {
   }
 
   set_is_reply(true);
-
-  if (cmd->is_write()) {
-    // TODO  very ugly implementation for readonly
-    if (zp_data_server->readonly()) {
-      cmd->Do(&request_, &response_, true);
-      res_ = &response_;
-      return 0;
-    }
-    // TODO add RecordLock for write cmd
-    zp_data_server->mutex_record_.Lock(cmd->key());
+  std::string raw_msg(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4);
+  Partition* partition = zp_data_server->GetPartition(cmd->key());
+  if (partition == NULL) {
+    LOG(ERROR) << "Error partition";
   }
-
-  // Add read lock for no suspend command
-  if (!cmd->is_suspend()) {
-    pthread_rwlock_rdlock(&(zp_data_server->server_rw_));
-  }
-
-  cmd->Do(&request_, &response_);
-
-  if (cmd->is_write()) {
-    if (cmd->result().ok() && request_.type() != client::Type::SYNC) {
-      // Restore Message
-      std::string raw_msg(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4);
-      zp_data_server->logger_->Lock();
-      zp_data_server->logger_->Put(raw_msg);
-      zp_data_server->logger_->Unlock();
-    }
-    // TODO add RecordLock for write cmd
-    zp_data_server->mutex_record_.Unlock(cmd->key());
-  }
-
-  if (!cmd->is_suspend()) {
-    pthread_rwlock_unlock(&(zp_data_server->server_rw_));
-  }
+  partition->DoCommand(cmd, request_, response_, raw_msg);
 
   res_ = &response_;
-
   return 0;
 }
 

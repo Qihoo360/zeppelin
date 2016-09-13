@@ -9,6 +9,33 @@ extern ZPMetaServer* zp_meta_server;
 ZPMetaUpdateThread::ZPMetaUpdateThread() {
 }
 
+ZPMetaUpdateThread::~ZPMetaUpdateThread() {
+  worker_.Stop();
+  DataCliMap::iterator it = data_sender_.begin();
+  for (; it != data_sender_.end(); ++it) {
+    (it->second)->Close();
+    delete it->second;
+  }
+}
+
+void ZPMetaUpdateThread::ScheduleUpdate(const std::string ip_port, ZPMetaUpdateOP op) {
+  std::string ip;
+  int port;
+  if (!slash::ParseIpPortString(ip_port, ip, port)) {
+    return;
+  }
+  ZPMetaUpdateArgs* arg = new ZPMetaUpdateArgs(this, ip, port, op);
+  worker_.StartIfNeed();
+  LOG(INFO) << "Schedule to update thread worker, update";
+  worker_.Schedule(&DoMetaUpdate, static_cast<void*>(arg));
+}
+
+void ZPMetaUpdateThread::ScheduleBroadcast() {
+  worker_.StartIfNeed();
+  LOG(INFO) << "Schedule to update thread worker, broadcast";
+  worker_.Schedule(&DoMetaBroadcast, static_cast<void*>(this));
+}
+
 void ZPMetaUpdateThread::DoMetaUpdate(void *p) {
   ZPMetaUpdateThread::ZPMetaUpdateArgs *args = static_cast<ZPMetaUpdateThread::ZPMetaUpdateArgs*>(p);
   ZPMetaUpdateThread *thread = args->thread;
@@ -35,8 +62,8 @@ slash::Status ZPMetaUpdateThread::MetaUpdate(const std::string ip, int port, ZPM
 
   ZPMeta::MetaCmd_Update ms_info;
 
-  if (ZPMetaUpdateOP::OP_ADD == op) {
-    if (zp_meta_server->PNums() == 0) {
+  if (ZPMetaUpdateOP::kOpAdd == op) {
+    if (zp_meta_server->PartitionNums() == 0) {
       return s;
     }
 
@@ -50,7 +77,7 @@ slash::Status ZPMetaUpdateThread::MetaUpdate(const std::string ip, int port, ZPM
     SendUpdate(ip, port, ms_info);
     LOG(INFO) << "send update to data node success";
 
-  } else if (ZPMetaUpdateOP::OP_REMOVE == op) {
+  } else if (ZPMetaUpdateOP::kOpRemove == op) {
     s = zp_meta_server->OffNode(ip, port);
     if (!s.ok()) {
       LOG(ERROR) << "UpdateThread: OffNode error, " << s.ToString();
@@ -88,7 +115,7 @@ slash::Status ZPMetaUpdateThread::MetaBroadcast() {
 slash::Status ZPMetaUpdateThread::UpdateSender(const std::string &ip, int port, ZPMetaUpdateOP op) {
   std::string ip_port = slash::IpPortString(ip, port);
   slash::Status s;
-  if (ZPMetaUpdateOP::OP_ADD == op) {
+  if (ZPMetaUpdateOP::kOpAdd == op) {
     if (data_sender_.find(ip_port) == data_sender_.end()) {
       pink::PbCli *pb_cli = new pink::PbCli();
       pink::Status s = pb_cli->Connect(ip, port);
@@ -101,7 +128,7 @@ slash::Status ZPMetaUpdateThread::UpdateSender(const std::string &ip, int port, 
       pb_cli->set_recv_timeout(1000);
       data_sender_.insert(std::pair<std::string, pink::PbCli*>(ip_port, pb_cli));
     }
-  } else if (ZPMetaUpdateOP::OP_REMOVE == op) {
+  } else if (ZPMetaUpdateOP::kOpRemove == op) {
     data_sender_.erase(ip_port);
   } else {
       return slash::Status::Corruption("unknown ZPMetaUpdate OP");

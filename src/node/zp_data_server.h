@@ -87,9 +87,6 @@ class ZPDataServer {
     return "";
   }
 
-  bool readonly() {
-    return readonly_;
-  }
   void Exit() {
     should_exit_ = true;
   }
@@ -217,7 +214,6 @@ class ZPDataServer {
   int repl_state_;  
   std::string master_ip_;
   int master_port_;
-  std::atomic<bool> readonly_;
   std::atomic<bool> should_exit_;
 
   // Meta State related

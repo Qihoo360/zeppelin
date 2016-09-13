@@ -14,7 +14,6 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
   options_(options),
   role_(Role::kNodeSingle),
   repl_state_(ReplState::kNoConnect),
-  readonly_(false),
   should_exit_(false),
   should_rejoin_(false),
   meta_state_(MetaState::kMetaConnect),
@@ -454,7 +453,6 @@ void ZPDataServer::BecomeMaster() {
     repl_state_ = ReplState::kNoConnect;
     master_ip_ = "";
     master_port_ = -1;
-    readonly_ = false;
   }
 }
 
@@ -485,7 +483,6 @@ void ZPDataServer::BecomeSlave(const std::string& master_ip, int master_port) {
     repl_state_ = ReplState::kShouldConnect;
     master_ip_ = master_ip;
     master_port_ = master_port;
-    readonly_ = true;
   }
 }
 
