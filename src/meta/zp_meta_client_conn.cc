@@ -20,6 +20,7 @@ ZPMetaClientConn::~ZPMetaClientConn() {
 
 // Msg is  [ length (int32) | pb_msg (length bytes) ]
 int ZPMetaClientConn::DealMessage() {
+  bool need_redirect = true;
   request_.ParseFromArray(rbuf_ + 4, header_len_);
   // TODO test only
   switch (request_.type()) {
@@ -29,12 +30,16 @@ int ZPMetaClientConn::DealMessage() {
     case ZPMeta::MetaCmd_Type::MetaCmd_Type_PING:
       DLOG(INFO) << "Receive ping cmd";
       break;
+    case ZPMeta::MetaCmd_Type::MetaCmd_Type_PULL:
+      need_redirect = false;
+      DLOG(INFO) << "Receive pull cmd";
+      break;
     default:
       DLOG(INFO) << "Receive unknow meta cmd";
   }
   
   // Redirect to leader if needed
-  if (!zp_meta_server->IsLeader()) {
+  if (!zp_meta_server->IsLeader() || need_redirect) {
     Status s = zp_meta_server->RedirectToLeader(request_, response_);
     if (!s.ok()) {
       LOG(ERROR) << "Failed to redirect to leader : " << s.ToString();

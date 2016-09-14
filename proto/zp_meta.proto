@@ -82,7 +82,7 @@ message MetaCmdResponse {
     required StatusCode code = 1;
     optional bytes msg = 2;
   }
-  optional Status status = 2;
+  required Status status = 2;
 
   // Pull
   optional MetaCmd.Update pull = 3;

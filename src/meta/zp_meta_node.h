@@ -15,5 +15,10 @@ class PingCmd : public Cmd {
   virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly = false);
 };
 
+class PullCmd : public Cmd {
+ public:
+  PullCmd(int flag) : Cmd(flag) {}
+  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly = false);
+};
 
 #endif

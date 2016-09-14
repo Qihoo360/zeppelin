@@ -357,7 +357,7 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "Type\022\010\n\004JOIN\020\001\022\010\n\004PING\020\002\022\n\n\006UPDATE\020\003\022\010\n\004"
     "PULL\020\004\"\376\001\n\017MetaCmdResponse\022*\n\004type\030\001 \002(\016"
     "2\034.ZPMeta.MetaCmdResponse.Type\022.\n\006status"
-    "\030\002 \001(\0132\036.ZPMeta.MetaCmdResponse.Status\022$"
+    "\030\002 \002(\0132\036.ZPMeta.MetaCmdResponse.Status\022$"
     "\n\004pull\030\003 \001(\0132\026.ZPMeta.MetaCmd.Update\0327\n\006"
     "Status\022 \n\004code\030\001 \002(\0162\022.ZPMeta.StatusCode"
     "\022\013\n\003msg\030\002 \001(\014\"0\n\004Type\022\010\n\004JOIN\020\001\022\010\n\004PING\020"
@@ -3372,7 +3372,7 @@ bool MetaCmdResponse::MergePartialFromCodedStream(
         break;
       }
 
-      // optional .ZPMeta.MetaCmdResponse.Status status = 2;
+      // required .ZPMeta.MetaCmdResponse.Status status = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -3424,7 +3424,7 @@ void MetaCmdResponse::SerializeWithCachedSizes(
       1, this->type(), output);
   }
 
-  // optional .ZPMeta.MetaCmdResponse.Status status = 2;
+  // required .ZPMeta.MetaCmdResponse.Status status = 2;
   if (has_status()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
       2, this->status(), output);
@@ -3450,7 +3450,7 @@ void MetaCmdResponse::SerializeWithCachedSizes(
       1, this->type(), target);
   }
 
-  // optional .ZPMeta.MetaCmdResponse.Status status = 2;
+  // required .ZPMeta.MetaCmdResponse.Status status = 2;
   if (has_status()) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -3481,7 +3481,7 @@ int MetaCmdResponse::ByteSize() const {
         ::google::protobuf::internal::WireFormatLite::EnumSize(this->type());
     }
 
-    // optional .ZPMeta.MetaCmdResponse.Status status = 2;
+    // required .ZPMeta.MetaCmdResponse.Status status = 2;
     if (has_status()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
@@ -3548,7 +3548,7 @@ void MetaCmdResponse::CopyFrom(const MetaCmdResponse& from) {
 }
 
 bool MetaCmdResponse::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
+  if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
 
   if (has_status()) {
     if (!this->status().IsInitialized()) return false;

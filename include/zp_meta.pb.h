@@ -1276,7 +1276,7 @@ class MetaCmdResponse : public ::google::protobuf::Message {
   inline ::ZPMeta::MetaCmdResponse_Type type() const;
   inline void set_type(::ZPMeta::MetaCmdResponse_Type value);
 
-  // optional .ZPMeta.MetaCmdResponse.Status status = 2;
+  // required .ZPMeta.MetaCmdResponse.Status status = 2;
   inline bool has_status() const;
   inline void clear_status();
   static const int kStatusFieldNumber = 2;
@@ -2141,7 +2141,7 @@ inline void MetaCmdResponse::set_type(::ZPMeta::MetaCmdResponse_Type value) {
   type_ = value;
 }
 
-// optional .ZPMeta.MetaCmdResponse.Status status = 2;
+// required .ZPMeta.MetaCmdResponse.Status status = 2;
 inline bool MetaCmdResponse::has_status() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
