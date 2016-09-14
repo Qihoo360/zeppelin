@@ -36,6 +36,7 @@ message MetaCmd {
     JOIN = 1;
     PING = 2;
     UPDATE = 3;
+    PULL = 4;
   }
 
   required Type type = 1;
@@ -57,6 +58,12 @@ message MetaCmd {
     repeated Partitions info = 1;
   }
   optional Update update = 4;
+
+  // Pull
+  message Pull {
+    optional string content = 1;  
+  }
+  optional Pull pull = 5;
 }
 
 
@@ -65,13 +72,18 @@ message MetaCmdResponse {
     JOIN = 1;
     PING = 2;
     UPDATE = 3;
+    PULL = 4;
   }
 
   required Type type = 1;
 
+  // Join Ping Update
   message Status {
     required StatusCode code = 1;
     optional bytes msg = 2;
   }
-  required Status status = 2;
+  optional Status status = 2;
+
+  // Pull
+  optional MetaCmd.Update pull = 3;
 }
