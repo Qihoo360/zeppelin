@@ -37,6 +37,7 @@ message MetaCmd {
     PING = 2;
     UPDATE = 3;
     PULL = 4;
+    INIT = 5;
   }
 
   required Type type = 1;
@@ -64,6 +65,12 @@ message MetaCmd {
     optional string content = 1;  
   }
   optional Pull pull = 5;
+
+  // Init
+  message Init {
+    optional int32 num = 1;  
+  }
+  optional Init init = 6;
 }
 
 
@@ -73,6 +80,7 @@ message MetaCmdResponse {
     PING = 2;
     UPDATE = 3;
     PULL = 4;
+    INIT = 5;
   }
 
   required Type type = 1;

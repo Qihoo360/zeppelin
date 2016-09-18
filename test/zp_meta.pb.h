@@ -44,6 +44,7 @@ class MetaCmd_Join;
 class MetaCmd_Ping;
 class MetaCmd_Update;
 class MetaCmd_Pull;
+class MetaCmd_Init;
 class MetaCmdResponse;
 class MetaCmdResponse_Status;
 
@@ -51,11 +52,12 @@ enum MetaCmd_Type {
   MetaCmd_Type_JOIN = 1,
   MetaCmd_Type_PING = 2,
   MetaCmd_Type_UPDATE = 3,
-  MetaCmd_Type_PULL = 4
+  MetaCmd_Type_PULL = 4,
+  MetaCmd_Type_INIT = 5
 };
 bool MetaCmd_Type_IsValid(int value);
 const MetaCmd_Type MetaCmd_Type_Type_MIN = MetaCmd_Type_JOIN;
-const MetaCmd_Type MetaCmd_Type_Type_MAX = MetaCmd_Type_PULL;
+const MetaCmd_Type MetaCmd_Type_Type_MAX = MetaCmd_Type_INIT;
 const int MetaCmd_Type_Type_ARRAYSIZE = MetaCmd_Type_Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* MetaCmd_Type_descriptor();
@@ -72,11 +74,12 @@ enum MetaCmdResponse_Type {
   MetaCmdResponse_Type_JOIN = 1,
   MetaCmdResponse_Type_PING = 2,
   MetaCmdResponse_Type_UPDATE = 3,
-  MetaCmdResponse_Type_PULL = 4
+  MetaCmdResponse_Type_PULL = 4,
+  MetaCmdResponse_Type_INIT = 5
 };
 bool MetaCmdResponse_Type_IsValid(int value);
 const MetaCmdResponse_Type MetaCmdResponse_Type_Type_MIN = MetaCmdResponse_Type_JOIN;
-const MetaCmdResponse_Type MetaCmdResponse_Type_Type_MAX = MetaCmdResponse_Type_PULL;
+const MetaCmdResponse_Type MetaCmdResponse_Type_Type_MAX = MetaCmdResponse_Type_INIT;
 const int MetaCmdResponse_Type_Type_ARRAYSIZE = MetaCmdResponse_Type_Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* MetaCmdResponse_Type_descriptor();
@@ -929,6 +932,88 @@ class MetaCmd_Pull : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class MetaCmd_Init : public ::google::protobuf::Message {
+ public:
+  MetaCmd_Init();
+  virtual ~MetaCmd_Init();
+
+  MetaCmd_Init(const MetaCmd_Init& from);
+
+  inline MetaCmd_Init& operator=(const MetaCmd_Init& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const MetaCmd_Init& default_instance();
+
+  void Swap(MetaCmd_Init* other);
+
+  // implements Message ----------------------------------------------
+
+  MetaCmd_Init* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const MetaCmd_Init& from);
+  void MergeFrom(const MetaCmd_Init& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional int32 num = 1;
+  inline bool has_num() const;
+  inline void clear_num();
+  static const int kNumFieldNumber = 1;
+  inline ::google::protobuf::int32 num() const;
+  inline void set_num(::google::protobuf::int32 value);
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd.Init)
+ private:
+  inline void set_has_num();
+  inline void clear_has_num();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::int32 num_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static MetaCmd_Init* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class MetaCmd : public ::google::protobuf::Message {
  public:
   MetaCmd();
@@ -985,12 +1070,14 @@ class MetaCmd : public ::google::protobuf::Message {
   typedef MetaCmd_Ping Ping;
   typedef MetaCmd_Update Update;
   typedef MetaCmd_Pull Pull;
+  typedef MetaCmd_Init Init;
 
   typedef MetaCmd_Type Type;
   static const Type JOIN = MetaCmd_Type_JOIN;
   static const Type PING = MetaCmd_Type_PING;
   static const Type UPDATE = MetaCmd_Type_UPDATE;
   static const Type PULL = MetaCmd_Type_PULL;
+  static const Type INIT = MetaCmd_Type_INIT;
   static inline bool Type_IsValid(int value) {
     return MetaCmd_Type_IsValid(value);
   }
@@ -1057,6 +1144,15 @@ class MetaCmd : public ::google::protobuf::Message {
   inline ::ZPMeta::MetaCmd_Pull* release_pull();
   inline void set_allocated_pull(::ZPMeta::MetaCmd_Pull* pull);
 
+  // optional .ZPMeta.MetaCmd.Init init = 6;
+  inline bool has_init() const;
+  inline void clear_init();
+  static const int kInitFieldNumber = 6;
+  inline const ::ZPMeta::MetaCmd_Init& init() const;
+  inline ::ZPMeta::MetaCmd_Init* mutable_init();
+  inline ::ZPMeta::MetaCmd_Init* release_init();
+  inline void set_allocated_init(::ZPMeta::MetaCmd_Init* init);
+
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd)
  private:
   inline void set_has_type();
@@ -1069,6 +1165,8 @@ class MetaCmd : public ::google::protobuf::Message {
   inline void clear_has_update();
   inline void set_has_pull();
   inline void clear_has_pull();
+  inline void set_has_init();
+  inline void clear_has_init();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -1076,10 +1174,11 @@ class MetaCmd : public ::google::protobuf::Message {
   ::ZPMeta::MetaCmd_Ping* ping_;
   ::ZPMeta::MetaCmd_Update* update_;
   ::ZPMeta::MetaCmd_Pull* pull_;
+  ::ZPMeta::MetaCmd_Init* init_;
   int type_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -1246,6 +1345,7 @@ class MetaCmdResponse : public ::google::protobuf::Message {
   static const Type PING = MetaCmdResponse_Type_PING;
   static const Type UPDATE = MetaCmdResponse_Type_UPDATE;
   static const Type PULL = MetaCmdResponse_Type_PULL;
+  static const Type INIT = MetaCmdResponse_Type_INIT;
   static inline bool Type_IsValid(int value) {
     return MetaCmdResponse_Type_IsValid(value);
   }
@@ -1840,6 +1940,32 @@ inline void MetaCmd_Pull::set_allocated_content(::std::string* content) {
 
 // -------------------------------------------------------------------
 
+// MetaCmd_Init
+
+// optional int32 num = 1;
+inline bool MetaCmd_Init::has_num() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void MetaCmd_Init::set_has_num() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void MetaCmd_Init::clear_has_num() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void MetaCmd_Init::clear_num() {
+  num_ = 0;
+  clear_has_num();
+}
+inline ::google::protobuf::int32 MetaCmd_Init::num() const {
+  return num_;
+}
+inline void MetaCmd_Init::set_num(::google::protobuf::int32 value) {
+  set_has_num();
+  num_ = value;
+}
+
+// -------------------------------------------------------------------
+
 // MetaCmd
 
 // required .ZPMeta.MetaCmd.Type type = 1;
@@ -2014,6 +2140,44 @@ inline void MetaCmd::set_allocated_pull(::ZPMeta::MetaCmd_Pull* pull) {
     set_has_pull();
   } else {
     clear_has_pull();
+  }
+}
+
+// optional .ZPMeta.MetaCmd.Init init = 6;
+inline bool MetaCmd::has_init() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+inline void MetaCmd::set_has_init() {
+  _has_bits_[0] |= 0x00000020u;
+}
+inline void MetaCmd::clear_has_init() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline void MetaCmd::clear_init() {
+  if (init_ != NULL) init_->::ZPMeta::MetaCmd_Init::Clear();
+  clear_has_init();
+}
+inline const ::ZPMeta::MetaCmd_Init& MetaCmd::init() const {
+  return init_ != NULL ? *init_ : *default_instance_->init_;
+}
+inline ::ZPMeta::MetaCmd_Init* MetaCmd::mutable_init() {
+  set_has_init();
+  if (init_ == NULL) init_ = new ::ZPMeta::MetaCmd_Init;
+  return init_;
+}
+inline ::ZPMeta::MetaCmd_Init* MetaCmd::release_init() {
+  clear_has_init();
+  ::ZPMeta::MetaCmd_Init* temp = init_;
+  init_ = NULL;
+  return temp;
+}
+inline void MetaCmd::set_allocated_init(::ZPMeta::MetaCmd_Init* init) {
+  delete init_;
+  init_ = init;
+  if (init) {
+    set_has_init();
+  } else {
+    clear_has_init();
   }
 }
 

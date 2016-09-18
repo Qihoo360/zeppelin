@@ -21,4 +21,10 @@ class PullCmd : public Cmd {
   virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly = false);
 };
 
+class InitCmd : public Cmd {
+ public:
+  InitCmd(int flag) : Cmd(flag) {}
+  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly = false);
+};
+
 #endif

@@ -39,6 +39,10 @@ void ZPMetaWorkerThread::InitClientCmdTable() {
   //Pull Command
   Cmd* pullptr = new PullCmd(kCmdFlagsRead);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::MetaCmd_Type::MetaCmd_Type_PULL), pullptr));
+
+  //Init Command
+  Cmd* initptr = new InitCmd(kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::MetaCmd_Type::MetaCmd_Type_INIT), pullptr));
 }
 
 Cmd* ZPMetaWorkerThread::GetCmd(const int op) {

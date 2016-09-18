@@ -178,9 +178,9 @@ Status ZPMetaServer::GetAllNode(ZPMeta::Nodes &nodes) {
   // Load from Floyd
   std::string value;
   floyd::Status fs = floyd_->DirtyRead(ZP_META_KEY_ND, value);
+  nodes.Clear();
   if (fs.ok()) {
     // Deserialization
-    nodes.Clear();
     if (!nodes.ParseFromString(value)) {
       LOG(ERROR) << "deserialization AllNodeInfo failed, value: " << value;
       return slash::Status::Corruption("Parse failed");
@@ -256,7 +256,8 @@ Status ZPMetaServer::AddNode(const std::string &ip, int port) {
     } else {
       should_add = true;
     }
-  } else if (s.IsNotFound() || should_add) {
+  }
+  if (s.IsNotFound() || should_add) {
     ZPMeta::NodeStatus *node_status = nodes.add_nodes();
     node_status->mutable_node()->set_ip(ip);
     node_status->mutable_node()->set_port(port);
@@ -446,7 +447,9 @@ bool ZPMetaServer::IsLeader() {
 
 Status ZPMetaServer::BecomeLeader() {
   ZPMeta::Nodes nodes;
+  DLOG(INFO) << "BL, before GetAllNode";
   Status s = GetAllNode(nodes);
+  DLOG(INFO) << "BL, GetAllNode, " << s.ToString();
   if (!s.ok()) {
     return s;
   }
@@ -458,6 +461,7 @@ Status ZPMetaServer::BecomeLeader() {
 }
 
 Status ZPMetaServer::RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse &response) {
+  DLOG(INFO) << "RedirectToLeader";
   slash::MutexLock l(&leader_mutex_);
   pink::Status s = leader_cli_->Send(&request);
   if (!s.ok()) {

@@ -39,7 +39,7 @@ int ZPMetaClientConn::DealMessage() {
   }
   
   // Redirect to leader if needed
-  if (!zp_meta_server->IsLeader() || need_redirect) {
+  if (!zp_meta_server->IsLeader() && need_redirect) {
     Status s = zp_meta_server->RedirectToLeader(request_, response_);
     if (!s.ok()) {
       LOG(ERROR) << "Failed to redirect to leader : " << s.ToString();
@@ -51,12 +51,14 @@ int ZPMetaClientConn::DealMessage() {
     return 0;
   }
 
+  DLOG(INFO) << "Start GetCmd";
   Cmd* cmd = self_thread_->GetCmd(static_cast<int>(request_.type()));
   if (cmd == NULL) {
     LOG(ERROR) << "unsupported type: " << (int)request_.type();
     return -1;
   }
 
+  DLOG(INFO) << "Start DoCmd";
   cmd->Do(&request_, &response_, false);
   set_is_reply(true);
   res_ = &response_;
