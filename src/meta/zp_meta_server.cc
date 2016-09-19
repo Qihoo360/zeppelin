@@ -85,6 +85,7 @@ Status ZPMetaServer::Distribute(int num) {
   if (PartitionNums() != 0) {
     return Status::Corruption("Already Distribute");
   }
+
  
   Status s;
   ZPMeta::Nodes nodes;
@@ -100,7 +101,7 @@ Status ZPMetaServer::Distribute(int num) {
     return Status::Corruption("no nodes");
   }
 
-  //int an_num = alive_nodes.size();
+  int an_num = alive_nodes.size();
 
   ZPMeta::Replicaset replicaset;
 
@@ -111,23 +112,23 @@ Status ZPMetaServer::Distribute(int num) {
     replicaset.Clear();
     replicaset.set_id(i);
     ZPMeta::Node *node = replicaset.add_node();
-    node->CopyFrom(alive_nodes[i].node());
+    node->CopyFrom(alive_nodes[i % an_num].node());
 
     node = replicaset.add_node();
-    node->CopyFrom(alive_nodes[i + 1].node());
+    node->CopyFrom(alive_nodes[(i + 1) % an_num].node());
 
     node = replicaset.add_node();
-    node->CopyFrom(alive_nodes[i + 2].node());
+    node->CopyFrom(alive_nodes[(i + 2) % an_num].node());
 
     ZPMeta::Partitions *p = ms_info.add_info();
     p->set_id(i);
-    p->mutable_master()->CopyFrom(alive_nodes[i].node());
+    p->mutable_master()->CopyFrom(alive_nodes[i % an_num].node());
 
     ZPMeta::Node *slave = p->add_slaves();
-    slave->CopyFrom(alive_nodes[i + 1].node());
+    slave->CopyFrom(alive_nodes[(i + 1) % an_num].node());
 
     slave = p->add_slaves();
-    slave->CopyFrom(alive_nodes[i + 2].node());
+    slave->CopyFrom(alive_nodes[(i + 2) % an_num].node());
 
     s= SetReplicaset(i, replicaset);
     if (!s.ok()) {

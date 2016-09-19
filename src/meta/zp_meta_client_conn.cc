@@ -34,6 +34,9 @@ int ZPMetaClientConn::DealMessage() {
       need_redirect = false;
       DLOG(INFO) << "Receive pull cmd";
       break;
+    case ZPMeta::MetaCmd_Type::MetaCmd_Type_INIT:
+      DLOG(INFO) << "Receive init cmd";
+      break;
     default:
       DLOG(INFO) << "Receive unknow meta cmd";
   }
