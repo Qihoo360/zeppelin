@@ -31,9 +31,10 @@ Status SetCmd::Init(google::protobuf::Message *req) {
   return Status::OK();
 }
 
-void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly) {
+void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly) {
   client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+  Partition* ptr = static_cast<Partition*>(partition);
 
   client::CmdResponse_Set* set_res = response->mutable_set();
   response->set_type(client::Type::SET);
@@ -45,8 +46,12 @@ void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, 
     return;
   }
 
+  LOG(ERROR) << "Test: BGSave";
+  //ptr->Bgsave();
+
   //int32_t ttl;
-  nemo::Status s = zp_data_server->db()->Set(request->set().key(), request->set().value());
+  nemo::Status s = ptr->db()->Set(request->set().key(), request->set().value());
+  //nemo::Status s = zp_data_server->db()->Set(request->set().key(), request->set().value());
   if (!s.ok()) {
     set_res->set_code(client::StatusCode::kError);
     set_res->set_msg(result_.ToString());
@@ -54,20 +59,21 @@ void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, 
     LOG(ERROR) << "command failed: Set, caz " << s.ToString();
   } else {
     set_res->set_code(client::StatusCode::kOk);
-    DLOG(INFO) << "Set key(" << key_ << ") ok";
+    DLOG(INFO) << "Set key(" << key_ << ") at Partition: " << ptr->partition_id() << " ok";
     result_ = slash::Status::OK();
   }
 }
 
-void GetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly) {
+void GetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly) {
   client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+  Partition* ptr = static_cast<Partition*>(partition);
 
   client::CmdResponse_Get* get_res = response->mutable_get();
   response->set_type(client::Type::GET);
 
   std::string value;
-  nemo::Status s = zp_data_server->db()->Get(request->get().key(), &value);
+  nemo::Status s = ptr->db()->Get(request->get().key(), &value);
   if (s.ok()) {
     get_res->set_code(client::StatusCode::kOk);
     get_res->set_value(value);
@@ -86,24 +92,26 @@ void GetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, 
 }
 
 // Sync between nodes
-void SyncCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly) {
+void SyncCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly) {
   client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+  Partition* ptr = static_cast<Partition*>(partition);
+
   client::CmdRequest_Sync sync = request->sync();
 
   slash::Status s;
   Node node(sync.node().ip(), sync.node().port());
 
   response->set_type(client::Type::SYNC);
-  slash::MutexLock l(&(zp_data_server->slave_mutex_));
-  if (!zp_data_server->FindSlave(node)) {
+  slash::MutexLock l(&(ptr->slave_mutex_));
+  if (!ptr->FindSlave(node)) {
     SlaveItem si;
     si.node = node;
     gettimeofday(&si.create_time, NULL);
     si.sender = NULL;
 
-    LOG(INFO) << "SyncCmd a new node(" << node.ip << ":" << node.port << ") filenum " << sync.filenum() << ", offset " << sync.offset();
-    s = zp_data_server->AddBinlogSender(si, sync.filenum(), sync.offset());
+    LOG(INFO) << "SyncCmd Partition:" << ptr->partition_id() << " a new node(" << node.ip << ":" << node.port << ") filenum " << sync.filenum() << ", offset " << sync.offset();
+    s = ptr->AddBinlogSender(si, sync.filenum(), sync.offset());
 
     client::CmdResponse_Sync* sync = response->mutable_sync();
     if (s.ok()) {

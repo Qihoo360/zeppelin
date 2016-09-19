@@ -15,7 +15,7 @@ ZPTrySyncThread::~ZPTrySyncThread() {
   DLOG(INFO) << " TrySync thread " << pthread_self() << " exit!!!";
 }
 
-bool ZPTrySyncThread::Send(const int partition_id, pink::PbCli* cli) {
+bool ZPTrySyncThread::Send(Partition* partition, pink::PbCli* cli) {
   std::string wbuf_str;
 
   client::CmdRequest request;
@@ -29,13 +29,13 @@ bool ZPTrySyncThread::Send(const int partition_id, pink::PbCli* cli) {
 
   uint32_t filenum = 0;
   uint64_t offset = 0;
-  zp_data_server->logger_->GetProducerStatus(&filenum, &offset);
+  partition->logger_->GetProducerStatus(&filenum, &offset);
   sync->set_filenum(filenum);
   sync->set_offset(offset);
-  sync->set_partition_id(partition_id);
+  sync->set_partition_id(partition->partition_id());
 
   pink::Status s = cli->Send(&request);
-  DLOG(INFO) << "TrySync: Partition " << partition_id << " with SyncPoint (" << filenum << ", " << offset << ")";
+  DLOG(INFO) << "TrySync: Partition " << partition->partition_id() << " with SyncPoint (" << filenum << ", " << offset << ")";
   DLOG(INFO) << "         Node (" << sync->node().ip() << ":" << sync->node().port() << ")";
   if (!s.ok()) {
     LOG(WARNING) << "TrySync failed caz " << s.ToString();
@@ -104,11 +104,10 @@ void* ZPTrySyncThread::ThreadMain() {
         Partition* partition = iter->second;
 
         // TODO add DBSync
-        // if (partition->ShouldWaitDBSync()) {
-        //   if (partition->TryUpdateMasterOffset()) {
-        //     LOG(INFO) << "Success Update Master Offset";
-        //   }
-        // }
+        if (partition->ShouldWaitDBSync() && partition->TryUpdateMasterOffset()) {
+            rsync_flag_--;
+            LOG(INFO) << "Success Update Master Offset for Partition " << partition->partition_id();
+        }
 
         if (!partition->ShouldTrySync()) {
           //sleep(kTrySyncInterval);
@@ -117,24 +116,26 @@ void* ZPTrySyncThread::ThreadMain() {
 
         // TODO
         // Start Rsync
-        //if (!rsync_flag_) {
-        //  rsync_flag_ = true;
-        //  PrepareRsync();
-        //  std::string dbsync_path = zp_data_server->db_sync_path();
-        //  std::string ip_port = slash::IpPortString(zp_data_server->master_ip(), zp_data_server->master_port());
-        //  // We append the master ip port after module name
-        //  // To make sure only data from current master is received
-        //  int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, zp_data_server->local_port() + kPortShiftRsync);
-        //  if (0 != ret) {
-        //    LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
-        //  }
-        //  LOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
-        //}
+        if (!rsync_flag_) {
+          rsync_flag_++;
+          PrepareRsync();
+          std::string dbsync_path = zp_data_server->db_sync_path();
+          std::string ip_port = slash::IpPortString(zp_data_server->master_ip(), zp_data_server->master_port());
+
+          // We append the master ip port after module name
+          // To make sure only data from current master is received
+          int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, zp_data_server->local_port() + kPortShiftRsync);
+          if (0 != ret) {
+            LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
+          }
+          LOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
+        }
 
         // Connect with Leader port
-        Node master_node = partition->master_node();
+        Node master_node(partition->master_node().ip, partition->master_node().port);
+        DLOG(WARNING) << "TrySync will connect(" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ")";
         pink::PbCli* cli = GetConnection(master_node);
-        DLOG(WARNING) << "TrySync connect(" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ") " << (cli != NULL);
+        DLOG(WARNING) << "TrySync connect(" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ") " << (cli != NULL ? "ok" : "failed");
         if (cli) {
           cli->set_send_timeout(1000);
           cli->set_recv_timeout(1000);
@@ -144,7 +145,7 @@ void* ZPTrySyncThread::ThreadMain() {
           //zp_data_server->PlusMasterConnection();
 
           // Send && Recv
-          if (Send(partition->partition_id(), cli)) {
+          if (Send(partition, cli)) {
             int ret = Recv(cli);
             if (ret == 0) {
               rsync_flag_ = false;

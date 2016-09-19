@@ -181,6 +181,7 @@ class ZPDataServer {
     partition_total_ = total;
   }
   Partition* GetPartition(const std::string &key);
+  Partition* GetPartitionById(const int partition_id);
   // Peer Client
   Status SendToPeer(const std::string &peer_ip, int peer_port, const std::string &data);
 

@@ -155,7 +155,7 @@ bool ZPDataServer::FindSlave(const Node& node) {
 
 bool ZPDataServer::ShouldJoinMeta() {
   slash::RWLock l(&meta_state_rw_, false);
-  DLOG(INFO) <<  "meta_state: " << meta_state_;
+  DLOG(INFO) <<  "ShouldJoinMeta meta_state: " << meta_state_;
   return meta_state_ == MetaState::kMetaConnect;
 }
 
@@ -680,6 +680,7 @@ bool ZPDataServer::UpdateOrAddPartition(const int partition_id, const std::vecto
     slash::RWLock l(&partition_rw_, true);
     DLOG(INFO) << "DataServer hold partition_rw ->";
     partitions_[partition_id] = partition;
+    partition_total_++;
     DLOG(INFO) << "DataServer release partition_rw <-";
   }
 
@@ -713,6 +714,7 @@ Status ZPDataServer::SendToPeer(const std::string &peer_ip, int peer_port, const
   return Status::OK();
 }
 
+// TODO maybe need lock
 Partition* ZPDataServer::GetPartition(const std::string &key) {
   uint32_t id = KeyToPartition(key);
   if (partitions_.find(id) != partitions_.end()) {
@@ -721,6 +723,15 @@ Partition* ZPDataServer::GetPartition(const std::string &key) {
     return NULL;
   }
 }
+
+// TODO maybe need lock
+Partition* ZPDataServer::GetPartitionById(const int partition_id) {
+  if (partition_id > partitions_.size() - 1) {
+    return NULL;
+  }
+  return partitions_[partition_id];
+}
+
 inline uint32_t ZPDataServer::KeyToPartition(const std::string &key) {
   assert(partition_total_ != 0);
   return std::hash<std::string>()(key) % partition_total_;

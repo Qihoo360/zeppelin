@@ -12,7 +12,13 @@
 #include "zp_meta_utils.h"
 #include "zp_command.h"
 
+#include "bg_thread.h"
+#include "pb_conn.h"
+#include "pb_cli.h"
+#include "holy_thread.h"
+
 #include "nemo.h"
+#include "nemo_backupable.h"
 
 // TODO maybe need replica
 // class Replica;
@@ -56,6 +62,10 @@ class Partition {
     return partition_id_;
   }
 
+  const std::shared_ptr<nemo::Nemo> db() {
+    return db_;
+  }
+
   Node master_node() {
     slash::RWLock l(&state_rw_, false);
     return master_node_;
@@ -66,29 +76,84 @@ class Partition {
     return role_ == Role::kNodeMaster;
   }
 
+  // BGSave used
+  bool ChangeDb(const std::string& new_path);
+  struct BGSaveInfo {
+    bool bgsaving;
+    time_t start_time;
+    std::string s_start_time;
+    std::string path;
+    uint32_t filenum;
+    uint64_t offset;
+    BGSaveInfo() : bgsaving(false), filenum(0), offset(0){}
+    void Clear() {
+      bgsaving = false;
+      path.clear();
+      filenum = 0;
+      offset = 0;
+    }
+  };
+  BGSaveInfo bgsave_info() {
+    slash::MutexLock l(&bgsave_protector_);
+    return bgsave_info_;
+  }
+  bool bgsaving() {
+    slash::MutexLock l(&bgsave_protector_);
+    return bgsave_info_.bgsaving;
+  }
+  std::string bgsave_prefix() {
+    return "";
+  }
+  void Bgsave();
+  bool Bgsaveoff();
+  bool RunBgsaveEngine(const std::string path);
+  void FinishBgsave() {
+    slash::MutexLock l(&bgsave_protector_);
+    bgsave_info_.bgsaving = false;
+  }
+
+  Binlog* logger_;
+
+  // Binlog senders
+  slash::Mutex slave_mutex_;
+  std::vector<SlaveItem> slaves_;
+
  private:
   //TODO define PartitionOption if needed
   int partition_id_;
   std::string log_path_;
   std::string data_path_;
+  std::string sync_path_;
+  std::string bgsave_path_;
   Node master_node_;
   std::vector<Node> slave_nodes_;
   std::atomic<bool> readonly_;
+
+  // BGSave related
+  slash::Mutex bgsave_protector_;
+  pink::BGThread bgsave_thread_;
+  nemo::BackupEngine *bgsave_engine_;
+  BGSaveInfo bgsave_info_;
+
+  static void DoBgsave(void* arg);
+  bool InitBgsaveEnv();
+  bool InitBgsaveEngine();
+  void ClearBgsave() {
+    slash::MutexLock l(&bgsave_protector_);
+    bgsave_info_.Clear();
+  }
+
 
   // State related
   pthread_rwlock_t state_rw_;
   int role_;
   int repl_state_;  
 
-  Binlog* logger_;
   std::shared_ptr<nemo::Nemo> db_;
 
   slash::RecordMutex mutex_record_;
   pthread_rwlock_t partition_rw_;
   
-  // Binlog senders
-  slash::Mutex slave_mutex_;
-  std::vector<SlaveItem> slaves_;
 
   std::string NewPartitionPath(const std::string& name, const uint32_t current);
   void WriteBinlog(const std::string &content);

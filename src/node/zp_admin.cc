@@ -14,7 +14,7 @@ void InitMetaCmdTable(std::unordered_map<int, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::MetaCmd_Type::MetaCmd_Type_UPDATE), updateptr));
 }
 
-void UpdateCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly) {
+void UpdateCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly) {
   ZPMeta::MetaCmd* request = dynamic_cast<ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = dynamic_cast<ZPMeta::MetaCmdResponse*>(res);
   ZPMeta::MetaCmd_Update update = request->update();

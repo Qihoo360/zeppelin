@@ -4,6 +4,7 @@
 #include <map>
 #include "zp_const.h"
 #include "zp_meta_utils.h"
+#include "zp_data_partition.h"
 
 #include "pb_cli.h"
 #include "status.h"
@@ -15,7 +16,7 @@ class ZPTrySyncThread : public pink::Thread {
  public:
 
   ZPTrySyncThread()
-    : rsync_flag_(false) {
+    : rsync_flag_(0) {
     //cli_ = new pink::PbCli();
     //cli_->set_connect_timeout(1500);
   }
@@ -23,7 +24,7 @@ class ZPTrySyncThread : public pink::Thread {
 
  private:
 
-  bool Send(const int partition_id, pink::PbCli* cli);
+  bool Send(Partition* partition, pink::PbCli* cli);
 
   // Return value:
   //    0 means ok;
@@ -38,7 +39,7 @@ class ZPTrySyncThread : public pink::Thread {
 
   //int sockfd_;
   //pink::PbCli *cli_;
-  bool rsync_flag_;
+  int rsync_flag_;
 
   std::map<std::string, pink::PbCli*> client_pool_;
 

@@ -52,7 +52,14 @@ int ZPDataClientConn::DealMessage() {
 
   set_is_reply(true);
   std::string raw_msg(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4);
-  Partition* partition = zp_data_server->GetPartition(cmd->key());
+
+  Partition* partition = NULL;
+  if (request_.type() ==  client::Type::SYNC) {
+    partition = zp_data_server->GetPartitionById(request_.sync().partition_id());
+  } else {
+    partition = zp_data_server->GetPartition(cmd->key());
+  }
+
   if (partition == NULL) {
     LOG(ERROR) << "Error partition";
   }

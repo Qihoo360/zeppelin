@@ -10,13 +10,15 @@
 extern ZPDataServer* zp_data_server;
 
 Partition::Partition(const int partition_id, const std::string &log_path, const std::string &data_path)
-  : partition_id_(partition_id),
+  : logger_(NULL),
+  partition_id_(partition_id),
   readonly_(false),
   role_(Role::kNodeSingle),
-  repl_state_(ReplState::kNoConnect),
-  logger_(NULL) {
+  repl_state_(ReplState::kNoConnect) {
     log_path_ = NewPartitionPath(log_path, partition_id_);
     data_path_ = NewPartitionPath(data_path, partition_id_);
+    sync_path_ = NewPartitionPath(zp_data_server->db_sync_path(), partition_id_);
+    bgsave_path_ = NewPartitionPath(zp_data_server->bgsave_path(), partition_id_);
     pthread_rwlock_init(&state_rw_, NULL);
 
     pthread_rwlockattr_t attr;
@@ -42,7 +44,9 @@ bool Partition::FindSlave(const Node& node) {
 
 bool Partition::ShouldWaitDBSync() {
   slash::RWLock l(&state_rw_, false);
-  DLOG(INFO) << "ShouldWaitDBSync repl_state: " << repl_state_ << " role: " << role_;
+  DLOG(INFO) << "ShouldWaitDBSync " 
+      << (repl_state_ == ReplState::kWaitDBSync ? "true" : "false")
+      << ", repl_state: " << repl_state_ << " role: " << role_;
   return repl_state_ == ReplState::kWaitDBSync;
 }
 
@@ -60,7 +64,9 @@ void Partition::WaitDBSyncDone() {
 
 bool Partition::ShouldTrySync() {
   slash::RWLock l(&state_rw_, false);
-  DLOG(INFO) <<  "repl_state: " << repl_state_;
+  DLOG(INFO) << "ShouldTrySync " 
+      << (repl_state_ == ReplState::kShouldConnect ? "true" : "false")
+      <<  ", repl_state: " << repl_state_;
   return repl_state_ == ReplState::kShouldConnect;
 }
 
@@ -71,10 +77,168 @@ void Partition::TrySyncDone() {
   }
 }
 
+bool Partition::ChangeDb(const std::string& new_path) {
+  nemo::Options option;
+  // TODO set options
+  //option.write_buffer_size = g_pika_conf->write_buffer_size();
+  //option.target_file_size_base = g_pika_conf->target_file_size_base();
+
+  std::string tmp_path(data_path_);
+  if (tmp_path.back() == '/') {
+    tmp_path.resize(tmp_path.size() - 1);
+  }
+  tmp_path += "_bak";
+  slash::DeleteDirIfExist(tmp_path);
+  slash::RWLock l(&partition_rw_, true);
+  LOG(INFO) << "Prepare change db from: " << tmp_path;
+  db_.reset();
+  if (0 != slash::RenameFile(data_path_.c_str(), tmp_path)) {
+    LOG(WARNING) << "Failed to rename db path when change db, error: " << strerror(errno);
+    return false;
+  }
+ 
+  if (0 != slash::RenameFile(new_path.c_str(), data_path_.c_str())) {
+    DLOG(INFO) << "Rename (" << new_path.c_str() << ", " << data_path_.c_str();
+    LOG(WARNING) << "Failed to rename new db path when change db, error: " << strerror(errno);
+    return false;
+  }
+  db_.reset(new nemo::Nemo(data_path_, option));
+  assert(db_);
+  slash::DeleteDirIfExist(tmp_path);
+  LOG(INFO) << "Change Parition " << partition_id_ << " db success";
+  return true;
+}
+
+
+////// BGSave //////
+
+// Prepare engine, need bgsave_protector protect
+bool Partition::InitBgsaveEnv() {
+  {
+    slash::MutexLock l(&bgsave_protector_);
+    // Prepare for bgsave dir
+    bgsave_info_.start_time = time(NULL);
+    char s_time[32];
+    int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
+    bgsave_info_.s_start_time.assign(s_time, len);
+    bgsave_info_.path = bgsave_path_ + bgsave_prefix() + std::string(s_time, 8);
+    if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
+      LOG(WARNING) << "remove exist bgsave dir failed";
+      return false;
+    }
+    slash::CreatePath(bgsave_info_.path, 0755);
+    // Prepare for failed dir
+    if (!slash::DeleteDirIfExist(bgsave_info_.path + "_FAILED")) {
+      LOG(WARNING) << "remove exist fail bgsave dir failed :";
+      return false;
+    }
+  }
+  return true;
+}
+
+// Prepare bgsave env, need bgsave_protector protect
+bool Partition::InitBgsaveEngine() {
+  delete bgsave_engine_;
+  nemo::Status result = nemo::BackupEngine::Open(db_.get(), &bgsave_engine_);
+  if (!result.ok()) {
+    LOG(WARNING) << "open backup engine failed " << result.ToString();
+    return false;
+  }
+
+  {
+    slash::RWLock l(&partition_rw_, true);
+    {
+      slash::MutexLock l(&bgsave_protector_);
+      logger_->GetProducerStatus(&bgsave_info_.filenum, &bgsave_info_.offset);
+    }
+    result = bgsave_engine_->SetBackupContent();
+    if (!result.ok()){
+      LOG(WARNING) << "set backup content failed " << result.ToString();
+      return false;
+    }
+  }
+  return true;
+}
+
+bool Partition::RunBgsaveEngine(const std::string path) {
+  // Backup to tmp dir
+  nemo::Status result = bgsave_engine_->CreateNewBackup(path);
+  DLOG(INFO) << "Create new backup finished.";
+  
+  if (!result.ok()) {
+    LOG(WARNING) << "backup failed :" << result.ToString();
+    return false;
+  }
+  return true;
+}
+
+void Partition::Bgsave() {
+  // Only one thread can go through
+  {
+    slash::MutexLock l(&bgsave_protector_);
+    if (bgsave_info_.bgsaving) {
+      DLOG(INFO) << "Already bgsaving, cancel it";
+      return;
+    }
+    bgsave_info_.bgsaving = true;
+  }
+  
+  // Prepare for Bgsaving
+  if (!InitBgsaveEnv() || !InitBgsaveEngine()) {
+    ClearBgsave();
+    return;
+  }
+  LOG(INFO) << " BGsave start";
+
+  // Start new thread if needed
+  bgsave_thread_.StartIfNeed();
+  bgsave_thread_.Schedule(&DoBgsave, static_cast<void*>(this));
+}
+
+void Partition::DoBgsave(void* arg) {
+  Partition* p = static_cast<Partition*>(arg);
+  BGSaveInfo info = p->bgsave_info();
+
+  // Do bgsave
+  bool ok = p->RunBgsaveEngine(info.path);
+
+  DLOG(INFO) << "DoBGSave info file " << zp_data_server->local_ip() << ":" << zp_data_server->local_port() << " filenum=" << info.filenum << " offset=" << info.offset;
+  // Some output
+  std::ofstream out;
+  out.open(info.path + "/info", std::ios::in | std::ios::trunc);
+  if (out.is_open()) {
+    out << (time(NULL) - info.start_time) << "s\n"
+      << zp_data_server->local_ip() << "\n" 
+      << zp_data_server->local_port() << "\n"
+      << info.filenum << "\n"
+      << info.offset << "\n";
+    out.close();
+  }
+  if (!ok) {
+    std::string fail_path = info.path + "_FAILED";
+    slash::RenameFile(info.path.c_str(), fail_path.c_str());
+  }
+  p->FinishBgsave();
+}
+
+bool Partition::Bgsaveoff() {
+  {
+    slash::MutexLock l(&bgsave_protector_);
+    if (!bgsave_info_.bgsaving) {
+      return false;
+    }
+  }
+  if (bgsave_engine_ != NULL) {
+    bgsave_engine_->StopBackup();
+  }
+  return true;
+}
+
+
 // TODO
 bool Partition::TryUpdateMasterOffset() {
   // Check dbsync finished
-  std::string info_path = zp_data_server->db_sync_path() + kBgsaveInfoFile;
+  std::string info_path = sync_path_ + kBgsaveInfoFile;
   if (!slash::FileExists(info_path)) {
     return false;
   }
@@ -115,24 +279,26 @@ bool Partition::TryUpdateMasterOffset() {
     << ", offset: " << offset;
 
   // Sanity check
-  if (master_ip != zp_data_server->master_ip() ||
-      master_port != zp_data_server->master_port()) {
-    LOG(ERROR) << "Error master ip port: " << master_ip << ":" << master_port;
-    return false;
+  {
+    slash::RWLock l(&state_rw_, false);
+    if (master_ip != master_node_.ip || master_port != master_node_.port) {
+      LOG(ERROR) << "Error master ip port: " << master_ip << ":" << master_port;
+      return false;
+    }
   }
 
   // Replace the old db
-  slash::StopRsync(zp_data_server->db_sync_path());
-  //rsync_flag_ = false;
+  //slash::StopRsync(zp_data_server->db_sync_path());
+
   slash::DeleteFile(info_path);
-  if (!zp_data_server->ChangeDb(zp_data_server->db_sync_path())) {
+  if (!ChangeDb(sync_path_)) {
     LOG(WARNING) << "Failed to change db";
     return false;
   }
 
   // Update master offset
-  zp_data_server->logger_->SetProducerStatus(filenum, offset);
-  zp_data_server->WaitDBSyncDone();
+  logger_->SetProducerStatus(filenum, offset);
+  WaitDBSyncDone();
   return true;
 }
 
@@ -204,7 +370,7 @@ void Partition::BecomeMaster() {
 }
 
 void Partition::BecomeSlave() {
-  LOG(INFO) << "BecomeSlave, master is " << master_node_.ip << " : " << master_node_.port;
+  LOG(INFO) << "BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
   {
     slash::MutexLock l(&slave_mutex_);
     for (auto iter = slaves_.begin(); iter != slaves_.end(); iter++) {
@@ -281,7 +447,7 @@ void Partition::DoCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse
   if (!is_from_binlog && cmd->is_write()) {
     // TODO  very ugly implementation for readonly
     if (readonly()) {
-      cmd->Do(&req, &res, true);
+      cmd->Do(&req, &res, this, true);
       return;
     }
   }
@@ -296,7 +462,7 @@ void Partition::DoCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse
     mutex_record_.Lock(key);
   }
   
-  cmd->Do(&req, &res);
+  cmd->Do(&req, &res, this);
 
   if (cmd->is_write()) {
     if (cmd->result().ok() && req.type() != client::Type::SYNC) {

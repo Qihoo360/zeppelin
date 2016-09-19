@@ -193,7 +193,7 @@ Status ZPBinlogSenderThread::Parse(std::string &scratch) {
   uint32_t pro_num;
   uint64_t pro_offset;
 
-  Binlog* logger = zp_data_server->logger_;
+  Binlog* logger = partition_->logger_;
   while (!should_exit_) {
     logger->GetProducerStatus(&pro_num, &pro_offset);
     if (filenum_ == pro_num && con_offset_ == pro_offset) {
