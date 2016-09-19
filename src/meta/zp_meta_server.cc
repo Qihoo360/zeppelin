@@ -1,4 +1,5 @@
 #include <glog/logging.h>
+#include <google/protobuf/text_format.h>
 
 #include "slash_string.h"
 #include "zp_meta_server.h"
@@ -139,6 +140,10 @@ Status ZPMetaServer::Distribute(int num) {
   if (!s.ok()) {
     return s;
   }
+
+  std::string text_format;
+  google::protobuf::TextFormat::PrintToString(ms_info, &text_format);
+  LOG(INFO) << "ms_info : [" << text_format << "]";
 
   floyd::Status fs = floyd_->Write(ZP_META_KEY_PN, std::to_string(num));
   if (fs.ok()) {

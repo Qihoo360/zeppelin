@@ -59,6 +59,9 @@ void PullCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res,
   if (!s.ok()) {
     status_res->set_code(ZPMeta::StatusCode::kError);
     status_res->set_msg(s.ToString());
+  } else {
+    status_res->set_code(ZPMeta::StatusCode::kOk);
+    status_res->set_msg("Pull Ok!");
   }
 
   ZPMeta::MetaCmd_Update* update = response->mutable_pull();
