@@ -1,4 +1,5 @@
 #include <glog/logging.h>
+#include <google/protobuf/text_format.h>
 
 #include "slash_string.h"
 #include "zp_meta_server.h"
@@ -85,6 +86,7 @@ Status ZPMetaServer::Distribute(int num) {
   if (PartitionNums() != 0) {
     return Status::Corruption("Already Distribute");
   }
+
  
   Status s;
   ZPMeta::Nodes nodes;
@@ -100,7 +102,7 @@ Status ZPMetaServer::Distribute(int num) {
     return Status::Corruption("no nodes");
   }
 
-  //int an_num = alive_nodes.size();
+  int an_num = alive_nodes.size();
 
   ZPMeta::Replicaset replicaset;
 
@@ -111,23 +113,23 @@ Status ZPMetaServer::Distribute(int num) {
     replicaset.Clear();
     replicaset.set_id(i);
     ZPMeta::Node *node = replicaset.add_node();
-    node->CopyFrom(alive_nodes[i].node());
+    node->CopyFrom(alive_nodes[i % an_num].node());
 
     node = replicaset.add_node();
-    node->CopyFrom(alive_nodes[i + 1].node());
+    node->CopyFrom(alive_nodes[(i + 1) % an_num].node());
 
     node = replicaset.add_node();
-    node->CopyFrom(alive_nodes[i + 2].node());
+    node->CopyFrom(alive_nodes[(i + 2) % an_num].node());
 
     ZPMeta::Partitions *p = ms_info.add_info();
     p->set_id(i);
-    p->mutable_master()->CopyFrom(alive_nodes[i].node());
+    p->mutable_master()->CopyFrom(alive_nodes[i % an_num].node());
 
     ZPMeta::Node *slave = p->add_slaves();
-    slave->CopyFrom(alive_nodes[i + 1].node());
+    slave->CopyFrom(alive_nodes[(i + 1) % an_num].node());
 
     slave = p->add_slaves();
-    slave->CopyFrom(alive_nodes[i + 2].node());
+    slave->CopyFrom(alive_nodes[(i + 2) % an_num].node());
 
     s= SetReplicaset(i, replicaset);
     if (!s.ok()) {
@@ -138,6 +140,10 @@ Status ZPMetaServer::Distribute(int num) {
   if (!s.ok()) {
     return s;
   }
+
+  std::string text_format;
+  google::protobuf::TextFormat::PrintToString(ms_info, &text_format);
+  LOG(INFO) << "ms_info : [" << text_format << "]";
 
   floyd::Status fs = floyd_->Write(ZP_META_KEY_PN, std::to_string(num));
   if (fs.ok()) {
@@ -178,9 +184,9 @@ Status ZPMetaServer::GetAllNode(ZPMeta::Nodes &nodes) {
   // Load from Floyd
   std::string value;
   floyd::Status fs = floyd_->DirtyRead(ZP_META_KEY_ND, value);
+  nodes.Clear();
   if (fs.ok()) {
     // Deserialization
-    nodes.Clear();
     if (!nodes.ParseFromString(value)) {
       LOG(ERROR) << "deserialization AllNodeInfo failed, value: " << value;
       return slash::Status::Corruption("Parse failed");
@@ -256,7 +262,8 @@ Status ZPMetaServer::AddNode(const std::string &ip, int port) {
     } else {
       should_add = true;
     }
-  } else if (s.IsNotFound() || should_add) {
+  }
+  if (s.IsNotFound() || should_add) {
     ZPMeta::NodeStatus *node_status = nodes.add_nodes();
     node_status->mutable_node()->set_ip(ip);
     node_status->mutable_node()->set_port(port);
@@ -446,7 +453,9 @@ bool ZPMetaServer::IsLeader() {
 
 Status ZPMetaServer::BecomeLeader() {
   ZPMeta::Nodes nodes;
+  DLOG(INFO) << "BL, before GetAllNode";
   Status s = GetAllNode(nodes);
+  DLOG(INFO) << "BL, GetAllNode, " << s.ToString();
   if (!s.ok()) {
     return s;
   }
@@ -458,6 +467,7 @@ Status ZPMetaServer::BecomeLeader() {
 }
 
 Status ZPMetaServer::RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse &response) {
+  DLOG(INFO) << "RedirectToLeader";
   slash::MutexLock l(&leader_mutex_);
   pink::Status s = leader_cli_->Send(&request);
   if (!s.ok()) {

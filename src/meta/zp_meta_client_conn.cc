@@ -20,6 +20,7 @@ ZPMetaClientConn::~ZPMetaClientConn() {
 
 // Msg is  [ length (int32) | pb_msg (length bytes) ]
 int ZPMetaClientConn::DealMessage() {
+  bool need_redirect = true;
   request_.ParseFromArray(rbuf_ + 4, header_len_);
   // TODO test only
   switch (request_.type()) {
@@ -29,12 +30,19 @@ int ZPMetaClientConn::DealMessage() {
     case ZPMeta::MetaCmd_Type::MetaCmd_Type_PING:
       DLOG(INFO) << "Receive ping cmd";
       break;
+    case ZPMeta::MetaCmd_Type::MetaCmd_Type_PULL:
+      need_redirect = false;
+      DLOG(INFO) << "Receive pull cmd";
+      break;
+    case ZPMeta::MetaCmd_Type::MetaCmd_Type_INIT:
+      DLOG(INFO) << "Receive init cmd";
+      break;
     default:
       DLOG(INFO) << "Receive unknow meta cmd";
   }
   
   // Redirect to leader if needed
-  if (!zp_meta_server->IsLeader()) {
+  if (!zp_meta_server->IsLeader() && need_redirect) {
     Status s = zp_meta_server->RedirectToLeader(request_, response_);
     if (!s.ok()) {
       LOG(ERROR) << "Failed to redirect to leader : " << s.ToString();
@@ -46,12 +54,14 @@ int ZPMetaClientConn::DealMessage() {
     return 0;
   }
 
+  DLOG(INFO) << "Start GetCmd";
   Cmd* cmd = self_thread_->GetCmd(static_cast<int>(request_.type()));
   if (cmd == NULL) {
     LOG(ERROR) << "unsupported type: " << (int)request_.type();
     return -1;
   }
 
+  DLOG(INFO) << "Start DoCmd";
   cmd->Do(&request_, &response_, false);
   set_is_reply(true);
   res_ = &response_;

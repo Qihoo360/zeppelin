@@ -88,8 +88,7 @@ SLASH = $(THIRD_PATH)/slash/output/lib/libslash.a
 .PHONY: all clean
 
 
-#all: $(ZP_META) $(ZP_NODE)
-all: $(ZP_NODE)
+all: $(ZP_META) $(ZP_NODE)
 #all: 
 	@echo "COMMON_OBJS $(COMMON_OBJS)"
 	@echo "ZP_META_OBJS $(META_OBJS)"
