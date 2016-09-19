@@ -324,7 +324,7 @@ Status Partition::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t o
     return Status::IOError("AddBinlogSender new sequtialfile");
   }
 
-  ZPBinlogSenderThread* sender = new ZPBinlogSenderThread(this, readfile, filenum, offset);
+  ZPBinlogSenderThread* sender = new ZPBinlogSenderThread(this, slave.node.ip, slave.node.port, readfile, filenum, offset);
 
   slave.sender = sender;
 

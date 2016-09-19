@@ -15,7 +15,7 @@
 class ZPBinlogSenderThread : public pink::Thread {
  public:
 
-  ZPBinlogSenderThread(Partition *partition, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset);
+  ZPBinlogSenderThread(Partition *partition, const std::string &ip, int port, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset);
 
   virtual ~ZPBinlogSenderThread();
 
@@ -43,6 +43,8 @@ class ZPBinlogSenderThread : public pink::Thread {
   unsigned int ReadPhysicalRecord(slash::Slice *fragment);
 
   Partition *partition_;
+  std::string ip_;
+  int port_;
   uint64_t con_offset_;
   uint32_t filenum_;
 
@@ -57,11 +59,8 @@ class ZPBinlogSenderThread : public pink::Thread {
   //TODO add rwlock
   pthread_rwlock_t rwlock_;
 
-  // TODO Cli
-
   virtual void* ThreadMain();
   uint32_t ParseMsgCode(std::string* scratch);
-  void SendToPeers(const std::string &data);
 };
 
 #endif

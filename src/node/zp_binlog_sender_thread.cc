@@ -13,8 +13,11 @@ using pink::PbCli;
 
 extern ZPDataServer* zp_data_server;
 
-ZPBinlogSenderThread::ZPBinlogSenderThread(Partition *partition, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset)
-  : partition_(partition), con_offset_(con_offset),
+ZPBinlogSenderThread::ZPBinlogSenderThread(Partition *partition, const std::string &ip, int port, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset)
+  : partition_(partition),
+  ip_(ip),
+  port_(port),
+  con_offset_(con_offset),
   filenum_(filenum),
   initial_offset_(0),
   end_of_buffer_offset_(kBlockSize),
@@ -249,31 +252,27 @@ void* ZPBinlogSenderThread::ThreadMain() {
   scratch.reserve(1024 * 1024);
 
   Status s;
+  bool send_next = true;
   while (!should_exit_) {
-    // Parse binglog
-    s = Parse(scratch);
-    if (!s.ok()) {
-      LOG(WARNING) << "BinlogSender Parse error, " << s.ToString();
-      usleep(10000);
-      continue;
+    if (send_next) {
+      // Parse binglog
+      s = Parse(scratch);
+      if (!s.ok()) {
+        LOG(WARNING) << "BinlogSender Parse error, " << s.ToString();
+        usleep(10000);
+        continue;
+      }
     }
     // Send binlog
-    SendToPeers(scratch);
+    s = zp_data_server->SendToPeer(ip_, port_, scratch);
+    if (!s.ok()) {
+      LOG(ERROR) << "Failed to send to peer " << ip_ << ":" << port_ << ", Error: " << s.ToString();
+      send_next = false;
+      sleep(1);
+      continue;
+    }
+    send_next = true;
   }
 
   return NULL;
 }
-
-void ZPBinlogSenderThread::SendToPeers(const std::string &data) {
-  Status s;
-  std::vector<Node>::iterator iter = partition_->slave_nodes_.begin();
-  while (!should_exit_ && iter != partition_->slave_nodes_.end()) {
-    s = zp_data_server->SendToPeer((*iter).ip, (*iter).port, data);
-    if (!s.ok()) {
-      LOG(ERROR) << "Failed to send to peer " << (*iter).ip << ":" << (*iter).port << ", Error: " << s.ToString();
-      sleep(1);
-    }
-    ++iter;
-  }
-}
-

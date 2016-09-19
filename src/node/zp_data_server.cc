@@ -10,8 +10,7 @@
 #include "rsync.h"
 
 ZPDataServer::ZPDataServer(const ZPOptions& options)
-  : partition_total_(0),
-  options_(options),
+  : options_(options),
   role_(Role::kNodeSingle),
   repl_state_(ReplState::kNoConnect),
   should_exit_(false),
@@ -680,7 +679,6 @@ bool ZPDataServer::UpdateOrAddPartition(const int partition_id, const std::vecto
     slash::RWLock l(&partition_rw_, true);
     DLOG(INFO) << "DataServer hold partition_rw ->";
     partitions_[partition_id] = partition;
-    partition_total_++;
     DLOG(INFO) << "DataServer release partition_rw <-";
   }
 
@@ -714,27 +712,23 @@ Status ZPDataServer::SendToPeer(const std::string &peer_ip, int peer_port, const
   return Status::OK();
 }
 
-// TODO maybe need lock
 Partition* ZPDataServer::GetPartition(const std::string &key) {
   uint32_t id = KeyToPartition(key);
-  if (partitions_.find(id) != partitions_.end()) {
-    return partitions_[id];
-  } else {
-    return NULL;
-  }
+  return GetPartitionById(id);
 }
 
-// TODO maybe need lock
 Partition* ZPDataServer::GetPartitionById(const int partition_id) {
-  if (partition_id > partitions_.size() - 1) {
-    return NULL;
+  slash::RWLock l(&partition_rw_, false);
+  if (partitions_.find(partition_id) != partitions_.end()) {
+    return partitions_[partition_id];
   }
-  return partitions_[partition_id];
+  return NULL;
 }
 
 inline uint32_t ZPDataServer::KeyToPartition(const std::string &key) {
-  assert(partition_total_ != 0);
-  return std::hash<std::string>()(key) % partition_total_;
+  slash::RWLock l(&partition_rw_, false);
+  assert(partitions_.size() != 0);
+  return std::hash<std::string>()(key) % partitions_.size();
 }
 
 
