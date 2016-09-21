@@ -23,19 +23,11 @@ public:
   ~ZPMetaUpdateThread();
 
   void ScheduleUpdate(const std::string ip_port, ZPMetaUpdateOP op);
-  void ScheduleBroadcast();
-
-  static void DoMetaUpdate(void *);
-  static void DoMetaBroadcast(void *);
+  static void DoMetaUpdate(void *p);
 
 private:
-  DataCliMap data_sender_;
   pink::BGThread worker_;
   slash::Status MetaUpdate(const std::string ip, int port, ZPMetaUpdateOP op);
-  slash::Status MetaBroadcast();
-  slash::Status UpdateSender(const std::string &ip, int port, ZPMetaUpdateOP op);
-  void SendUpdate(const std::string &ip, int port, ZPMeta::MetaCmd_Update &ms_info);
-  void SendUpdate(ZPMeta::MetaCmd_Update &ms_info);
 
   struct ZPMetaUpdateArgs {
     ZPMetaUpdateThread *thread;

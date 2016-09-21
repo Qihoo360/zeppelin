@@ -42,8 +42,11 @@ class ZPMetaServer {
   void UpdateNodeAlive(const std::string& ip_port);
   
   // Floyd related
+  int version() {
+    return version_;
+  }
   Status Distribute(int num);
-  Status GetMSInfo(ZPMeta::MetaCmd_Update &ms_info);
+  Status GetMSInfo(ZPMeta::MetaCmdResponse_Pull &ms_info);
   int PartitionNums();
   Status OffNode(const std::string &ip, int port);
 
@@ -59,9 +62,11 @@ private:
   ZPMetaDispatchThread* zp_meta_dispatch_thread_;
   ZPOptions options_;
   slash::Mutex server_mutex_;
+  std::atomic<int> version_;
 
   // Floyd related
   floyd::Floyd* floyd_;
+  Status InitVersion();
   Status Set(const std::string &key, const std::string &value);
   Status Get(const std::string &key, std::string &value);
   Status Delete(const std::string &key);
@@ -71,7 +76,7 @@ private:
   Status SetNodeStatus(ZPMeta::Nodes &nodes, const std::string &ip, int port, int status /*0-UP 1-DOWN*/);
   Status AddNode(const std::string &ip, int port);
   Status SetReplicaset(uint32_t partition_id, const ZPMeta::Replicaset &replicaset);
-  Status SetMSInfo(const ZPMeta::MetaCmd_Update &ms_info);
+  Status SetMSInfo(const ZPMeta::MetaCmdResponse_Pull &ms_info);
 
   // Alive Check
   slash::Mutex alive_mutex_;
