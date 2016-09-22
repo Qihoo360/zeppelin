@@ -38,7 +38,7 @@ bool ZPTrySyncThread::Send(Partition* partition, pink::PbCli* cli) {
   DLOG(INFO) << "TrySync: Partition " << partition->partition_id() << " with SyncPoint (" << filenum << ", " << offset << ")";
   DLOG(INFO) << "         Node (" << sync->node().ip() << ":" << sync->node().port() << ")";
   if (!s.ok()) {
-    LOG(WARNING) << "TrySync failed caz " << s.ToString();
+    LOG(WARNING) << "TrySync send failed caz " << s.ToString();
     return false;
   }
   return true;
@@ -154,7 +154,7 @@ void* ZPTrySyncThread::ThreadMain() {
             } else if (ret == -1) {
               //partition->SetWaitDBSync();
             } else {
-              //DLOG(WARNING) << "TrySync recv failed, " << s.ToString();
+              DLOG(WARNING) << "TrySync recv failed, " << s.ToString();
             }
           }
           //cli->Close();

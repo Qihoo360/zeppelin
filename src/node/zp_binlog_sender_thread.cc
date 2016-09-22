@@ -268,9 +268,9 @@ void ZPBinlogSenderThread::SendToPeers(const std::string &data) {
   Status s;
   std::vector<Node>::iterator iter = partition_->slave_nodes_.begin();
   while (!should_exit_ && iter != partition_->slave_nodes_.end()) {
-    s = zp_data_server->SendToPeer((*iter).ip, (*iter).port, data);
+    s = zp_data_server->SendToPeer((*iter).ip, (*iter).port + kPortShiftSync, data);
     if (!s.ok()) {
-      LOG(ERROR) << "Failed to send to peer " << (*iter).ip << ":" << (*iter).port << ", Error: " << s.ToString();
+      LOG(ERROR) << "Failed to send to peer " << (*iter).ip << ":" << (*iter).port + kPortShiftSync << ", Error: " << s.ToString();
       sleep(1);
     }
     ++iter;

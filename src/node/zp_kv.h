@@ -20,7 +20,7 @@ class SetCmd : public Cmd {
 class GetCmd : public Cmd {
  public:
   GetCmd(int flag) : Cmd(flag) {}
-  //virtual Status Init(const void *buf, size_t count);
+  virtual Status Init(google::protobuf::Message *req);
   //virtual void Do();
   virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly = false);
   virtual std::string key() { 

@@ -64,6 +64,14 @@ void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, 
   }
 }
 
+Status GetCmd::Init(google::protobuf::Message *req) {
+  client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
+  key_ = request->get().key();
+  DLOG(INFO) << "GetCmd Init key(" << key_ << ") ok";
+
+  return Status::OK();
+}
+
 void GetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly) {
   client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
@@ -78,16 +86,16 @@ void GetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, 
     get_res->set_code(client::StatusCode::kOk);
     get_res->set_value(value);
     //result_ = slash::Status::OK();
-    DLOG(INFO) << "Get key(" << request->get().key() << ") ok, value is (" << value << ")";
+    DLOG(INFO) << "Get key(" << request->get().key() << ") at Partition " << ptr->partition_id() << " ok, value is (" << value << ")";
   } else if (s.IsNotFound()) {
     get_res->set_code(client::StatusCode::kNotFound);
-    DLOG(INFO) << "Get key(" << request->get().key() << ") not found!";
+    DLOG(INFO) << "Get key(" << request->get().key() << ") at Partition " << ptr->partition_id() << " not found!";
     //result_ = slash::Status::NotFound();
   } else {
     get_res->set_code(client::StatusCode::kError);
     get_res->set_msg(s.ToString());
     //result_ = slash::Status::Corruption(s.ToString());
-    LOG(ERROR) << "command failed: Get, caz " << s.ToString();
+    LOG(ERROR) << "command failed: Get at Partition " << ptr->partition_id() << ", caz " << s.ToString();
   }
 }
 

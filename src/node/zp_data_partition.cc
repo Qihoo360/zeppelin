@@ -335,7 +335,8 @@ Status Partition::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t o
 
     LOG(INFO) << "AddBinlogSender ok, tid is " << slave.sender_tid << " hd_fd: " << slave.sync_fd;
     // Add sender
-    slash::MutexLock l(&slave_mutex_);
+    // slave_mutex has been locked
+    //slash::MutexLock l(&slave_mutex_);
     slaves_.push_back(slave);
 
     return Status::OK();

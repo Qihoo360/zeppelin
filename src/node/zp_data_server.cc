@@ -93,6 +93,7 @@ ZPDataServer::~ZPDataServer() {
     while (iter != peers_.end()) {
       iter->second->Close();
       delete iter->second;
+      iter++;
     }
   }
 
