@@ -21,7 +21,7 @@ void ZPMetaUpdateThread::ScheduleUpdate(const std::string ip_port, ZPMetaUpdateO
   }
   ZPMetaUpdateArgs* arg = new ZPMetaUpdateArgs(this, ip, port, op);
   worker_.StartIfNeed();
-  LOG(INFO) << "Schedule to update thread worker, update";
+  LOG(INFO) << "Schedule to update thread worker, update: " << op << " " << ip << " " << port;
   worker_.Schedule(&DoMetaUpdate, static_cast<void*>(arg));
 }
 
@@ -44,10 +44,10 @@ slash::Status ZPMetaUpdateThread::MetaUpdate(const std::string ip, int port, ZPM
   } else if (ZPMetaUpdateOP::kOpRemove == op) {
     s = zp_meta_server->OffNode(ip, port);
     if (!s.ok()) {
-      LOG(ERROR) << "UpdateThread: OffNode error, " << s.ToString();
+      LOG(ERROR) << "OffNode error in MetaUpdate, error: " << s.ToString();
       return s;
     }
-    LOG(INFO) << "update meta success";
+    LOG(INFO) << "Update meta success, update: " << op << " " << ip << " " << port;
   }
   return s;
 }

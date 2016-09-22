@@ -42,6 +42,14 @@ ZPMetaServer::~ZPMetaServer() {
 Status ZPMetaServer::Start() {
   LOG(INFO) << "ZPMetaServer started on port:" << options_.local_port << ", seed is " << options_.seed_ip.c_str() << ":" <<options_.seed_port;
   floyd_->Start();
+  std::string leader_ip;
+  int leader_port;
+  while (!GetLeader(leader_ip, leader_port)) {
+    LOG(INFO) << "Wait leader ... ";
+    // Wait leader election
+    sleep(1);
+  }
+  LOG(INFO) << "Got Leader: " << leader_ip << ":" << leader_port;
   InitVersion();
   zp_meta_dispatch_thread_->StartThread();
 
@@ -52,21 +60,25 @@ Status ZPMetaServer::Start() {
 
 Status ZPMetaServer::InitVersion() {
   std::string value;
-  ZPMeta::MetaCmdResponse_Pull pull;
+  ZPMeta::MetaCmdResponse_Pull ms_info;
   while(1) {
     floyd::Status fs = floyd_->Read(ZP_META_KEY_MT, value);
     if (fs.ok()) {
-      pull.Clear();
-      if (!pull.ParseFromString(value)) {
-        LOG(ERROR) << "deserialization full_meta failed in InitVersion, value: " << value;
-        return slash::Status::Corruption("Parse failed");
+      if (value == "") {
+        version_ = -1;
+      } else {
+        ms_info.Clear();
+        if (!ms_info.ParseFromString(value)) {
+          LOG(ERROR) << "Deserialization full_meta failed in InitVersion, value: " << value;
+        }
+        version_ = ms_info.version();
       }
-      version_ = pull.version();
+      LOG(INFO) << "Got version " << version_;
       return Status::OK();
-    } else if (fs.IsNotFound()) {
-      version_ = -1;
+//    } else if (fs.IsNotFound()) {
+//      version_ = -1;
     } else {
-      LOG(ERROR) << "floyd read full_meta failed in InitVersion: " << fs.ToString() << ", try again";
+      LOG(ERROR) << "Read floyd full_meta failed in InitVersion: " << fs.ToString() << ", try again";
       sleep(1);
     }
   }
@@ -77,7 +89,7 @@ Status ZPMetaServer::Set(const std::string &key, const std::string &value) {
   if (fs.ok()) {
     return Status::OK();
   } else {
-    LOG(ERROR) << "floyd write failed: " << fs.ToString();
+    LOG(ERROR) << "Floyd write failed: " << fs.ToString();
     return Status::Corruption("floyd set error!");
   }
 }
@@ -89,7 +101,7 @@ Status ZPMetaServer::Get(const std::string &key, std::string &value) {
   } else if (fs.IsNotFound()) {
     return Status::NotFound("not found from floyd");
   } else {
-    LOG(ERROR) << "floyd read failed: " << fs.ToString();
+    LOG(ERROR) << "Floyd read failed: " << fs.ToString();
     return Status::Corruption("floyd get error!");
   }
 }
@@ -99,7 +111,7 @@ Status ZPMetaServer::Delete(const std::string &key) {
   if (fs.ok()) {
     return Status::OK();
   } else {
-    LOG(ERROR) << "floyd delete failed: " << fs.ToString();
+    LOG(ERROR) << "Floyd delete failed: " << fs.ToString();
     return Status::Corruption("floyd delete error!");
   }
 }
@@ -173,7 +185,7 @@ Status ZPMetaServer::Distribute(int num) {
   if (fs.ok()) {
     return Status::OK();
   } else {
-    LOG(ERROR) << "floyd write partition_num failed: " << fs.ToString();
+    LOG(ERROR) << "Floyd write partition_num failed: " << fs.ToString();
     return Status::Corruption("floyd set error!");
   }
 
@@ -253,7 +265,7 @@ Status ZPMetaServer::SetNodeStatus(ZPMeta::Nodes& nodes, const std::string &ip, 
       } else {
         node_status->set_status(status);
         if (!nodes.SerializeToString(&new_value)) {
-          LOG(ERROR) << "serialization new meta failed, new value: " <<  new_value;
+          LOG(ERROR) << "Serialization new meta failed, new value: " <<  new_value;
           return Status::Corruption("Serialize error");
         }
         floyd::Status fs = floyd_->Write("nodes", new_value);
@@ -314,14 +326,17 @@ Status ZPMetaServer::OffNode(const std::string &ip, int port) {
 
   Status s = GetAllNode(nodes);
   if (!s.ok()) {
+    LOG(ERROR) << "GetAllNode error in OffNode, error: " << s.ToString();
     return s;
   }
   s = SetNodeStatus(nodes, ip, port, ZPNodeStatus::kNodeDown);
   if (!s.ok()) {
+    LOG(ERROR) << "SetNodeStatus error in OffNode, error: " << s.ToString();
     return s;
   }
   s = GetMSInfo(ms_info);
   if (!s.ok()) {
+    LOG(ERROR) << "GetMSInfo error in OffNode, error: " << s.ToString();
     return s;
   }
 
@@ -351,13 +366,15 @@ Status ZPMetaServer::OffNode(const std::string &ip, int port) {
 
   int v = ms_info.version();
   if (v != version_) {
-    LOG(WARNING) << "version not match, version_ = " << version_ << " version in floyd = " << v;
+    LOG(WARNING) << "Version not match, version_ = " << version_ << " version in floyd = " << v;
   }
   ms_info.set_version(version_ + 1);
 
   s = SetMSInfo(ms_info);
   if (s.ok()) {
     version_++; 
+  } else {
+    LOG(ERROR) << "SetMSInfo error in OffNode, error: " << s.ToString();
   }
   return s;
 }
@@ -387,7 +404,7 @@ void ZPMetaServer::UpdateNodeAlive(const std::string& ip_port) {
   slash::MutexLock l(&alive_mutex_);
   gettimeofday(&now, NULL);
   if (node_alive_.find(ip_port) == node_alive_.end()) {
-    LOG(WARNING) << "update unknown node alive:" << ip_port;
+    LOG(WARNING) << "Update unknown node alive:" << ip_port;
     return;
   }
   node_alive_[ip_port] = now;
@@ -396,7 +413,7 @@ void ZPMetaServer::UpdateNodeAlive(const std::string& ip_port) {
 Status ZPMetaServer::SetReplicaset(uint32_t partition_id, const ZPMeta::Replicaset &replicaset) {
   std::string new_value;
   if (!replicaset.SerializeToString(&new_value)) {
-    LOG(ERROR) << "serialization new meta failed, new value: " <<  new_value;
+    LOG(ERROR) << "Serialization new meta failed, new value: " <<  new_value;
     return Status::Corruption("Serialize error");
   }
   return Set(PartitionId2Key(partition_id), new_value);
@@ -405,7 +422,7 @@ Status ZPMetaServer::SetReplicaset(uint32_t partition_id, const ZPMeta::Replicas
 Status ZPMetaServer::SetMSInfo(const ZPMeta::MetaCmdResponse_Pull &cmd) {
   std::string new_value;
   if (!cmd.SerializeToString(&new_value)) {
-    LOG(ERROR) << "serialization ZPMetaCmd failed, new value: " <<  new_value;
+    LOG(ERROR) << "Serialization full_meta failed, new value: " <<  new_value;
     return Status::Corruption("Serialize error");
   }
   return Set(ZP_META_KEY_MT, new_value);
@@ -417,12 +434,12 @@ Status ZPMetaServer::GetMSInfo(ZPMeta::MetaCmdResponse_Pull &ms_info) {
   if (fs.ok()) {
     ms_info.Clear();
     if (!ms_info.ParseFromString(value)) {
-      LOG(ERROR) << "deserialization full_meta failed, value: " << value;
+      LOG(ERROR) << "Deserialization full_meta failed, value: " << value;
       return slash::Status::Corruption("Parse failed");
     }
     return Status::OK();
   } else {
-    LOG(ERROR) << "floyd read full_meta failed: " << fs.ToString();
+    LOG(ERROR) << "Floyd read full_meta failed: " << fs.ToString();
     return Status::Corruption("floyd delete error!");
   }
 }
@@ -442,7 +459,7 @@ bool ZPMetaServer::IsLeader() {
   std::string leader_ip;
   int leader_port = 0, leader_cmd_port = 0;
   while (!GetLeader(leader_ip, leader_port)) {
-    DLOG(INFO) << "Wait leader ... ";
+    LOG(INFO) << "Wait leader ... ";
     // Wait leader election
     sleep(1);
   }
@@ -462,8 +479,9 @@ bool ZPMetaServer::IsLeader() {
     if (leader_first_time_) {
       leader_first_time_ = false;
       CleanLeader();
-      LOG(ERROR) << "Become to leader";
+      LOG(INFO) << "Become to leader";
       BecomeLeader(); // Just become leader
+      LOG(INFO) << "Become to leader success";
     }
     return true;
   }
@@ -476,38 +494,47 @@ bool ZPMetaServer::IsLeader() {
   leader_cmd_port_ = leader_cmd_port;
   pink::Status s = leader_cli_->Connect(leader_ip_, leader_cmd_port_);
   if (!s.ok()) {
-    LOG(ERROR) << "connect to leader: " << leader_ip_ << ":" << leader_cmd_port_ << " failed";
+    CleanLeader();
+    LOG(ERROR) << "Connect to leader: " << leader_ip_ << ":" << leader_cmd_port_ << " failed";
+  } else {
+    LOG(INFO) << "Connect to leader: " << leader_ip_ << ":" << leader_cmd_port_ << " success";
+    leader_cli_->set_send_timeout(1000);
+    leader_cli_->set_recv_timeout(1000);
   }
-  leader_cli_->set_send_timeout(1000);
-  leader_cli_->set_recv_timeout(1000);
   return false;
 }
 
 Status ZPMetaServer::BecomeLeader() {
   ZPMeta::Nodes nodes;
-  DLOG(INFO) << "BL, before GetAllNode";
   Status s = GetAllNode(nodes);
-  DLOG(INFO) << "BL, GetAllNode, " << s.ToString();
   if (!s.ok()) {
+    LOG(ERROR) << "GetAllNode error in BecomeLeader, error: " << s.ToString();
     return s;
   }
   std::vector<ZPMeta::NodeStatus> alive_nodes;
   GetAllAliveNode(nodes, alive_nodes);
-  LOG(INFO) << "Restore Node Alive from floyd";
   RestoreNodeAlive(alive_nodes);
+
+  InitVersion();
+
   return s;
 }
 
 Status ZPMetaServer::RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse &response) {
-  DLOG(INFO) << "RedirectToLeader";
   slash::MutexLock l(&leader_mutex_);
+  if (leader_cli_ == NULL) {
+    LOG(ERROR) << "Error in RedirectToLeader, leader_cli_ is NULL";
+    return Status::Corruption("no leader connection");
+  }
   pink::Status s = leader_cli_->Send(&request);
   if (!s.ok()) {
+    CleanLeader();
     LOG(ERROR) << "Failed to redirect message to leader, " << s.ToString();
     return Status::Corruption(s.ToString());
   }
   s = leader_cli_->Recv(&response); 
   if (!s.ok()) {
+    CleanLeader();
     LOG(ERROR) << "Failed to get redirect message response from leader" << s.ToString();
     return Status::Corruption(s.ToString());
   }
@@ -522,6 +549,7 @@ void ZPMetaServer::RestoreNodeAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes
   gettimeofday(&now, NULL);
 
   slash::MutexLock l(&alive_mutex_);
+  node_alive_.clear();
   auto iter = alive_nodes.begin();
   while (iter != alive_nodes.end()) {
     node_alive_[slash::IpPortString(iter->node().ip(), iter->node().port())] = now;
@@ -533,6 +561,7 @@ inline void ZPMetaServer::CleanLeader() {
   if (leader_cli_) {
     leader_cli_->Close();
     delete leader_cli_;
+    leader_cli_ = NULL;
   }
   leader_ip_.clear();
   leader_cmd_port_ = 0;
