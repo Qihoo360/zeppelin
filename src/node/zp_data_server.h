@@ -10,7 +10,7 @@
 #include "zp_binlog.h"
 #include "zp_meta_utils.h"
 #include "zp_const.h"
-#include "zp_metacmd_worker_thread.h"
+#include "zp_metacmd_thread.h"
 #include "zp_ping_thread.h"
 #include "zp_trysync_thread.h"
 #include "zp_binlog_sender_thread.h"
@@ -91,9 +91,9 @@ class ZPDataServer {
     should_exit_ = true;
   }
 
-  ZPMetacmdWorkerThread* zp_metacmd_worker_thread() {
-    return zp_metacmd_worker_thread_;
-  };
+  //ZPMetacmdWorkerThread* zp_metacmd_worker_thread() {
+  //  return zp_metacmd_worker_thread_;
+  //};
 
   ZPBinlogReceiverThread* zp_binlog_receiver_thread() {
     return zp_binlog_receiver_thread_;
@@ -159,6 +159,22 @@ class ZPDataServer {
   void PlusMetaServerConns();
   void MinusMetaServerConns();
   void PickMeta();
+  void UpdateEpoch(int64_t epoch) {
+    slash::MutexLock l(&mutex_epoch_);
+    if (epoch > meta_epoch_) {
+      meta_epoch_ = epoch;
+      should_pull_meta_ = true;
+    }
+  }
+  bool ShouldPullMeta() {
+    slash::MutexLock l(&mutex_epoch_);
+    return should_pull_meta_;
+  }
+  void FinishPullMeta() {
+    slash::MutexLock l(&mutex_epoch_);
+    should_pull_meta_ = false;
+  }
+
 
   Binlog* logger_;
 
@@ -201,7 +217,8 @@ class ZPDataServer {
   ZPDataWorkerThread* zp_worker_thread_[kMaxWorkerThread];
   ZPDataDispatchThread* zp_dispatch_thread_;
   ZPPingThread* zp_ping_thread_;
-  ZPMetacmdWorkerThread* zp_metacmd_worker_thread_;
+  ZPMetacmdThread* zp_metacmd_thread_;
+  //ZPMetacmdWorkerThread* zp_metacmd_worker_thread_;
   ZPBinlogReceiverThread* zp_binlog_receiver_thread_;
   ZPTrySyncThread* zp_trysync_thread_;
 
@@ -220,7 +237,10 @@ class ZPDataServer {
   int meta_server_conns_;
   std::string meta_ip_;
   long meta_port_;
-  int64_t meta_epoch;
+  
+  slash::Mutex mutex_epoch_;
+  int64_t meta_epoch_;
+  bool should_pull_meta_;
 
   // BGSave related
   slash::Mutex bgsave_protector_;

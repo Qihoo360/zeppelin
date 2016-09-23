@@ -2,7 +2,7 @@
 #define ZP_PING_THREAD_H
 
 #include "zp_const.h"
-#include "zp_pb_cli.h"
+#include "pb_cli.h"
 
 #include "status.h"
 #include "pink_thread.h"

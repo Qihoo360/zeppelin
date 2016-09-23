@@ -16,7 +16,8 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
   should_exit_(false),
   should_rejoin_(false),
   meta_state_(MetaState::kMetaConnect),
-  meta_epoch(-2),
+  meta_epoch_(-2),
+  should_pull_meta_(false),
   bgsave_engine_(NULL) {
 
   pthread_rwlock_init(&state_rw_, NULL);
@@ -46,7 +47,8 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
 
   zp_dispatch_thread_ = new ZPDataDispatchThread(options_.local_port, worker_num_, zp_worker_thread_, kDispatchCronInterval);
   zp_ping_thread_ = new ZPPingThread();
-  zp_metacmd_worker_thread_ = new ZPMetacmdWorkerThread(options_.local_port + kPortShiftDataCmd, kMetaCmdCronInterval);
+  //zp_metacmd_worker_thread_ = new ZPMetacmdWorkerThread(options_.local_port + kPortShiftDataCmd, kMetaCmdCronInterval);
+  zp_metacmd_thread_ = new ZPMetacmdThread();
  
   zp_binlog_receiver_thread_ = new ZPBinlogReceiverThread(options_.local_port + kPortShiftSync, kBinlogReceiverCronInterval);
   zp_trysync_thread_ = new ZPTrySyncThread();
@@ -100,7 +102,7 @@ ZPDataServer::~ZPDataServer() {
   delete zp_ping_thread_;
   delete zp_binlog_receiver_thread_;
   delete zp_trysync_thread_;
-  delete zp_metacmd_worker_thread_;
+  delete zp_metacmd_thread_;
 
   // TODO 
   pthread_rwlock_destroy(&state_rw_);
@@ -121,7 +123,7 @@ Status ZPDataServer::Start() {
   zp_ping_thread_->StartThread();
 
   zp_trysync_thread_->StartThread();
-  zp_metacmd_worker_thread_->StartThread();
+  zp_metacmd_thread_->StartThread();
 
   // TEST 
   LOG(INFO) << "ZPDataServer started on port:" <<  options_.local_port;
@@ -487,24 +489,35 @@ void ZPDataServer::BecomeSlave(const std::string& master_ip, int master_port) {
   }
 }
 
+// Now we only need to keep one connection for Meta Node;
 void ZPDataServer::PlusMetaServerConns() {
   slash::RWLock l(&meta_state_rw_, true);
-  if (meta_server_conns_ < 2) {
-    if ((++meta_server_conns_) >= 2) {
-      meta_state_ = MetaState::kMetaConnected;
-      meta_server_conns_ = 2;
-    }
+  if (meta_server_conns_ == 0) {
+    meta_state_ = MetaState::kMetaConnected;
+    meta_server_conns_ = 1;
   }
+
+  //if (meta_server_conns_ < 2) {
+  //  if ((++meta_server_conns_) >= 2) {
+  //    meta_state_ = MetaState::kMetaConnected;
+  //    meta_server_conns_ = 2;
+  //  }
+  //}
 }
 
 void ZPDataServer::MinusMetaServerConns() {
   slash::RWLock l(&meta_state_rw_, true);
-  if (meta_server_conns_ > 0) {
-    if ((--meta_server_conns_) <= 0) {
-      meta_state_ = MetaState::kMetaConnect;
-      meta_server_conns_ = 0;
-    }
+  if (meta_server_conns_ == 1) {
+    meta_state_ = MetaState::kMetaConnect;
+    meta_server_conns_ = 0;
   }
+
+  //if (meta_server_conns_ > 0) {
+  //  if ((--meta_server_conns_) <= 0) {
+  //    meta_state_ = MetaState::kMetaConnect;
+  //    meta_server_conns_ = 0;
+  //  }
+  //}
 }
 
 void ZPDataServer::PickMeta() {

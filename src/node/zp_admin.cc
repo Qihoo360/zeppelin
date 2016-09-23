@@ -8,6 +8,7 @@
 
 extern ZPDataServer *zp_data_server;
 
+/*
 void InitMetaCmdTable(std::unordered_map<int, Cmd*> *cmd_table) {
   // Update
   Cmd* updateptr = new UpdateCmd(kCmdFlagsWrite);
@@ -53,7 +54,4 @@ void UpdateCmd::Do(google::protobuf::Message *req, google::protobuf::Message *re
   result_ = slash::Status::OK();
   DLOG(INFO) << "Update ok";
 }
-//Status SyncCmd::Init(const void *buf, size_t count) {
-//  return Status::OK();
-//}
-
+*/

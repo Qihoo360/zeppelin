@@ -10,6 +10,6 @@ class UpdateCmd : public Cmd {
   virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition = NULL, bool readonly = false);
 };
 
-void InitMetaCmdTable(std::unordered_map<int, Cmd*> *cmd_table);
+//void InitMetaCmdTable(std::unordered_map<int, Cmd*> *cmd_table);
 
 #endif

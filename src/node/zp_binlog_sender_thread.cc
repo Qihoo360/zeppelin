@@ -267,7 +267,7 @@ void* ZPBinlogSenderThread::ThreadMain() {
     s = zp_data_server->SendToPeer(ip_, port_, scratch);
     //s = zp_data_server->SendToPeer(ip_, port_ + kPortShiftSync, data);
     if (!s.ok()) {
-      LOG(ERROR) << "Failed to send to peer " << (*iter).ip << ":" << (*iter).port + kPortShiftSync << ", Error: " << s.ToString();
+      LOG(ERROR) << "Failed to send to peer " << ip_ << ":" << port_ + kPortShiftSync << ", Error: " << s.ToString();
       send_next = false;
       sleep(1);
       continue;

@@ -39,7 +39,7 @@ const int kMetaPortShiftFY = 200;
 
 const int kTrySyncInterval = 2;
 const int kPingInterval = 3;
-const int kMetaCmdCronInterval = 1;
+const int kMetacmdInterval = 3;
 const int kDispatchCronInterval = 5000;
 const int kMetaDispathCronInterval = 3000;
 const int kWorkerCronInterval = 5000;

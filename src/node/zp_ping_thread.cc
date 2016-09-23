@@ -52,15 +52,14 @@ pink::Status ZPPingThread::RecvProc() {
         break;
       }
       case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PING: {
-        int64_t current_epoch = response.ping.version();
-        if (zp_data_server->meta_epoch() != current_epoch) {
-        }
-        DLOG(INFO) << "ping_thread: receive pong from meta server";
+        int64_t current_epoch = response.ping().version();
+        zp_data_server->UpdateEpoch(response.ping().version());
+        DLOG(INFO) << "ping_thread: receive pong(" << current_epoch << ") from meta server";
         break;
       }
-      case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_UPDATE: {
-        break;
-      }
+      //case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_UPDATE: {
+      //  break;
+      //}
       default:
         break;
     }
@@ -135,7 +134,7 @@ void* ZPPingThread::ThreadMain() {
       //}
 
       zp_data_server->MinusMetaServerConns();
-      zp_data_server->zp_metacmd_worker_thread()->KillMetacmdConn();
+      //zp_data_server->zp_metacmd_worker_thread()->KillMetacmdConn();
       cli_->Close();
     } else {
       LOG(WARNING) << "PingThread Connect failed caz " << s.ToString();
