@@ -7,7 +7,7 @@
 
 extern ZPMetaServer *zp_meta_server;
 
-void JoinCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly) {
+void JoinCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly) {
   ZPMeta::MetaCmd* request = static_cast<ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
@@ -27,7 +27,7 @@ void JoinCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res,
              << request->join().node().port();
 }
 
-void PingCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly) {
+void PingCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly) {
   ZPMeta::MetaCmd* request = static_cast<ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
@@ -42,19 +42,23 @@ void PingCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res,
   
   status_res->set_code(ZPMeta::StatusCode::kOk);
   status_res->set_msg("Ping OK!");
+
+  ZPMeta::MetaCmdResponse_Ping* ping = response->mutable_ping();
+  ping->set_version(zp_meta_server->version());
+
   result_ = slash::Status::OK();
   DLOG(INFO) << "Receive ping from node: " << request->ping().node().ip()
              << ":" << request->ping().node().port();
 }
 
-void PullCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly) {
+void PullCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly) {
   ZPMeta::MetaCmd* request = static_cast<ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   ZPMeta::MetaCmdResponse_Status* status_res = response->mutable_status();
   response->set_type(ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PULL);
 
-  ZPMeta::MetaCmd_Update ms_info;
+  ZPMeta::MetaCmdResponse_Pull ms_info;
   Status s = zp_meta_server->GetMSInfo(ms_info);
   if (!s.ok()) {
     status_res->set_code(ZPMeta::StatusCode::kError);
@@ -64,15 +68,15 @@ void PullCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res,
     status_res->set_msg("Pull Ok!");
   }
 
-  ZPMeta::MetaCmd_Update* update = response->mutable_pull();
+  ZPMeta::MetaCmdResponse_Pull* pull = response->mutable_pull();
   response->set_type(ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PULL);
-  update->CopyFrom(ms_info);
+  pull->CopyFrom(ms_info);
   
   result_ = slash::Status::OK();
   DLOG(INFO) << "Receive Pull from client";
 }
 
-void InitCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, bool readonly) {
+void InitCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly) {
   ZPMeta::MetaCmd* request = static_cast<ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 

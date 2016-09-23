@@ -174,12 +174,8 @@ class ZPDataServer {
   // Partition
   pthread_rwlock_t partition_rw_;
   bool UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes);
-  uint32_t partition_total_;
   std::map<int, Partition*> partitions_;
 
-  void SetPartitionTotal(uint32_t total) {
-    partition_total_ = total;
-  }
   Partition* GetPartition(const std::string &key);
   Partition* GetPartitionById(const int partition_id);
   // Peer Client
@@ -224,6 +220,7 @@ class ZPDataServer {
   int meta_server_conns_;
   std::string meta_ip_;
   long meta_port_;
+  int64_t meta_epoch;
 
   // BGSave related
   slash::Mutex bgsave_protector_;

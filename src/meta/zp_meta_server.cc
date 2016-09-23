@@ -11,7 +11,7 @@ enum ZPNodeStatus {
 };
 
 ZPMetaServer::ZPMetaServer(const ZPOptions& options)
-  : worker_num_(6), options_(options), leader_first_time_(true), leader_cli_(NULL), leader_cmd_port_(0){
+  : worker_num_(6), options_(options), version_(-1), leader_first_time_(true), leader_cli_(NULL), leader_cmd_port_(0) {
 
   // Convert ZPOptions
   floyd::Options fy_options;
@@ -42,11 +42,34 @@ ZPMetaServer::~ZPMetaServer() {
 Status ZPMetaServer::Start() {
   LOG(INFO) << "ZPMetaServer started on port:" << options_.local_port << ", seed is " << options_.seed_ip.c_str() << ":" <<options_.seed_port;
   floyd_->Start();
+  InitVersion();
   zp_meta_dispatch_thread_->StartThread();
 
   server_mutex_.Lock();
   server_mutex_.Lock();
   return Status::OK();
+}
+
+Status ZPMetaServer::InitVersion() {
+  std::string value;
+  ZPMeta::MetaCmdResponse_Pull pull;
+  while(1) {
+    floyd::Status fs = floyd_->Read(ZP_META_KEY_MT, value);
+    if (fs.ok()) {
+      pull.Clear();
+      if (!pull.ParseFromString(value)) {
+        LOG(ERROR) << "deserialization full_meta failed in InitVersion, value: " << value;
+        return slash::Status::Corruption("Parse failed");
+      }
+      version_ = pull.version();
+      return Status::OK();
+    } else if (fs.IsNotFound()) {
+      version_ = -1;
+    } else {
+      LOG(ERROR) << "floyd read full_meta failed in InitVersion: " << fs.ToString() << ", try again";
+      sleep(1);
+    }
+  }
 }
 
 Status ZPMetaServer::Set(const std::string &key, const std::string &value) {
@@ -106,7 +129,8 @@ Status ZPMetaServer::Distribute(int num) {
 
   ZPMeta::Replicaset replicaset;
 
-  ZPMeta::MetaCmd_Update ms_info;
+  ZPMeta::MetaCmdResponse_Pull ms_info;
+  ms_info.set_version(0);
 
   for (int i = 0; i < num; i++) {
 
@@ -153,7 +177,6 @@ Status ZPMetaServer::Distribute(int num) {
     return Status::Corruption("floyd set error!");
   }
 
-  update_thread_.ScheduleBroadcast();
   return Status::OK();
 }
 
@@ -285,7 +308,7 @@ Status ZPMetaServer::AddNode(const std::string &ip, int port) {
 
 Status ZPMetaServer::OffNode(const std::string &ip, int port) {
   ZPMeta::Nodes nodes;
-  ZPMeta::MetaCmd_Update ms_info;
+  ZPMeta::MetaCmdResponse_Pull ms_info;
 
   slash::MutexLock l(&node_mutex_);
 
@@ -326,7 +349,16 @@ Status ZPMetaServer::OffNode(const std::string &ip, int port) {
     return Status::OK();
   }
 
+  int v = ms_info.version();
+  if (v != version_) {
+    LOG(WARNING) << "version not match, version_ = " << version_ << " version in floyd = " << v;
+  }
+  ms_info.set_version(version_ + 1);
+
   s = SetMSInfo(ms_info);
+  if (s.ok()) {
+    version_++; 
+  }
   return s;
 }
 
@@ -370,7 +402,7 @@ Status ZPMetaServer::SetReplicaset(uint32_t partition_id, const ZPMeta::Replicas
   return Set(PartitionId2Key(partition_id), new_value);
 }
 
-Status ZPMetaServer::SetMSInfo(const ZPMeta::MetaCmd_Update &cmd) {
+Status ZPMetaServer::SetMSInfo(const ZPMeta::MetaCmdResponse_Pull &cmd) {
   std::string new_value;
   if (!cmd.SerializeToString(&new_value)) {
     LOG(ERROR) << "serialization ZPMetaCmd failed, new value: " <<  new_value;
@@ -379,7 +411,7 @@ Status ZPMetaServer::SetMSInfo(const ZPMeta::MetaCmd_Update &cmd) {
   return Set(ZP_META_KEY_MT, new_value);
 }
 
-Status ZPMetaServer::GetMSInfo(ZPMeta::MetaCmd_Update &ms_info) {
+Status ZPMetaServer::GetMSInfo(ZPMeta::MetaCmdResponse_Pull &ms_info) {
   std::string value;
   floyd::Status fs = floyd_->DirtyRead(ZP_META_KEY_MT, value);
   if (fs.ok()) {

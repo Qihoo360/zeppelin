@@ -44,9 +44,7 @@ pink::Status ZPPingThread::RecvProc() {
   ZPMeta::MetaCmdResponse response;
   result = cli_->Recv(&response); 
   DLOG(INFO) << "Ping recv: " << result.ToString();
-  if (!result.ok()) {
-    LOG(WARNING) << "Join recv failed " << result.ToString();
-  } else {
+  if (result.ok()) {
     switch (response.type()) {
       case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_JOIN: {
         // Do Master-Slave sync
@@ -54,6 +52,9 @@ pink::Status ZPPingThread::RecvProc() {
         break;
       }
       case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PING: {
+        int64_t current_epoch = response.ping.version();
+        if (zp_data_server->meta_epoch() != current_epoch) {
+        }
         DLOG(INFO) << "ping_thread: receive pong from meta server";
         break;
       }

@@ -35,9 +35,8 @@ message MetaCmd {
   enum Type {
     JOIN = 1;
     PING = 2;
-    UPDATE = 3;
-    PULL = 4;
-    INIT = 5;
+    PULL = 3;
+    INIT = 4;
   }
 
   required Type type = 1;
@@ -50,48 +49,50 @@ message MetaCmd {
 
   // Ping 
   message Ping {
-    required Node node = 1;
+    required int32 version = 1;
+    required Node node = 2;
   }
   optional Ping ping = 3;
-  
-  // Update
-  message Update {
-    repeated Partitions info = 1;
-  }
-  optional Update update = 4;
 
   // Pull
   message Pull {
-    optional string content = 1;  
+    optional string content = 1;
   }
-  optional Pull pull = 5;
+  optional Pull pull = 4;
 
   // Init
   message Init {
     optional int32 num = 1;  
   }
-  optional Init init = 6;
+  optional Init init = 5;
 }
-
 
 message MetaCmdResponse {
   enum Type {
     JOIN = 1;
     PING = 2;
-    UPDATE = 3;
-    PULL = 4;
-    INIT = 5;
+    PULL = 3;
+    INIT = 4;
   }
 
   required Type type = 1;
 
-  // Join Ping Update
   message Status {
     required StatusCode code = 1;
     optional bytes msg = 2;
   }
   required Status status = 2;
 
+  // Ping
+  message Ping {
+    required int32 version = 1;  
+  }
+  optional Ping ping = 3;
+
   // Pull
-  optional MetaCmd.Update pull = 3;
+  message Pull {
+    required int32 version = 1;
+    repeated Partitions info = 2;
+  }
+  optional Pull pull = 4;
 }
