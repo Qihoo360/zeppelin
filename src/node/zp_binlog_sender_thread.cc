@@ -196,9 +196,8 @@ Status ZPBinlogSenderThread::Parse(std::string &scratch) {
   uint32_t pro_num;
   uint64_t pro_offset;
 
-  Binlog* logger = partition_->logger_;
   while (!should_exit_) {
-    logger->GetProducerStatus(&pro_num, &pro_offset);
+    partition_->GetBinlogOffset(&pro_num, &pro_offset);
     if (filenum_ == pro_num && con_offset_ == pro_offset) {
       //DLOG(INFO) << "BinlogSender Parse no new msg, filenum_" << filenum_ << ", con_offset " << con_offset_;
       usleep(10000);
@@ -210,7 +209,7 @@ Status ZPBinlogSenderThread::Parse(std::string &scratch) {
 
     //DLOG(INFO) << "BinlogSender after Parse a msg return " << s.ToString() << " filenum_" << filenum_ << ", con_offset " << con_offset_;
     if (s.IsEndFile()) {
-      std::string confile = NewFileName(logger->filename, filenum_ + 1);
+      std::string confile = NewFileName(partition_->GetBinlogFilename(), filenum_ + 1);
 
       // Roll to next File
       if (slash::FileExists(confile)) {

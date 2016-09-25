@@ -666,6 +666,7 @@ bool ZPDataServer::Bgsaveoff() {
 }
 
 bool ZPDataServer::UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes) {
+  slash::RWLock l(&partition_rw_, true);
   auto iter = partitions_.find(partition_id);
   if (iter != partitions_.end()) {
     //TODO exist partition: update it
@@ -690,12 +691,7 @@ bool ZPDataServer::UpdateOrAddPartition(const int partition_id, const std::vecto
   // New Partition
   Partition* partition = NewPartition(options_.log_path, options_.data_path, partition_id, nodes);
   assert(partition != NULL);
-  {
-    slash::RWLock l(&partition_rw_, true);
-    DLOG(INFO) << "DataServer hold partition_rw ->";
-    partitions_[partition_id] = partition;
-    DLOG(INFO) << "DataServer release partition_rw <-";
-  }
+  partitions_[partition_id] = partition;
 
   return true;
 }

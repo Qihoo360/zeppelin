@@ -3,6 +3,7 @@
 
 #include <string>
 #include <memory>
+#include <algorithm>
 #include <unordered_set>
 #include <unordered_map>
 
@@ -188,12 +189,15 @@ class ZPDataServer {
   pthread_rwlock_t server_rw_;
   
   // Partition
-  pthread_rwlock_t partition_rw_;
   bool UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes);
-  std::map<int, Partition*> partitions_;
-
   Partition* GetPartition(const std::string &key);
   Partition* GetPartitionById(const int partition_id);
+  template <class VisitorFunction>
+  void WalkPartitions(VisitorFunction vfn) {
+    slash::RWLock rl(&partition_rw_, false);
+    for_each(partitions_.begin(), partitions_.end(), vfn);
+  }
+  
   // Peer Client
   Status SendToPeer(const std::string &peer_ip, int peer_port, const std::string &data);
 
@@ -202,7 +206,8 @@ class ZPDataServer {
   ZPOptions options_;
 
   // Partitions
-  //bool UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes);
+  pthread_rwlock_t partition_rw_;
+  std::map<int, Partition*> partitions_;
   uint32_t KeyToPartition(const std::string &key);
 
   // Peer Client

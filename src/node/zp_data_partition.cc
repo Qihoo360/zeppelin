@@ -10,11 +10,11 @@
 extern ZPDataServer* zp_data_server;
 
 Partition::Partition(const int partition_id, const std::string &log_path, const std::string &data_path)
-  : logger_(NULL),
-  partition_id_(partition_id),
+  : partition_id_(partition_id),
   readonly_(false),
   role_(Role::kNodeSingle),
-  repl_state_(ReplState::kNoConnect) {
+  repl_state_(ReplState::kNoConnect),
+  logger_(NULL) {
     log_path_ = NewPartitionPath(log_path, partition_id_);
     data_path_ = NewPartitionPath(data_path, partition_id_);
     sync_path_ = NewPartitionPath(zp_data_server->db_sync_path(), partition_id_);
@@ -52,29 +52,28 @@ bool Partition::ShouldWaitDBSync() {
 
 void Partition::SetWaitDBSync() {
   slash::RWLock l(&state_rw_, true);
+  assert(ReplState::kShouldConnect == repl_state_);
   repl_state_ = ReplState::kWaitDBSync;
 }
 
 void Partition::WaitDBSyncDone() {
   slash::RWLock l(&state_rw_, true);
-  if (repl_state_ == ReplState::kWaitDBSync) {
-    repl_state_ = ReplState::kShouldConnect;
-  }
+  assert(ReplState::kWaitDBSync == repl_state_);
+  repl_state_ = ReplState::kShouldConnect;
 }
 
 bool Partition::ShouldTrySync() {
   slash::RWLock l(&state_rw_, false);
   DLOG(INFO) << "ShouldTrySync " 
-      << (repl_state_ == ReplState::kShouldConnect ? "true" : "false")
-      <<  ", repl_state: " << repl_state_;
+    << (repl_state_ == ReplState::kShouldConnect ? "true" : "false")
+    <<  ", repl_state: " << repl_state_;
   return repl_state_ == ReplState::kShouldConnect;
 }
 
 void Partition::TrySyncDone() {
   slash::RWLock l(&state_rw_, true);
-  if (repl_state_ == ReplState::kShouldConnect) {
-    repl_state_ = ReplState::kConnected;
-  }
+  assert(ReplState::kShouldConnect == repl_state_);
+  repl_state_ = ReplState::kConnected;
 }
 
 bool Partition::ChangeDb(const std::string& new_path) {
@@ -235,10 +234,9 @@ bool Partition::Bgsaveoff() {
 }
 
 
-// TODO
 bool Partition::TryUpdateMasterOffset() {
   // Check dbsync finished
-  std::string info_path = sync_path_ + kBgsaveInfoFile;
+  std::string info_path = sync_path_ + "/" + kBgsaveInfoFile;
   if (!slash::FileExists(info_path)) {
     return false;
   }
@@ -287,23 +285,29 @@ bool Partition::TryUpdateMasterOffset() {
     }
   }
 
-  // Replace the old db
-  //slash::StopRsync(zp_data_server->db_sync_path());
-
   slash::DeleteFile(info_path);
   if (!ChangeDb(sync_path_)) {
-    LOG(WARNING) << "Failed to change db";
+    LOG(ERROR) << "Failed to change db";
     return false;
   }
 
   // Update master offset
   logger_->SetProducerStatus(filenum, offset);
-  WaitDBSyncDone();
   return true;
 }
 
-// slave_mutex should be held
-Status Partition::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t offset) {
+Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t offset) {
+  slash::MutexLock l(&slave_mutex_);
+  if (FindSlave(node)) {
+    LOG(WARNING) << "BinlogSender for " << node.ip << ":" << node.port << "already exist";
+    return Status::InvalidArgument("Binlog sender already exist");
+  }
+
+  // New slave
+  SlaveItem slave;
+  slave.node = node;
+  gettimeofday(&slave.create_time, NULL);
+
   // Sanity check
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
@@ -324,23 +328,22 @@ Status Partition::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t o
     return Status::IOError("AddBinlogSender new sequtialfile");
   }
 
-  ZPBinlogSenderThread* sender = new ZPBinlogSenderThread(this, slave.node.ip, slave.node.port, readfile, filenum, offset);
-
-  slave.sender = sender;
+  ZPBinlogSenderThread *sender = new ZPBinlogSenderThread(this, slave.node.ip, slave.node.port, readfile, filenum, offset);
 
   if (sender->trim() == 0) {
     sender->StartThread();
     pthread_t tid = sender->thread_id();
     slave.sender_tid = tid;
+    slave.sender = sender;
 
     LOG(INFO) << "AddBinlogSender ok, tid is " << slave.sender_tid << " hd_fd: " << slave.sync_fd;
     // Add sender
-    // slave_mutex has been locked
     //slash::MutexLock l(&slave_mutex_);
     slaves_.push_back(slave);
 
     return Status::OK();
   } else {
+    delete sender;
     LOG(WARNING) << "AddBinlogSender failed";
     return Status::NotFound("AddBinlogSender bad sender");
   }
@@ -371,9 +374,9 @@ void Partition::BecomeMaster() {
 }
 
 void Partition::BecomeSlave() {
-  LOG(INFO) << "BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
   {
     slash::MutexLock l(&slave_mutex_);
+    LOG(INFO) << "BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
     for (auto iter = slaves_.begin(); iter != slaves_.end(); iter++) {
       delete static_cast<ZPBinlogSenderThread*>(iter->sender);
       iter = slaves_.erase(iter);
@@ -400,11 +403,8 @@ void Partition::Update(const std::vector<Node> &nodes) {
 }
 
 void Partition::Init(const std::vector<Node> &nodes) {
-  assert(nodes.size() == kReplicaNum);
-  master_node_ = nodes.at(0); 
-  for (size_t i = 1; i < nodes.size(); i++) {
-    slave_nodes_.push_back(nodes[i]);
-  }
+  // Update nodes
+  Update(nodes);
 
   // Create DB handle
   nemo::Options nemo_option;
@@ -415,17 +415,17 @@ void Partition::Init(const std::vector<Node> &nodes) {
   // Binlog
   logger_ = new Binlog(log_path_);
 
-  // TODO  whether to remove this block
   // Is master
-  if (master_node_.ip == zp_data_server->local_ip()
-      && master_node_.port == zp_data_server->local_port()) {
+  Node current_master = master_node();
+  if (current_master.ip== zp_data_server->local_ip()
+      && current_master.port == zp_data_server->local_port()) {
       BecomeMaster();
   } else {
       BecomeSlave();
   }
 }
 
-std::string Partition::NewPartitionPath(const std::string& name, const uint32_t current) {
+std::string NewPartitionPath(const std::string& name, const uint32_t current) {
   char buf[256];
   snprintf(buf, sizeof(buf), "%s/%u", name.c_str(), current);
   return std::string(buf);

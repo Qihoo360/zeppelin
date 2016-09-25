@@ -42,7 +42,6 @@ void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, 
   if (readonly) {
     set_res->set_code(client::StatusCode::kError);
     set_res->set_msg("readonly mode");
-    result_ = slash::Status::Corruption("readonly mode");
     return;
   }
 
@@ -54,13 +53,11 @@ void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, 
   //nemo::Status s = zp_data_server->db()->Set(request->set().key(), request->set().value());
   if (!s.ok()) {
     set_res->set_code(client::StatusCode::kError);
-    set_res->set_msg(result_.ToString());
-    result_ = slash::Status::Corruption(s.ToString());
+    set_res->set_msg(s.ToString());
     LOG(ERROR) << "command failed: Set, caz " << s.ToString();
   } else {
     set_res->set_code(client::StatusCode::kOk);
     DLOG(INFO) << "Set key(" << key_ << ") at Partition: " << ptr->partition_id() << " ok";
-    result_ = slash::Status::OK();
   }
 }
 
@@ -85,16 +82,13 @@ void GetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, 
   if (s.ok()) {
     get_res->set_code(client::StatusCode::kOk);
     get_res->set_value(value);
-    //result_ = slash::Status::OK();
     DLOG(INFO) << "Get key(" << request->get().key() << ") at Partition " << ptr->partition_id() << " ok, value is (" << value << ")";
   } else if (s.IsNotFound()) {
     get_res->set_code(client::StatusCode::kNotFound);
     DLOG(INFO) << "Get key(" << request->get().key() << ") at Partition " << ptr->partition_id() << " not found!";
-    //result_ = slash::Status::NotFound();
   } else {
     get_res->set_code(client::StatusCode::kError);
     get_res->set_msg(s.ToString());
-    //result_ = slash::Status::Corruption(s.ToString());
     LOG(ERROR) << "command failed: Get at Partition " << ptr->partition_id() << ", caz " << s.ToString();
   }
 }
@@ -105,36 +99,27 @@ void SyncCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res,
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
 
-  client::CmdRequest_Sync sync = request->sync();
+  client::CmdRequest_Sync sync_req = request->sync();
 
   slash::Status s;
-  Node node(sync.node().ip(), sync.node().port());
+  Node node(sync_req.node().ip(), sync_req.node().port());
 
   response->set_type(client::Type::SYNC);
-  slash::MutexLock l(&(ptr->slave_mutex_));
-  if (!ptr->FindSlave(node)) {
-    SlaveItem si;
-    si.node = node;
-    gettimeofday(&si.create_time, NULL);
-    si.sender = NULL;
 
-    LOG(INFO) << "SyncCmd Partition:" << ptr->partition_id() << " a new node(" << node.ip << ":" << node.port << ") filenum " << sync.filenum() << ", offset " << sync.offset();
-    s = ptr->AddBinlogSender(si, sync.filenum(), sync.offset());
+  LOG(INFO) << "SyncCmd Partition:" << ptr->partition_id()
+    << " a new node(" << node.ip << ":" << node.port << ") filenum " << sync_req.filenum() << ", offset " << sync_req.offset();
+  s = ptr->AddBinlogSender(node, sync_req.filenum(), sync_req.offset());
 
-    client::CmdResponse_Sync* sync = response->mutable_sync();
-    if (s.ok()) {
-      sync->set_code(client::StatusCode::kOk);
-      DLOG(INFO) << "SyncCmd add node ok";
-      result_ = slash::Status::OK();
-    } else if (s.IsIncomplete()) {
-      sync->set_code(client::StatusCode::kWait);
-      DLOG(INFO) << "SyncCmd add node incomplete";
-      result_ = s;
-    } else {
-      sync->set_code(client::StatusCode::kError);
-      sync->set_msg(s.ToString());
-      result_ = slash::Status::Corruption(s.ToString());
-      LOG(ERROR) << "command failed: Sync, caz " << s.ToString();
-    }
+  client::CmdResponse_Sync* sync_res = response->mutable_sync();
+  if (s.ok()) {
+    sync_res->set_code(client::StatusCode::kOk);
+    DLOG(INFO) << "SyncCmd add node ok";
+  } else if (s.IsIncomplete()) {
+    sync_res->set_code(client::StatusCode::kWait);
+    DLOG(INFO) << "SyncCmd add node incomplete";
+  } else {
+    sync_res->set_code(client::StatusCode::kError);
+    sync_res->set_msg(s.ToString());
+    LOG(ERROR) << "command failed: Sync, caz " << s.ToString();
   }
 }

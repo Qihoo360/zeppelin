@@ -46,29 +46,6 @@ class Node {
 //  Node secondary[kReplicaNum - 1];
 //};
 
-// Slave item
-struct SlaveItem {
-  Node node;
-  pthread_t sender_tid;
-  int sync_fd;
-  void* sender;
-  struct timeval create_time;
-
-  SlaveItem()
-    : node(),
-    sender(NULL) {}
-  SlaveItem(const SlaveItem& item)
-    : node(item.node),
-    sender_tid(item.sender_tid),
-    sender(item.sender),
-    create_time(item.create_time) {
-      //printf ("SlaveItem Cpy cstor called\n");
-    }
-
-  //~SlaveItem() {
-  //  printf ("~SlaveItem called, node address=(%x)\n", &node);
-  //}
-};
 
 //struct ClientInfo {
 //  int fd;

@@ -20,64 +20,88 @@
 #include "nemo.h"
 #include "nemo_backupable.h"
 
-// TODO maybe need replica
-// class Replica;
 class Partition;
-
+std::string NewPartitionPath(const std::string& name, const uint32_t current);
 Partition* NewPartition(const std::string log_path, const std::string data_path, const int partition_id, const std::vector<Node> &nodes);
+
+// Slave item
+struct SlaveItem {
+  Node node;
+  pthread_t sender_tid;
+  int sync_fd;
+  void* sender;
+  struct timeval create_time;
+
+  SlaveItem()
+    : node(),
+    sender(NULL) {}
+
+  SlaveItem(const SlaveItem& item)
+    : node(item.node),
+    sender_tid(item.sender_tid),
+    sender(item.sender),
+    create_time(item.create_time) {
+    }
+};
 
 class Partition {
   friend class ZPBinlogSenderThread;
- public:
+  public:
   Partition(const int partition_id, const std::string &log_path, const std::string &data_path);
   ~Partition();
-  
+
   bool readonly() {
     return readonly_;
   }
+  int partition_id() {
+    return partition_id_;
+  }
+  std::string sync_path() {
+    return sync_path_;
+  }
+  const std::shared_ptr<nemo::Nemo> db() {
+    return db_;
+  }
+  Node master_node() {
+    slash::RWLock l(&state_rw_, false);
+    return master_node_;
+  }
+  bool is_master() {
+    slash::RWLock l(&state_rw_, false);
+    return role_ == Role::kNodeMaster;
+  }
 
+  // Command related
+  void DoBinlogCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse &res, const std::string &raw_msg);
+  void DoCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse &res,
+      const std::string &raw_msg, bool is_from_binlog = false);
+
+  // Status related
   bool FindSlave(const Node& node);
-  Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
   void DeleteSlave(int fd);
   void BecomeMaster();
   void BecomeSlave();
   bool ShouldTrySync();
   void TrySyncDone();
   bool TryUpdateMasterOffset();
-
   bool ShouldWaitDBSync();
   void SetWaitDBSync();
   void WaitDBSyncDone();
 
-  // TODO combine Update and Init
+  // Partition node related
   void Init(const std::vector<Node> &nodes);
   void Update(const std::vector<Node> &nodes);
 
-  void DoBinlogCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse &res, const std::string &raw_msg);
-  void DoCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse &res,
-     const std::string &raw_msg, bool is_from_binlog = false);
-
-  int partition_id() {
-    slash::RWLock l(&state_rw_, false);
-    return partition_id_;
+  // Binlog related
+  Status AddBinlogSender(const Node &node, uint32_t filenum, uint64_t offset);
+  void GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) {
+    logger_->GetProducerStatus(filenum, pro_offset);
   }
-
-  const std::shared_ptr<nemo::Nemo> db() {
-    return db_;
-  }
-
-  Node master_node() {
-    slash::RWLock l(&state_rw_, false);
-    return master_node_;
-  }
-
-  bool is_master() {
-    slash::RWLock l(&state_rw_, false);
-    return role_ == Role::kNodeMaster;
+  std::string GetBinlogFilename() {
+    return logger_->filename;
   }
 
   // BGSave used
-  bool ChangeDb(const std::string& new_path);
   struct BGSaveInfo {
     bool bgsaving;
     time_t start_time;
@@ -112,11 +136,6 @@ class Partition {
     bgsave_info_.bgsaving = false;
   }
 
-  Binlog* logger_;
-
-  // Binlog senders
-  slash::Mutex slave_mutex_;
-  std::vector<SlaveItem> slaves_;
 
  private:
   //TODO define PartitionOption if needed
@@ -143,20 +162,22 @@ class Partition {
     bgsave_info_.Clear();
   }
 
-
   // State related
   pthread_rwlock_t state_rw_;
   int role_;
   int repl_state_;  
 
   std::shared_ptr<nemo::Nemo> db_;
+  bool ChangeDb(const std::string& new_path);
 
   slash::RecordMutex mutex_record_;
   pthread_rwlock_t partition_rw_;
   
-
-  std::string NewPartitionPath(const std::string& name, const uint32_t current);
+  // Binlog related
+  Binlog* logger_;
   void WriteBinlog(const std::string &content);
+  slash::Mutex slave_mutex_;
+  std::vector<SlaveItem> slaves_;
   
   Partition(const Partition&);
   void operator=(const Partition&);
