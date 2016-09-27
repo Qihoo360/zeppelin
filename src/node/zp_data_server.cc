@@ -20,7 +20,6 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
     pthread_rwlockattr_t attr;
     pthread_rwlockattr_init(&attr);
     pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
-    pthread_rwlock_init(&server_rw_, &attr);
     pthread_rwlock_init(&partition_rw_, NULL);
 
 
@@ -73,7 +72,6 @@ ZPDataServer::~ZPDataServer() {
 
   // TODO 
   pthread_rwlock_destroy(&meta_state_rw_);
-  pthread_rwlock_destroy(&server_rw_);
   pthread_rwlock_destroy(&partition_rw_);
 
   LOG(INFO) << "ZPDataServerThread " << pthread_self() << " exit!!!";
@@ -258,5 +256,11 @@ inline uint32_t ZPDataServer::KeyToPartition(const std::string &key) {
   slash::RWLock l(&partition_rw_, false);
   assert(partitions_.size() != 0);
   return std::hash<std::string>()(key) % partitions_.size();
+}
+
+void ZPDataServer::BGTaskSchedule(void (*function)(void*), void* arg) {
+  slash::MutexLock l(&bg_thread_protector_);
+  bg_thread_.StartIfNeed();
+  bg_thread_.Schedule(function, arg);
 }
 

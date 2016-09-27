@@ -212,9 +212,7 @@ void Partition::Bgsave() {
   }
   LOG(INFO) << " BGsave start";
 
-  // Start new thread if needed
-  bgsave_thread_.StartIfNeed();
-  bgsave_thread_.Schedule(&DoBgsave, static_cast<void*>(this));
+  zp_data_server->BGTaskSchedule(&DoBgsave, static_cast<void*>(this));
 }
 
 void Partition::DoBgsave(void* arg) {
@@ -538,11 +536,10 @@ void Partition::DBSync(const std::string& ip, int port) {
     db_sync_slaves_.insert(ip_port);
   }
 
-  // Reuse the bgsave_thread_
+  // Reuse the bg_thread for Bgsave
   // Since we expect Bgsave and DBSync execute serially
-  bgsave_thread_.StartIfNeed();
   DBSyncArg *arg = new DBSyncArg(this, ip, port);
-  bgsave_thread_.Schedule(&DoDBSync, static_cast<void*>(arg));
+  zp_data_server->BGTaskSchedule(&DoDBSync, static_cast<void*>(arg));
 }
 
 void Partition::DoDBSync(void* arg) {
