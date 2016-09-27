@@ -150,11 +150,12 @@ void ZPTrySyncThread::FlagRef() {
   if (0 == rsync_flag_) {
     slash::StopRsync(zp_data_server->db_sync_path());
     std::string dbsync_path = zp_data_server->db_sync_path();
-    std::string ip_port = slash::IpPortString(zp_data_server->master_ip(), zp_data_server->master_port());
+    //std::string ip_port = slash::IpPortString(zp_data_server->master_ip(), zp_data_server->master_port());
 
     // We append the master ip port after module name
     // To make sure only data from current master is received
-    int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, zp_data_server->local_port() + kPortShiftRsync);
+    //int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, zp_data_server->local_port() + kPortShiftRsync);
+    int ret = slash::StartRsync(dbsync_path, kDBSyncModule, zp_data_server->local_port() + kPortShiftRsync);
     if (0 != ret) {
       LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
     }

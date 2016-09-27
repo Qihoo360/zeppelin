@@ -4,7 +4,6 @@
 #include <glog/logging.h>
 #include "zp_data_server.h"
 #include "zp_binlog_sender_thread.h"
-
 #include "rsync.h"
 
 extern ZPDataServer* zp_data_server;
@@ -14,23 +13,47 @@ Partition::Partition(const int partition_id, const std::string &log_path, const 
   readonly_(false),
   role_(Role::kNodeSingle),
   repl_state_(ReplState::kNoConnect),
-  logger_(NULL) {
+  bgsave_engine_(NULL) {
+    // Partition related path
     log_path_ = NewPartitionPath(log_path, partition_id_);
     data_path_ = NewPartitionPath(data_path, partition_id_);
     sync_path_ = NewPartitionPath(zp_data_server->db_sync_path(), partition_id_);
     bgsave_path_ = NewPartitionPath(zp_data_server->bgsave_path(), partition_id_);
+    
     pthread_rwlock_init(&state_rw_, NULL);
-
     pthread_rwlockattr_t attr;
     pthread_rwlockattr_init(&attr);
     pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
     pthread_rwlock_init(&partition_rw_, &attr);
+
+    // Create db handle
+    nemo::Options option; //TODO option args
+    LOG(INFO) << "Loading data for partition:" << partition_id_ << "...";
+    db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(data_path_, option));
+    assert(db_);
+    LOG(INFO) << " Success";
+
+    // Binlog
+    logger_ = new Binlog(log_path_, 1024);
   }
 
 Partition::~Partition() {
   delete logger_;
+  delete bgsave_engine_;
+  {
+    slash::MutexLock l(&slave_mutex_);
+    std::vector<SlaveItem>::iterator iter = slaves_.begin();
+
+    while (iter != slaves_.end()) {
+      delete static_cast<ZPBinlogSenderThread*>(iter->sender);
+      iter =  slaves_.erase(iter);
+      LOG(INFO) << "Delete BinlogSender from slaves success";
+    }
+  }
+  db_.reset();
   pthread_rwlock_destroy(&partition_rw_);
   pthread_rwlock_destroy(&state_rw_);
+  LOG(INFO) << "Partition " << partition_id_ << " exit!!!";
 }
 
 bool Partition::FindSlave(const Node& node) {
@@ -111,7 +134,7 @@ bool Partition::ChangeDb(const std::string& new_path) {
 
 ////// BGSave //////
 
-// Prepare engine, need bgsave_protector protect
+// Prepare engine
 bool Partition::InitBgsaveEnv() {
   {
     slash::MutexLock l(&bgsave_protector_);
@@ -135,7 +158,7 @@ bool Partition::InitBgsaveEnv() {
   return true;
 }
 
-// Prepare bgsave env, need bgsave_protector protect
+// Prepare bgsave env
 bool Partition::InitBgsaveEngine() {
   delete bgsave_engine_;
   nemo::Status result = nemo::BackupEngine::Open(db_.get(), &bgsave_engine_);
@@ -298,6 +321,7 @@ bool Partition::TryUpdateMasterOffset() {
 
 Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t offset) {
   slash::MutexLock l(&slave_mutex_);
+  // Check exist
   if (FindSlave(node)) {
     LOG(WARNING) << "BinlogSender for " << node.ip << ":" << node.port << "already exist";
     return Status::InvalidArgument("Binlog sender already exist");
@@ -320,8 +344,8 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
   std::string confile = NewFileName(logger_->filename, filenum);
   if (!slash::FileExists(confile)) {
     // Not found binlog specified by filenum
-    //return Status::Incomplete("Bgsaving and DBSync first");
-    return Status::InvalidArgument("AddBinlogSender invalid binlog filenum");
+    TryDBSync(node.ip, node.port + kPortShiftRsync, cur_filenum);
+    return Status::Incomplete("Bgsaving and DBSync first");
   }
 
   if (!slash::NewSequentialFile(confile, &readfile).ok()) {
@@ -482,5 +506,148 @@ inline void Partition::WriteBinlog(const std::string &content) {
   logger_->Lock();
   logger_->Put(content);
   logger_->Unlock();
+}
+
+void Partition::TryDBSync(const std::string& ip, int port, int32_t top) {
+  std::string bg_path;
+  uint32_t bg_filenum = 0;
+  {
+    slash::MutexLock l(&bgsave_protector_);
+    bg_path = bgsave_info_.path;
+    bg_filenum = bgsave_info_.filenum;
+  }
+
+  if (0 != slash::IsDir(bg_path) ||                               //Bgsaving dir exist
+      !slash::FileExists(NewFileName(logger_->filename, bg_filenum)) ||  //filenum can be found in binglog
+      top - bg_filenum > kDBSyncMaxGap) {      //The file is not too old
+    // Need Bgsave first
+    Bgsave();
+  }
+  DBSync(ip, port);
+}
+
+void Partition::DBSync(const std::string& ip, int port) {
+  // Only one DBSync task for every ip_port
+
+  std::string ip_port = slash::IpPortString(ip, port);
+  {
+    slash::MutexLock l(&db_sync_protector_);
+    if (db_sync_slaves_.find(ip_port) != db_sync_slaves_.end()) {
+      return;
+    }
+    db_sync_slaves_.insert(ip_port);
+  }
+
+  // Reuse the bgsave_thread_
+  // Since we expect Bgsave and DBSync execute serially
+  bgsave_thread_.StartIfNeed();
+  DBSyncArg *arg = new DBSyncArg(this, ip, port);
+  bgsave_thread_.Schedule(&DoDBSync, static_cast<void*>(arg));
+}
+
+void Partition::DoDBSync(void* arg) {
+  DBSyncArg *ppurge = static_cast<DBSyncArg*>(arg);
+  Partition* partition = ppurge->p;
+
+  //sleep(3);
+  DLOG(INFO) << "DBSync begin sendfile " << ppurge->ip << ":" << ppurge->port;
+  partition->DBSyncSendFile(ppurge->ip, ppurge->port);
+  
+  delete (DBSyncArg*)arg;
+}
+
+void Partition::DBSyncSendFile(const std::string& ip, int port) {
+  std::string bg_path;
+  {
+    slash::MutexLock l(&bgsave_protector_);
+    bg_path = bgsave_info_.path;
+  }
+  // Get all files need to send
+  std::vector<std::string> descendant;
+  if (!slash::GetDescendant(bg_path, descendant)) {
+    LOG(WARNING) << "Get Descendant when try to do db sync failed";
+    return;
+  }
+
+  DLOG(INFO) << "DBSyncSendFile descendant size= " << descendant.size() << " bg_path=" << bg_path;
+
+  // Iterate to send files
+  int ret = 0;
+  std::string target_path;
+  std::string target_dir = NewPartitionPath(".", partition_id_);
+  std::string module = kDBSyncModule;
+  std::vector<std::string>::iterator it = descendant.begin();
+  slash::RsyncRemote remote(ip, port, module, kDBSyncSpeedLimit * 1024);
+  for (; it != descendant.end(); ++it) {
+    target_path = (*it).substr(bg_path.size() + 1);
+    DLOG(INFO) << "--- descendant: " << target_path;
+    if (target_path == kBgsaveInfoFile) {
+      continue;
+    }
+    // We need specify the speed limit for every single file
+    ret = slash::RsyncSendFile(*it, target_dir + "/" + target_path, remote);
+    if (0 != ret) {
+      LOG(WARNING) << "rsync send file failed! From: " << *it
+        << ", To: " << target_path
+        << ", At: " << ip << ":" << port
+        << ", Error: " << ret;
+      break;
+    }
+  }
+ 
+  // Clear target path
+  slash::RsyncSendClearTarget(bg_path + "/kv", target_dir + "/kv", remote);
+  slash::RsyncSendClearTarget(bg_path + "/hash", target_dir + "/hash", remote);
+  slash::RsyncSendClearTarget(bg_path + "/list", target_dir + "/list", remote);
+  slash::RsyncSendClearTarget(bg_path + "/set", target_dir + "/set", remote);
+  slash::RsyncSendClearTarget(bg_path + "/zset", target_dir + "/zset", remote);
+
+  // Send info file at last
+  if (0 == ret) {
+    if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, target_dir + "/" + kBgsaveInfoFile, remote))) {
+      LOG(WARNING) << "send info file failed";
+    }
+  }
+
+  // remove slave
+  std::string ip_port = slash::IpPortString(ip, port);
+  {
+    slash::MutexLock l(&db_sync_protector_);
+    db_sync_slaves_.erase(ip_port);
+  }
+  if (0 == ret) {
+    LOG(INFO) << "rsync send files success";
+  }
+}
+
+bool Partition::FlushAll() {
+  {
+    slash::MutexLock l(&bgsave_protector_);
+    if (bgsave_info_.bgsaving) {
+      return false;
+    }
+  }
+  std::string dbpath = data_path_;
+  if (dbpath[dbpath.length() - 1] == '/') {
+    dbpath.erase(dbpath.length() - 1);
+  }
+  int pos = dbpath.find_last_of('/');
+  dbpath = dbpath.substr(0, pos);
+  dbpath.append("/deleting");
+
+  LOG(INFO) << "Delete old db...";
+  db_.reset();
+  if (slash::RenameFile(data_path_, dbpath.c_str()) != 0) {
+    LOG(WARNING) << "Failed to rename db path when flushall, error: " << strerror(errno);
+    return false;
+  }
+ 
+  LOG(INFO) << "Prepare open new db...";
+  nemo::Options option;
+  db_.reset(new nemo::Nemo(data_path_, option));
+  assert(db_);
+  LOG(INFO) << "open new db success";
+  // TODO PurgeDir(dbpath);
+  return true; 
 }
 

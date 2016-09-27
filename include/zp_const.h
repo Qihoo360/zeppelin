@@ -88,7 +88,7 @@ const int kMaxBitOpInputBit = 21;
 //const uint32_t kDBSyncMaxGap = 200;
 const uint32_t kDBSyncMaxGap = 1000;
 const std::string kDBSyncModule = "document";
-
+const uint32_t kDBSyncSpeedLimit = 126; //MBPS
 const std::string kBgsaveInfoFile = "info";
 
 

@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <unordered_set>
 
 #include "zp_const.h"
 #include "client.pb.h"
@@ -101,7 +102,7 @@ class Partition {
     return logger_->filename;
   }
 
-  // BGSave used
+  // BGSave related
   struct BGSaveInfo {
     bool bgsaving;
     time_t start_time;
@@ -117,25 +118,25 @@ class Partition {
       offset = 0;
     }
   };
-  BGSaveInfo bgsave_info() {
-    slash::MutexLock l(&bgsave_protector_);
-    return bgsave_info_;
-  }
-  bool bgsaving() {
-    slash::MutexLock l(&bgsave_protector_);
-    return bgsave_info_.bgsaving;
-  }
-  std::string bgsave_prefix() {
-    return "";
-  }
-  void Bgsave();
-  bool Bgsaveoff();
   bool RunBgsaveEngine(const std::string path);
   void FinishBgsave() {
     slash::MutexLock l(&bgsave_protector_);
     bgsave_info_.bgsaving = false;
   }
+  BGSaveInfo bgsave_info() {
+    slash::MutexLock l(&bgsave_protector_);
+    return bgsave_info_;
+  }
 
+  // DBSync related
+  struct DBSyncArg {
+    Partition *p;
+    std::string ip;
+    int port;
+    DBSyncArg(Partition *_p, const std::string& _ip, int &_port)
+      : p(_p), ip(_ip), port(_port) {}
+  };
+  void DBSyncSendFile(const std::string& ip, int port);
 
  private:
   //TODO define PartitionOption if needed
@@ -147,13 +148,33 @@ class Partition {
   Node master_node_;
   std::vector<Node> slave_nodes_;
   std::atomic<bool> readonly_;
+  
+  // State related
+  pthread_rwlock_t state_rw_;
+  int role_;
+  int repl_state_;
+
+  // DB related
+  std::shared_ptr<nemo::Nemo> db_;
+  bool FlushAll();
+
+  // Binlog related
+  Binlog* logger_;
+  void WriteBinlog(const std::string &content);
+  slash::Mutex slave_mutex_;
+  std::vector<SlaveItem> slaves_;
+
+  // DoCommand related
+  slash::RecordMutex mutex_record_;
+  pthread_rwlock_t partition_rw_;
 
   // BGSave related
   slash::Mutex bgsave_protector_;
   pink::BGThread bgsave_thread_;
   nemo::BackupEngine *bgsave_engine_;
   BGSaveInfo bgsave_info_;
-
+  void Bgsave();
+  bool Bgsaveoff();
   static void DoBgsave(void* arg);
   bool InitBgsaveEnv();
   bool InitBgsaveEngine();
@@ -161,24 +182,22 @@ class Partition {
     slash::MutexLock l(&bgsave_protector_);
     bgsave_info_.Clear();
   }
+  bool bgsaving() {
+    slash::MutexLock l(&bgsave_protector_);
+    return bgsave_info_.bgsaving;
+  }
+  std::string bgsave_prefix() {
+    return "";
+  }
 
-  // State related
-  pthread_rwlock_t state_rw_;
-  int role_;
-  int repl_state_;  
-
-  std::shared_ptr<nemo::Nemo> db_;
+  // DBSync related
+  slash::Mutex db_sync_protector_;
+  std::unordered_set<std::string> db_sync_slaves_;
+  void TryDBSync(const std::string& ip, int port, int32_t top);
+  void DBSync(const std::string& ip, int port);
+  static void DoDBSync(void* arg);
   bool ChangeDb(const std::string& new_path);
 
-  slash::RecordMutex mutex_record_;
-  pthread_rwlock_t partition_rw_;
-  
-  // Binlog related
-  Binlog* logger_;
-  void WriteBinlog(const std::string &content);
-  slash::Mutex slave_mutex_;
-  std::vector<SlaveItem> slaves_;
-  
   Partition(const Partition&);
   void operator=(const Partition&);
 };
