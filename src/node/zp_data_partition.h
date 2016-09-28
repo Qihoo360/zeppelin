@@ -13,7 +13,6 @@
 #include "zp_meta_utils.h"
 #include "zp_command.h"
 
-#include "bg_thread.h"
 #include "pb_conn.h"
 #include "pb_cli.h"
 #include "holy_thread.h"
@@ -172,7 +171,6 @@ class Partition {
 
   // BGSave related
   slash::Mutex bgsave_protector_;
-  pink::BGThread bgsave_thread_;
   nemo::BackupEngine *bgsave_engine_;
   BGSaveInfo bgsave_info_;
   void Bgsave();

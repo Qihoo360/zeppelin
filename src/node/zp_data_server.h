@@ -79,7 +79,7 @@ class ZPDataServer {
     return zp_binlog_receiver_thread_;
   };
 
-
+  // Meta related
   bool ShouldJoinMeta();
   void PlusMetaServerConns();
   void MinusMetaServerConns();
@@ -97,13 +97,8 @@ class ZPDataServer {
     slash::MutexLock l(&mutex_epoch_);
     should_pull_meta_ = false;
   }
-
-
-  slash::Mutex server_mutex_;
-
-  pthread_rwlock_t server_rw_;
   
-  // Partition
+  // Partition related
   bool UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes);
   Partition* GetPartition(const std::string &key);
   Partition* GetPartitionById(const int partition_id);
@@ -117,10 +112,14 @@ class ZPDataServer {
   
   // Peer Client
   Status SendToPeer(const std::string &peer_ip, int peer_port, const std::string &data);
+  
+  // Backgroud thread
+  void BGTaskSchedule(void (*function)(void*), void* arg);
 
  private:
 
   ZPOptions options_;
+  slash::Mutex server_mutex_;
 
   // Partitions
   pthread_rwlock_t partition_rw_;
@@ -154,6 +153,10 @@ class ZPDataServer {
   slash::Mutex mutex_epoch_;
   int64_t meta_epoch_;
   bool should_pull_meta_;
+
+  // Background thread
+  slash::Mutex bg_thread_protector_;
+  pink::BGThread bg_thread_;
 
   // Purgelogs use
   std::atomic<bool> purging_;
