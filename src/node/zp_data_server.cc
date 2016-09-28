@@ -44,12 +44,6 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
 
 ZPDataServer::~ZPDataServer() {
   DLOG(INFO) << "~ZPDataServer dstor";
-  {
-    slash::RWLock l(&partition_rw_, true);
-    for (auto iter = partitions_.begin(); iter != partitions_.end(); iter++) {
-      delete iter->second;
-    }
-  }
 
   delete zp_dispatch_thread_;
   for (int i = 0; i < worker_num_; i++) {
@@ -70,6 +64,13 @@ ZPDataServer::~ZPDataServer() {
   delete zp_binlog_receiver_thread_;
   delete zp_trysync_thread_;
   delete zp_metacmd_thread_;
+
+  {
+    slash::RWLock l(&partition_rw_, true);
+    for (auto iter = partitions_.begin(); iter != partitions_.end(); iter++) {
+      delete iter->second;
+    }
+  }
 
   // TODO 
   pthread_rwlock_destroy(&meta_state_rw_);
@@ -114,6 +115,15 @@ bool ZPDataServer::ShouldJoinMeta() {
   slash::RWLock l(&meta_state_rw_, false);
   DLOG(INFO) <<  "ShouldJoinMeta meta_state: " << meta_state_;
   return meta_state_ == MetaState::kMetaConnect;
+}
+
+void ZPDataServer::UpdateEpoch(int64_t epoch) {
+  slash::MutexLock l(&mutex_epoch_);
+  if (epoch > meta_epoch_) {
+    DLOG(INFO) <<  "UpdateEpoch (" << meta_epoch_ << "->" << epoch << ") ok...";
+    meta_epoch_ = epoch;
+    should_pull_meta_ = true;
+  }
 }
 
 void ZPDataServer::PurgeDir(std::string& path) {
@@ -181,6 +191,16 @@ void ZPDataServer::PickMeta() {
     slash::string2l(str_port.data(), str_port.size(), &meta_port_); 
   }
   LOG(INFO) << "PickMeta ip: " << meta_ip_ << " port: " << meta_port_;
+}
+
+void ZPDataServer::DumpPartitions() {
+  slash::RWLock l(&partition_rw_, false);
+
+  DLOG(INFO) << "==========================";
+  for (auto iter = partitions_.begin(); iter != partitions_.end(); iter++) {
+    iter->second->Dump();
+  }
+  DLOG(INFO) << "--------------------------";
 }
 
 bool ZPDataServer::UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes) {

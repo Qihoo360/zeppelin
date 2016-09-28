@@ -54,6 +54,7 @@ class ZPTrySyncThread : public pink::Thread {
 
   std::map<std::string, pink::PbCli*> client_pool_;
   pink::PbCli* GetConnection(const Node& node);
+  void DropConnection(const Node& node);
   virtual void* ThreadMain();
 };
 

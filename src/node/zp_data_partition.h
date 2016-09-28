@@ -138,6 +138,8 @@ class Partition {
   };
   void DBSyncSendFile(const std::string& ip, int port);
 
+  void Dump();
+
  private:
   //TODO define PartitionOption if needed
   int partition_id_;

@@ -69,7 +69,7 @@ bool Partition::ShouldWaitDBSync() {
   slash::RWLock l(&state_rw_, false);
   DLOG(INFO) << "ShouldWaitDBSync " 
       << (repl_state_ == ReplState::kWaitDBSync ? "true" : "false")
-      << ", repl_state: " << repl_state_ << " role: " << role_;
+      << ", repl_state: " << ReplStateMsg[repl_state_] << " role: " << RoleMsg[role_];
   return repl_state_ == ReplState::kWaitDBSync;
 }
 
@@ -83,13 +83,14 @@ void Partition::WaitDBSyncDone() {
   slash::RWLock l(&state_rw_, true);
   assert(ReplState::kWaitDBSync == repl_state_);
   repl_state_ = ReplState::kShouldConnect;
+  DLOG(INFO) << "Partition " << partition_id_ << " WaitDBSyncDone  set repl_state: " << ReplStateMsg[repl_state_];
 }
 
 bool Partition::ShouldTrySync() {
   slash::RWLock l(&state_rw_, false);
   DLOG(INFO) << "ShouldTrySync " 
     << (repl_state_ == ReplState::kShouldConnect ? "true" : "false")
-    <<  ", repl_state: " << repl_state_;
+    <<  ", repl_state: " << ReplStateMsg[repl_state_];
   return repl_state_ == ReplState::kShouldConnect;
 }
 
@@ -97,6 +98,7 @@ void Partition::TrySyncDone() {
   slash::RWLock l(&state_rw_, true);
   assert(ReplState::kShouldConnect == repl_state_);
   repl_state_ = ReplState::kConnected;
+  DLOG(INFO) << "Partition " << partition_id_ << "TrySyncDone  set repl_state: " << ReplStateMsg[repl_state_];
 }
 
 bool Partition::ChangeDb(const std::string& new_path) {
@@ -360,7 +362,7 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
     slave.sender_tid = tid;
     slave.sender = sender;
 
-    LOG(INFO) << "AddBinlogSender ok, tid is " << slave.sender_tid << " hd_fd: " << slave.sync_fd;
+    LOG(INFO) << "AddBinlogSender for node(" << node.ip << ":" << node.port << ") ok, tid is " << slave.sender_tid << " sync_fd: " << slave.sync_fd;
     // Add sender
     //slash::MutexLock l(&slave_mutex_);
     slaves_.push_back(slave);
@@ -400,8 +402,8 @@ void Partition::BecomeMaster() {
 void Partition::BecomeSlave() {
   {
     slash::MutexLock l(&slave_mutex_);
-    LOG(INFO) << "BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
-    for (auto iter = slaves_.begin(); iter != slaves_.end(); iter++) {
+    LOG(INFO) << " Partition " << partition_id_ << " BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
+    for (auto iter = slaves_.begin(); iter != slaves_.end(); ) {
       delete static_cast<ZPBinlogSenderThread*>(iter->sender);
       iter = slaves_.erase(iter);
       LOG(INFO) << "Delete slave success";
@@ -430,14 +432,15 @@ void Partition::Init(const std::vector<Node> &nodes) {
   // Update nodes
   Update(nodes);
 
-  // Create DB handle
-  nemo::Options nemo_option;
-  DLOG(INFO) << "Loading data at " << data_path_ << " ...";
-  db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(data_path_, nemo_option));
-  assert(db_);
-
-  // Binlog
-  logger_ = new Binlog(log_path_);
+// TODO rm
+//  // Create DB handle
+//  nemo::Options nemo_option;
+//  DLOG(INFO) << "Loading data at " << data_path_ << " ...";
+//  db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(data_path_, nemo_option));
+//  assert(db_);
+//
+//  // Binlog
+//  logger_ = new Binlog(log_path_);
 
   // Is master
   Node current_master = master_node();
@@ -649,5 +652,24 @@ bool Partition::FlushAll() {
   LOG(INFO) << "open new db success";
   // TODO PurgeDir(dbpath);
   return true; 
+}
+
+void Partition::Dump() {
+  slash::RWLock l(&state_rw_, false);
+  DLOG(INFO) << "----------------------------";
+  DLOG(INFO) << "  +Partition    " << partition_id_ << ": I am a " << is_master() ? "master" : "slave";
+  DLOG(INFO) << "     -*Master node " << master_node_;
+
+  for (int i = 0; i < slave_nodes_.size(); i++) {
+    DLOG(INFO) << "     -* slave  " << i << " " <<  slave_nodes_[i];
+  }
+
+  {
+    DLOG(INFO) << "----------------------------";
+    slash::MutexLock l(&slave_mutex_);
+    for (int i = 0; i < slaves_.size(); i++) {
+      DLOG(INFO) << "     -my_slave  " << i << " " <<  slaves_[i].node;
+    }
+  }
 }
 

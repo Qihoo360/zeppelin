@@ -263,7 +263,7 @@ void* ZPBinlogSenderThread::ThreadMain() {
       }
     }
     // Send binlog
-    s = zp_data_server->SendToPeer(ip_, port_, scratch);
+    s = zp_data_server->SendToPeer(ip_, port_ + kPortShiftSync, scratch);
     //s = zp_data_server->SendToPeer(ip_, port_ + kPortShiftSync, data);
     if (!s.ok()) {
       LOG(ERROR) << "Failed to send to peer " << ip_ << ":" << port_ + kPortShiftSync << ", Error: " << s.ToString();

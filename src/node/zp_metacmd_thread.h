@@ -30,6 +30,9 @@ class ZPMetacmdThread : public pink::Thread {
 
   pink::PbCli *cli_;
 
+  pink::Status Send();
+  pink::Status Recv();
+
   virtual void* ThreadMain();
 };
 #endif
