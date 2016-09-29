@@ -21,6 +21,58 @@ ZPMetacmdThread::~ZPMetacmdThread() {
   LOG(INFO) << "ZPMetacmd thread " << thread_id() << " exit!!!";
 }
 
+pink::Status ZPMetacmdThread::Send() {
+  ZPMeta::MetaCmd request;
+  ZPMeta::MetaCmd_Pull* pull = request.mutable_pull();
+
+  DLOG(INFO) << "MetacmdThead Pull MetaServer(" << zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ") with local("<< zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
+  request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_PULL);
+  return cli_->Send(&request);
+}
+
+pink::Status ZPMetacmdThread::Recv() {
+  pink::Status result;
+  ZPMeta::MetaCmdResponse response;
+  result = cli_->Recv(&response); 
+  DLOG(INFO) << "MetacmdThread recv: " << result.ToString();
+  if (result.ok()) {
+    switch (response.type()) {
+      case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PULL: {
+        if (response.status().code() != ZPMeta::StatusCode::kOk) {
+          DLOG(INFO) << "receive Pull error: " << response.status().msg();
+          return pink::Status::IOError(response.status().msg());
+        }
+
+        int64_t current_epoch = response.pull().version();
+        ZPMeta::MetaCmdResponse_Pull pull = response.pull();
+
+        DLOG(INFO) << "receive Pull message, will handle " << pull.info_size() << " Partitions.";
+        for (int i = 0; i < pull.info_size(); i++) {
+          const ZPMeta::Partitions& partition = pull.info(i);
+          DLOG(INFO) << " - handle Partition " << partition.id() << ": master is " << partition.master().ip() << ":" << partition.master().port();
+
+          std::vector<Node> nodes;
+          nodes.push_back(Node(partition.master().ip(), partition.master().port()));
+          for (int j = 0; j < partition.slaves_size(); j++) {
+            nodes.push_back(Node(partition.slaves(j).ip(), partition.slaves(j).port()));
+          }
+
+          bool result = zp_data_server->UpdateOrAddPartition(partition.id(), nodes);
+          if (!result) {
+            LOG(WARNING) << "AddPartition failed";
+          }
+        }
+
+        DLOG(INFO) << "MetacmdThread: receive pull(" << current_epoch << ") from meta server";
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  return result;
+}
+
 void* ZPMetacmdThread::ThreadMain() {
   int connect_retry_times = 0;
   struct timeval last_interaction;
@@ -60,21 +112,23 @@ void* ZPMetacmdThread::ThreadMain() {
 
         sleep(kMetacmdInterval);
 
-        //s = Send();
+        s = Send();
         if (!s.ok()) {
           DLOG(WARNING) << "Metacmd send failed once, " << s.ToString();
           continue;
         }
         DLOG(INFO) << "Metacmd send ok!";
 
-        //s = RecvProc();
+        s = Recv();
         if (!s.ok()) {
           DLOG(WARNING) << "Metacmd recv failed once, " << s.ToString();
           continue;
         }
-
+        // TODO when we recv OK, we will FinishPullMeta
+        zp_data_server->FinishPullMeta();
         gettimeofday(&last_interaction, NULL);
         DLOG(INFO) << "Metacmd MetaServer success";
+        break;
       }
 
       //if (s.IsTimeout()) {

@@ -42,10 +42,11 @@ void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, 
   if (readonly) {
     set_res->set_code(client::StatusCode::kError);
     set_res->set_msg("readonly mode");
+    DLOG(INFO) << "readonly mode, failed Set key(" << key_ << ") at Partition: " << ptr->partition_id();
     return;
   }
 
-  LOG(ERROR) << "Test: BGSave";
+  //LOG(ERROR) << "Test: BGSave";
   //ptr->Bgsave();
 
   //int32_t ttl;

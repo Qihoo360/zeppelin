@@ -87,6 +87,16 @@ pink::PbCli* ZPTrySyncThread::GetConnection(const Node& node) {
   return cli;
 }
 
+void ZPTrySyncThread::DropConnection(const Node& node) {
+  std::string ip_port = slash::IpPortString(node.ip, node.port);
+  auto iter = client_pool_.find(ip_port);
+  if (iter != client_pool_.end()) {
+    pink::PbCli* cli = iter->second;
+    delete cli;
+    client_pool_.erase(iter);
+  }
+}
+
 void ZPTrySyncThread::SendTrySync(Partition *partition) {
   if (partition->ShouldWaitDBSync() && partition->TryUpdateMasterOffset()) {
     partition->WaitDBSyncDone();
@@ -117,6 +127,7 @@ void ZPTrySyncThread::SendTrySync(Partition *partition) {
       } else if (ret == -1) {
         partition->SetWaitDBSync();
       } else {
+        DropConnection(master_node);
         DLOG(WARNING) << "TrySync recv failed";
       }
     }

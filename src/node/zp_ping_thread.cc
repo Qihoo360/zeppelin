@@ -19,11 +19,16 @@ pink::Status ZPPingThread::Send() {
   if (!is_first_send_) {
     ZPMeta::MetaCmd request;
     ZPMeta::MetaCmd_Ping* ping = request.mutable_ping();
+    int64_t meta_epoch = zp_data_server->meta_epoch();
+    ping->set_version(meta_epoch);
+
     ZPMeta::Node* node = ping->mutable_node();
     node->set_ip(zp_data_server->local_ip());
     node->set_port(zp_data_server->local_port());
 
-    DLOG(INFO) << "Ping master(" << zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ") with local("<< zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
+    DLOG(INFO) << "Ping master(" << zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd
+        << ") with Epoch: " << meta_epoch << " local("
+        << zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
     request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_PING);
     return cli_->Send(&request);
   } else {

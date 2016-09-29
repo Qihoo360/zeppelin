@@ -151,6 +151,8 @@ class Partition {
   }
   void AutoPurge();
 
+  void Dump();
+
  private:
   //TODO define PartitionOption if needed
   int partition_id_;

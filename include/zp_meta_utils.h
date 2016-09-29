@@ -8,6 +8,8 @@ class Node;
 //class Leaders;
 
 #include <stdio.h>
+#include <iostream>
+#include <ostream>
 
 class Node {
  public:
@@ -38,6 +40,11 @@ class Node {
   }
   bool operator!=(const Node& rhs) const {
     return (ip != rhs.ip || port != rhs.port);
+  }
+
+  friend std::ostream& operator<<(std::ostream& stream, const Node& node) {
+    stream << node.ip << ":" << node.port;
+    return stream;
   }
 };
 

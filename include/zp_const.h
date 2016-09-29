@@ -26,6 +26,23 @@ enum MetaState {
   kMetaConnecting = 2,
   kMetaConnected = 3,
 };
+// debug only
+const std::string ReplStateMsg[] = {
+  "kNoConnect",
+  "kShouldConnect",
+  "kConnected",
+  "kWaitDBSync"
+};
+const std::string MetaStateMsg[] = {
+  "kMetaConnect",
+  "kMetaConnecting",
+  "kMetaConnected"
+};
+const std::string RoleMsg[] {
+  "kNodeSingle",
+  "kNodeMaster",
+  "kNodeSlave"
+};
 
 // Data port shift
 const int kPortShiftDataCmd = 100;

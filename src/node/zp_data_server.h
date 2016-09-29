@@ -84,13 +84,11 @@ class ZPDataServer {
   void PlusMetaServerConns();
   void MinusMetaServerConns();
   void PickMeta();
-  void UpdateEpoch(int64_t epoch) {
+  int64_t meta_epoch() {
     slash::MutexLock l(&mutex_epoch_);
-    if (epoch > meta_epoch_) {
-      meta_epoch_ = epoch;
-      should_pull_meta_ = true;
-    }
+    return meta_epoch_;
   }
+  void UpdateEpoch(int64_t epoch);
   bool ShouldPullMeta() {
     slash::MutexLock l(&mutex_epoch_);
     return should_pull_meta_;
@@ -109,6 +107,8 @@ class ZPDataServer {
     slash::RWLock rl(&partition_rw_, false);
     for_each(partitions_.begin(), partitions_.end(), vfn);
   }
+
+  void DumpPartitions();
   
   // Peer Client
   Status SendToPeer(const std::string &peer_ip, int peer_port, const std::string &data);
