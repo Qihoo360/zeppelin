@@ -45,7 +45,8 @@ const std::string RoleMsg[] {
 };
 
 // Data port shift
-const int kPortShiftDataCmd = 100;
+// TODO DataPort is stall
+//const int kPortShiftDataCmd = 100;
 const int kPortShiftSync = 200;
 const int kPortShiftRsync = 300;
 
@@ -86,6 +87,7 @@ const std::string kManifest = "manifest";
 // The size of Binlogfile
 //
 //uint64_t kBinlogSize = 128; 
+const uint64_t kBinlogSize = 256;
 //const uint64_t kBinlogSize = 1024 * 1024 * 100;
 
 

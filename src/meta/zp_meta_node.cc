@@ -48,7 +48,8 @@ void PingCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res,
 
   result_ = slash::Status::OK();
   DLOG(INFO) << "Receive ping from node: " << request->ping().node().ip()
-             << ":" << request->ping().node().port();
+             << ":" << request->ping().node().port() << ", version=" << request->ping().version()
+             << ", response version=" << zp_meta_server->version();
 }
 
 void PullCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly) {
