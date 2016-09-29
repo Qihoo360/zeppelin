@@ -136,6 +136,20 @@ class Partition {
       : p(_p), ip(_ip), port(_port) {}
   };
   void DBSyncSendFile(const std::string& ip, int port);
+  
+  // Purge binlog related
+  struct PurgeArg {
+    Partition *p;
+    uint32_t to;
+    bool manual;
+    bool force; // Ignore the delete window
+  };
+  bool PurgeLogs(uint32_t to, bool manual, bool force);
+  bool PurgeFiles(uint32_t to, bool manual, bool force);
+  void ClearPurge() {
+    purging_ = false;
+  }
+  void AutoPurge();
 
   void Dump();
 
@@ -197,6 +211,13 @@ class Partition {
   void DBSync(const std::string& ip, int port);
   static void DoDBSync(void* arg);
   bool ChangeDb(const std::string& new_path);
+
+  // Purge binlog related
+  std::atomic<bool> purging_;
+  uint32_t purged_index_; // binlog before which has or will be purged
+  bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
+  static void DoPurgeLogs(void* arg);
+  bool CouldPurge(uint32_t index);
 
   Partition(const Partition&);
   void operator=(const Partition&);
