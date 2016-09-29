@@ -13,7 +13,8 @@ Partition::Partition(const int partition_id, const std::string &log_path, const 
   readonly_(false),
   role_(Role::kNodeSingle),
   repl_state_(ReplState::kNoConnect),
-  bgsave_engine_(NULL) {
+  bgsave_engine_(NULL),
+  purged_index_(0) {
     // Partition related path
     log_path_ = NewPartitionPath(log_path, partition_id_);
     data_path_ = NewPartitionPath(data_path, partition_id_);
@@ -212,7 +213,7 @@ void Partition::Bgsave() {
   }
   LOG(INFO) << " BGsave start";
 
-  zp_data_server->BGTaskSchedule(&DoBgsave, static_cast<void*>(this));
+  zp_data_server->BGSaveTaskSchedule(&DoBgsave, static_cast<void*>(this));
 }
 
 void Partition::DoBgsave(void* arg) {
@@ -338,16 +339,16 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
     return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
   }
 
-  slash::SequentialFile *readfile;
-  std::string confile = NewFileName(logger_->filename, filenum);
-  if (!slash::FileExists(confile)) {
-    // Not found binlog specified by filenum
+  // Binlog already be purged
+  if (purged_index_ >= filenum) {
     TryDBSync(node.ip, node.port + kPortShiftRsync, cur_filenum);
     return Status::Incomplete("Bgsaving and DBSync first");
   }
 
+  slash::SequentialFile *readfile;
+  std::string confile = NewFileName(logger_->filename, filenum);
   if (!slash::NewSequentialFile(confile, &readfile).ok()) {
-    return Status::IOError("AddBinlogSender new sequtialfile");
+    return Status::IOError("AddBinlogSender new sequtial file failed");
   }
 
   ZPBinlogSenderThread *sender = new ZPBinlogSenderThread(this, slave.node.ip, slave.node.port, readfile, filenum, offset);
@@ -539,16 +540,16 @@ void Partition::DBSync(const std::string& ip, int port) {
   // Reuse the bg_thread for Bgsave
   // Since we expect Bgsave and DBSync execute serially
   DBSyncArg *arg = new DBSyncArg(this, ip, port);
-  zp_data_server->BGTaskSchedule(&DoDBSync, static_cast<void*>(arg));
+  zp_data_server->BGSaveTaskSchedule(&DoDBSync, static_cast<void*>(arg));
 }
 
 void Partition::DoDBSync(void* arg) {
-  DBSyncArg *ppurge = static_cast<DBSyncArg*>(arg);
-  Partition* partition = ppurge->p;
+  DBSyncArg *psync = static_cast<DBSyncArg*>(arg);
+  Partition* partition = psync->p;
 
   //sleep(3);
-  DLOG(INFO) << "DBSync begin sendfile " << ppurge->ip << ":" << ppurge->port;
-  partition->DBSyncSendFile(ppurge->ip, ppurge->port);
+  DLOG(INFO) << "DBSync begin sendfile " << psync->ip << ":" << psync->port;
+  partition->DBSyncSendFile(psync->ip, psync->port);
   
   delete (DBSyncArg*)arg;
 }
@@ -646,5 +647,128 @@ bool Partition::FlushAll() {
   LOG(INFO) << "open new db success";
   // TODO PurgeDir(dbpath);
   return true; 
+}
+
+bool Partition::PurgeLogs(uint32_t to, bool manual, bool force) {
+  // Only one thread can go through
+  bool expect = false;
+  if (!purging_.compare_exchange_strong(expect, true)) {
+    LOG(WARNING) << "purge process already exist";
+    return false;
+  }
+  PurgeArg *arg = new PurgeArg();
+  arg->p = this;
+  arg->to = to;
+  arg->manual = manual;
+  arg->force = force;
+  zp_data_server->BGPurgeTaskSchedule(&DoPurgeLogs, static_cast<void*>(arg));
+  return true;
+}
+
+void Partition::DoPurgeLogs(void* arg) {
+  PurgeArg *ppurge = static_cast<PurgeArg*>(arg);
+  Partition* ps = ppurge->p;
+
+  ps->PurgeFiles(ppurge->to, ppurge->manual, ppurge->force);
+
+  ps->ClearPurge();
+  delete (PurgeArg*)arg;
+}
+
+bool Partition::PurgeFiles(uint32_t to, bool manual, bool force)
+{
+  std::map<uint32_t, std::string> binlogs;
+  if (!GetBinlogFiles(binlogs)) {
+    LOG(WARNING) << "Could not get binlog files!";
+    return false;
+  }
+
+  int delete_num = 0;
+  struct stat file_stat;
+  int remain_expire_num = binlogs.size() - kBinlogRemainMaxCount;
+  std::map<uint32_t, std::string>::iterator it;
+  for (it = binlogs.begin(); it != binlogs.end(); ++it) {
+    if ((manual && it->first <= to) ||           // Argument bound
+        remain_expire_num > 0 ||                 // Expire num trigger
+        (stat(((log_path_ + "/" + it->second)).c_str(), &file_stat) == 0 &&     
+         file_stat.st_mtime < time(NULL) - kBinlogRemainMaxDay*24*3600)) // Expire time trigger
+    {
+      // We check this every time to avoid lock when we do file deletion
+      if (!CouldPurge(it->first) && !force) {
+        LOG(WARNING) << "Could not purge "<< (it->first) << ", since it is already be used";
+        return false;
+      }
+
+      // Do delete
+      slash::Status s = slash::DeleteFile(log_path_ + "/" + it->second);
+      if (s.ok()) {
+        ++delete_num;
+        --remain_expire_num;
+      } else {
+        LOG(WARNING) << "Purge log file : " << (it->second) <<  " failed! error:" << s.ToString();
+      }
+    } else {
+      // Break when face the first one not satisfied
+      // Since the binlogs is order by the file index
+      break;
+    }
+  }
+  if (delete_num) {
+    LOG(INFO) << "Success purge "<< delete_num;
+  }
+
+  return true;
+}
+
+bool Partition::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
+  std::vector<std::string> children;
+  int ret = slash::GetChildren(log_path_, children);
+  if (ret != 0){
+    LOG(WARNING) << "Get all files in log path failed! error:" << ret; 
+    return false;
+  }
+
+  int64_t index = 0;
+  std::string sindex;
+  std::vector<std::string>::iterator it;
+  for (it = children.begin(); it != children.end(); ++it) {
+    if ((*it).compare(0, kBinlogPrefixLen, kBinlogPrefix) != 0) {
+      continue;
+    }
+    sindex = (*it).substr(kBinlogPrefixLen);
+    if (slash::string2l(sindex.c_str(), sindex.size(), &index) == 1) {
+      binlogs.insert(std::pair<uint32_t, std::string>(static_cast<uint32_t>(index), *it)); 
+    }
+  }
+  return true;
+}
+
+bool Partition::CouldPurge(uint32_t index) {
+  uint32_t pro_num;
+  uint64_t tmp;
+  logger_->GetProducerStatus(&pro_num, &tmp);
+
+  //index += 10; //remain some more
+  if (index > pro_num) {
+    return false;
+  }
+  slash::MutexLock l(&slave_mutex_);
+  std::vector<SlaveItem>::iterator it;
+  for (it = slaves_.begin(); it != slaves_.end(); ++it) {
+    ZPBinlogSenderThread *zpb = static_cast<ZPBinlogSenderThread*>((*it).sender);
+    uint32_t filenum = zpb->filenum();
+    if (index > filenum) { 
+      return false;
+    }
+  }
+  purged_index_ = index;
+  return true;
+}
+
+void Partition::AutoPurge() {
+  if (!PurgeLogs(0, false, false)) {
+    DLOG(WARNING) << "Auto purge failed";
+    return;
+  }
 }
 

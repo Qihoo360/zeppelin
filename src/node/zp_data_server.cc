@@ -94,17 +94,11 @@ Status ZPDataServer::Start() {
     LOG(INFO) << "seed is: " << *iter;
     iter++;
   }
-//  if (options_.local_port != options_.seed_port || options_.local_ip != options_.seed_ip) {
-//    repl_state_ = ReplState::kShouldConnect;
-//  }
 
   while (!should_exit_) {
+    DoTimingTask();
     usleep(100000);
   }
-//  server_mutex_.Lock();
-//  server_mutex_.Lock();
-//
-//  server_mutex_.Unlock();
   return Status::OK();
 }
 
@@ -112,21 +106,6 @@ bool ZPDataServer::ShouldJoinMeta() {
   slash::RWLock l(&meta_state_rw_, false);
   DLOG(INFO) <<  "ShouldJoinMeta meta_state: " << meta_state_;
   return meta_state_ == MetaState::kMetaConnect;
-}
-
-void ZPDataServer::PurgeDir(std::string& path) {
-  std::string *dir_path = new std::string(path);
-  // Start new thread if needed
-  purge_thread_.StartIfNeed();
-  purge_thread_.Schedule(&DoPurgeDir, static_cast<void*>(dir_path));
-}
-
-void ZPDataServer::DoPurgeDir(void* arg) {
-  std::string path = *(static_cast<std::string*>(arg));
-  DLOG(INFO) << "Delete dir: " << path << " start";
-  slash::DeleteDir(path);
-  DLOG(INFO) << "Delete dir: " << path << " done";
-  delete static_cast<std::string*>(arg);
 }
 
 // Now we only need to keep one connection for Meta Node;
@@ -258,9 +237,21 @@ inline uint32_t ZPDataServer::KeyToPartition(const std::string &key) {
   return std::hash<std::string>()(key) % partitions_.size();
 }
 
-void ZPDataServer::BGTaskSchedule(void (*function)(void*), void* arg) {
-  slash::MutexLock l(&bg_thread_protector_);
-  bg_thread_.StartIfNeed();
-  bg_thread_.Schedule(function, arg);
+void ZPDataServer::BGSaveTaskSchedule(void (*function)(void*), void* arg) {
+  slash::MutexLock l(&bgsave_thread_protector_);
+  bgsave_thread_.StartIfNeed();
+  bgsave_thread_.Schedule(function, arg);
 }
 
+void ZPDataServer::BGPurgeTaskSchedule(void (*function)(void*), void* arg) {
+  slash::MutexLock l(&bgpurge_thread_protector_);
+  bgpurge_thread_.StartIfNeed();
+  bgpurge_thread_.Schedule(function, arg);
+}
+
+void ZPDataServer::DoTimingTask() {
+  slash::RWLock l(&partition_rw_, false);
+  for (auto pair : partitions_) {
+    pair.second->AutoPurge();
+  }
+}

@@ -58,7 +58,7 @@ const size_t kBlockSize = 64 * 1024;
 const size_t kHeaderSize = 1 + 3;
 
 const std::string kBinlogPrefix = "binlog";
-//const size_t kBinlogPrefixLen = 6;
+const size_t kBinlogPrefixLen = 6;
 
 const std::string kManifest = "manifest";
 
@@ -81,15 +81,16 @@ const std::string kInnerReplWait = "wait";
 const unsigned int kMaxBitOpInputKey = 12800;
 const int kMaxBitOpInputBit = 21;
 
-//
-// db sync
-//
-// TEST
+// DBSync
 //const uint32_t kDBSyncMaxGap = 200;
 const uint32_t kDBSyncMaxGap = 1000;
 const std::string kDBSyncModule = "document";
 const uint32_t kDBSyncSpeedLimit = 126; //MBPS
 const std::string kBgsaveInfoFile = "info";
+
+// Purge binlog
+const uint32_t kBinlogRemainMaxCount = 20;
+const uint32_t kBinlogRemainMaxDay = 7;
 
 
 //

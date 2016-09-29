@@ -114,7 +114,8 @@ class ZPDataServer {
   Status SendToPeer(const std::string &peer_ip, int peer_port, const std::string &data);
   
   // Backgroud thread
-  void BGTaskSchedule(void (*function)(void*), void* arg);
+  void BGSaveTaskSchedule(void (*function)(void*), void* arg);
+  void BGPurgeTaskSchedule(void (*function)(void*), void* arg);
 
  private:
 
@@ -155,15 +156,11 @@ class ZPDataServer {
   bool should_pull_meta_;
 
   // Background thread
-  slash::Mutex bg_thread_protector_;
-  pink::BGThread bg_thread_;
-
-  // Purgelogs use
-  std::atomic<bool> purging_;
-  pink::BGThread purge_thread_;
-  static void DoPurgeDir(void* arg);
-  void PurgeDir(std::string& path);
-  bool FlushAll();
+  slash::Mutex bgsave_thread_protector_;
+  pink::BGThread bgsave_thread_;
+  slash::Mutex bgpurge_thread_protector_;
+  pink::BGThread bgpurge_thread_;
+  void DoTimingTask();
 };
 
 #endif
