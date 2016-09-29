@@ -172,9 +172,13 @@ Status ZPMetaServer::Distribute(int num) {
       return s;
     }
   }
+  ms_info.set_version(version_ + 1);
   s = SetMSInfo(ms_info);
-  if (!s.ok()) {
-    return s;
+  if (s.ok()) {
+    version_++; 
+    LOG(INFO) << "Set version in Distribute : " << version_;
+  } else {
+    LOG(ERROR) << "SetMSInfo error in Distribute, error: " << s.ToString();
   }
 
   std::string text_format;
@@ -440,7 +444,7 @@ Status ZPMetaServer::GetMSInfo(ZPMeta::MetaCmdResponse_Pull &ms_info) {
     return Status::OK();
   } else {
     LOG(ERROR) << "Floyd read full_meta failed: " << fs.ToString();
-    return Status::Corruption("floyd delete error!");
+    return Status::Corruption("Read full_meta failed!");
   }
 }
 

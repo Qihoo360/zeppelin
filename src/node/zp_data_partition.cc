@@ -778,17 +778,17 @@ void Partition::AutoPurge() {
 void Partition::Dump() {
   slash::RWLock l(&state_rw_, false);
   DLOG(INFO) << "----------------------------";
-  DLOG(INFO) << "  +Partition    " << partition_id_ << ": I am a " << is_master() ? "master" : "slave";
+  DLOG(INFO) << "  +Partition    " << partition_id_ << ": I am a " << (is_master() ? "master" : "slave");
   DLOG(INFO) << "     -*Master node " << master_node_;
 
-  for (int i = 0; i < slave_nodes_.size(); i++) {
+  for (size_t i = 0; i < slave_nodes_.size(); i++) {
     DLOG(INFO) << "     -* slave  " << i << " " <<  slave_nodes_[i];
   }
 
   {
     DLOG(INFO) << "----------------------------";
     slash::MutexLock l(&slave_mutex_);
-    for (int i = 0; i < slaves_.size(); i++) {
+    for (size_t i = 0; i < slaves_.size(); i++) {
       DLOG(INFO) << "     -my_slave  " << i << " " <<  slaves_[i].node;
     }
   }
