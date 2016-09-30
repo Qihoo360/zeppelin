@@ -71,6 +71,9 @@ ZPDataServer::~ZPDataServer() {
     }
   }
 
+  bgsave_thread_.Stop();
+  bgpurge_thread_.Stop();
+
   // TODO 
   pthread_rwlock_destroy(&meta_state_rw_);
   pthread_rwlock_destroy(&partition_rw_);

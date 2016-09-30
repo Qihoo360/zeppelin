@@ -57,6 +57,7 @@ Partition::~Partition() {
   LOG(INFO) << "Partition " << partition_id_ << " exit!!!";
 }
 
+// NOTE: slave_mutex should be held
 bool Partition::FindSlave(const Node& node) {
   for (auto iter = slaves_.begin(); iter != slaves_.end(); iter++) {
     if (iter->node == node) {
@@ -65,6 +66,20 @@ bool Partition::FindSlave(const Node& node) {
   }
   return false;
 }
+
+// NOTE: slave_mutex should be held
+void Partition::DeleteSlave(const Node& node) {
+  //slash::MutexLock l(&slave_mutex_);
+  for (auto iter = slaves_.begin(); iter != slaves_.end(); iter++) {
+    if (iter->node == node) {
+      delete static_cast<ZPBinlogSenderThread*>(iter->sender);
+      slaves_.erase(iter);
+      DLOG(INFO) << "Delete slave(" << node.ip << ":" << node.port << ") success";
+      break;
+    }
+  }
+}
+
 
 bool Partition::ShouldWaitDBSync() {
   slash::RWLock l(&state_rw_, false);
@@ -324,8 +339,9 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
   slash::MutexLock l(&slave_mutex_);
   // Check exist
   if (FindSlave(node)) {
-    LOG(WARNING) << "BinlogSender for " << node.ip << ":" << node.port << "already exist";
-    return Status::InvalidArgument("Binlog sender already exist");
+    LOG(WARNING) << "BinlogSender for " << node.ip << ":" << node.port << "already exist, we will remove it first";
+    DeleteSlave(node);
+    //return Status::InvalidArgument("Binlog sender already exist");
   }
 
   // New slave
@@ -342,7 +358,8 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
   }
 
   // Binlog already be purged
-  if (purged_index_ >= filenum) {
+  DLOG(INFO) << " We " << (purged_index_ >= filenum ? "will" : "won't") << " TryDBSync, purged_index_=" << purged_index_ << ", filenum=" << filenum;
+  if (purged_index_ > filenum) {
     TryDBSync(node.ip, node.port + kPortShiftRsync, cur_filenum);
     return Status::Incomplete("Bgsaving and DBSync first");
   }
@@ -361,7 +378,7 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
     slave.sender_tid = tid;
     slave.sender = sender;
 
-    LOG(INFO) << "AddBinlogSender for node(" << node.ip << ":" << node.port << ") ok, tid is " << slave.sender_tid << " sync_fd: " << slave.sync_fd;
+    LOG(INFO) << "AddBinlogSender for node(" << node.ip << ":" << node.port << ") ok, tid is " << slave.sender_tid;
     // Add sender
     //slash::MutexLock l(&slave_mutex_);
     slaves_.push_back(slave);
@@ -371,18 +388,6 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
     delete sender;
     LOG(WARNING) << "AddBinlogSender failed";
     return Status::NotFound("AddBinlogSender bad sender");
-  }
-}
-
-void Partition::DeleteSlave(const Node& node) {
-  slash::MutexLock l(&slave_mutex_);
-  for (auto iter = slaves_.begin(); iter != slaves_.end(); iter++) {
-    if (iter->node == node) {
-      delete static_cast<ZPBinlogSenderThread*>(iter->sender);
-      slaves_.erase(iter);
-      LOG(INFO) << "Delete slave success";
-      break;
-    }
   }
 }
 
@@ -511,6 +516,8 @@ inline void Partition::WriteBinlog(const std::string &content) {
 }
 
 void Partition::TryDBSync(const std::string& ip, int port, int32_t top) {
+  DLOG(INFO) << "TryDBSync " << ip << ":" << port << ", top=" << top;
+
   std::string bg_path;
   uint32_t bg_filenum = 0;
   {
@@ -653,6 +660,8 @@ bool Partition::FlushAll() {
 }
 
 bool Partition::PurgeLogs(uint32_t to, bool manual, bool force) {
+  usleep(300000);
+
   // Only one thread can go through
   bool expect = false;
   if (!purging_.compare_exchange_strong(expect, true)) {
@@ -764,7 +773,7 @@ bool Partition::CouldPurge(uint32_t index) {
       return false;
     }
   }
-  purged_index_ = index;
+  purged_index_ = index + 1;
   return true;
 }
 
