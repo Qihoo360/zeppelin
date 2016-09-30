@@ -35,7 +35,7 @@ Partition::Partition(const int partition_id, const std::string &log_path, const 
     LOG(INFO) << " Success";
 
     // Binlog
-    logger_ = new Binlog(log_path_, 1024);
+    logger_ = new Binlog(log_path_, kBinlogSize);
   }
 
 Partition::~Partition() {
@@ -374,10 +374,10 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
   }
 }
 
-void Partition::DeleteSlave(int fd) {
+void Partition::DeleteSlave(const Node& node) {
   slash::MutexLock l(&slave_mutex_);
   for (auto iter = slaves_.begin(); iter != slaves_.end(); iter++) {
-    if (iter->sync_fd == fd) {
+    if (iter->node == node) {
       delete static_cast<ZPBinlogSenderThread*>(iter->sender);
       slaves_.erase(iter);
       LOG(INFO) << "Delete slave success";
@@ -443,7 +443,7 @@ void Partition::Init(const std::vector<Node> &nodes) {
 
   // Is master
   Node current_master = master_node();
-  if (current_master.ip== zp_data_server->local_ip()
+  if (current_master.ip == zp_data_server->local_ip()
       && current_master.port == zp_data_server->local_port()) {
       BecomeMaster();
   } else {
@@ -778,7 +778,7 @@ void Partition::AutoPurge() {
 void Partition::Dump() {
   slash::RWLock l(&state_rw_, false);
   DLOG(INFO) << "----------------------------";
-  DLOG(INFO) << "  +Partition    " << partition_id_ << ": I am a " << (is_master() ? "master" : "slave");
+  DLOG(INFO) << "  +Partition    " << partition_id_ << ": I am a " << (role_ == Role::kNodeMaster ? "master" : "slave");
   DLOG(INFO) << "     -*Master node " << master_node_;
 
   for (size_t i = 0; i < slave_nodes_.size(); i++) {

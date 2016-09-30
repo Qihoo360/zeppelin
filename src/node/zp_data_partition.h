@@ -78,7 +78,7 @@ class Partition {
 
   // Status related
   bool FindSlave(const Node& node);
-  void DeleteSlave(int fd);
+  void DeleteSlave(const Node& node);
   void BecomeMaster();
   void BecomeSlave();
   bool ShouldTrySync();
