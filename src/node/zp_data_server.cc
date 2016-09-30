@@ -14,7 +14,7 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
   should_exit_(false),
   should_rejoin_(false),
   meta_state_(MetaState::kMetaConnect),
-  meta_epoch_(-2),
+  meta_epoch_(-1),
   should_pull_meta_(false) {
     pthread_rwlock_init(&meta_state_rw_, NULL);
     pthread_rwlockattr_t attr;
@@ -101,7 +101,7 @@ Status ZPDataServer::Start() {
 
   while (!should_exit_) {
     DoTimingTask();
-    usleep(100000);
+    sleep(30);
   }
   return Status::OK();
 }
