@@ -403,15 +403,16 @@ void ZPMetaServer::CheckNodeAlive() {
   }
 }
 
-void ZPMetaServer::UpdateNodeAlive(const std::string& ip_port) {
+bool ZPMetaServer::UpdateNodeAlive(const std::string& ip_port) {
   struct timeval now;
   slash::MutexLock l(&alive_mutex_);
   gettimeofday(&now, NULL);
   if (node_alive_.find(ip_port) == node_alive_.end()) {
     LOG(WARNING) << "Update unknown node alive:" << ip_port;
-    return;
+    return false;
   }
   node_alive_[ip_port] = now;
+  return true;
 }
 
 Status ZPMetaServer::SetReplicaset(uint32_t partition_id, const ZPMeta::Replicaset &replicaset) {
