@@ -38,10 +38,15 @@ void PingCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res,
   std::string node = slash::IpPortString(request->ping().node().ip(),
                                          request->ping().node().port());
   
-  zp_meta_server->UpdateNodeAlive(node);
+  bool up_ret = zp_meta_server->UpdateNodeAlive(node);
   
-  status_res->set_code(ZPMeta::StatusCode::kOk);
-  status_res->set_msg("Ping OK!");
+  if (up_ret) {
+    status_res->set_code(ZPMeta::StatusCode::kOk);
+    status_res->set_msg("Ping OK!");
+  } else {
+    status_res->set_code(ZPMeta::StatusCode::kNotFound);
+    status_res->set_msg("you are not in alive_nodes!");
+  }
 
   ZPMeta::MetaCmdResponse_Ping* ping = response->mutable_ping();
   ping->set_version(zp_meta_server->version());

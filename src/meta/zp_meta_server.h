@@ -39,7 +39,7 @@ class ZPMetaServer {
   // Node alive related
   Status AddNodeAlive(const std::string& ip_port);
   void CheckNodeAlive();
-  void UpdateNodeAlive(const std::string& ip_port);
+  bool UpdateNodeAlive(const std::string& ip_port);
   
   // Floyd related
   int version() {
