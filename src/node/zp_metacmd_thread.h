@@ -21,17 +21,12 @@ class ZPMetacmdThread : public pink::Thread {
   ZPMetacmdThread();
   virtual ~ZPMetacmdThread();
 
-  uint64_t query_num() {
-    return query_num_;
-  }
-
  private:
-  std::atomic<uint64_t> query_num_;
-
   pink::PbCli *cli_;
 
   pink::Status Send();
   pink::Status Recv();
+  bool FetchMetaInfo();
 
   virtual void* ThreadMain();
 };

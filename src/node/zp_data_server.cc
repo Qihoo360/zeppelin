@@ -122,34 +122,16 @@ void ZPDataServer::UpdateEpoch(int64_t epoch) {
 }
 
 // Now we only need to keep one connection for Meta Node;
-void ZPDataServer::PlusMetaServerConns() {
+void ZPDataServer::MetaConnected() {
   slash::RWLock l(&meta_state_rw_, true);
-  if (meta_server_conns_ == 0) {
-    meta_state_ = MetaState::kMetaConnected;
-    meta_server_conns_ = 1;
-  }
-
-  //if (meta_server_conns_ < 2) {
-  //  if ((++meta_server_conns_) >= 2) {
-  //    meta_state_ = MetaState::kMetaConnected;
-  //    meta_server_conns_ = 2;
-  //  }
-  //}
+  assert (meta_state_ == MetaState::kMetaConnect);
+  meta_state_ = MetaState::kMetaConnected;
 }
 
-void ZPDataServer::MinusMetaServerConns() {
+void ZPDataServer::MetaDisconnect() {
   slash::RWLock l(&meta_state_rw_, true);
-  if (meta_server_conns_ == 1) {
-    meta_state_ = MetaState::kMetaConnect;
-    meta_server_conns_ = 0;
-  }
-
-  //if (meta_server_conns_ > 0) {
-  //  if ((--meta_server_conns_) <= 0) {
-  //    meta_state_ = MetaState::kMetaConnect;
-  //    meta_server_conns_ = 0;
-  //  }
-  //}
+  assert (meta_state_ == MetaState::kMetaConnected);
+  meta_state_ = MetaState::kMetaConnect;
 }
 
 void ZPDataServer::PickMeta() {

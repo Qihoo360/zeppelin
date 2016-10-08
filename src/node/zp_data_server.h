@@ -81,8 +81,8 @@ class ZPDataServer {
 
   // Meta related
   bool ShouldJoinMeta();
-  void PlusMetaServerConns();
-  void MinusMetaServerConns();
+  void MetaConnected();
+  void MetaDisconnect();
   void PickMeta();
   int64_t meta_epoch() {
     slash::MutexLock l(&mutex_epoch_);
@@ -147,7 +147,6 @@ class ZPDataServer {
   pthread_rwlock_t meta_state_rw_;
   std::atomic<bool> should_rejoin_;
   int meta_state_;
-  int meta_server_conns_;
   std::string meta_ip_;
   long meta_port_;
   

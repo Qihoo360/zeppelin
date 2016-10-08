@@ -391,7 +391,7 @@ void ZPMetaServer::CheckNodeAlive() {
   NodeAliveMap::iterator it = node_alive_.begin();
   gettimeofday(&now, NULL);
   for (; it != node_alive_.end(); ++it) {
-    if (now.tv_sec - (it->second).tv_sec > NODE_META_TIMEOUT_M) {
+    if (now.tv_sec - (it->second).tv_sec > kNodeMetaTimeoutM) {
       need_remove.push_back(it->first);
     }
   }

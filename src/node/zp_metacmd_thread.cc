@@ -7,8 +7,7 @@
 
 extern ZPDataServer* zp_data_server;
 
-ZPMetacmdThread::ZPMetacmdThread()
-  : query_num_(0) {
+ZPMetacmdThread::ZPMetacmdThread() {
   cli_ = new pink::PbCli();
   cli_->set_connect_timeout(1500);
 }
@@ -25,7 +24,9 @@ pink::Status ZPMetacmdThread::Send() {
   ZPMeta::MetaCmd request;
   ZPMeta::MetaCmd_Pull* pull = request.mutable_pull();
 
-  DLOG(INFO) << "MetacmdThead Pull MetaServer(" << zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ") with local("<< zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
+  DLOG(INFO) << "MetacmdThead Pull MetaServer(" << zp_data_server->meta_ip() << ":"
+    << zp_data_server->meta_port() + kMetaPortShiftCmd
+    << ") with local("<< zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
   request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_PULL);
   return cli_->Send(&request);
 }
@@ -73,87 +74,51 @@ pink::Status ZPMetacmdThread::Recv() {
   return result;
 }
 
-void* ZPMetacmdThread::ThreadMain() {
-  int connect_retry_times = 0;
-  struct timeval last_interaction;
-  struct timeval now;
-  gettimeofday(&now, NULL);
-  last_interaction = now;
-
+bool ZPMetacmdThread::FetchMetaInfo() {
   pink::Status s;
+  // No more PickMeta, which should be done by ping thread
+  assert(!zp_data_server->meta_ip().empty() && zp_data_server->meta_port() != 0);
+  DLOG(INFO) << "MetacmdThread will connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ")";
+  s = cli_->Connect(zp_data_server->meta_ip(), zp_data_server->meta_port() + kMetaPortShiftCmd);
+  if (s.ok()) {
+    DLOG(INFO) << "Metacmd connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ") ok!";
+    cli_->set_send_timeout(1000);
+    cli_->set_recv_timeout(1000);
+
+    s = Send();
+    if (!s.ok()) {
+      DLOG(WARNING) << "Metacmd send failed: " << s.ToString();
+      cli_->Close();
+      return false;
+    }
+    DLOG(INFO) << "Metacmd send ok!";
+
+    s = Recv();
+    if (!s.ok()) {
+      DLOG(WARNING) << "Metacmd recv failed: " << s.ToString();
+      cli_->Close();
+      return false;
+    }
+    DLOG(INFO) << "Metacmd MetaServer success";
+    cli_->Close();
+    return true;
+  } else {
+    DLOG(WARNING) << "Metacmd connect failed: " << s.ToString();
+    return false;
+  }
+}
+
+void* ZPMetacmdThread::ThreadMain() {
 
   while (!should_exit_) {
+    sleep(kMetacmdInterval);
     if (!zp_data_server->ShouldPullMeta()) {
-      sleep(3);
       continue;
     }
-
-    zp_data_server->PickMeta();
-    // Connect with heartbeat port
-    DLOG(INFO) << "MetacmdThread will connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ")";
-    s = cli_->Connect(zp_data_server->meta_ip(), zp_data_server->meta_port() + kMetaPortShiftCmd);
-    if (s.ok()) {
-      DLOG(INFO) << "Metacmd connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ") ok!";
-      cli_->set_send_timeout(1000);
-      cli_->set_recv_timeout(1000);
-      connect_retry_times = 0;
-
-      // TODO Metacmd connect ok
-      //zp_data_server->PlusMetaServerConns();
-
-      // Send && Recv
-      while (!should_exit_) {
-        gettimeofday(&now, NULL);
-        if (now.tv_sec - last_interaction.tv_sec > NODE_META_TIMEOUT_N) {
-          gettimeofday(&last_interaction, NULL);
-          LOG(WARNING) << "Metacmd leader timeout, will resend Join";
-          break;
-        }
-
-        sleep(kMetacmdInterval);
-
-        s = Send();
-        if (!s.ok()) {
-          DLOG(WARNING) << "Metacmd send failed once, " << s.ToString();
-          continue;
-        }
-        DLOG(INFO) << "Metacmd send ok!";
-
-        s = Recv();
-        if (!s.ok()) {
-          DLOG(WARNING) << "Metacmd recv failed once, " << s.ToString();
-          continue;
-        }
-        // TODO when we recv OK, we will FinishPullMeta
-        zp_data_server->FinishPullMeta();
-        gettimeofday(&last_interaction, NULL);
-        DLOG(INFO) << "Metacmd MetaServer success";
-        break;
-      }
-
-      //if (s.IsTimeout()) {
-      //  LOG(WARNING) << "Metacmd timeout once";
-      //  gettimeofday(&now, NULL);
-      //  if (now.tv_sec - last_interaction.tv_sec > 30) {
-      //    LOG(WARNING) << "Metacmd leader timeout, will resend Join";
-      //    zp_data_server->MinusMetaServerConns();
-      //    zp_data_server->zp_metacmd_worker_thread()->KillMetacmdConn();
-      //    break;
-      //  }
-      //}
-
-      cli_->Close();
-    } else {
-      LOG(WARNING) << "MetacmdThread Connect failed caz " << s.ToString();
-      if ((++connect_retry_times) >= 30) {
-        LOG(WARNING) << "MetacmdThread, Connect failed 30 times, disconnect with meta server";
-        connect_retry_times = 0;
-      }
+    if (FetchMetaInfo()) {
+      // when we recv OK, we will FinishPullMeta
+      zp_data_server->FinishPullMeta();
     }
-
-    // TODO rm
-    //printf ("Metacmdthread close:cli_->fd()=%d ret=%d\n", cli_->fd(), ret);
-    sleep(3);
   }
   return NULL;
 }

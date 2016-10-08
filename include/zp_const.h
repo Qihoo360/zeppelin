@@ -23,8 +23,7 @@ enum ReplState {
 };
 enum MetaState {
   kMetaConnect = 1,
-  kMetaConnecting = 2,
-  kMetaConnected = 3,
+  kMetaConnected = 2,
 };
 // debug only
 const std::string ReplStateMsg[] = {
@@ -35,7 +34,6 @@ const std::string ReplStateMsg[] = {
 };
 const std::string MetaStateMsg[] = {
   "kMetaConnect",
-  "kMetaConnecting",
   "kMetaConnected"
 };
 const std::string RoleMsg[] {
@@ -123,7 +121,7 @@ const std::string ZP_META_KEY_ND = "##nodes";
 const int ZP_META_UPDATE_RETRY_TIME = 3;
 
 // timeout between node and meta server, the one for meta should large than node
-const int NODE_META_TIMEOUT_N = 10;
-const int NODE_META_TIMEOUT_M = 15;
+const int kNodeMetaTimeoutN = 10;
+const int kNodeMetaTimeoutM= 15;
 
 #endif

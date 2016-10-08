@@ -1,13 +1,9 @@
 #ifndef ZP_PING_THREAD_H
 #define ZP_PING_THREAD_H
 
-#include "zp_const.h"
 #include "pb_cli.h"
-
 #include "status.h"
 #include "pink_thread.h"
-#include "slash_mutex.h"
-
 
 class ZPPingThread : public pink::Thread {
  public:
@@ -19,19 +15,11 @@ class ZPPingThread : public pink::Thread {
       }
   virtual ~ZPPingThread();
 
+ private:
+  bool is_first_send_;
+  pink::PbCli *cli_;
   pink::Status Send();
   pink::Status RecvProc();
-
- private:
-
-  // TODO maybe use uuid or serverId
-  //int64_t sid_;
-  bool is_first_send_;
-
-  //int sockfd_;
-  pink::PbCli *cli_;
-//  pink::PbCli *cli_;
-
   virtual void* ThreadMain();
 
 };
