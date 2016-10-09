@@ -77,6 +77,7 @@ private:
   Status AddNode(const std::string &ip, int port);
   Status SetReplicaset(uint32_t partition_id, const ZPMeta::Replicaset &replicaset);
   Status SetMSInfo(const ZPMeta::MetaCmdResponse_Pull &ms_info);
+  Status OnNode(const std::string &ip, int port);
 
   // Alive Check
   slash::Mutex alive_mutex_;
