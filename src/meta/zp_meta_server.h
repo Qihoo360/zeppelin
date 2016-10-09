@@ -22,7 +22,9 @@ class ZPMetaServer {
 
   explicit ZPMetaServer(const ZPOptions& option);
   virtual ~ZPMetaServer();
-  Status Start();
+  void Start();
+  void Stop();
+  void CleanUp();
   std::string seed_ip() {
     return options_.seed_ip;
   }
@@ -77,12 +79,13 @@ private:
   Status AddNode(const std::string &ip, int port);
   Status SetReplicaset(uint32_t partition_id, const ZPMeta::Replicaset &replicaset);
   Status SetMSInfo(const ZPMeta::MetaCmdResponse_Pull &ms_info);
+  Status OnNode(const std::string &ip, int port);
 
   // Alive Check
   slash::Mutex alive_mutex_;
   slash::Mutex node_mutex_;
   NodeAliveMap node_alive_;
-  ZPMetaUpdateThread update_thread_;
+  ZPMetaUpdateThread* update_thread_;
   void RestoreNodeAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes);
 
   // Leader slave

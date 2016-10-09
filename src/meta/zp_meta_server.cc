@@ -1,5 +1,6 @@
 #include <glog/logging.h>
 #include <google/protobuf/text_format.h>
+#include <google/protobuf/repeated_field.h>
 
 #include "slash_string.h"
 #include "zp_meta_server.h"
@@ -28,6 +29,7 @@ ZPMetaServer::ZPMetaServer(const ZPOptions& options)
     zp_meta_worker_thread_[i] = new ZPMetaWorkerThread(kMetaWorkerCronInterval);
   }
   zp_meta_dispatch_thread_ = new ZPMetaDispatchThread(options.local_port + kMetaPortShiftCmd, worker_num_, zp_meta_worker_thread_, kMetaDispathCronInterval);
+  update_thread_ = new ZPMetaUpdateThread();
 }
 
 ZPMetaServer::~ZPMetaServer() {
@@ -35,11 +37,13 @@ ZPMetaServer::~ZPMetaServer() {
   for (int i = 0; i < worker_num_; ++i) {
     delete zp_meta_worker_thread_[i];
   }
+  delete update_thread_;
   CleanLeader();
   delete floyd_;
+  LOG(INFO) << "Delete Done";
 }
 
-Status ZPMetaServer::Start() {
+void ZPMetaServer::Start() {
   LOG(INFO) << "ZPMetaServer started on port:" << options_.local_port << ", seed is " << options_.seed_ip.c_str() << ":" <<options_.seed_port;
   floyd_->Start();
   std::string leader_ip;
@@ -55,7 +59,17 @@ Status ZPMetaServer::Start() {
 
   server_mutex_.Lock();
   server_mutex_.Lock();
-  return Status::OK();
+  server_mutex_.Unlock();
+  CleanUp();
+}
+
+void ZPMetaServer::Stop() {
+  server_mutex_.Unlock();
+}
+
+void ZPMetaServer::CleanUp() {
+  delete this;
+  ::google::ShutdownGoogleLogging();
 }
 
 Status ZPMetaServer::InitVersion() {
@@ -215,7 +229,7 @@ Status ZPMetaServer::AddNodeAlive(const std::string& ip_port) {
   }
 
   LOG(INFO) << "Add Node Alive";
-  update_thread_.ScheduleUpdate(ip_port, ZPMetaUpdateOP::kOpAdd);
+  update_thread_->ScheduleUpdate(ip_port, ZPMetaUpdateOP::kOpAdd);
   return Status::OK();
 }
 
@@ -272,16 +286,21 @@ Status ZPMetaServer::SetNodeStatus(ZPMeta::Nodes& nodes, const std::string &ip, 
           LOG(ERROR) << "Serialization new meta failed, new value: " <<  new_value;
           return Status::Corruption("Serialize error");
         }
-        floyd::Status fs = floyd_->Write("nodes", new_value);
+        floyd::Status fs = floyd_->Write(ZP_META_KEY_ND, new_value);
         if (fs.ok()) {
+          if (status == kNodeUp) {
+            Status s  = OnNode(ip, port);
+            if (!s.ok()) {
+              LOG(ERROR) << "OnNode, error: " << fs.ToString();
+              return Status::Corruption("OnNode error!");
+            }
+          }
           return Status::OK();
         } else {
           LOG(ERROR) << "SetNodeStatus, floyd write failed: " << fs.ToString();
           return Status::Corruption("floyd set error!");
         }
       }
-    } else {
-      continue;
     }
   }
   return Status::NotFound("not found this node");
@@ -322,6 +341,15 @@ Status ZPMetaServer::AddNode(const std::string &ip, int port) {
   return s;
 }
 
+static bool IsAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes, const std::string &ip, const int port) {
+  for (auto iter = alive_nodes.begin(); iter != alive_nodes.end(); iter++) {
+    if (iter->node().ip() == ip && iter->node().port() == port) {
+      return true;
+    }
+  }
+  return false;
+}
+
 Status ZPMetaServer::OffNode(const std::string &ip, int port) {
   ZPMeta::Nodes nodes;
   ZPMeta::MetaCmdResponse_Pull ms_info;
@@ -333,6 +361,10 @@ Status ZPMetaServer::OffNode(const std::string &ip, int port) {
     LOG(ERROR) << "GetAllNode error in OffNode, error: " << s.ToString();
     return s;
   }
+
+  std::vector<ZPMeta::NodeStatus> alive_nodes;
+  GetAllAliveNode(nodes, alive_nodes);
+
   s = SetNodeStatus(nodes, ip, port, ZPNodeStatus::kNodeDown);
   if (!s.ok()) {
     LOG(ERROR) << "SetNodeStatus error in OffNode, error: " << s.ToString();
@@ -356,10 +388,25 @@ Status ZPMetaServer::OffNode(const std::string &ip, int port) {
     should_rewrite = true;
     tmp.CopyFrom(p->master());
     ZPMeta::Node* master = p->mutable_master();
-    if (p->slaves_size() > 0) {
-      master->CopyFrom(p->slaves(0));
-      ZPMeta::Node* first = p->mutable_slaves(0);
-      first->CopyFrom(tmp);
+    int slaves_size = p->slaves_size();
+    LOG(INFO) << "slaves_size:" << slaves_size;
+    int j = 0;
+    for (j; j < slaves_size; j++) {
+      if (IsAlive(alive_nodes, p->slaves(j).ip(), p->slaves(j).port())) {
+        LOG(INFO) << "Use Slave " << j << " " << p->slaves(j).ip() << " " << p->slaves(j).port();
+        master->CopyFrom(p->slaves(j));
+        ZPMeta::Node* first = p->mutable_slaves(j);
+        first->CopyFrom(tmp);
+        break;
+      }
+    }
+    if (j == slaves_size) {
+      LOG(INFO) << "No Slave to use";
+      ZPMeta::Node *slave = p->add_slaves();
+      slave->CopyFrom(tmp);
+
+      master->set_ip("");
+      master->set_port(0);
     }
     tmp.Clear();
   }
@@ -373,6 +420,10 @@ Status ZPMetaServer::OffNode(const std::string &ip, int port) {
     LOG(WARNING) << "Version not match, version_ = " << version_ << " version in floyd = " << v;
   }
   ms_info.set_version(version_ + 1);
+
+  std::string text_format;
+  google::protobuf::TextFormat::PrintToString(ms_info, &text_format);
+  LOG(INFO) << "ms_info : [" << text_format << "]";
 
   s = SetMSInfo(ms_info);
   if (s.ok()) {
@@ -399,7 +450,7 @@ void ZPMetaServer::CheckNodeAlive() {
   std::vector<std::string>::iterator rit = need_remove.begin();
   for (; rit != need_remove.end(); ++rit) {
     node_alive_.erase(*rit);
-    update_thread_.ScheduleUpdate(*rit, ZPMetaUpdateOP::kOpRemove);
+    update_thread_->ScheduleUpdate(*rit, ZPMetaUpdateOP::kOpRemove);
   }
 }
 
@@ -431,6 +482,56 @@ Status ZPMetaServer::SetMSInfo(const ZPMeta::MetaCmdResponse_Pull &cmd) {
     return Status::Corruption("Serialize error");
   }
   return Set(ZP_META_KEY_MT, new_value);
+}
+
+Status ZPMetaServer::OnNode(const std::string &ip, int port) {
+  ZPMeta::MetaCmdResponse_Pull ms_info;
+  Status fs = GetMSInfo(ms_info);
+  if (!fs.ok()) {
+    LOG(ERROR) << "GetMSInfo error in OnNode, error: " << fs.ToString();
+    return fs;
+  }
+
+  bool should_rewrite = false;
+  int slaves_size = 0;
+  for (int i = 0; i < ms_info.info_size(); ++i) {
+    ZPMeta::Partitions* p = ms_info.mutable_info(i);
+    if (p->master().ip() == "" && p->master().port() == 0) {
+      slaves_size = p->slaves_size();
+      for(int j = 0; j < slaves_size; j++) {
+        if (p->slaves(j).ip() == ip && p->slaves(j).port() == port) {
+          should_rewrite = true;
+          ZPMeta::Node* master = p->mutable_master();
+          master->CopyFrom(p->slaves(j));
+          ZPMeta::Node* slave = p->mutable_slaves(j);
+          slave->CopyFrom(p->slaves(slaves_size));
+          p->mutable_slaves()->RemoveLast();
+        }
+      }
+    }
+  }
+
+  if (!should_rewrite) {
+    return Status::OK();
+  }
+
+  int v = ms_info.version();
+  if (v != version_) {
+    LOG(WARNING) << "Version not match, version_ = " << version_ << " version in floyd = " << v;
+  }
+  ms_info.set_version(version_ + 1);
+
+  std::string text_format;
+  google::protobuf::TextFormat::PrintToString(ms_info, &text_format);
+  LOG(INFO) << "ms_info : [" << text_format << "]";
+
+  fs = SetMSInfo(ms_info);
+  if (fs.ok()) {
+    version_++; 
+  } else {
+    LOG(ERROR) << "SetMSInfo error in OnNode, error: " << fs.ToString();
+  }
+  return fs;
 }
 
 Status ZPMetaServer::GetMSInfo(ZPMeta::MetaCmdResponse_Pull &ms_info) {

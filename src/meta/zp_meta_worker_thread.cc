@@ -15,10 +15,9 @@ ZPMetaWorkerThread::ZPMetaWorkerThread(int cron_interval)
 }
 
 ZPMetaWorkerThread::~ZPMetaWorkerThread() {
-  DestoryCmdTable(cmds_);
-
   should_exit_ = true;
   pthread_join(thread_id(), NULL);
+  DestoryCmdTable(cmds_);
   LOG(INFO) << "A meta worker thread" << thread_id() << " exit!!!";
 }
 
