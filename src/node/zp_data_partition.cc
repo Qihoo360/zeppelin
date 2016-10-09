@@ -39,8 +39,6 @@ Partition::Partition(const int partition_id, const std::string &log_path, const 
   }
 
 Partition::~Partition() {
-  delete logger_;
-  delete bgsave_engine_;
   {
     slash::MutexLock l(&slave_mutex_);
     std::vector<SlaveItem>::iterator iter = slaves_.begin();
@@ -51,7 +49,9 @@ Partition::~Partition() {
       LOG(INFO) << "Delete BinlogSender from slaves success";
     }
   }
+  delete logger_;
   db_.reset();
+  delete bgsave_engine_;
   pthread_rwlock_destroy(&partition_rw_);
   pthread_rwlock_destroy(&state_rw_);
   LOG(INFO) << "Partition " << partition_id_ << " exit!!!";
@@ -391,10 +391,34 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
   }
 }
 
+void Partition::CleanRoleEnv() {
+  DLOG(INFO) << " Partition " << partition_id_ << " BecomeSingle";
+  // Clean binlog sender if needed
+  {
+    slash::MutexLock l(&slave_mutex_);
+    for (auto iter = slaves_.begin(); iter != slaves_.end(); ) {
+      delete static_cast<ZPBinlogSenderThread*>(iter->sender);
+      iter = slaves_.erase(iter);
+      LOG(INFO) << "Delete slave success";
+    }
+  }
+  // Clean binlog receiver
+  // TODO
+}
+
+void Partition::BecomeSingle() {
+  CleanRoleEnv();
+  {
+    slash::RWLock l(&state_rw_, true);
+    role_ = Role::kNodeSingle;
+    repl_state_ = ReplState::kNoConnect;
+    readonly_ = false;
+  }
+}
+
 void Partition::BecomeMaster() {
   DLOG(INFO) << " Partition " << partition_id_ << " BecomeMaster";
-  //TODO zp_data_server->binlog_receiver_thread()->KillBinlogSender();
-
+  CleanRoleEnv();
   {
     slash::RWLock l(&state_rw_, true);
     role_ = Role::kNodeMaster;
@@ -404,55 +428,55 @@ void Partition::BecomeMaster() {
 }
 
 void Partition::BecomeSlave() {
-  {
-    slash::MutexLock l(&slave_mutex_);
-    LOG(INFO) << " Partition " << partition_id_ << " BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
-    for (auto iter = slaves_.begin(); iter != slaves_.end(); ) {
-      delete static_cast<ZPBinlogSenderThread*>(iter->sender);
-      iter = slaves_.erase(iter);
-      LOG(INFO) << "Delete slave success";
-    }
-  }
+  CleanRoleEnv();
   {
     slash::RWLock l(&state_rw_, true);
+    LOG(INFO) << " Partition " << partition_id_ << " BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
     role_ = Role::kNodeSlave;
     repl_state_ = ReplState::kShouldConnect;
     readonly_ = true;
   }
 }
 
-void Partition::Update(const std::vector<Node> &nodes) {
-  assert(nodes.size() == kReplicaNum);
+void Partition::Update(const Node &master, const std::vector<Node> &slaves) {
+  assert(slaves.size() == kReplicaNum - 1);
 
+  // Update master slave nodes
   slash::RWLock l(&state_rw_, true);
-  master_node_ = nodes.at(0); 
-  slave_nodes_.clear();
-  for (size_t i = 1; i < nodes.size(); i++) {
-    slave_nodes_.push_back(nodes[i]);
+  bool change_master = false;
+  if (master_node_ != master) {
+    master_node_ = master;
+    change_master = true;
   }
-}
+  if (slave_nodes_ != slaves) {
+    slave_nodes_.clear();
+    for (auto slave : slaves) {
+      slave_nodes_.push_back(slave);
+    }
+  }
 
-void Partition::Init(const std::vector<Node> &nodes) {
-  // Update nodes
-  Update(nodes);
-
-// TODO rm
-//  // Create DB handle
-//  nemo::Options nemo_option;
-//  DLOG(INFO) << "Loading data at " << data_path_ << " ...";
-//  db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(data_path_, nemo_option));
-//  assert(db_);
-//
-//  // Binlog
-//  logger_ = new Binlog(log_path_);
-
-  // Is master
-  Node current_master = master_node();
-  if (current_master.ip == zp_data_server->local_ip()
-      && current_master.port == zp_data_server->local_port()) {
+  // Update role
+  Role new_role = Role::kNodeSingle;
+  if (zp_data_server->IsSelf(master)) {
+    new_role = Role::kNodeSlave;
+  }
+  for (auto slave : slaves) {
+    if (zp_data_server->IsSelf(master)) {
+      new_role = Role::kNodeSlave;
+    }
+  }
+  if (role_ != new_role) {
+    // Change role
+    if (new_role == Role::kNodeMaster) {
       BecomeMaster();
-  } else {
+    } else if (new_role == Role::kNodeSlave) {
       BecomeSlave();
+    } else {
+      BecomeSingle(); 
+    }
+  } else if (change_master) {
+    // Change master
+    BecomeSlave();
   }
 }
 
@@ -462,9 +486,9 @@ std::string NewPartitionPath(const std::string& name, const uint32_t current) {
   return std::string(buf);
 }
 
-Partition* NewPartition(const std::string log_path, const std::string data_path, const int partition_id, const std::vector<Node> &nodes) {
+Partition* NewPartition(const std::string log_path, const std::string data_path, const int partition_id, const Node& master, const std::vector<Node> &slaves) {
   Partition* partition = new Partition(partition_id, log_path, data_path);
-  partition->Init(nodes);
+  partition->Update(master, slaves);
   return partition;
 }
 

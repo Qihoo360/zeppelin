@@ -75,6 +75,10 @@ int ZPSyncConn::DealMessage() {
     res_ = &response_;
     return 0;
   }
+  if (partition->role() != Role::kNodeSlave) {
+    // Not a slave, ignore the binlog request
+    return 0;
+  }
 
   partition->DoBinlogCommand(cmd, request_, response_, raw_msg);
 

@@ -59,6 +59,10 @@ class ZPDataServer {
     return options_.local_port;
   }
 
+  bool IsSelf(const Node& node) {
+    return (options_.local_ip == node.ip && options_.local_port == node.port);
+  }
+
   std::string db_sync_path() {
     return "./sync_" + std::to_string(options_.local_port) + "/";
   }
@@ -99,7 +103,7 @@ class ZPDataServer {
   }
   
   // Partition related
-  bool UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes);
+  bool UpdateOrAddPartition(const int partition_id, const Node& master, const std::vector<Node>& nodes);
   Partition* GetPartition(const std::string &key);
   Partition* GetPartitionById(const int partition_id);
   template <class VisitorFunction>
