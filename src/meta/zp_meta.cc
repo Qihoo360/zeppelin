@@ -28,6 +28,19 @@ static void GlogInit(const ZPOptions& options) {
   ::google::InitGoogleLogging("zp");
 }
 
+static void IntSigHandle(const int sig) {
+  LOG(INFO) << "Catch Signal " << sig << ", cleanup...";
+  zp_meta_server->Stop();
+}
+
+static void SignalSetup() {
+  signal(SIGHUP, SIG_IGN);
+  signal(SIGPIPE, SIG_IGN);
+  signal(SIGINT, &IntSigHandle);
+  signal(SIGQUIT, &IntSigHandle);
+  signal(SIGTERM, &IntSigHandle);
+}
+
 int main(int argc, char** argv) {
   ZPOptions options;
 
@@ -35,8 +48,7 @@ int main(int argc, char** argv) {
 
   options.Dump();
   GlogInit(options);
-
-  signal(SIGPIPE, SIG_IGN);
+  SignalSetup();
 
   zp_meta_server = new ZPMetaServer(options);
 

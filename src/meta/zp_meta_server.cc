@@ -29,6 +29,7 @@ ZPMetaServer::ZPMetaServer(const ZPOptions& options)
     zp_meta_worker_thread_[i] = new ZPMetaWorkerThread(kMetaWorkerCronInterval);
   }
   zp_meta_dispatch_thread_ = new ZPMetaDispatchThread(options.local_port + kMetaPortShiftCmd, worker_num_, zp_meta_worker_thread_, kMetaDispathCronInterval);
+  update_thread_ = new ZPMetaUpdateThread();
 }
 
 ZPMetaServer::~ZPMetaServer() {
@@ -36,11 +37,13 @@ ZPMetaServer::~ZPMetaServer() {
   for (int i = 0; i < worker_num_; ++i) {
     delete zp_meta_worker_thread_[i];
   }
+  delete update_thread_;
   CleanLeader();
   delete floyd_;
+  LOG(INFO) << "Delete Done";
 }
 
-Status ZPMetaServer::Start() {
+void ZPMetaServer::Start() {
   LOG(INFO) << "ZPMetaServer started on port:" << options_.local_port << ", seed is " << options_.seed_ip.c_str() << ":" <<options_.seed_port;
   floyd_->Start();
   std::string leader_ip;
@@ -56,7 +59,17 @@ Status ZPMetaServer::Start() {
 
   server_mutex_.Lock();
   server_mutex_.Lock();
-  return Status::OK();
+  server_mutex_.Unlock();
+  CleanUp();
+}
+
+void ZPMetaServer::Stop() {
+  server_mutex_.Unlock();
+}
+
+void ZPMetaServer::CleanUp() {
+  delete this;
+  ::google::ShutdownGoogleLogging();
 }
 
 Status ZPMetaServer::InitVersion() {
@@ -216,7 +229,7 @@ Status ZPMetaServer::AddNodeAlive(const std::string& ip_port) {
   }
 
   LOG(INFO) << "Add Node Alive";
-  update_thread_.ScheduleUpdate(ip_port, ZPMetaUpdateOP::kOpAdd);
+  update_thread_->ScheduleUpdate(ip_port, ZPMetaUpdateOP::kOpAdd);
   return Status::OK();
 }
 
@@ -437,7 +450,7 @@ void ZPMetaServer::CheckNodeAlive() {
   std::vector<std::string>::iterator rit = need_remove.begin();
   for (; rit != need_remove.end(); ++rit) {
     node_alive_.erase(*rit);
-    update_thread_.ScheduleUpdate(*rit, ZPMetaUpdateOP::kOpRemove);
+    update_thread_->ScheduleUpdate(*rit, ZPMetaUpdateOP::kOpRemove);
   }
 }
 
