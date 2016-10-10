@@ -474,7 +474,7 @@ void Partition::Update(const Node &master, const std::vector<Node> &slaves) {
     } else {
       BecomeSingle(); 
     }
-  } else if (change_master) {
+  } else if (change_master && role_ == Role::kNodeSlave) {
     // Change master
     BecomeSlave();
   }
@@ -501,9 +501,10 @@ void Partition::DoCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse
   std::string key = cmd->key();
 
   if (!is_from_binlog && cmd->is_write()) {
-    // TODO  very ugly implementation for readonly
-    if (readonly()) {
-      cmd->Do(&req, &res, this, true);
+    if (readonly_) {
+      res.set_code(client::StatusCode::kError);
+      res.set_msg("readonly mode");
+      DLOG(INFO) << "readonly mode, failed to DoCommand  at Partition: " << partition_id_;
       return;
     }
   }

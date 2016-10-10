@@ -56,7 +56,7 @@ class Cmd {
   // TODO may be stall
   //virtual Status Init(const void *buf, size_t count) { return Status::OK(); }
   virtual Status Init(google::protobuf::Message *req) { return Status::OK(); }
-  virtual void Do(google::protobuf::Message *request, google::protobuf::Message *response, void* partition = NULL, bool readonly = false) = 0;
+  virtual void Do(google::protobuf::Message *request, google::protobuf::Message *response, void* partition = NULL) = 0;
   virtual std::string key() { return ""; }
 
   bool is_write() const {

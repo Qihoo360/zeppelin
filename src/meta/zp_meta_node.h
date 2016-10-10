@@ -6,25 +6,25 @@
 class JoinCmd : public Cmd {
  public:
   JoinCmd(int flag) : Cmd(flag) {}
-  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition = NULL, bool readonly = false);
+  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition = NULL);
 };
 
 class PingCmd : public Cmd {
  public:
   PingCmd(int flag) : Cmd(flag) {}
-  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition = NULL, bool readonly = false);
+  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition = NULL);
 };
 
 class PullCmd : public Cmd {
  public:
   PullCmd(int flag) : Cmd(flag) {}
-  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition = NULL, bool readonly = false);
+  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition = NULL);
 };
 
 class InitCmd : public Cmd {
  public:
   InitCmd(int flag) : Cmd(flag) {}
-  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition = NULL, bool readonly = false);
+  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition = NULL);
 };
 
 #endif

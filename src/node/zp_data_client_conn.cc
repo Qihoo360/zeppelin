@@ -60,29 +60,13 @@ int ZPDataClientConn::DealMessage() {
     partition = zp_data_server->GetPartition(cmd->key());
   }
 
-  // TODO maybe we can use global status or just return error
   if (partition == NULL) {
+    // Partition not found
     response_.set_type(request_.type());
-    switch (request_.type()) {
-      case client::Type::SET: {
-        response_.mutable_set()->set_code(client::StatusCode::kError);
-        response_.mutable_set()->set_msg("no partition");
-        break;
-      }
-      case client::Type::GET: {
-        response_.mutable_get()->set_code(client::StatusCode::kError);
-        response_.mutable_get()->set_msg("no partition");
-        break;
-      }
-      case client::Type::SYNC: {
-        response_.mutable_sync()->set_code(client::StatusCode::kError);
-        response_.mutable_sync()->set_msg("no partition");
-        break;
-      }
-    }
-    LOG(ERROR) << "Error partition";
+    response_.set_code(client::StatusCode::kError);
+    response_.set_msg("no partition");
     res_ = &response_;
-    return 0;
+    return -1;
   }
 
   partition->DoCommand(cmd, request_, response_, raw_msg);

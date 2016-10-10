@@ -52,13 +52,13 @@ int ZPTrySyncThread::Recv(pink::PbCli* cli) {
   }
 
   if (response.type() == client::Type::SYNC) {
-    if (response.sync().code() == client::StatusCode::kOk) {
+    if (response.code() == client::StatusCode::kOk) {
       DLOG(INFO) << "TrySync recv success.";
-    } else if (response.sync().code() == client::StatusCode::kWait) {
+    } else if (response.code() == client::StatusCode::kWait) {
       DLOG(INFO) << "TrySync recv kWait.";
       return -1;
     } else {
-      DLOG(INFO) << "TrySync failed caz " << response.sync().msg();
+      DLOG(INFO) << "TrySync failed caz " << response.msg();
       return -2;
     }
   } else {
