@@ -458,11 +458,12 @@ void Partition::Update(const Node &master, const std::vector<Node> &slaves) {
   // Update role
   Role new_role = Role::kNodeSingle;
   if (zp_data_server->IsSelf(master)) {
-    new_role = Role::kNodeSlave;
+    new_role = Role::kNodeMaster;
   }
   for (auto slave : slaves) {
-    if (zp_data_server->IsSelf(master)) {
+    if (zp_data_server->IsSelf(slave)) {
       new_role = Role::kNodeSlave;
+      break;
     }
   }
   if (role_ != new_role) {
