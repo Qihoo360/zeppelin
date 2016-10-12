@@ -65,6 +65,8 @@ private:
   ZPOptions options_;
   slash::Mutex server_mutex_;
   std::atomic<int> version_;
+  std::atomic<bool> should_exit_;
+  std::atomic<bool> started_;
 
   // Floyd related
   floyd::Floyd* floyd_;

@@ -12,7 +12,7 @@ enum ZPNodeStatus {
 };
 
 ZPMetaServer::ZPMetaServer(const ZPOptions& options)
-  : worker_num_(6), options_(options), version_(-1), leader_first_time_(true), leader_cli_(NULL), leader_cmd_port_(0) {
+  : worker_num_(6), options_(options), version_(-1), should_exit_(false), started_(false), leader_first_time_(true), leader_cli_(NULL), leader_cmd_port_(0) {
 
   // Convert ZPOptions
   floyd::Options fy_options;
@@ -48,23 +48,29 @@ void ZPMetaServer::Start() {
   floyd_->Start();
   std::string leader_ip;
   int leader_port;
-  while (!GetLeader(leader_ip, leader_port)) {
+  while (!GetLeader(leader_ip, leader_port) && !should_exit_) {
     LOG(INFO) << "Wait leader ... ";
     // Wait leader election
     sleep(1);
   }
-  LOG(INFO) << "Got Leader: " << leader_ip << ":" << leader_port;
-  InitVersion();
-  zp_meta_dispatch_thread_->StartThread();
+  if (!should_exit_) {
+    LOG(INFO) << "Got Leader: " << leader_ip << ":" << leader_port;
+    InitVersion();
+    zp_meta_dispatch_thread_->StartThread();
 
-  server_mutex_.Lock();
-  server_mutex_.Lock();
-  server_mutex_.Unlock();
+    server_mutex_.Lock();
+    started_ = true;
+    server_mutex_.Lock();
+    server_mutex_.Unlock();
+  }
   CleanUp();
 }
 
 void ZPMetaServer::Stop() {
-  server_mutex_.Unlock();
+  if (started_) {
+    server_mutex_.Unlock();
+  }
+  should_exit_ = true;
 }
 
 void ZPMetaServer::CleanUp() {
