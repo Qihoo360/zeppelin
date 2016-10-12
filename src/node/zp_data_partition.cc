@@ -392,7 +392,6 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
 }
 
 void Partition::CleanRoleEnv() {
-  DLOG(INFO) << " Partition " << partition_id_ << " BecomeSingle";
   // Clean binlog sender if needed
   {
     slash::MutexLock l(&slave_mutex_);
@@ -406,44 +405,35 @@ void Partition::CleanRoleEnv() {
   // TODO
 }
 
+// Should hold write lock of state_rw_
 void Partition::BecomeSingle() {
   CleanRoleEnv();
-  {
-    slash::RWLock l(&state_rw_, true);
-    role_ = Role::kNodeSingle;
-    repl_state_ = ReplState::kNoConnect;
-    readonly_ = false;
-  }
+  DLOG(INFO) << " Partition " << partition_id_ << " BecomeSingle";
+  role_ = Role::kNodeSingle;
+  repl_state_ = ReplState::kNoConnect;
+  readonly_ = false;
 }
-
 void Partition::BecomeMaster() {
-  DLOG(INFO) << " Partition " << partition_id_ << " BecomeMaster";
   CleanRoleEnv();
-  {
-    slash::RWLock l(&state_rw_, true);
-    role_ = Role::kNodeMaster;
-    repl_state_ = ReplState::kNoConnect;
-    readonly_ = false;
-  }
+  DLOG(INFO) << " Partition " << partition_id_ << " BecomeMaster";
+  role_ = Role::kNodeMaster;
+  repl_state_ = ReplState::kNoConnect;
+  readonly_ = false;
 }
-
 void Partition::BecomeSlave() {
   CleanRoleEnv();
-  {
-    slash::RWLock l(&state_rw_, true);
-    LOG(INFO) << " Partition " << partition_id_ << " BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
-    role_ = Role::kNodeSlave;
-    repl_state_ = ReplState::kShouldConnect;
-    readonly_ = true;
-  }
+  LOG(INFO) << " Partition " << partition_id_ << " BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
+  role_ = Role::kNodeSlave;
+  repl_state_ = ReplState::kShouldConnect;
+  readonly_ = true;
 }
 
 void Partition::Update(const Node &master, const std::vector<Node> &slaves) {
   assert(slaves.size() == kReplicaNum - 1);
 
   // Update master slave nodes
-  slash::RWLock l(&state_rw_, true);
   bool change_master = false;
+  slash::RWLock l(&state_rw_, true);
   if (master_node_ != master) {
     master_node_ = master;
     change_master = true;

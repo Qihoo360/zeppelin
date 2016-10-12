@@ -49,8 +49,8 @@ class ZPTrySyncThread : public pink::Thread {
   // TODO maybe use uuid or serverId
 
   int rsync_flag_;
-  void FlagRef();
-  void FlagUnref();
+  void RsyncRef();
+  void RsyncUnref();
 
   std::map<std::string, pink::PbCli*> client_pool_;
   pink::PbCli* GetConnection(const Node& node);

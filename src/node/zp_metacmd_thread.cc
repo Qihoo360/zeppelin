@@ -68,7 +68,6 @@ pink::Status ZPMetacmdThread::Recv() {
           }
         }
 
-        DLOG(INFO) << "MetacmdThread: receive pull(" << current_epoch << ") from meta server";
         break;
       }
       default:
