@@ -7,7 +7,7 @@ class UpdateCmd : public Cmd {
  public:
   UpdateCmd(int flag) : Cmd(flag) {}
   //virtual Status Init(const void *buf, size_t count);
-  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition = NULL, bool readonly = false);
+  virtual void Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition = NULL);
 };
 
 //void InitMetaCmdTable(std::unordered_map<int, Cmd*> *cmd_table);

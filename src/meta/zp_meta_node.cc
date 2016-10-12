@@ -7,7 +7,7 @@
 
 extern ZPMetaServer *zp_meta_server;
 
-void JoinCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly) {
+void JoinCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition) {
   ZPMeta::MetaCmd* request = static_cast<ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
@@ -27,7 +27,7 @@ void JoinCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res,
              << request->join().node().port();
 }
 
-void PingCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly) {
+void PingCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition) {
   ZPMeta::MetaCmd* request = static_cast<ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
@@ -57,7 +57,7 @@ void PingCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res,
              << ", response version=" << zp_meta_server->version();
 }
 
-void PullCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly) {
+void PullCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition) {
   ZPMeta::MetaCmd* request = static_cast<ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
@@ -82,7 +82,7 @@ void PullCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res,
   DLOG(INFO) << "Receive Pull from client";
 }
 
-void InitCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition, bool readonly) {
+void InitCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition) {
   ZPMeta::MetaCmd* request = static_cast<ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 

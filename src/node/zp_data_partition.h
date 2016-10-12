@@ -22,7 +22,7 @@
 
 class Partition;
 std::string NewPartitionPath(const std::string& name, const uint32_t current);
-Partition* NewPartition(const std::string log_path, const std::string data_path, const int partition_id, const std::vector<Node> &nodes);
+Partition* NewPartition(const std::string log_path, const std::string data_path, const int partition_id, const Node& master, const std::vector<Node> &slaves);
 
 // Slave item
 struct SlaveItem {
@@ -66,9 +66,9 @@ class Partition {
     slash::RWLock l(&state_rw_, false);
     return master_node_;
   }
-  bool is_master() {
+  Role role() {
     slash::RWLock l(&state_rw_, false);
-    return role_ == Role::kNodeMaster;
+    return role_;
   }
 
   // Command related
@@ -77,10 +77,6 @@ class Partition {
       const std::string &raw_msg, bool is_from_binlog = false);
 
   // Status related
-  bool FindSlave(const Node& node);
-  void DeleteSlave(const Node& node);
-  void BecomeMaster();
-  void BecomeSlave();
   bool ShouldTrySync();
   void TrySyncDone();
   bool TryUpdateMasterOffset();
@@ -89,8 +85,7 @@ class Partition {
   void WaitDBSyncDone();
 
   // Partition node related
-  void Init(const std::vector<Node> &nodes);
-  void Update(const std::vector<Node> &nodes);
+  void Update(const Node& master, const std::vector<Node> &slaves);
 
   // Binlog related
   Status AddBinlogSender(const Node &node, uint32_t filenum, uint64_t offset);
@@ -166,8 +161,12 @@ class Partition {
   
   // State related
   pthread_rwlock_t state_rw_;
-  int role_;
+  Role role_;
   int repl_state_;
+  void CleanRoleEnv();
+  void BecomeSingle();
+  void BecomeMaster();
+  void BecomeSlave();
 
   // DB related
   std::shared_ptr<nemo::Nemo> db_;
@@ -178,6 +177,8 @@ class Partition {
   void WriteBinlog(const std::string &content);
   slash::Mutex slave_mutex_;
   std::vector<SlaveItem> slaves_;
+  bool FindSlave(const Node& node);
+  void DeleteSlave(const Node& node);
 
   // DoCommand related
   slash::RecordMutex mutex_record_;

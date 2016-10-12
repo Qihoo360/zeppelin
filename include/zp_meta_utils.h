@@ -35,6 +35,10 @@ class Node {
     return *this;
   }
 
+  bool empty() {
+    return (ip.empty() || port == 0);
+  }
+
   bool operator==(const Node& rhs) const {
     return (ip == rhs.ip && port == rhs.port);
   }

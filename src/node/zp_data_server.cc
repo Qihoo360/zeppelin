@@ -165,31 +165,17 @@ void ZPDataServer::DumpPartitions() {
   DLOG(INFO) << "--------------------------";
 }
 
-bool ZPDataServer::UpdateOrAddPartition(const int partition_id, const std::vector<Node>& nodes) {
+bool ZPDataServer::UpdateOrAddPartition(const int partition_id, const Node& master, const std::vector<Node>& slaves) {
   slash::RWLock l(&partition_rw_, true);
   auto iter = partitions_.find(partition_id);
   if (iter != partitions_.end()) {
-    //TODO exist partition: update it
-    // BecomeMaster BecomeSlave
-    Partition* partition = iter->second;
-    Node current_master = partition->master_node();
-
-    if ((nodes[0].ip != options_.local_ip || nodes[0].port != options_.local_port)  // I'm not the told master
-        && (nodes[0] != current_master)) {          // and there's a new master
-      partition->Update(nodes);
-      partition->BecomeSlave();
-    }
-    if ((nodes[0].ip == options_.local_ip && nodes[0].port == options_.local_port)  // I'm the told master and
-        && !partition->is_master()) {
-      partition->Update(nodes);
-      partition->BecomeMaster();
-    }
-
+    //Exist partition: update it
+    (iter->second)->Update(master, slaves);
     return true;
   }
 
   // New Partition
-  Partition* partition = NewPartition(options_.log_path, options_.data_path, partition_id, nodes);
+  Partition* partition = NewPartition(options_.log_path, options_.data_path, partition_id, master, slaves);
   assert(partition != NULL);
   partitions_[partition_id] = partition;
 

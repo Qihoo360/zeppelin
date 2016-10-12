@@ -22,7 +22,7 @@ ZPMetacmdThread::~ZPMetacmdThread() {
 
 pink::Status ZPMetacmdThread::Send() {
   ZPMeta::MetaCmd request;
-  ZPMeta::MetaCmd_Pull* pull = request.mutable_pull();
+  //ZPMeta::MetaCmd_Pull* pull = request.mutable_pull();
 
   DLOG(INFO) << "MetacmdThead Pull MetaServer(" << zp_data_server->meta_ip() << ":"
     << zp_data_server->meta_port() + kMetaPortShiftCmd
@@ -52,13 +52,17 @@ pink::Status ZPMetacmdThread::Recv() {
           const ZPMeta::Partitions& partition = pull.info(i);
           DLOG(INFO) << " - handle Partition " << partition.id() << ": master is " << partition.master().ip() << ":" << partition.master().port();
 
-          std::vector<Node> nodes;
-          nodes.push_back(Node(partition.master().ip(), partition.master().port()));
+          Node master_node(partition.master().ip(), partition.master().port());
+          if (master_node.empty()) {
+            // No master patitions, simply ignore
+            continue;
+          }
+          std::vector<Node> slave_nodes;
           for (int j = 0; j < partition.slaves_size(); j++) {
-            nodes.push_back(Node(partition.slaves(j).ip(), partition.slaves(j).port()));
+            slave_nodes.push_back(Node(partition.slaves(j).ip(), partition.slaves(j).port()));
           }
 
-          bool result = zp_data_server->UpdateOrAddPartition(partition.id(), nodes);
+          bool result = zp_data_server->UpdateOrAddPartition(partition.id(), master_node, slave_nodes);
           if (!result) {
             LOG(WARNING) << "AddPartition failed";
           }

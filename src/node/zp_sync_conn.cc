@@ -51,33 +51,16 @@ int ZPSyncConn::DealMessage() {
   set_is_reply(false);
   std::string raw_msg(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4);
   Partition* partition = zp_data_server->GetPartition(cmd->key());
-  // TODO maybe we can use global status or just return error
   if (partition == NULL) {
-    response_.set_type(request_.type());
-    switch (request_.type()) {
-      case client::Type::SET: {
-        response_.mutable_set()->set_code(client::StatusCode::kError);
-        response_.mutable_set()->set_msg("no partition");
-        break;
-      }
-      case client::Type::GET: {
-        response_.mutable_get()->set_code(client::StatusCode::kError);
-        response_.mutable_get()->set_msg("no partition");
-        break;
-      }
-      case client::Type::SYNC: {
-        response_.mutable_sync()->set_code(client::StatusCode::kError);
-        response_.mutable_sync()->set_msg("no partition");
-        break;
-      }
-    }
-    LOG(ERROR) << "Error partition";
-    res_ = &response_;
-    return 0;
+    // No partition found
+    return -1;
+  }
+  if (partition->role() != Role::kNodeSlave) {
+    // Not a slave, ignore the binlog request
+    return -1;
   }
 
   partition->DoBinlogCommand(cmd, request_, response_, raw_msg);
 
-  res_ = &response_;
   return 0;
 }
