@@ -22,6 +22,7 @@ ZPMetaServer::ZPMetaServer(const ZPOptions& options)
   fy_options.local_port = options.local_port + kMetaPortShiftFY;
   fy_options.data_path = options.data_path;
   fy_options.log_path = options.log_path;
+  fy_options.log_type = "FileLog";
 
   floyd_ = new floyd::Floyd(fy_options);
 
@@ -510,7 +511,7 @@ Status ZPMetaServer::OnNode(const std::string &ip, int port) {
           ZPMeta::Node* master = p->mutable_master();
           master->CopyFrom(p->slaves(j));
           ZPMeta::Node* slave = p->mutable_slaves(j);
-          slave->CopyFrom(p->slaves(slaves_size));
+          slave->CopyFrom(p->slaves(slaves_size-1));
           p->mutable_slaves()->RemoveLast();
         }
       }

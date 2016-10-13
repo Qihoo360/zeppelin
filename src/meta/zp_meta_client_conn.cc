@@ -57,6 +57,7 @@ int ZPMetaClientConn::DealMessage() {
       ZPMeta::MetaCmdResponse_Status* status_res = response_.mutable_status();
       status_res->set_code(ZPMeta::StatusCode::kError);
       status_res->set_msg(s.ToString());
+      res_ = &response_;
       return -1;
     }
     DLOG(INFO) << "Success redirect to leader";
@@ -70,6 +71,7 @@ int ZPMetaClientConn::DealMessage() {
     ZPMeta::MetaCmdResponse_Status* status_res = response_.mutable_status();
     status_res->set_code(ZPMeta::StatusCode::kError);
     status_res->set_msg("Unknown command");
+    res_ = &response_;
     return -1;
   }
 
