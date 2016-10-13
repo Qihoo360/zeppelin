@@ -11,6 +11,7 @@ ZPTrySyncThread::~ZPTrySyncThread() {
   for (auto &kv: client_pool_) {
     kv.second->Close();
   }
+  slash::StopRsync(zp_data_server->db_sync_path());
   DLOG(INFO) << " TrySync thread " << pthread_self() << " exit!!!";
 }
 
@@ -98,9 +99,12 @@ void ZPTrySyncThread::DropConnection(const Node& node) {
 }
 
 void ZPTrySyncThread::SendTrySync(Partition *partition) {
-  if (partition->ShouldWaitDBSync() && partition->TryUpdateMasterOffset()) {
+  if (partition->ShouldWaitDBSync()) {
+    if (!partition->TryUpdateMasterOffset()) {
+      return;
+    }
     partition->WaitDBSyncDone();
-    FlagUnref();
+    RsyncUnref();
     LOG(INFO) << "Success Update Master Offset for Partition " << partition->partition_id();
   }
 
@@ -108,7 +112,7 @@ void ZPTrySyncThread::SendTrySync(Partition *partition) {
     return;
   }
   PrepareRsync(partition);
-  FlagRef();
+  RsyncRef();
 
   Node master_node = partition->master_node();
   DLOG(WARNING) << "TrySync will connect(" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ")";
@@ -122,7 +126,7 @@ void ZPTrySyncThread::SendTrySync(Partition *partition) {
     if (Send(partition, cli)) {
       int ret = Recv(cli);
       if (ret == 0) {
-        FlagUnref();
+        RsyncUnref();
         partition->TrySyncDone();
       } else if (ret == -1) {
         partition->SetWaitDBSync();
@@ -155,7 +159,7 @@ void ZPTrySyncThread::PrepareRsync(Partition *partition) {
   slash::CreatePath(db_sync_path + "zset");
 }
 
-void ZPTrySyncThread::FlagRef() {
+void ZPTrySyncThread::RsyncRef() {
   assert(rsync_flag_ >= 0);
   // Start Rsync
   if (0 == rsync_flag_) {
@@ -175,7 +179,7 @@ void ZPTrySyncThread::FlagRef() {
   rsync_flag_++;
 }
 
-void ZPTrySyncThread::FlagUnref() {
+void ZPTrySyncThread::RsyncUnref() {
   assert(rsync_flag_ >= 0);
   rsync_flag_--;
   if (0 == rsync_flag_) {
