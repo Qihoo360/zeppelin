@@ -112,13 +112,18 @@ bool ZPDataServer::ShouldJoinMeta() {
   return meta_state_ == MetaState::kMetaConnect;
 }
 
-void ZPDataServer::UpdateEpoch(int64_t epoch) {
+void ZPDataServer::TryUpdateEpoch(int64_t epoch) {
   slash::MutexLock l(&mutex_epoch_);
-  if (epoch > meta_epoch_) {
-    DLOG(INFO) <<  "UpdateEpoch (" << meta_epoch_ << "->" << epoch << ") ok...";
-    meta_epoch_ = epoch;
+  if (epoch != meta_epoch_) {
     should_pull_meta_ = true;
   }
+}
+
+void ZPDataServer::FinishPullMeta(int64_t epoch) {
+  slash::MutexLock l(&mutex_epoch_);
+  DLOG(INFO) <<  "UpdateEpoch (" << meta_epoch_ << "->" << epoch << ") ok...";
+  meta_epoch_ = epoch;
+  should_pull_meta_ = false;
 }
 
 // Now we only need to keep one connection for Meta Node;
@@ -243,6 +248,7 @@ void ZPDataServer::BGPurgeTaskSchedule(void (*function)(void*), void* arg) {
 void ZPDataServer::DoTimingTask() {
   slash::RWLock l(&partition_rw_, false);
   for (auto pair : partitions_) {
+    LOG(INFO) << "Will auto purge partition: " << pair.first << " partition_id : " << pair.second->partition_id();
     pair.second->AutoPurge();
   }
 }

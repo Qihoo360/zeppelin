@@ -20,6 +20,10 @@ ZPDataClientConn::~ZPDataClientConn() {
 
 // Msg is  [ length (int32) | pb_msg (length bytes) ]
 int ZPDataClientConn::DealMessage() {
+  if (!zp_data_server->Availible()) {
+    LOG(WARNING) << "Receive Client command, but the server is not availible yet";
+    return -1;
+  }
   self_thread_->PlusThreadQuerynum();
   request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
 

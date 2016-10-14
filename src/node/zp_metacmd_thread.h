@@ -25,8 +25,8 @@ class ZPMetacmdThread : public pink::Thread {
   pink::PbCli *cli_;
 
   pink::Status Send();
-  pink::Status Recv();
-  bool FetchMetaInfo();
+  pink::Status Recv(int64_t &receive_epoch);
+  bool FetchMetaInfo(int64_t &receive_epoch);
 
   virtual void* ThreadMain();
 };

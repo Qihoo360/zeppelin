@@ -92,14 +92,15 @@ class ZPDataServer {
     slash::MutexLock l(&mutex_epoch_);
     return meta_epoch_;
   }
-  void UpdateEpoch(int64_t epoch);
+  void TryUpdateEpoch(int64_t epoch);
+  void FinishPullMeta(int64_t epoch);
   bool ShouldPullMeta() {
     slash::MutexLock l(&mutex_epoch_);
     return should_pull_meta_;
   }
-  void FinishPullMeta() {
+  bool Availible() {
     slash::MutexLock l(&mutex_epoch_);
-    should_pull_meta_ = false;
+    return meta_epoch_ >= 0;
   }
   
   // Partition related

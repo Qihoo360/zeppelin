@@ -54,7 +54,7 @@ pink::Status ZPPingThread::RecvProc() {
           is_first_send_ = false;
           break;
         case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PING:
-          zp_data_server->UpdateEpoch(response.ping().version());
+          zp_data_server->TryUpdateEpoch(response.ping().version());
           DLOG(INFO) << "ping_thread: receive pong(" << response.ping().version() << ") from meta server";
           break;
         default:

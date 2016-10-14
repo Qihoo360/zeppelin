@@ -31,7 +31,7 @@ pink::Status ZPMetacmdThread::Send() {
   return cli_->Send(&request);
 }
 
-pink::Status ZPMetacmdThread::Recv() {
+pink::Status ZPMetacmdThread::Recv(int64_t &receive_epoch) {
   pink::Status result;
   ZPMeta::MetaCmdResponse response;
   result = cli_->Recv(&response); 
@@ -44,7 +44,7 @@ pink::Status ZPMetacmdThread::Recv() {
           return pink::Status::IOError(response.status().msg());
         }
 
-        int64_t current_epoch = response.pull().version();
+        receive_epoch = response.pull().version();
         ZPMeta::MetaCmdResponse_Pull pull = response.pull();
 
         DLOG(INFO) << "receive Pull message, will handle " << pull.info_size() << " Partitions.";
@@ -77,7 +77,7 @@ pink::Status ZPMetacmdThread::Recv() {
   return result;
 }
 
-bool ZPMetacmdThread::FetchMetaInfo() {
+bool ZPMetacmdThread::FetchMetaInfo(int64_t &receive_epoch) {
   pink::Status s;
   // No more PickMeta, which should be done by ping thread
   assert(!zp_data_server->meta_ip().empty() && zp_data_server->meta_port() != 0);
@@ -96,7 +96,7 @@ bool ZPMetacmdThread::FetchMetaInfo() {
     }
     DLOG(INFO) << "Metacmd send ok!";
 
-    s = Recv();
+    s = Recv(receive_epoch);
     if (!s.ok()) {
       DLOG(WARNING) << "Metacmd recv failed: " << s.ToString();
       cli_->Close();
@@ -112,15 +112,16 @@ bool ZPMetacmdThread::FetchMetaInfo() {
 }
 
 void* ZPMetacmdThread::ThreadMain() {
-
+  int64_t receive_epoch = 0;
   while (!should_exit_) {
     sleep(kMetacmdInterval);
     if (!zp_data_server->ShouldPullMeta()) {
       continue;
     }
-    if (FetchMetaInfo()) {
+    
+    if (FetchMetaInfo(receive_epoch)) {
       // when we recv OK, we will FinishPullMeta
-      zp_data_server->FinishPullMeta();
+      zp_data_server->FinishPullMeta(receive_epoch);
     }
   }
   return NULL;

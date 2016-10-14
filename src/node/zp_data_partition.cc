@@ -1,5 +1,6 @@
 #include "zp_data_partition.h"
 
+#include <set>
 #include <fstream>
 #include <glog/logging.h>
 #include "zp_data_server.h"
@@ -479,7 +480,15 @@ std::string NewPartitionPath(const std::string& name, const uint32_t current) {
 
 Partition* NewPartition(const std::string log_path, const std::string data_path, const int partition_id, const Node& master, const std::vector<Node> &slaves) {
   Partition* partition = new Partition(partition_id, log_path, data_path);
+
+  // Check and update purged_index_
+  if (!partition->CheckBinlogFiles()) {
+    // Binlog unavailable
+    delete partition;
+    return NULL;
+  }
   partition->Update(master, slaves);
+
   return partition;
 }
 
@@ -681,7 +690,7 @@ bool Partition::PurgeLogs(uint32_t to, bool manual, bool force) {
   // Only one thread can go through
   bool expect = false;
   if (!purging_.compare_exchange_strong(expect, true)) {
-    LOG(WARNING) << "purge process already exist";
+    LOG(WARNING) << "purge process already exist : " << partition_id_;
     return false;
   }
   PurgeArg *arg = new PurgeArg();
@@ -748,11 +757,45 @@ bool Partition::PurgeFiles(uint32_t to, bool manual, bool force)
   return true;
 }
 
+bool Partition::CheckBinlogFiles() {
+  std::vector<std::string> children;
+  int ret = slash::GetChildren(log_path_, children);
+  if (ret != 0){
+    LOG(WARNING) << "CheckBinlogFiles Get all files in log path failed! error:" << ret; 
+    return false;
+  }
+
+  int64_t index = 0;
+  std::string sindex;
+  std::set<uint32_t> binlog_nums;
+  std::vector<std::string>::iterator it;
+  for (it = children.begin(); it != children.end(); ++it) {
+    if ((*it).compare(0, kBinlogPrefixLen, kBinlogPrefix) != 0) {
+      continue;
+    }
+    sindex = (*it).substr(kBinlogPrefixLen);
+    if (slash::string2l(sindex.c_str(), sindex.size(), &index) == 1) {
+      binlog_nums.insert(index); 
+    }
+  }
+  std::set<uint32_t>::iterator num_it = binlog_nums.begin(), pre_num_it = binlog_nums.begin();
+  purged_index_ = *num_it++; // update the purged_index_
+  LOG(INFO) << "Update purged index to " << purged_index_; 
+  for (; num_it != binlog_nums.end(); ++num_it, ++pre_num_it) {
+    if (*num_it != *pre_num_it + 1) {
+      LOG(ERROR) << "There is a hole among the binglogs between " <<  *num_it << *pre_num_it; 
+      // there is a hole
+      return false;
+    }
+  }
+  return true;
+}
+
 bool Partition::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
   std::vector<std::string> children;
   int ret = slash::GetChildren(log_path_, children);
   if (ret != 0){
-    LOG(WARNING) << "Get all files in log path failed! error:" << ret; 
+    LOG(WARNING) << "GetBinlogFiles Get all files in log path failed! error:" << ret; 
     return false;
   }
 
@@ -776,7 +819,6 @@ bool Partition::CouldPurge(uint32_t index) {
   uint64_t tmp;
   logger_->GetProducerStatus(&pro_num, &tmp);
 
-  //index += 10; //remain some more
   if (index > pro_num) {
     return false;
   }

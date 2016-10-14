@@ -111,8 +111,6 @@ void ZPTrySyncThread::SendTrySync(Partition *partition) {
   if (!partition->ShouldTrySync()) {
     return;
   }
-  PrepareRsync(partition);
-  RsyncRef();
 
   Node master_node = partition->master_node();
   DLOG(WARNING) << "TrySync will connect(" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ")";
@@ -122,6 +120,8 @@ void ZPTrySyncThread::SendTrySync(Partition *partition) {
     cli->set_send_timeout(1000);
     cli->set_recv_timeout(1000);
 
+    PrepareRsync(partition);
+    RsyncRef();
     // Send && Recv
     if (Send(partition, cli)) {
       int ret = Recv(cli);
@@ -131,6 +131,7 @@ void ZPTrySyncThread::SendTrySync(Partition *partition) {
       } else if (ret == -1) {
         partition->SetWaitDBSync();
       } else {
+        RsyncUnref();
         DropConnection(master_node);
         DLOG(WARNING) << "TrySync recv failed";
       }
@@ -151,12 +152,12 @@ void* ZPTrySyncThread::ThreadMain() {
 }
 
 void ZPTrySyncThread::PrepareRsync(Partition *partition) {
-  std::string db_sync_path = partition->sync_path() + "/";
-  slash::CreatePath(db_sync_path + "kv");
-  slash::CreatePath(db_sync_path + "hash");
-  slash::CreatePath(db_sync_path + "list");
-  slash::CreatePath(db_sync_path + "set");
-  slash::CreatePath(db_sync_path + "zset");
+  std::string p_sync_path = partition->sync_path() + "/";
+  slash::CreatePath(p_sync_path + "kv");
+  slash::CreatePath(p_sync_path + "hash");
+  slash::CreatePath(p_sync_path + "list");
+  slash::CreatePath(p_sync_path + "set");
+  slash::CreatePath(p_sync_path + "zset");
 }
 
 void ZPTrySyncThread::RsyncRef() {

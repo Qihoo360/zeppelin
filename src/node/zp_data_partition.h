@@ -95,6 +95,7 @@ class Partition {
   std::string GetBinlogFilename() {
     return logger_->filename;
   }
+  bool CheckBinlogFiles(); // Check binlog availible and update purge_index_
 
   // BGSave related
   struct BGSaveInfo {
