@@ -3,7 +3,7 @@
 
 #include <string>
 
-const int kMaxWorkerThread = 4;
+const int kMaxWorkerThread = 100;
 const int kMaxMetaWorkerThread = 16;
 
 const std::string kZPVersion = "0.0.1";
@@ -85,8 +85,8 @@ const std::string kManifest = "manifest";
 // The size of Binlogfile
 //
 //uint64_t kBinlogSize = 128; 
-const uint64_t kBinlogSize = 256;
-//const uint64_t kBinlogSize = 1024 * 1024 * 100;
+//const uint64_t kBinlogSize = 256;
+const uint64_t kBinlogSize = 1024 * 1024 * 100;
 
 
 //

@@ -164,7 +164,7 @@ class Partition {
   pthread_rwlock_t state_rw_;
   Role role_;
   int repl_state_;
-  void CleanRoleEnv();
+  void CleanRoleEnv(Role role);
   void BecomeSingle();
   void BecomeMaster();
   void BecomeSlave();

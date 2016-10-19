@@ -392,7 +392,7 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
   }
 }
 
-void Partition::CleanRoleEnv() {
+void Partition::CleanRoleEnv(Role role) {
   // Clean binlog sender if needed
   {
     slash::MutexLock l(&slave_mutex_);
@@ -402,27 +402,36 @@ void Partition::CleanRoleEnv() {
       LOG(INFO) << "Delete slave success";
     }
   }
+
+  // Clean binlog if needed
+  if (role == Role::kNodeSlave) {
+    if (!PurgeLogs(0, true, true)) {
+      DLOG(WARNING) << "Purge logs before become slave failed";
+      return;
+    }
+  }
+
   // Clean binlog receiver
   // TODO
 }
 
 // Should hold write lock of state_rw_
 void Partition::BecomeSingle() {
-  CleanRoleEnv();
+  CleanRoleEnv(Role::kNodeSingle);
   DLOG(INFO) << " Partition " << partition_id_ << " BecomeSingle";
   role_ = Role::kNodeSingle;
   repl_state_ = ReplState::kNoConnect;
   readonly_ = false;
 }
 void Partition::BecomeMaster() {
-  CleanRoleEnv();
+  CleanRoleEnv(Role::kNodeMaster);
   DLOG(INFO) << " Partition " << partition_id_ << " BecomeMaster";
   role_ = Role::kNodeMaster;
   repl_state_ = ReplState::kNoConnect;
   readonly_ = false;
 }
 void Partition::BecomeSlave() {
-  CleanRoleEnv();
+  CleanRoleEnv(Role::kNodeSlave);
   LOG(INFO) << " Partition " << partition_id_ << " BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
   role_ = Role::kNodeSlave;
   repl_state_ = ReplState::kShouldConnect;

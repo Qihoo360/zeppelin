@@ -24,7 +24,7 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
 
 
     // Create thread
-    worker_num_ = 2; 
+    worker_num_ = 4;
     for (int i = 0; i < worker_num_; i++) {
       zp_worker_thread_[i] = new ZPDataWorkerThread(kWorkerCronInterval);
     }
