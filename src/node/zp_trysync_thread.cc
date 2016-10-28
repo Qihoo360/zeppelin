@@ -1,18 +1,58 @@
-#include "zp_trysync_thread.h"
 #include <glog/logging.h>
+
 #include "rsync.h"
 #include "zp_data_server.h"
+#include "zp_data_partition.h"
+#include "zp_trysync_thread.h"
 
 extern ZPDataServer* zp_data_server;
 
+ZPTrySyncThread::ZPTrySyncThread():
+  should_exit_(false),
+  rsync_flag_(0) {
+    bg_thread_ = new pink::BGThread();
+}
+
 ZPTrySyncThread::~ZPTrySyncThread() {
   should_exit_ = true;
-  pthread_join(thread_id(), NULL);
+  delete bg_thread_;
   for (auto &kv: client_pool_) {
     kv.second->Close();
   }
   slash::StopRsync(zp_data_server->db_sync_path());
   DLOG(INFO) << " TrySync thread " << pthread_self() << " exit!!!";
+}
+
+void ZPTrySyncThread::TrySyncTaskSchedule(int partition_id) {
+  slash::MutexLock l(&bg_thread_protector_);
+  bg_thread_->StartIfNeed();
+  TrySyncTaskArg *targ = new TrySyncTaskArg(this, partition_id);
+  bg_thread_->Schedule(&DoTrySyncTask, static_cast<void*>(targ));
+}
+
+void ZPTrySyncThread::DoTrySyncTask(void* arg) {
+  TrySyncTaskArg* targ = static_cast<TrySyncTaskArg*>(arg);
+  (targ->thread)->TrySyncTask(targ->partition_id);
+  delete targ;
+}
+
+void ZPTrySyncThread::TrySyncTask(int partition_id) {
+  // Wait until the server is availible
+  while (!should_exit_ && !zp_data_server->Availible()) {
+    sleep(kTrySyncInterval);
+  }
+  if (should_exit_) {
+    return;
+  }
+
+  //Get Partiton by id
+  Partition* partition = zp_data_server->GetPartitionById(partition_id);
+  
+  // Do try sync
+  if (!SendTrySync(partition)) {
+    // Need one more trysync, since error happenning or waiting for db sync
+    zp_data_server->AddSyncTask(partition_id);
+  }
 }
 
 bool ZPTrySyncThread::Send(Partition* partition, pink::PbCli* cli) {
@@ -98,10 +138,13 @@ void ZPTrySyncThread::DropConnection(const Node& node) {
   }
 }
 
-void ZPTrySyncThread::SendTrySync(Partition *partition) {
+/*
+ * Return false if one more trysync is needed
+ */
+bool ZPTrySyncThread::SendTrySync(Partition *partition) {
   if (partition->ShouldWaitDBSync()) {
     if (!partition->TryUpdateMasterOffset()) {
-      return;
+      return false;
     }
     partition->WaitDBSyncDone();
     RsyncUnref();
@@ -109,7 +152,7 @@ void ZPTrySyncThread::SendTrySync(Partition *partition) {
   }
 
   if (!partition->ShouldTrySync()) {
-    return;
+    return true;
   }
 
   Node master_node = partition->master_node();
@@ -128,6 +171,7 @@ void ZPTrySyncThread::SendTrySync(Partition *partition) {
       if (ret == 0) {
         RsyncUnref();
         partition->TrySyncDone();
+        return true;
       } else if (ret == -1) {
         partition->SetWaitDBSync();
       } else {
@@ -139,16 +183,7 @@ void ZPTrySyncThread::SendTrySync(Partition *partition) {
   } else {
     LOG(ERROR) << "TrySyncThread Connect failed";
   }
-}
-
-void* ZPTrySyncThread::ThreadMain() {
-  while (!should_exit_) {
-    DLOG(INFO) << "TrySyncThread hold partition_rw ->";
-    zp_data_server->WalkPartitions(trysync_functor_);
-    DLOG(INFO) << "TrySyncThread release partition_rw <-";
-    sleep(kTrySyncInterval);
-  }
-  return NULL;
+  return false;
 }
 
 void ZPTrySyncThread::PrepareRsync(Partition *partition) {
@@ -187,7 +222,3 @@ void ZPTrySyncThread::RsyncUnref() {
     slash::StopRsync(zp_data_server->db_sync_path());
   }
 }
-void ZPTrySyncFunctor::operator() (std::pair<int, Partition*> partition_pair) {
-  trysync_thread_->SendTrySync(partition_pair.second);
-}
-

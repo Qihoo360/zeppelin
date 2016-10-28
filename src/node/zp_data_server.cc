@@ -43,7 +43,9 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
 
 ZPDataServer::~ZPDataServer() {
   DLOG(INFO) << "~ZPDataServer dstor";
-
+  // Order:
+  // 1, Meta thread should before trysunc thread
+  // 2, Worker thread should before bgsave_thread
   delete zp_dispatch_thread_;
   for (int i = 0; i < worker_num_; i++) {
     delete zp_worker_thread_[i];
@@ -61,8 +63,8 @@ ZPDataServer::~ZPDataServer() {
 
   delete zp_ping_thread_;
   delete zp_binlog_receiver_thread_;
-  delete zp_trysync_thread_;
   delete zp_metacmd_thread_;
+  delete zp_trysync_thread_;
 
   {
     slash::RWLock l(&partition_rw_, true);
@@ -88,7 +90,6 @@ Status ZPDataServer::Start() {
   // TODO test
   zp_ping_thread_->StartThread();
 
-  zp_trysync_thread_->StartThread();
   zp_metacmd_thread_->StartThread();
 
   // TEST 
@@ -245,10 +246,15 @@ void ZPDataServer::BGPurgeTaskSchedule(void (*function)(void*), void* arg) {
   bgpurge_thread_.Schedule(function, arg);
 }
 
+void ZPDataServer::AddSyncTask(int parititon_id) {
+  zp_trysync_thread_->TrySyncTaskSchedule(parititon_id);
+}
+
+
 void ZPDataServer::DoTimingTask() {
   slash::RWLock l(&partition_rw_, false);
   for (auto pair : partitions_) {
-    LOG(INFO) << "Will auto purge partition: " << pair.first << " partition_id : " << pair.second->partition_id();
+    //LOG(INFO) << "Will auto purge partition: " << pair.first << " partition_id : " << pair.second->partition_id();
     pair.second->AutoPurge();
   }
 }

@@ -1,62 +1,47 @@
 #ifndef ZP_TRYSYNC_THREAD_H
 #define ZP_TRYSYNC_THREAD_H
-
-#include <map>
-#include "zp_const.h"
-#include "zp_meta_utils.h"
-#include "zp_data_partition.h"
-
 #include "pb_cli.h"
 #include "status.h"
-#include "pink_thread.h"
 #include "slash_mutex.h"
+#include "bg_thread.h"
+#include "zp_const.h"
+#include "zp_data_partition.h"
 
-class ZPTrySyncThread;
-class ZPTrySyncFunctor {
-  public:
-    ZPTrySyncFunctor(ZPTrySyncThread* thread) : trysync_thread_(thread) {
-    }
-    void operator() (std::pair<int, Partition*> partition_pair);
-  private:
-    ZPTrySyncThread *trysync_thread_;
-
-};
-
-class ZPTrySyncThread : public pink::Thread {
+class ZPTrySyncThread {
  public:
-
-  ZPTrySyncThread()
-    :trysync_functor_(this),
-    rsync_flag_(0) {
-  }
+  ZPTrySyncThread();
   virtual ~ZPTrySyncThread();
-  void SendTrySync(Partition *partition);
+  void TrySyncTaskSchedule(int partition_id);
+  void TrySyncTask(int partition_id);
 
  private:
+  bool should_exit_;
 
-  ZPTrySyncFunctor trysync_functor_;
+  // BGThread related
+  struct TrySyncTaskArg {
+    ZPTrySyncThread* thread;
+    int partition_id;
+    TrySyncTaskArg(ZPTrySyncThread* t, int id) :
+      thread(t), partition_id(id) {}
+  };
+  slash::Mutex bg_thread_protector_;
+  pink::BGThread* bg_thread_;
+  static void DoTrySyncTask(void* arg);
+  bool SendTrySync(Partition *partition);
   bool Send(Partition* partition, pink::PbCli* cli);
-
-  // Return value:
-  //    0 means ok;
-  //    -1 means wait 
-  //    -2 means error;
+  // Return value:   0 means ok; -1 means wait; -2 means error;
   int Recv(pink::PbCli* cli);
 
-  void PrepareRsync(Partition *partition);
-  bool TryUpdateMasterOffset();
-
-  // TODO maybe use uuid or serverId
-
+  // Rsync related
   int rsync_flag_;
+  void PrepareRsync(Partition *partition);
   void RsyncRef();
   void RsyncUnref();
-
+  
+  // Connection related
   std::map<std::string, pink::PbCli*> client_pool_;
   pink::PbCli* GetConnection(const Node& node);
   void DropConnection(const Node& node);
-  virtual void* ThreadMain();
 };
 
-
-#endif
+#endif //ZP_TRYSYNC_THREAD_H

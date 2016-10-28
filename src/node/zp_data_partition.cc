@@ -30,10 +30,10 @@ Partition::Partition(const int partition_id, const std::string &log_path, const 
 
     // Create db handle
     nemo::Options option; //TODO option args
-    LOG(INFO) << "Loading data for partition:" << partition_id_ << "...";
+    DLOG(INFO) << "Loading data for partition:" << partition_id_ << "...";
     db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(data_path_, option));
     assert(db_);
-    LOG(INFO) << " Success";
+    LOG(INFO) << "Loading data for partition:" << partition_id_ << "Success";
 
     // Binlog
     logger_ = new Binlog(log_path_, kBinlogSize);
@@ -84,7 +84,7 @@ void Partition::DeleteSlave(const Node& node) {
 
 bool Partition::ShouldWaitDBSync() {
   slash::RWLock l(&state_rw_, false);
-  DLOG(INFO) << "ShouldWaitDBSync " 
+  DLOG(INFO) << "Partition: " << partition_id_ <<" ShouldWaitDBSync " 
       << (repl_state_ == ReplState::kWaitDBSync ? "true" : "false")
       << ", repl_state: " << ReplStateMsg[repl_state_] << " role: " << RoleMsg[role_];
   return repl_state_ == ReplState::kWaitDBSync;
@@ -105,7 +105,7 @@ void Partition::WaitDBSyncDone() {
 
 bool Partition::ShouldTrySync() {
   slash::RWLock l(&state_rw_, false);
-  DLOG(INFO) << "ShouldTrySync " 
+  DLOG(INFO) << "Partition: " << partition_id_ << " ShouldTrySync " 
     << (repl_state_ == ReplState::kShouldConnect ? "true" : "false")
     <<  ", repl_state: " << ReplStateMsg[repl_state_];
   return repl_state_ == ReplState::kShouldConnect;
@@ -320,7 +320,7 @@ bool Partition::TryUpdateMasterOffset() {
   {
     slash::RWLock l(&state_rw_, false);
     if (master_ip != master_node_.ip || master_port != master_node_.port) {
-      LOG(ERROR) << "Error master ip port: " << master_ip << ":" << master_port;
+      LOG(ERROR) << "Error master ip port: " << master_ip << ":" << master_port << ". current master ip port: " << master_node_.ip <<":" << master_node_.port ;
       return false;
     }
   }
@@ -436,14 +436,16 @@ void Partition::BecomeSlave() {
   role_ = Role::kNodeSlave;
   repl_state_ = ReplState::kShouldConnect;
   readonly_ = true;
+  zp_data_server->AddSyncTask(partition_id_);
 }
 
 void Partition::Update(const Node &master, const std::vector<Node> &slaves) {
   assert(slaves.size() == kReplicaNum - 1);
 
   // Update master slave nodes
-  bool change_master = false;
   slash::RWLock l(&state_rw_, true);
+  bool change_master = false;
+  
   if (master_node_ != master) {
     master_node_ = master;
     change_master = true;
@@ -789,7 +791,7 @@ bool Partition::CheckBinlogFiles() {
   }
   std::set<uint32_t>::iterator num_it = binlog_nums.begin(), pre_num_it = binlog_nums.begin();
   purged_index_ = *num_it++; // update the purged_index_
-  LOG(INFO) << "Update purged index to " << purged_index_; 
+  DLOG(INFO) << "Update purged index to " << purged_index_; 
   for (; num_it != binlog_nums.end(); ++num_it, ++pre_num_it) {
     if (*num_it != *pre_num_it + 1) {
       LOG(ERROR) << "There is a hole among the binglogs between " <<  *num_it << *pre_num_it; 

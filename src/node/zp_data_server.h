@@ -121,6 +121,7 @@ class ZPDataServer {
   // Backgroud thread
   void BGSaveTaskSchedule(void (*function)(void*), void* arg);
   void BGPurgeTaskSchedule(void (*function)(void*), void* arg);
+  void AddSyncTask(int parititon_id);
 
  private:
 
@@ -128,7 +129,8 @@ class ZPDataServer {
   slash::Mutex server_mutex_;
 
   // Partitions
-  pthread_rwlock_t partition_rw_;
+  //Note: this lock only protect partitions_ map, rather than certain partiton which should keep thread safty itself
+  pthread_rwlock_t partition_rw_; 
   std::map<int, Partition*> partitions_;
   uint32_t KeyToPartition(const std::string &key);
 
