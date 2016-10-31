@@ -3,7 +3,8 @@
 #include <glog/logging.h>
 #include "zp_data_server.h"
 
-#include "slash_mutex.h"
+#include "zp_command.h"
+#include "zp_admin.h"
 
 extern ZPDataServer* zp_data_server;
 
@@ -13,16 +14,29 @@ ZPMetacmdThread::ZPMetacmdThread() {
 }
 
 ZPMetacmdThread::~ZPMetacmdThread() {
-  // may be redunct
-  should_exit_ = true;
-  pthread_join(thread_id(), NULL);
+  Stop();
   delete cli_;
   LOG(INFO) << "ZPMetacmd thread " << thread_id() << " exit!!!";
 }
 
+void ZPMetacmdThread::MetaUpdateTask() {
+  int64_t receive_epoch = 0;
+  if (!zp_data_server->ShouldPullMeta()) {
+    return;
+  }
+
+  if (FetchMetaInfo(receive_epoch)) {
+    // When we fetch OK, we will FinishPullMeta
+    zp_data_server->FinishPullMeta(receive_epoch);
+  } else {
+    // Sleep and try again
+    sleep(kMetacmdInterval);
+    zp_data_server->AddMetacmdTask();
+  }
+}
+
 pink::Status ZPMetacmdThread::Send() {
   ZPMeta::MetaCmd request;
-  //ZPMeta::MetaCmd_Pull* pull = request.mutable_pull();
 
   DLOG(INFO) << "MetacmdThead Pull MetaServer(" << zp_data_server->meta_ip() << ":"
     << zp_data_server->meta_port() + kMetaPortShiftCmd
@@ -109,20 +123,4 @@ bool ZPMetacmdThread::FetchMetaInfo(int64_t &receive_epoch) {
     DLOG(WARNING) << "Metacmd connect failed: " << s.ToString();
     return false;
   }
-}
-
-void* ZPMetacmdThread::ThreadMain() {
-  int64_t receive_epoch = 0;
-  while (!should_exit_) {
-    sleep(kMetacmdInterval);
-    if (!zp_data_server->ShouldPullMeta()) {
-      continue;
-    }
-    
-    if (FetchMetaInfo(receive_epoch)) {
-      // when we recv OK, we will FinishPullMeta
-      zp_data_server->FinishPullMeta(receive_epoch);
-    }
-  }
-  return NULL;
 }

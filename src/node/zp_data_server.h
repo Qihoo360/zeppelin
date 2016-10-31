@@ -122,6 +122,7 @@ class ZPDataServer {
   void BGSaveTaskSchedule(void (*function)(void*), void* arg);
   void BGPurgeTaskSchedule(void (*function)(void*), void* arg);
   void AddSyncTask(int parititon_id);
+  void AddMetacmdTask();
 
  private:
 

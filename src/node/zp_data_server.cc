@@ -86,11 +86,7 @@ ZPDataServer::~ZPDataServer() {
 Status ZPDataServer::Start() {
   zp_dispatch_thread_->StartThread();
   zp_binlog_receiver_thread_->StartThread();
-
-  // TODO test
   zp_ping_thread_->StartThread();
-
-  zp_metacmd_thread_->StartThread();
 
   // TEST 
   LOG(INFO) << "ZPDataServer started on port:" <<  options_.local_port;
@@ -117,6 +113,7 @@ void ZPDataServer::TryUpdateEpoch(int64_t epoch) {
   slash::MutexLock l(&mutex_epoch_);
   if (epoch != meta_epoch_) {
     should_pull_meta_ = true;
+    AddMetacmdTask();
   }
 }
 
@@ -250,6 +247,11 @@ void ZPDataServer::AddSyncTask(int parititon_id) {
   zp_trysync_thread_->TrySyncTaskSchedule(parititon_id);
 }
 
+void ZPDataServer::AddMetacmdTask() {
+  zp_metacmd_thread_->StartIfNeed();
+  zp_metacmd_thread_->Schedule(&ZPMetacmdThread::DoMetaUpdateTask,
+      static_cast<void*>(zp_metacmd_thread_));
+}
 
 void ZPDataServer::DoTimingTask() {
   slash::RWLock l(&partition_rw_, false);

@@ -1,25 +1,19 @@
 #ifndef ZP_METACMD_THREAD_H
 #define ZP_METACMD_THREAD_H
 
-#include <queue>
-
-#include "zp_command.h"
-#include "zp_admin.h"
-#include "zp_util.h"
-
-#include "status.h"
-#include "pink_thread.h"
+#include "bg_thread.h"
 #include "pb_cli.h"
 
-#include "slash_mutex.h"
-
-#include "env.h"
-
-class ZPMetacmdThread : public pink::Thread {
+class ZPMetacmdThread : public pink::BGThread {
  public:
 
   ZPMetacmdThread();
   virtual ~ZPMetacmdThread();
+ 
+  static void DoMetaUpdateTask(void* arg) {
+    (static_cast<ZPMetacmdThread*>(arg))->MetaUpdateTask();
+  }
+  void MetaUpdateTask();
 
  private:
   pink::PbCli *cli_;
@@ -28,6 +22,5 @@ class ZPMetacmdThread : public pink::Thread {
   pink::Status Recv(int64_t &receive_epoch);
   bool FetchMetaInfo(int64_t &receive_epoch);
 
-  virtual void* ThreadMain();
 };
-#endif
+#endif //ZP_METACMD_THREAD_H

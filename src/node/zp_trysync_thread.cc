@@ -51,6 +51,7 @@ void ZPTrySyncThread::TrySyncTask(int partition_id) {
   // Do try sync
   if (!SendTrySync(partition)) {
     // Need one more trysync, since error happenning or waiting for db sync
+    sleep(kTrySyncInterval);
     zp_data_server->AddSyncTask(partition_id);
   }
 }
