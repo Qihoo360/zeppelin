@@ -49,9 +49,6 @@ class ZPBinlogReceiverThread : public pink::HolyThread<ZPSyncConn> {
     return num;
   }
 
-  Cmd* GetCmd(const int op) {
-    return GetCmdFromTable(op, cmds_);
-  }
 
  private:
   slash::Mutex mutex_; // protect cron_task_
@@ -59,7 +56,6 @@ class ZPBinlogReceiverThread : public pink::HolyThread<ZPSyncConn> {
   void KillAll();
   std::queue<WorkerCronTask> cron_tasks_;
 
-  std::unordered_map<int, Cmd*> cmds_;
   uint64_t query_num_;
   uint64_t last_query_num_;
   uint64_t last_time_us_;

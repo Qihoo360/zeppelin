@@ -1,7 +1,6 @@
 #include "zp_data_worker_thread.h"
 
 #include <glog/logging.h>
-#include "zp_kv.h"
 
 ZPDataWorkerThread::ZPDataWorkerThread(int cron_interval)
   : WorkerThread::WorkerThread(cron_interval),
@@ -9,15 +8,12 @@ ZPDataWorkerThread::ZPDataWorkerThread(int cron_interval)
     last_thread_querynum_(0),
     last_time_us_(slash::NowMicros()),
     last_sec_thread_querynum_(0) {
-      cmds_.reserve(300);
-      InitClientCmdTable(&cmds_);
     }
 
 ZPDataWorkerThread::~ZPDataWorkerThread() {
   should_exit_ = true;
   pthread_join(thread_id(), NULL);
 
-  DestoryCmdTable(cmds_);
   LOG(INFO) << "A worker thread " << thread_id() << " exit!!!";
 }
 

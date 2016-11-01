@@ -43,15 +43,10 @@ int ZPDataClientConn::DealMessage() {
     }
   }
 
-  Cmd* cmd = self_thread_->GetCmd(static_cast<int>(request_.type()));
+  Cmd* cmd = zp_data_server->CmdGet(static_cast<int>(request_.type()));
   if (cmd == NULL) {
     LOG(ERROR) << "unsupported type: " << (int)request_.type();
     return -1;
-  }
-
-  Status s = cmd->Init(&request_);
-  if (!s.ok()) {
-    LOG(ERROR) << "command Init failed, " << s.ToString();
   }
 
   set_is_reply(true);
@@ -61,7 +56,7 @@ int ZPDataClientConn::DealMessage() {
   if (request_.type() ==  client::Type::SYNC) {
     partition = zp_data_server->GetPartitionById(request_.sync().partition_id());
   } else {
-    partition = zp_data_server->GetPartition(cmd->key());
+    partition = zp_data_server->GetPartition(cmd->ExtractKey(&request_));
   }
 
   if (partition == NULL) {

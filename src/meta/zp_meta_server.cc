@@ -26,6 +26,9 @@ ZPMetaServer::ZPMetaServer(const ZPOptions& options)
 
   floyd_ = new floyd::Floyd(fy_options);
 
+  cmds_.reserve(300);
+  InitClientCmdTable();  
+
   for (int i = 0; i < worker_num_ ; ++i) {
     zp_meta_worker_thread_[i] = new ZPMetaWorkerThread(kMetaWorkerCronInterval);
   }
@@ -38,6 +41,7 @@ ZPMetaServer::~ZPMetaServer() {
   for (int i = 0; i < worker_num_; ++i) {
     delete zp_meta_worker_thread_[i];
   }
+  DestoryCmdTable(cmds_);
   delete update_thread_;
   CleanLeader();
   delete floyd_;
@@ -693,5 +697,27 @@ std::string PartitionId2Key(uint32_t id) {
   std::string key(ZP_META_KEY_PREFIX);
   key += std::to_string(id);
   return key;
+}
+
+void ZPMetaServer::InitClientCmdTable() {
+  // Join Command
+  Cmd* joinptr = new JoinCmd(kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::MetaCmd_Type::MetaCmd_Type_JOIN), joinptr));
+
+  // Ping Command
+  Cmd* pingptr = new PingCmd(kCmdFlagsRead);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::MetaCmd_Type::MetaCmd_Type_PING), pingptr));
+
+  //Pull Command
+  Cmd* pullptr = new PullCmd(kCmdFlagsRead);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::MetaCmd_Type::MetaCmd_Type_PULL), pullptr));
+
+  //Init Command
+  Cmd* initptr = new InitCmd(kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::MetaCmd_Type::MetaCmd_Type_INIT), initptr));
+}
+
+Cmd* ZPMetaServer::GetCmd(const int op) {
+  return GetCmdFromTable(op, cmds_);
 }
 

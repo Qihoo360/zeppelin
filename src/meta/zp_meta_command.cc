@@ -2,13 +2,13 @@
 #include "slash_string.h"
 
 #include "zp_meta.pb.h"
-#include "zp_meta_node.h"
+#include "zp_meta_command.h"
 #include "zp_meta_server.h"
 
 extern ZPMetaServer *zp_meta_server;
 
-void JoinCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition) {
-  ZPMeta::MetaCmd* request = static_cast<ZPMeta::MetaCmd*>(req);
+void JoinCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   ZPMeta::MetaCmdResponse_Status* status_res = response->mutable_status();
@@ -22,13 +22,12 @@ void JoinCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res,
     status_res->set_code(ZPMeta::StatusCode::kError);
     status_res->set_msg(s.ToString());
   }
-  result_ = slash::Status::OK();
   DLOG(INFO) << "Join node: " << request->join().node().ip() << ":"
              << request->join().node().port();
 }
 
-void PingCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition) {
-  ZPMeta::MetaCmd* request = static_cast<ZPMeta::MetaCmd*>(req);
+void PingCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   ZPMeta::MetaCmdResponse_Status* status_res = response->mutable_status();
@@ -51,14 +50,14 @@ void PingCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res,
   ZPMeta::MetaCmdResponse_Ping* ping = response->mutable_ping();
   ping->set_version(zp_meta_server->version());
 
-  result_ = slash::Status::OK();
   DLOG(INFO) << "Receive ping from node: " << request->ping().node().ip()
              << ":" << request->ping().node().port() << ", version=" << request->ping().version()
              << ", response version=" << zp_meta_server->version();
 }
 
-void PullCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition) {
-  ZPMeta::MetaCmd* request = static_cast<ZPMeta::MetaCmd*>(req);
+void PullCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+  assert(request->type() == ZPMeta::MetaCmd_Type_PULL);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   ZPMeta::MetaCmdResponse_Status* status_res = response->mutable_status();
@@ -78,12 +77,11 @@ void PullCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res,
   response->set_type(ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PULL);
   pull->CopyFrom(ms_info);
   
-  result_ = slash::Status::OK();
   DLOG(INFO) << "Receive Pull from client";
 }
 
-void InitCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition) {
-  ZPMeta::MetaCmd* request = static_cast<ZPMeta::MetaCmd*>(req);
+void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   ZPMeta::MetaCmdResponse_Status* status_res = response->mutable_status();
@@ -98,6 +96,5 @@ void InitCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res,
     status_res->set_code(ZPMeta::StatusCode::kError);
     status_res->set_msg(s.ToString());
   }
-  result_ = slash::Status::OK();
   DLOG(INFO) << "Init, partition num: " << request->init().num();
 }

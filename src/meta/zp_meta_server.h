@@ -9,6 +9,7 @@
 #include "slash_mutex.h"
 
 #include "floyd.h"
+#include "zp_meta_command.h"
 #include "zp_meta_dispatch_thread.h"
 #include "zp_meta_worker_thread.h"
 #include "zp_meta_update_thread.h"
@@ -38,6 +39,8 @@ class ZPMetaServer {
     return options_.local_port;
   }
 
+  Cmd* GetCmd(const int op);
+  
   // Node alive related
   Status AddNodeAlive(const std::string& ip_port);
   void CheckNodeAlive();
@@ -57,6 +60,9 @@ class ZPMetaServer {
   Status RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse &response);
 
 private:
+  // Cmd related
+  std::unordered_map<int, Cmd*> cmds_;
+  void InitClientCmdTable();
 
   // Server related
   int worker_num_;

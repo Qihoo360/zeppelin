@@ -1,4 +1,4 @@
-#include "zp_kv.h"
+#include "zp_data_command.h"
 
 #include <glog/logging.h>
 #include "zp_data_server.h"
@@ -8,31 +8,8 @@
 
 extern ZPDataServer *zp_data_server;
 
-void InitClientCmdTable(std::unordered_map<int, Cmd*> *cmd_table) {
-  //Kv
-  ////SetCmd
-  Cmd* setptr = new SetCmd(kCmdFlagsKv | kCmdFlagsWrite);
-  cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SET), setptr));
-  ////GetCmd
-  Cmd* getptr = new GetCmd(kCmdFlagsKv | kCmdFlagsRead);
-  cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::GET), getptr));
-
-  // Sync
-  Cmd* syncptr = new SyncCmd(kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
-  cmd_table->insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SYNC), syncptr));
-}
-
-// We use static_cast instead of dynamic_cast, caz we know exactly the Derived class type.
-Status SetCmd::Init(google::protobuf::Message *req) {
-  client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
-  key_ = request->set().key();
-  DLOG(INFO) << "SetCmd Init key(" << key_ << ") ok";
-
-  return Status::OK();
-}
-
-void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition) {
-  client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
+void SetCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
 
@@ -45,20 +22,12 @@ void SetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, 
     LOG(ERROR) << "command failed: Set, caz " << s.ToString();
   } else {
     response->set_code(client::StatusCode::kOk);
-    DLOG(INFO) << "Set key(" << key_ << ") at Partition: " << ptr->partition_id() << " ok";
+    DLOG(INFO) << "Set key(" << request->set().key() << ") at Partition: " << ptr->partition_id() << " ok";
   }
 }
 
-Status GetCmd::Init(google::protobuf::Message *req) {
-  client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
-  key_ = request->get().key();
-  DLOG(INFO) << "GetCmd Init key(" << key_ << ") ok";
-
-  return Status::OK();
-}
-
-void GetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition) {
-  client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
+void GetCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
 
@@ -82,8 +51,8 @@ void GetCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, 
 }
 
 // Sync between nodes
-void SyncCmd::Do(google::protobuf::Message *req, google::protobuf::Message *res, void* partition) {
-  client::CmdRequest* request = static_cast<client::CmdRequest*>(req);
+void SyncCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
 

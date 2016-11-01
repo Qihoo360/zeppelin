@@ -21,7 +21,10 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
     pthread_rwlockattr_init(&attr);
     pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
     pthread_rwlock_init(&partition_rw_, NULL);
-
+    
+    // Command table
+    cmds_.reserve(300);
+    InitClientCmdTable();
 
     // Create thread
     worker_num_ = 4;
@@ -33,8 +36,13 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
     zp_ping_thread_ = new ZPPingThread();
     //zp_metacmd_worker_thread_ = new ZPMetacmdWorkerThread(options_.local_port + kPortShiftDataCmd, kMetaCmdCronInterval);
     zp_metacmd_thread_ = new ZPMetacmdThread();
-    zp_binlog_receiver_thread_ = new ZPBinlogReceiverThread(options_.local_port + kPortShiftSync, kBinlogReceiverCronInterval);
     zp_trysync_thread_ = new ZPTrySyncThread();
+
+    for (int j = 0; j < kBinlogReceiveBgWorkerCount; j++) {
+      zp_binlog_receive_bgworkers_.push_back(
+          new ZPBinlogReceiveBgWorker(kBinlogReceiveBgWorkerFull));
+    }
+    zp_binlog_receiver_thread_ = new ZPBinlogReceiverThread(options_.local_port + kPortShiftSync, kBinlogReceiverCronInterval);
 
     // TODO rm
     //LOG(INFO) << "local_host " << options_.local_ip << ":" << options.local_port;
@@ -46,6 +54,7 @@ ZPDataServer::~ZPDataServer() {
   // Order:
   // 1, Meta thread should before trysunc thread
   // 2, Worker thread should before bgsave_thread
+  // 3, binlog reciever should before recieve bgworker
   delete zp_dispatch_thread_;
   for (int i = 0; i < worker_num_; i++) {
     delete zp_worker_thread_[i];
@@ -62,9 +71,14 @@ ZPDataServer::~ZPDataServer() {
   }
 
   delete zp_ping_thread_;
-  delete zp_binlog_receiver_thread_;
   delete zp_metacmd_thread_;
   delete zp_trysync_thread_;
+  delete zp_binlog_receiver_thread_;
+  std::vector<ZPBinlogReceiveBgWorker*>::iterator binlogbg_iter = zp_binlog_receive_bgworkers_.begin();
+  while(binlogbg_iter != zp_binlog_receive_bgworkers_.end()){
+    delete (*binlogbg_iter);
+    ++binlogbg_iter;
+  }
 
   {
     slash::RWLock l(&partition_rw_, true);
@@ -76,6 +90,7 @@ ZPDataServer::~ZPDataServer() {
   bgsave_thread_.Stop();
   bgpurge_thread_.Stop();
 
+  DestoryCmdTable(cmds_);
   // TODO 
   pthread_rwlock_destroy(&meta_state_rw_);
   pthread_rwlock_destroy(&partition_rw_);
@@ -251,6 +266,30 @@ void ZPDataServer::AddMetacmdTask() {
   zp_metacmd_thread_->StartIfNeed();
   zp_metacmd_thread_->Schedule(&ZPMetacmdThread::DoMetaUpdateTask,
       static_cast<void*>(zp_metacmd_thread_));
+}
+
+// Here, we dispatch task base on its partition id
+// So that the task within same partition will be located on same thread
+// So there could be no lock in DoBinlogReceiveTask to keep binlogs order
+void ZPDataServer::DispatchBinlogBGWorker(const std::string key, ZPBinlogReceiveArg *arg) {
+  uint32_t id = KeyToPartition(key);
+  arg->partition_id = id;
+  size_t index = id % zp_binlog_receive_bgworkers_.size();
+  zp_binlog_receive_bgworkers_[index]->StartIfNeed();
+  zp_binlog_receive_bgworkers_[index]->Schedule(
+      &ZPBinlogReceiveBgWorker::DoBinlogReceiveTask, static_cast<void*>(arg));
+}
+
+void ZPDataServer::InitClientCmdTable() {
+  // SetCmd
+  Cmd* setptr = new SetCmd(kCmdFlagsKv | kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SET), setptr));
+  // GetCmd
+  Cmd* getptr = new GetCmd(kCmdFlagsKv | kCmdFlagsRead);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::GET), getptr));
+  // SyncCmd
+  Cmd* syncptr = new SyncCmd(kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SYNC), syncptr));
 }
 
 void ZPDataServer::DoTimingTask() {

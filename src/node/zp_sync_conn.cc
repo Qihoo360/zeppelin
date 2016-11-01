@@ -24,47 +24,25 @@ int ZPSyncConn::DealMessage() {
 
   request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
 
-  // TODO test only
-  switch (request_.type()) {
-    case client::Type::SET: {
-      DLOG(INFO) << "SyncConn Receive Set cmd";
-      break;
-    }
-    case client::Type::GET: {
-      DLOG(INFO) << "SyncConn Receive Get cmd";
-      break;
-    }
-    case client::Type::SYNC: {
-      DLOG(INFO) << "SyncConn Receive Sync cmd";
-      break;
-    }
-  }
-
-  Cmd* cmd = self_thread_->GetCmd(static_cast<int>(request_.type()));
+  Cmd* cmd = zp_data_server->CmdGet(static_cast<int>(request_.type()));
   if (cmd == NULL) {
     LOG(ERROR) << "unsupported type: " << (int)request_.type();
-    return -1;
-  }
-  Status s = cmd->Init(&request_);
-  if (!s.ok()) {
-    LOG(ERROR) << "Cmd init failed" << s.ToString();
     return -1;
   }
 
   // do not reply
   set_is_reply(false);
-  std::string raw_msg(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4);
-  Partition* partition = zp_data_server->GetPartition(cmd->key());
-  if (partition == NULL) {
-    // No partition found
-    return -1;
-  }
-  if (partition->role() != Role::kNodeSlave) {
-    // Not a slave, ignore the binlog request
-    return -1;
-  }
+  
+  // We need to malloc for args need by binglog_bgworker
+  // So that it will not be free after the executing of current function
+  // Remeber to free these space by the binlog_bgworker at the end of its task
+  ZPBinlogReceiveArg *arg = new ZPBinlogReceiveArg(
+      0, // Will be filled by zp_data_server
+      cmd,
+      request_,
+      std::string(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4));
 
-  partition->DoBinlogCommand(cmd, request_, response_, raw_msg);
+  zp_data_server->DispatchBinlogBGWorker(cmd->ExtractKey(&request_), arg);
 
   return 0;
 }

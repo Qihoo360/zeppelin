@@ -503,21 +503,31 @@ Partition* NewPartition(const std::string log_path, const std::string data_path,
   return partition;
 }
 
-void Partition::DoBinlogCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse &res, const std::string &raw_msg) {
-  DoCommand(cmd, req, res, raw_msg, true);
+// Keep binlog order outside
+void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req, const std::string &raw_msg) {
+  // Add read lock for no suspend command
+  if (!cmd->is_suspend()) {
+    pthread_rwlock_rdlock(&partition_rw_);
+  }
+
+  client::CmdResponse res;
+  cmd->Do(&req, &res, this);
+  WriteBinlog(raw_msg);
+
+  if (!cmd->is_suspend()) {
+    pthread_rwlock_unlock(&partition_rw_);
+  }
 }
 
-void Partition::DoCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse &res,
-    const std::string &raw_msg, bool is_from_binlog) {
-  std::string key = cmd->key();
+void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req, client::CmdResponse &res,
+    const std::string &raw_msg) {
+  std::string key = cmd->ExtractKey(&req);
 
-  if (!is_from_binlog && cmd->is_write()) {
-    if (readonly_) {
-      res.set_code(client::StatusCode::kError);
-      res.set_msg("readonly mode");
-      DLOG(INFO) << "readonly mode, failed to DoCommand  at Partition: " << partition_id_;
-      return;
-    }
+  if (cmd->is_write() && readonly_) {
+    res.set_code(client::StatusCode::kError);
+    res.set_msg("readonly mode");
+    DLOG(INFO) << "readonly mode, failed to DoCommand  at Partition: " << partition_id_;
+    return;
   }
 
   // Add read lock for no suspend command
@@ -533,7 +543,7 @@ void Partition::DoCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse
   cmd->Do(&req, &res, this);
 
   if (cmd->is_write()) {
-    if (cmd->result().ok() && req.type() != client::Type::SYNC) {
+    if (res.code() == client::StatusCode::kOk  && req.type() != client::Type::SYNC) {
       // Restore Message
       WriteBinlog(raw_msg);
     }

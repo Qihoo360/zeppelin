@@ -44,15 +44,9 @@ class ZPDataWorkerThread : public pink::WorkerThread<ZPDataClientConn> {
     last_time_us_ = cur_time_us;
   }
 
-  Cmd* GetCmd(const int op) {
-    return GetCmdFromTable(op, cmds_);
-  }
-
  private:
   slash::Mutex mutex_; // protect cron_task_
   std::queue<WorkerCronTask> cron_tasks_;
-
-  std::unordered_map<int, Cmd*> cmds_;
 
   uint64_t thread_querynum_;
   uint64_t last_thread_querynum_;

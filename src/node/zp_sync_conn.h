@@ -21,7 +21,6 @@ class ZPSyncConn: public pink::PbConn {
   client::CmdResponse response_;
 
   ZPBinlogReceiverThread* self_thread_;
-  //std::string raw_args_;
 };
 
 #endif

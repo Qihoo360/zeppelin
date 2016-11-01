@@ -2,7 +2,6 @@
 
 #include <glog/logging.h>
 #include "zp_data_server.h"
-#include "zp_kv.h"
 
 extern ZPDataServer* zp_data_server;
 
@@ -12,18 +11,13 @@ ZPBinlogReceiverThread::ZPBinlogReceiverThread(int port, int cron_interval)
     last_query_num_(0),
     last_time_us_(slash::NowMicros()),
     last_sec_query_num_(0) {
-  cmds_.reserve(300);
-  InitClientCmdTable(&cmds_);
-
   DLOG(INFO) << "BinlogReceiver thread start at port:" << port;
 }
 
 ZPBinlogReceiverThread::~ZPBinlogReceiverThread() {
-  // in case cmd is in used
   should_exit_ = true;
   pthread_join(thread_id(), NULL);
 
-  DestoryCmdTable(cmds_);
   LOG(INFO) << "BinlogReceiver thread " << thread_id() << " exit!!!";
 }
 

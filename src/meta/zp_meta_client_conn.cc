@@ -65,7 +65,7 @@ int ZPMetaClientConn::DealMessage() {
     return 0;
   }
 
-  Cmd* cmd = self_thread_->GetCmd(static_cast<int>(request_.type()));
+  Cmd* cmd = zp_meta_server->GetCmd(static_cast<int>(request_.type()));
   if (cmd == NULL) {
     response_.set_type(response_type);
     ZPMeta::MetaCmdResponse_Status* status_res = response_.mutable_status();

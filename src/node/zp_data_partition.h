@@ -72,9 +72,10 @@ class Partition {
   }
 
   // Command related
-  void DoBinlogCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse &res, const std::string &raw_msg);
-  void DoCommand(Cmd* cmd, client::CmdRequest &req, client::CmdResponse &res,
-      const std::string &raw_msg, bool is_from_binlog = false);
+  void DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
+      const std::string &raw_msg);
+  void DoCommand(const Cmd* cmd, const client::CmdRequest &req,
+      client::CmdResponse &res, const std::string &raw_msg);
 
   // Status related
   bool ShouldTrySync();
@@ -146,7 +147,6 @@ class Partition {
     purging_ = false;
   }
   void AutoPurge();
-
   void Dump();
 
  private:
@@ -175,11 +175,11 @@ class Partition {
 
   // Binlog related
   Binlog* logger_;
-  void WriteBinlog(const std::string &content);
   slash::Mutex slave_mutex_;
   std::vector<SlaveItem> slaves_;
   bool FindSlave(const Node& node);
   void DeleteSlave(const Node& node);
+  void WriteBinlog(const std::string &content);
 
   // DoCommand related
   slash::RecordMutex mutex_record_;

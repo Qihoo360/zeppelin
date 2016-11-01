@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <unordered_map>
 
+#include "zp_data_command.h"
 #include "zp_options.h"
 #include "zp_binlog.h"
 #include "zp_meta_utils.h"
@@ -16,6 +17,7 @@
 #include "zp_trysync_thread.h"
 #include "zp_binlog_sender_thread.h"
 #include "zp_binlog_receiver_thread.h"
+#include "zp_binlog_receive_bgworker.h"
 #include "zp_data_partition.h"
 
 #include "bg_thread.h"
@@ -123,11 +125,19 @@ class ZPDataServer {
   void BGPurgeTaskSchedule(void (*function)(void*), void* arg);
   void AddSyncTask(int parititon_id);
   void AddMetacmdTask();
+  void DispatchBinlogBGWorker(const Cmd* cmd, const client::CmdRequest &req);
+  void DispatchBinlogBGWorker(const std::string key, ZPBinlogReceiveArg *arg);
+
+  // Command related
+  Cmd* CmdGet(const int op) {
+    return GetCmdFromTable(op, cmds_);
+  }
 
  private:
 
   ZPOptions options_;
   slash::Mutex server_mutex_;
+  std::unordered_map<int, Cmd*> cmds_;
 
   // Partitions
   //Note: this lock only protect partitions_ map, rather than certain partiton which should keep thread safty itself
@@ -145,9 +155,9 @@ class ZPDataServer {
   ZPDataDispatchThread* zp_dispatch_thread_;
   ZPPingThread* zp_ping_thread_;
   ZPMetacmdThread* zp_metacmd_thread_;
-  //ZPMetacmdWorkerThread* zp_metacmd_worker_thread_;
-  ZPBinlogReceiverThread* zp_binlog_receiver_thread_;
   ZPTrySyncThread* zp_trysync_thread_;
+  ZPBinlogReceiverThread* zp_binlog_receiver_thread_;
+  std::vector<ZPBinlogReceiveBgWorker*> zp_binlog_receive_bgworkers_;
 
   std::atomic<bool> should_exit_;
 
@@ -161,6 +171,9 @@ class ZPDataServer {
   slash::Mutex mutex_epoch_;
   int64_t meta_epoch_;
   bool should_pull_meta_;
+
+  // Cmd related
+  void InitClientCmdTable();
 
   // Background thread
   slash::Mutex bgsave_thread_protector_;

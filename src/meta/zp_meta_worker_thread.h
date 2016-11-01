@@ -43,12 +43,7 @@ class ZPMetaWorkerThread : public pink::WorkerThread<ZPMetaClientConn> {
     last_time_us_ = cur_time_us;
   }
 
-  void InitClientCmdTable();
-  Cmd* GetCmd(const int op);
-
  private:
-  std::unordered_map<int, Cmd*> cmds_;
-
   uint64_t thread_querynum_;
   uint64_t last_thread_querynum_;
   uint64_t last_time_us_;

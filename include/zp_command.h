@@ -53,11 +53,10 @@ class Cmd {
   Cmd(int flag) : flag_(flag) {}
   virtual ~Cmd() {}
 
-  // TODO may be stall
-  //virtual Status Init(const void *buf, size_t count) { return Status::OK(); }
-  virtual Status Init(google::protobuf::Message *req) { return Status::OK(); }
-  virtual void Do(google::protobuf::Message *request, google::protobuf::Message *response, void* partition = NULL) = 0;
-  virtual std::string key() { return ""; }
+  virtual void Do(const google::protobuf::Message *request, google::protobuf::Message *response, void* partition = NULL) const = 0;
+  virtual std::string ExtractKey(const google::protobuf::Message *request) const {
+    return "";
+  }
 
   bool is_write() const {
     return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite);
@@ -75,17 +74,8 @@ class Cmd {
   bool is_suspend() const {
     return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend);
   }
-  Status result() {
-    return result_;
-  }
-
- protected:
-  google::protobuf::Message *request_;
-  google::protobuf::Message *response_;
-  Status result_;
 
  private:
-
   uint16_t flag_;
 
   Cmd(const Cmd&);
@@ -93,8 +83,6 @@ class Cmd {
 };
 
 // Method for Cmd Table
-//void InitClientCmdTable(std::unordered_map<int, Cmd*> *cmd_table);
-//void InitServerControlCmdTable(std::unordered_map<int, Cmd*> *cmd_table);
 Cmd* GetCmdFromTable(const int op, const std::unordered_map<int, Cmd*> &cmd_table);
 void DestoryCmdTable(std::unordered_map<int, Cmd*> &cmd_table);
 
