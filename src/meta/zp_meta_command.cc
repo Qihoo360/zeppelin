@@ -66,6 +66,7 @@ void PullCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
   ZPMeta::MetaCmdResponse_Pull ms_info;
   Status s = zp_meta_server->GetMSInfo(ms_info);
   if (!s.ok()) {
+    ms_info.set_version(-1);
     status_res->set_code(ZPMeta::StatusCode::kError);
     status_res->set_msg(s.ToString());
   } else {
