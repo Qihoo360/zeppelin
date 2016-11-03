@@ -20,7 +20,7 @@ ZPTrySyncThread::~ZPTrySyncThread() {
     kv.second->Close();
   }
   slash::StopRsync(zp_data_server->db_sync_path());
-  DLOG(INFO) << " TrySync thread " << pthread_self() << " exit!!!";
+  LOG(INFO) << " TrySync thread " << pthread_self() << " exit!!!";
 }
 
 void ZPTrySyncThread::TrySyncTaskSchedule(int partition_id) {
@@ -75,36 +75,36 @@ bool ZPTrySyncThread::Send(Partition* partition, pink::PbCli* cli) {
   sync->set_partition_id(partition->partition_id());
 
   pink::Status s = cli->Send(&request);
-  DLOG(INFO) << "TrySync: Partition " << partition->partition_id() << " with SyncPoint (" << filenum << ", " << offset << ")";
-  DLOG(INFO) << "         Node (" << sync->node().ip() << ":" << sync->node().port() << ")";
+  DLOG(INFO) << "TrySync: Partition " << partition->partition_id() << " with SyncPoint ("
+    << sync->node().ip() << ":" << sync->node().port() << ", " << filenum << ", " << offset << ")";
   if (!s.ok()) {
-    LOG(WARNING) << "TrySync send failed caz " << s.ToString();
+    LOG(WARNING) << "TrySync send failed, Partition:" << partition->partition_id() << ",caz " << s.ToString();
     return false;
   }
   return true;
 }
 
-int ZPTrySyncThread::Recv(pink::PbCli* cli) {
+int ZPTrySyncThread::Recv(int partition_id, pink::PbCli* cli) {
   client::CmdResponse response;
   pink::Status result = cli->Recv(&response); 
 
   if (!result.ok()) {
-    LOG(WARNING) << "TrySync recv failed " << result.ToString();
+    LOG(WARNING) << "TrySync recv failed, Partition:" << partition_id << ",caz " << result.ToString();
     return -2;
   }
 
   if (response.type() == client::Type::SYNC) {
     if (response.code() == client::StatusCode::kOk) {
-      DLOG(INFO) << "TrySync recv success.";
+      DLOG(INFO) << "TrySync receive ok, Partition:" << partition_id;;
     } else if (response.code() == client::StatusCode::kWait) {
-      DLOG(INFO) << "TrySync recv kWait.";
+      LOG(INFO) << "TrySync receive kWait, Partition:" << partition_id;
       return -1;
     } else {
-      DLOG(INFO) << "TrySync failed caz " << response.msg();
+      LOG(WARNING) << "TrySync receive error, Partition:" << partition_id;
       return -2;
     }
   } else {
-    LOG(WARNING) << "TrySync recv error type reponse";
+    LOG(WARNING) << "TrySync recv error type reponse, Partition:" << partition_id;
     return -2;
   }
   return 0;
@@ -119,7 +119,7 @@ pink::PbCli* ZPTrySyncThread::GetConnection(const Node& node) {
     cli->set_connect_timeout(1500);
     pink::Status s = cli->Connect(node.ip, node.port);
     if (!s.ok()) {
-      LOG(ERROR) << "Connect failed caz" << s.ToString();
+      LOG(WARNING) << "Connect failed caz" << s.ToString();
       return NULL;
     }
     client_pool_[ip_port] = cli;
@@ -157,9 +157,9 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
   }
 
   Node master_node = partition->master_node();
-  DLOG(WARNING) << "TrySync will connect(" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ")";
+  DLOG(INFO) << "TrySync will connect(" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ")";
   pink::PbCli* cli = GetConnection(master_node);
-  DLOG(WARNING) << "TrySync connect(" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ") " << (cli != NULL ? "ok" : "failed");
+  DLOG(INFO) << "TrySync connect(" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ") " << (cli != NULL ? "ok" : "failed");
   if (cli) {
     cli->set_send_timeout(1000);
     cli->set_recv_timeout(1000);
@@ -168,7 +168,7 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
     RsyncRef();
     // Send && Recv
     if (Send(partition, cli)) {
-      int ret = Recv(cli);
+      int ret = Recv(partition->partition_id(), cli);
       if (ret == 0) {
         RsyncUnref();
         partition->TrySyncDone();
@@ -178,12 +178,12 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
       } else {
         RsyncUnref();
         DropConnection(master_node);
-        DLOG(WARNING) << "TrySync recv failed";
       }
     }
   } else {
-    LOG(ERROR) << "TrySyncThread Connect failed";
-  }
+    LOG(WARNING) << "TrySyncThread Connect failed(" 
+      << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ")";
+}
   return false;
 }
 

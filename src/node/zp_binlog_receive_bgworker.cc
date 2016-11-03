@@ -18,11 +18,13 @@ void ZPBinlogReceiveBgWorker::DoBinlogReceiveTask(void* arg) {
 
   Partition* partition = zp_data_server->GetPartitionById(partition_id);
   if (partition == NULL) {
-    LOG(WARNING) << "No partition found for binlog receive bgworker";
+    LOG(WARNING) << "No partition found for binlog receive bgworker, Partition: "
+      << partition->partition_id();
     return;
   }
   if (partition->role() != Role::kNodeSlave) {
-    LOG(WARNING) << "Not a slave, ignore the binlog request";
+    LOG(WARNING) << "Not a slave, ignore the binlog request, Partition: "
+      << partition->partition_id();
     return;
   }
   partition->DoBinlogCommand(cmd, barg->request, barg->raw);

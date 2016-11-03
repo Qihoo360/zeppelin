@@ -43,7 +43,7 @@ void ZPDataWorkerThread::CronHandle() {
       WorkerCronTask t = cron_tasks_.front();
       cron_tasks_.pop();
       mutex_.Unlock();
-      LOG(INFO) << "ZPDataWorkerThread, Got a WorkerCronTask";
+      DLOG(INFO) << "ZPDataWorkerThread, Got a WorkerCronTask";
       switch (t.task) {
         case TASK_KILL:
           ClientKill(t.ip_port);
