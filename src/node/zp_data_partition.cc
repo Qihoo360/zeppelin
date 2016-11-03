@@ -30,10 +30,8 @@ Partition::Partition(const int partition_id, const std::string &log_path, const 
 
     // Create db handle
     nemo::Options option; //TODO option args
-    DLOG(INFO) << "Loading data for partition:" << partition_id_ << "...";
     db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(data_path_, option));
     assert(db_);
-    LOG(INFO) << "Loading data for partition:" << partition_id_ << "Success";
 
     // Binlog
     logger_ = new Binlog(log_path_, kBinlogSize);
@@ -47,7 +45,6 @@ Partition::~Partition() {
     while (iter != slaves_.end()) {
       delete static_cast<ZPBinlogSenderThread*>(iter->sender);
       iter =  slaves_.erase(iter);
-      LOG(INFO) << "Delete BinlogSender from slaves success";
     }
   }
   delete logger_;
@@ -100,7 +97,8 @@ void Partition::WaitDBSyncDone() {
   slash::RWLock l(&state_rw_, true);
   assert(ReplState::kWaitDBSync == repl_state_);
   repl_state_ = ReplState::kShouldConnect;
-  DLOG(INFO) << "Partition " << partition_id_ << " WaitDBSyncDone  set repl_state: " << ReplStateMsg[repl_state_];
+  LOG(INFO) << "Partition " << partition_id_ << " WaitDBSyncDone  set repl_state: " << ReplStateMsg[repl_state_] <<
+    "Master Node:" << master_node_.ip << ":" << master_node_.port;
 }
 
 bool Partition::ShouldTrySync() {
@@ -115,7 +113,8 @@ void Partition::TrySyncDone() {
   slash::RWLock l(&state_rw_, true);
   assert(ReplState::kShouldConnect == repl_state_);
   repl_state_ = ReplState::kConnected;
-  DLOG(INFO) << "Partition " << partition_id_ << "TrySyncDone  set repl_state: " << ReplStateMsg[repl_state_];
+  LOG(INFO) << "Partition " << partition_id_ << " TrySyncDone  set repl_state: " << ReplStateMsg[repl_state_] <<
+    "Master Node:" << master_node_.ip << ":" << master_node_.port;
 }
 
 bool Partition::ChangeDb(const std::string& new_path) {
@@ -131,7 +130,7 @@ bool Partition::ChangeDb(const std::string& new_path) {
   tmp_path += "_bak";
   slash::DeleteDirIfExist(tmp_path);
   slash::RWLock l(&partition_rw_, true);
-  LOG(INFO) << "Prepare change db from: " << tmp_path;
+  DLOG(INFO) << "Prepare change db from: " << tmp_path;
   db_.reset();
   if (0 != slash::RenameFile(data_path_.c_str(), tmp_path)) {
     LOG(WARNING) << "Failed to rename db path when change db, error: " << strerror(errno);
@@ -164,13 +163,13 @@ bool Partition::InitBgsaveEnv() {
     bgsave_info_.s_start_time.assign(s_time, len);
     bgsave_info_.path = bgsave_path_ + bgsave_prefix() + std::string(s_time, 8);
     if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
-      LOG(WARNING) << "remove exist bgsave dir failed";
+      LOG(WARNING) << "Remove exist bgsave dir failed, Partition:" << partition_id_;
       return false;
     }
     slash::CreatePath(bgsave_info_.path, 0755);
     // Prepare for failed dir
     if (!slash::DeleteDirIfExist(bgsave_info_.path + "_FAILED")) {
-      LOG(WARNING) << "remove exist fail bgsave dir failed :";
+      LOG(WARNING) << "remove exist fail bgsave dir failed, Partition:" << partition_id_;
       return false;
     }
   }
@@ -182,7 +181,7 @@ bool Partition::InitBgsaveEngine() {
   delete bgsave_engine_;
   nemo::Status result = nemo::BackupEngine::Open(db_.get(), &bgsave_engine_);
   if (!result.ok()) {
-    LOG(WARNING) << "open backup engine failed " << result.ToString();
+    LOG(WARNING) << "Open backup engine failed " << result.ToString() << " Partition:" << partition_id_;
     return false;
   }
 
@@ -284,7 +283,7 @@ bool Partition::TryUpdateMasterOffset() {
   // Got new binlog offset
   std::ifstream is(info_path);
   if (!is) {
-    LOG(WARNING) << "Failed to open info file after db sync";
+    LOG(WARNING) << "Failed to open info file after db sync, Partition:" << partition_id_ << " info_path:" << info_path;
     return false;
   }
   std::string line, master_ip;
@@ -296,7 +295,7 @@ bool Partition::TryUpdateMasterOffset() {
       master_ip = line;
     } else if (lineno > 2 && lineno < 6) {
       if (!slash::string2l(line.data(), line.size(), &tmp) || tmp < 0) {
-        LOG(WARNING) << "Format of info file after db sync error, line : " << line;
+        LOG(WARNING) << "Format of info file after db sync error, Partition:" << partition_id_ << "line : " << line;
         is.close();
         return false;
       }
@@ -305,13 +304,14 @@ bool Partition::TryUpdateMasterOffset() {
       else { offset = tmp; }
 
     } else if (lineno > 5) {
-      LOG(WARNING) << "Format of info file after db sync error, line : " << line;
+      LOG(WARNING) << "Format of info file after db sync error, Partition:" << partition_id_ << " line : " << line;
       is.close();
       return false;
     }
   }
   is.close();
-  LOG(INFO) << "Information from dbsync info. master_ip: " << master_ip
+  LOG(INFO) << "Information from dbsync info. Paritition: " << partition_id_
+    << "master_ip: " << master_ip
     << ", master_port: " << master_port
     << ", filenum: " << filenum
     << ", offset: " << offset;
@@ -320,14 +320,13 @@ bool Partition::TryUpdateMasterOffset() {
   {
     slash::RWLock l(&state_rw_, false);
     if (master_ip != master_node_.ip || master_port != master_node_.port) {
-      LOG(ERROR) << "Error master ip port: " << master_ip << ":" << master_port << ". current master ip port: " << master_node_.ip <<":" << master_node_.port ;
+      LOG(WARNING) << "Error master ip port: " << master_ip << ":" << master_port << ". current master ip port: " << master_node_.ip <<":" << master_node_.port ;
       return false;
     }
   }
 
   slash::DeleteFile(info_path);
   if (!ChangeDb(sync_path_)) {
-    LOG(ERROR) << "Failed to change db";
     return false;
   }
 
@@ -340,7 +339,9 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
   slash::MutexLock l(&slave_mutex_);
   // Check exist
   if (FindSlave(node)) {
-    LOG(WARNING) << "BinlogSender for " << node.ip << ":" << node.port << "already exist, we will remove it first";
+    LOG(WARNING) << "BinlogSender for "
+      << node.ip << ":" << node.port << "already exist, we will remove it first"
+      << "Partition:" << partition_id_;
     DeleteSlave(node);
     //return Status::InvalidArgument("Binlog sender already exist");
   }
@@ -359,7 +360,9 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
   }
 
   // Binlog already be purged
-  DLOG(INFO) << " We " << (purged_index_ >= filenum ? "will" : "won't") << " TryDBSync, purged_index_=" << purged_index_ << ", filenum=" << filenum;
+  LOG(INFO) << "Partition:" << partition_id_
+    << ", We " << (purged_index_ >= filenum ? "will" : "won't")
+    << " TryDBSync, purged_index_=" << purged_index_ << ", filenum=" << filenum;
   if (purged_index_ > filenum) {
     TryDBSync(node.ip, node.port + kPortShiftRsync, cur_filenum);
     return Status::Incomplete("Bgsaving and DBSync first");
@@ -379,7 +382,8 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
     slave.sender_tid = tid;
     slave.sender = sender;
 
-    LOG(INFO) << "AddBinlogSender for node(" << node.ip << ":" << node.port << ") ok, tid is " << slave.sender_tid;
+    LOG(INFO) << "AddBinlogSender for node(" << node.ip << ":" << node.port
+      << ") ok, Partition:" << partition_id_ << " tid is " << slave.sender_tid;
     // Add sender
     //slash::MutexLock l(&slave_mutex_);
     slaves_.push_back(slave);
@@ -387,7 +391,7 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
     return Status::OK();
   } else {
     delete sender;
-    LOG(WARNING) << "AddBinlogSender failed";
+    LOG(WARNING) << "AddBinlogSender failed, Partition:" << partition_id_;
     return Status::NotFound("AddBinlogSender bad sender");
   }
 }
@@ -399,16 +403,15 @@ void Partition::CleanRoleEnv(Role role) {
     for (auto iter = slaves_.begin(); iter != slaves_.end(); ) {
       delete static_cast<ZPBinlogSenderThread*>(iter->sender);
       iter = slaves_.erase(iter);
-      LOG(INFO) << "Delete slave success";
     }
   }
 
   // Clean binlog if needed
   if (role == Role::kNodeSlave) {
-    if (!PurgeLogs(0, true)) {
-      DLOG(WARNING) << "Purge logs before become slave failed";
-      return;
-    }
+    //if (!PurgeLogs(0, true)) {
+    //  DLOG(WARNING) << "Purge logs before become slave failed";
+    //  return;
+    //}
     logger_->SetProducerStatus(0, 0);
   }
 
@@ -419,14 +422,14 @@ void Partition::CleanRoleEnv(Role role) {
 // Should hold write lock of state_rw_
 void Partition::BecomeSingle() {
   CleanRoleEnv(Role::kNodeSingle);
-  DLOG(INFO) << " Partition " << partition_id_ << " BecomeSingle";
+  LOG(INFO) << " Partition " << partition_id_ << " BecomeSingle";
   role_ = Role::kNodeSingle;
   repl_state_ = ReplState::kNoConnect;
-  readonly_ = false;
+  readonly_ = true;
 }
 void Partition::BecomeMaster() {
   CleanRoleEnv(Role::kNodeMaster);
-  DLOG(INFO) << " Partition " << partition_id_ << " BecomeMaster";
+  LOG(INFO) << " Partition " << partition_id_ << " BecomeMaster";
   role_ = Role::kNodeMaster;
   repl_state_ = ReplState::kNoConnect;
   readonly_ = false;
@@ -527,7 +530,8 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req, client:
   if (cmd->is_write() && readonly_) {
     res.set_code(client::StatusCode::kError);
     res.set_msg("readonly mode");
-    DLOG(INFO) << "readonly mode, failed to DoCommand  at Partition: " << partition_id_;
+    LOG(WARNING) << "Readonly mode, failed to DoCommand  at Partition: " << partition_id_
+      << " Role:" << RoleMsg[role_];
     return;
   }
 
@@ -563,7 +567,7 @@ inline void Partition::WriteBinlog(const std::string &content) {
 }
 
 void Partition::TryDBSync(const std::string& ip, int port, int32_t top) {
-  DLOG(INFO) << "TryDBSync " << ip << ":" << port << ", top=" << top;
+  DLOG(INFO) << "TryDBSync " << ip << ":" << port << ", top=" << top << "Partition:" << partition_id_;
 
   std::string bg_path;
   uint32_t bg_filenum = 0;
@@ -782,7 +786,7 @@ bool Partition::CheckBinlogFiles() {
   std::vector<std::string> children;
   int ret = slash::GetChildren(log_path_, children);
   if (ret != 0){
-    LOG(WARNING) << "CheckBinlogFiles Get all files in log path failed! error:" << ret; 
+    LOG(WARNING) << "CheckBinlogFiles Get all files in log path failed! Partition:" << partition_id_ << " Error:" << ret; 
     return false;
   }
 
@@ -801,10 +805,10 @@ bool Partition::CheckBinlogFiles() {
   }
   std::set<uint32_t>::iterator num_it = binlog_nums.begin(), pre_num_it = binlog_nums.begin();
   purged_index_ = *num_it++; // update the purged_index_
-  DLOG(INFO) << "Update purged index to " << purged_index_; 
+  DLOG(INFO) << "Partition: " << partition_id_ << " Update purged index to " << purged_index_; 
   for (; num_it != binlog_nums.end(); ++num_it, ++pre_num_it) {
     if (*num_it != *pre_num_it + 1) {
-      LOG(ERROR) << "There is a hole among the binglogs between " <<  *num_it << *pre_num_it; 
+      LOG(ERROR) << "Partiton : " << partition_id_ << " There is a hole among the binglogs between " <<  *num_it << *pre_num_it; 
       // there is a hole
       return false;
     }
@@ -865,19 +869,27 @@ void Partition::AutoPurge() {
 
 void Partition::Dump() {
   slash::RWLock l(&state_rw_, false);
-  DLOG(INFO) << "----------------------------";
-  DLOG(INFO) << "  +Partition    " << partition_id_ << ": I am a " << (role_ == Role::kNodeMaster ? "master" : "slave");
-  DLOG(INFO) << "     -*Master node " << master_node_;
+  LOG(INFO) << "----------------------------";
+  LOG(INFO) << "  +Partition    " << partition_id_;
+  switch (role_) {
+    case Role::kNodeMaster:
+      LOG(INFO) << "  +I'm master";
+    case Role::kNodeSlave:
+      LOG(INFO) << "  +I'm slave";
+    default:
+      LOG(INFO) << "  +I'm single";
+  }
+  LOG(INFO) << "     -*Master node " << master_node_;
 
   for (size_t i = 0; i < slave_nodes_.size(); i++) {
-    DLOG(INFO) << "     -* slave  " << i << " " <<  slave_nodes_[i];
+    LOG(INFO) << "     -* slave  " << i << " " <<  slave_nodes_[i];
   }
 
   {
-    DLOG(INFO) << "----------------------------";
+    LOG(INFO) << "----------------------------";
     slash::MutexLock l(&slave_mutex_);
     for (size_t i = 0; i < slaves_.size(); i++) {
-      DLOG(INFO) << "     -my_slave  " << i << " " <<  slaves_[i].node;
+      LOG(INFO) << "     -my_slave  " << i << " " <<  slaves_[i].node;
     }
   }
 }

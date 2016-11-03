@@ -15,6 +15,11 @@ enum Role {
   kNodeMaster = 1,
   kNodeSlave = 2,
 };
+const std::string RoleMsg[] {
+  "kNodeSingle",
+  "kNodeMaster",
+  "kNodeSlave"
+};
 enum ReplState {
   kNoConnect = 0,
   kShouldConnect = 1,
@@ -35,11 +40,6 @@ const std::string ReplStateMsg[] = {
 const std::string MetaStateMsg[] = {
   "kMetaConnect",
   "kMetaConnected"
-};
-const std::string RoleMsg[] {
-  "kNodeSingle",
-  "kNodeMaster",
-  "kNodeSlave"
 };
 
 // Data port shift

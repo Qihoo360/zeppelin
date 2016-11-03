@@ -55,6 +55,7 @@ ZPDataServer::~ZPDataServer() {
   // 1, Meta thread should before trysunc thread
   // 2, Worker thread should before bgsave_thread
   // 3, binlog reciever should before recieve bgworker
+  delete zp_ping_thread_;
   delete zp_dispatch_thread_;
   for (int i = 0; i < worker_num_; i++) {
     delete zp_worker_thread_[i];
@@ -70,7 +71,6 @@ ZPDataServer::~ZPDataServer() {
     }
   }
 
-  delete zp_ping_thread_;
   delete zp_metacmd_thread_;
   delete zp_trysync_thread_;
   delete zp_binlog_receiver_thread_;
@@ -113,7 +113,7 @@ Status ZPDataServer::Start() {
 
   while (!should_exit_) {
     DoTimingTask();
-    sleep(30);
+    sleep(600);
   }
   return Status::OK();
 }
@@ -127,6 +127,7 @@ bool ZPDataServer::ShouldJoinMeta() {
 void ZPDataServer::TryUpdateEpoch(int64_t epoch) {
   slash::MutexLock l(&mutex_epoch_);
   if (epoch != meta_epoch_) {
+    LOG(INFO) <<  "Meta epoch changed: " << meta_epoch_ << " to " << epoch;
     should_pull_meta_ = true;
     AddMetacmdTask();
   }
@@ -295,7 +296,7 @@ void ZPDataServer::InitClientCmdTable() {
 void ZPDataServer::DoTimingTask() {
   slash::RWLock l(&partition_rw_, false);
   for (auto pair : partitions_) {
-    //LOG(INFO) << "Will auto purge partition: " << pair.first << " partition_id : " << pair.second->partition_id();
+    sleep(1);
     pair.second->AutoPurge();
   }
 }

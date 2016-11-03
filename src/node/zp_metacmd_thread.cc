@@ -38,7 +38,7 @@ void ZPMetacmdThread::MetaUpdateTask() {
 pink::Status ZPMetacmdThread::Send() {
   ZPMeta::MetaCmd request;
 
-  DLOG(INFO) << "MetacmdThead Pull MetaServer(" << zp_data_server->meta_ip() << ":"
+  DLOG(INFO) << "MetacmdThread send pull to MetaServer(" << zp_data_server->meta_ip() << ":"
     << zp_data_server->meta_port() + kMetaPortShiftCmd
     << ") with local("<< zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
   request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_PULL);
@@ -48,13 +48,16 @@ pink::Status ZPMetacmdThread::Send() {
 pink::Status ZPMetacmdThread::Recv(int64_t &receive_epoch) {
   pink::Status result;
   ZPMeta::MetaCmdResponse response;
+  std::string meta_ip = zp_data_server->meta_ip();
+  int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;
   result = cli_->Recv(&response); 
-  DLOG(INFO) << "MetacmdThread recv: " << result.ToString();
   if (result.ok()) {
+    DLOG(INFO) << "succ MetacmdThread recv from MetaServer(" << meta_ip << ":" << meta_port;
     switch (response.type()) {
       case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PULL: {
         if (response.status().code() != ZPMeta::StatusCode::kOk) {
-          DLOG(INFO) << "receive Pull error: " << response.status().msg();
+          LOG(WARNING) << "MetacmdThread receive Pull from (" << meta_ip << ":" << meta_port << ") failed! caz: "
+            << response.status().msg();
           return pink::Status::IOError(response.status().msg());
         }
 
@@ -64,7 +67,8 @@ pink::Status ZPMetacmdThread::Recv(int64_t &receive_epoch) {
         DLOG(INFO) << "receive Pull message, will handle " << pull.info_size() << " Partitions.";
         for (int i = 0; i < pull.info_size(); i++) {
           const ZPMeta::Partitions& partition = pull.info(i);
-          DLOG(INFO) << " - handle Partition " << partition.id() << ": master is " << partition.master().ip() << ":" << partition.master().port();
+          DLOG(INFO) << " - handle Partition " << partition.id() << 
+            ": master is " << partition.master().ip() << ":" << partition.master().port();
 
           Node master_node(partition.master().ip(), partition.master().port());
           if (master_node.empty()) {
@@ -78,10 +82,12 @@ pink::Status ZPMetacmdThread::Recv(int64_t &receive_epoch) {
 
           bool result = zp_data_server->UpdateOrAddPartition(partition.id(), master_node, slave_nodes);
           if (!result) {
-            LOG(WARNING) << "AddPartition failed";
+            LOG(WARNING) << "Failed to AddPartition " << partition.id() <<
+              ", partition master is " << partition.master().ip() << ":" << partition.master().port() ;
           }
         }
-
+        // Print partitioin info
+        zp_data_server->DumpPartitions();
         break;
       }
       default:
@@ -93,34 +99,36 @@ pink::Status ZPMetacmdThread::Recv(int64_t &receive_epoch) {
 
 bool ZPMetacmdThread::FetchMetaInfo(int64_t &receive_epoch) {
   pink::Status s;
+  std::string meta_ip = zp_data_server->meta_ip();
+  int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;
   // No more PickMeta, which should be done by ping thread
   assert(!zp_data_server->meta_ip().empty() && zp_data_server->meta_port() != 0);
-  DLOG(INFO) << "MetacmdThread will connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ")";
-  s = cli_->Connect(zp_data_server->meta_ip(), zp_data_server->meta_port() + kMetaPortShiftCmd);
+  DLOG(INFO) << "MetacmdThread will connect ("<< meta_ip << ":" << meta_port << ")";
+  s = cli_->Connect(meta_ip, meta_port);
   if (s.ok()) {
-    DLOG(INFO) << "Metacmd connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ") ok!";
+    DLOG(INFO) << "Metacmd connect (" << meta_ip << ":" << meta_port << ") ok!";
     cli_->set_send_timeout(1000);
     cli_->set_recv_timeout(1000);
 
     s = Send();
     if (!s.ok()) {
-      DLOG(WARNING) << "Metacmd send failed: " << s.ToString();
+      LOG(WARNING) << "Metacmd send to (" << meta_ip << ":" << meta_port << ") failed! caz:" << s.ToString();
       cli_->Close();
       return false;
     }
-    DLOG(INFO) << "Metacmd send ok!";
+    DLOG(INFO) << "Metacmd send to (" << meta_ip << ":" << meta_port << ") ok";
 
     s = Recv(receive_epoch);
     if (!s.ok()) {
-      DLOG(WARNING) << "Metacmd recv failed: " << s.ToString();
+      LOG(WARNING) << "Metacmd recv from (" << meta_ip << ":" << meta_port << ") failed! caz:" << s.ToString();
       cli_->Close();
       return false;
     }
-    DLOG(INFO) << "Metacmd MetaServer success";
+    DLOG(INFO) << "Metacmd recv from (" << meta_ip << ":" << meta_port << ") ok";
     cli_->Close();
     return true;
   } else {
-    DLOG(WARNING) << "Metacmd connect failed: " << s.ToString();
+    LOG(WARNING) << "Metacmd connect (" << meta_ip << ":" << meta_port << ") failed! caz:" << s.ToString();
     return false;
   }
 }

@@ -10,23 +10,22 @@ ZPPingThread::~ZPPingThread() {
   should_exit_ = true;
   pthread_join(thread_id(), NULL);
   delete cli_;
-  DLOG(INFO) << " Ping thread " << pthread_self() << " exit!!!";
+  LOG(INFO) << " Ping thread " << pthread_self() << " exit!!!";
 }
 
 pink::Status ZPPingThread::Send() {
   ZPMeta::MetaCmd request;
+  int64_t meta_epoch = zp_data_server->meta_epoch();
   if (!is_first_send_) {
     ZPMeta::MetaCmd_Ping* ping = request.mutable_ping();
-    int64_t meta_epoch = zp_data_server->meta_epoch();
     ping->set_version(meta_epoch);
     ZPMeta::Node* node = ping->mutable_node();
     node->set_ip(zp_data_server->local_ip());
     node->set_port(zp_data_server->local_port());
     request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_PING);
 
-    DLOG(INFO) << "Ping master(" << zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd
-        << ") with Epoch: " << meta_epoch << " local("
-        << zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
+    DLOG(INFO) << "Ping Meta (" << zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd
+        << ") with Epoch: " << meta_epoch;
   } else {
     ZPMeta::MetaCmd_Join* join = request.mutable_join();
     ZPMeta::Node* node = join->mutable_node();
@@ -34,9 +33,8 @@ pink::Status ZPPingThread::Send() {
     node->set_port(zp_data_server->local_port());
     request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_JOIN);
     
-    DLOG(INFO) << "PingThead Join MetaServer(" << zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd
-      << ") with local("
-      << zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
+    DLOG(INFO) << "Ping Join Meta (" << zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd
+      << ") with Epoch: " << meta_epoch;
   }
   return cli_->Send(&request);
 }
@@ -45,7 +43,8 @@ pink::Status ZPPingThread::RecvProc() {
   pink::Status result;
   ZPMeta::MetaCmdResponse response;
   result = cli_->Recv(&response); 
-  DLOG(INFO) << "Ping recv: " << result.ToString();
+  DLOG(INFO) << "Ping Recv from Meta (" << zp_data_server->meta_ip() << ":"
+    << zp_data_server->meta_port() + kMetaPortShiftCmd << ")";
   if (result.ok()) {
     if (response.status().code() == ZPMeta::StatusCode::kOk) {
       switch (response.type()) {
@@ -55,7 +54,6 @@ pink::Status ZPPingThread::RecvProc() {
           break;
         case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PING:
           zp_data_server->TryUpdateEpoch(response.ping().version());
-          DLOG(INFO) << "ping_thread: receive pong(" << response.ping().version() << ") from meta server";
           break;
         default:
           break;
@@ -75,17 +73,19 @@ void* ZPPingThread::ThreadMain() {
 
   while (!should_exit_) {
     if(!zp_data_server->ShouldJoinMeta()) {
-      sleep(3);
+      sleep(kPingInterval);
       continue;
     }
     zp_data_server->PickMeta();
+    std::string meta_ip = zp_data_server->meta_ip();
+    int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;
     // Connect with heartbeat port
-    DLOG(INFO) << "Ping will connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ")";
+    DLOG(INFO) << "Ping will connect ("<< meta_ip << ":" << meta_port << ")";
     s = cli_->Connect(zp_data_server->meta_ip(), zp_data_server->meta_port() + kMetaPortShiftCmd);
     if (s.ok()) {
+      DLOG(INFO) << "Ping connect ("<< meta_ip << ":" << meta_port << ") ok!";
       gettimeofday(&now, NULL);
       last_interaction = now;
-      DLOG(INFO) << "Ping connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ") ok!";
       cli_->set_send_timeout(1000);
       cli_->set_recv_timeout(1000);
 
@@ -96,38 +96,40 @@ void* ZPPingThread::ThreadMain() {
       while (!should_exit_) {
         gettimeofday(&now, NULL);
         if (now.tv_sec - last_interaction.tv_sec > kNodeMetaTimeoutN) {
-          LOG(WARNING) << "Ping leader timeout, reconnect";
+          LOG(WARNING) << "Ping meta ("<< meta_ip << ":" << meta_port << ") timeout, reconnect!";
           break;
         }
         sleep(kPingInterval);
 
+        // Send ping to meta
         s = Send();
         if (!s.ok()) {
-          DLOG(WARNING) << "Ping send failed: " << s.ToString();
+          LOG(WARNING) << "Ping send to ("<< meta_ip << ":" << meta_port << ") failed! caz: " << s.ToString();
           continue;
         }
-        DLOG(INFO) << "Ping send ok!";
+        DLOG(INFO) << "Ping send to ("<< meta_ip << ":" << meta_port << ") success!";
 
+        // Recv from meta
         s = RecvProc();
         if (s.IsNotFound()) {
           // Try to join again
           is_first_send_ = true;
           continue;
         } else if (!s.ok()) {
-          DLOG(WARNING) << "Ping recv failed: " << s.ToString();
+          LOG(WARNING) << "Ping recv from ("<< meta_ip << ":" << meta_port << ") failed! caz: " << s.ToString();
           continue;
         }
 
         gettimeofday(&last_interaction, NULL);
-        DLOG(INFO) << "Ping MetaServer success";
+        DLOG(INFO) << "Ping recv from ("<< meta_ip << ":" << meta_port << ") success!";
       }
 
       zp_data_server->MetaDisconnect();
       cli_->Close();
     } else {
-      DLOG(WARNING) << "Ping connect failed: " << s.ToString();
+      LOG(WARNING) << "Ping connect ("<< zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd << ") failed!";
     }
-    sleep(3);
+    sleep(kPingInterval);
   }
   return NULL;
 }
