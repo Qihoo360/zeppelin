@@ -405,10 +405,11 @@ void Partition::CleanRoleEnv(Role role) {
 
   // Clean binlog if needed
   if (role == Role::kNodeSlave) {
-    if (!PurgeLogs(0, true, true)) {
+    if (!PurgeLogs(0, true)) {
       DLOG(WARNING) << "Purge logs before become slave failed";
       return;
     }
+    logger_->SetProducerStatus(0, 0);
   }
 
   // Clean binlog receiver
@@ -705,7 +706,7 @@ bool Partition::FlushAll() {
   return true; 
 }
 
-bool Partition::PurgeLogs(uint32_t to, bool manual, bool force) {
+bool Partition::PurgeLogs(uint32_t to, bool manual) {
   usleep(300000);
 
   // Only one thread can go through
@@ -718,7 +719,6 @@ bool Partition::PurgeLogs(uint32_t to, bool manual, bool force) {
   arg->p = this;
   arg->to = to;
   arg->manual = manual;
-  arg->force = force;
   zp_data_server->BGPurgeTaskSchedule(&DoPurgeLogs, static_cast<void*>(arg));
   return true;
 }
@@ -727,13 +727,13 @@ void Partition::DoPurgeLogs(void* arg) {
   PurgeArg *ppurge = static_cast<PurgeArg*>(arg);
   Partition* ps = ppurge->p;
 
-  ps->PurgeFiles(ppurge->to, ppurge->manual, ppurge->force);
+  ps->PurgeFiles(ppurge->to, ppurge->manual);
 
   ps->ClearPurge();
   delete (PurgeArg*)arg;
 }
 
-bool Partition::PurgeFiles(uint32_t to, bool manual, bool force)
+bool Partition::PurgeFiles(uint32_t to, bool manual)
 {
   std::map<uint32_t, std::string> binlogs;
   if (!GetBinlogFiles(binlogs)) {
@@ -752,7 +752,7 @@ bool Partition::PurgeFiles(uint32_t to, bool manual, bool force)
          file_stat.st_mtime < time(NULL) - kBinlogRemainMaxDay*24*3600)) // Expire time trigger
     {
       // We check this every time to avoid lock when we do file deletion
-      if (!CouldPurge(it->first) && !force) {
+      if (!CouldPurge(it->first)) {
         LOG(WARNING) << "Could not purge "<< (it->first) << ", since it is already be used";
         return false;
       }
@@ -840,7 +840,7 @@ bool Partition::CouldPurge(uint32_t index) {
   uint64_t tmp;
   logger_->GetProducerStatus(&pro_num, &tmp);
 
-  if (index > pro_num) {
+  if (index >= pro_num) {
     return false;
   }
   slash::MutexLock l(&slave_mutex_);
@@ -857,7 +857,7 @@ bool Partition::CouldPurge(uint32_t index) {
 }
 
 void Partition::AutoPurge() {
-  if (!PurgeLogs(0, false, false)) {
+  if (!PurgeLogs(0, false)) {
     DLOG(WARNING) << "Auto purge failed";
     return;
   }

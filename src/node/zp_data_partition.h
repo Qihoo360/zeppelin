@@ -139,10 +139,9 @@ class Partition {
     Partition *p;
     uint32_t to;
     bool manual;
-    bool force; // Ignore the delete window
   };
-  bool PurgeLogs(uint32_t to, bool manual, bool force);
-  bool PurgeFiles(uint32_t to, bool manual, bool force);
+  bool PurgeLogs(uint32_t to, bool manual);
+  bool PurgeFiles(uint32_t to, bool manual);
   void ClearPurge() {
     purging_ = false;
   }
