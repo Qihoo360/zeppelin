@@ -517,6 +517,7 @@ Status ZPMetaServer::OnNode(const std::string &ip, int port) {
           ZPMeta::Node* slave = p->mutable_slaves(j);
           slave->CopyFrom(p->slaves(slaves_size-1));
           p->mutable_slaves()->RemoveLast();
+          break;
         }
       }
     }
@@ -575,10 +576,14 @@ int ZPMetaServer::PartitionNums() {
 bool ZPMetaServer::IsLeader() {
   std::string leader_ip;
   int leader_port = 0, leader_cmd_port = 0;
-  while (!GetLeader(leader_ip, leader_port)) {
+  while (!should_exit_ && !GetLeader(leader_ip, leader_port)) {
     LOG(INFO) << "Wait leader ... ";
     // Wait leader election
     sleep(1);
+  }
+  if (should_exit_) {
+    leader_cli_ = NULL;
+    return false;
   }
   LOG(INFO) << "Leader: " << leader_ip << ":" << leader_port;
 
