@@ -141,6 +141,39 @@ Status ZPMetaServer::Delete(const std::string &key) {
   }
 }
 
+void ZPMetaServer::Reorganize(std::vector<ZPMeta::NodeStatus> &t_alive_nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes) {
+  std::map<std::string, std::vector<ZPMeta::NodeStatus> >m;
+
+  for (auto iter_v = t_alive_nodes.begin(); iter_v != t_alive_nodes.end(); iter_v++) {
+    auto iter_m = m.find(iter_v->node().ip());
+    if (iter_m != m.end()) {
+      iter_m->second.push_back(*iter_v);
+    } else {
+      std::vector<ZPMeta::NodeStatus> n;
+      n.push_back(*iter_v);
+      m.insert(std::map<std::string, std::vector<ZPMeta::NodeStatus> >::value_type(iter_v->node().ip(), n));
+    }
+  }
+
+  int msize = m.size();
+  int empty_count = 0;
+  while (true) {
+    if (empty_count == msize) {
+      break;
+    }
+    for (auto iter_m = m.begin(); iter_m != m.end(); iter_m++) {
+      if (iter_m->second.empty()) {
+        empty_count++;
+        continue;
+      } else {
+        LOG(INFO) << "PUSH " << iter_m->second.back().node().ip() << ":" << iter_m->second.back().node().port();
+        alive_nodes.push_back(iter_m->second.back());
+        iter_m->second.pop_back();
+      }
+    }
+  }
+}
+
 Status ZPMetaServer::Distribute(int num) {
   slash::MutexLock l(&node_mutex_);
   if (PartitionNums() != 0) {
@@ -155,12 +188,14 @@ Status ZPMetaServer::Distribute(int num) {
     return s;
   }
 
-  std::vector<ZPMeta::NodeStatus> alive_nodes;
-  GetAllAliveNode(nodes, alive_nodes);
-
-  if (alive_nodes.empty()) {
+  std::vector<ZPMeta::NodeStatus> t_alive_nodes;
+  GetAllAliveNode(nodes, t_alive_nodes);
+  if (t_alive_nodes.empty()) {
     return Status::Corruption("no nodes");
   }
+
+  std::vector<ZPMeta::NodeStatus> alive_nodes;
+  Reorganize(t_alive_nodes, alive_nodes);
 
   int an_num = alive_nodes.size();
 

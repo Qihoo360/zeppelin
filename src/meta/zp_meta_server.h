@@ -50,6 +50,7 @@ class ZPMetaServer {
   int version() {
     return version_;
   }
+  void Reorganize(std::vector<ZPMeta::NodeStatus> &t_alive_nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
   Status Distribute(int num);
   Status GetMSInfo(ZPMeta::MetaCmdResponse_Pull &ms_info);
   int PartitionNums();
