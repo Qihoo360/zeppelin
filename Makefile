@@ -52,6 +52,7 @@ INCLUDE_PATH = -I./include/ \
 			   -I$(THIRD_PATH)/nemo/output/include/ \
 			   -I$(THIRD_PATH)/slash/output/include/ \
 			   -I$(THIRD_PATH)/pink/output/include/ \
+			   -I$(THIRD_PATH)/pink/output/ \
 			   -I$(THIRD_PATH)/floyd/output/include/
 
 
