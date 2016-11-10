@@ -874,8 +874,10 @@ void Partition::Dump() {
   switch (role_) {
     case Role::kNodeMaster:
       LOG(INFO) << "  +I'm master";
+      break;
     case Role::kNodeSlave:
       LOG(INFO) << "  +I'm slave";
+      break;
     default:
       LOG(INFO) << "  +I'm single";
   }

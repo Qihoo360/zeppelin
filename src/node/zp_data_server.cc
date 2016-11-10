@@ -264,9 +264,7 @@ void ZPDataServer::AddSyncTask(int parititon_id) {
 }
 
 void ZPDataServer::AddMetacmdTask() {
-  zp_metacmd_thread_->StartIfNeed();
-  zp_metacmd_thread_->Schedule(&ZPMetacmdThread::DoMetaUpdateTask,
-      static_cast<void*>(zp_metacmd_thread_));
+  zp_metacmd_thread_->MetacmdTaskSchedule();
 }
 
 // Here, we dispatch task base on its partition id

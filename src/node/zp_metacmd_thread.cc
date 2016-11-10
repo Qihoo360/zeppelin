@@ -1,6 +1,7 @@
 #include "zp_metacmd_thread.h"
 
 #include <glog/logging.h>
+#include <google/protobuf/text_format.h>
 #include "zp_data_server.h"
 
 #include "zp_command.h"
@@ -8,9 +9,18 @@
 
 extern ZPDataServer* zp_data_server;
 
-ZPMetacmdThread::ZPMetacmdThread() {
-  cli_ = new pink::PbCli();
-  cli_->set_connect_timeout(1500);
+ZPMetacmdThread::ZPMetacmdThread()
+  :is_working_(false) {
+    cli_ = new pink::PbCli();
+    cli_->set_connect_timeout(1500);
+  }
+
+void ZPMetacmdThread::MetacmdTaskSchedule() {
+  if (is_working_)
+    return;
+  is_working_ = true;
+  StartIfNeed();
+  Schedule(&DoMetaUpdateTask, static_cast<void*>(this));
 }
 
 ZPMetacmdThread::~ZPMetacmdThread() {
@@ -33,6 +43,7 @@ void ZPMetacmdThread::MetaUpdateTask() {
     sleep(kMetacmdInterval);
     zp_data_server->AddMetacmdTask();
   }
+  is_working_ = false;
 }
 
 pink::Status ZPMetacmdThread::Send() {
@@ -53,6 +64,10 @@ pink::Status ZPMetacmdThread::Recv(int64_t &receive_epoch) {
   result = cli_->Recv(&response); 
   if (result.ok()) {
     DLOG(INFO) << "succ MetacmdThread recv from MetaServer(" << meta_ip << ":" << meta_port;
+    std::string text_format;
+    google::protobuf::TextFormat::PrintToString(response, &text_format);
+    DLOG(INFO) << "Receive from meta(" << meta_ip << ":" << meta_port << "), size: " << response.pull().info().size() << " Response:[" << text_format << "]";
+
     switch (response.type()) {
       case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PULL: {
         if (response.status().code() != ZPMeta::StatusCode::kOk) {

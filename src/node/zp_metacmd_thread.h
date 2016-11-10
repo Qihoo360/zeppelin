@@ -9,7 +9,8 @@ class ZPMetacmdThread : public pink::BGThread {
 
   ZPMetacmdThread();
   virtual ~ZPMetacmdThread();
- 
+  
+  void MetacmdTaskSchedule();
   static void DoMetaUpdateTask(void* arg) {
     (static_cast<ZPMetacmdThread*>(arg))->MetaUpdateTask();
   }
@@ -18,6 +19,7 @@ class ZPMetacmdThread : public pink::BGThread {
  private:
   pink::PbCli *cli_;
 
+  std::atomic<bool> is_working_;
   pink::Status Send();
   pink::Status Recv(int64_t &receive_epoch);
   bool FetchMetaInfo(int64_t &receive_epoch);
