@@ -38,12 +38,12 @@ void ZPMetacmdThread::MetaUpdateTask() {
   if (FetchMetaInfo(receive_epoch)) {
     // When we fetch OK, we will FinishPullMeta
     zp_data_server->FinishPullMeta(receive_epoch);
+    is_working_ = false;
   } else {
     // Sleep and try again
     sleep(kMetacmdInterval);
     zp_data_server->AddMetacmdTask();
   }
-  is_working_ = false;
 }
 
 pink::Status ZPMetacmdThread::Send() {

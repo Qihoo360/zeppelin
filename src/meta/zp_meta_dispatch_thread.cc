@@ -26,7 +26,7 @@ void ZPMetaDispatchThread::CronHandle() {
     server_querynum += ((ZPMetaWorkerThread**)worker_thread())[i]->thread_querynum();
     server_current_qps += ((ZPMetaWorkerThread**)worker_thread())[i]->last_sec_thread_querynum();
   }
-  DLOG(INFO) << "ClientNum: " << ClientNum() << " ServerQueryNum: " << server_querynum << " ServerCurrentQps: " << server_current_qps;
+  LOG(INFO) << "ClientNum: " << ClientNum() << " ServerQueryNum: " << server_querynum << " ServerCurrentQps: " << server_current_qps;
   
   // Check alive
   zp_meta_server->CheckNodeAlive();
