@@ -106,6 +106,9 @@ class ZPDataServer {
   }
   
   // Partition related
+  void SetPartitionCount(int count) {
+    partition_count_ = count;
+  }
   bool UpdateOrAddPartition(const int partition_id, const Node& master, const std::vector<Node>& nodes);
   Partition* GetPartition(const std::string &key);
   Partition* GetPartitionById(const int partition_id);
@@ -141,7 +144,8 @@ class ZPDataServer {
 
   // Partitions
   //Note: this lock only protect partitions_ map, rather than certain partiton which should keep thread safty itself
-  pthread_rwlock_t partition_rw_; 
+  pthread_rwlock_t partition_rw_;
+  std::atomic<int> partition_count_;
   std::map<int, Partition*> partitions_;
   uint32_t KeyToPartition(const std::string &key);
 
