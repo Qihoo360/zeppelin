@@ -169,7 +169,7 @@ void ZPDataServer::PickMeta() {
   int index = di(mt);
 
   auto addr = options_.meta_addr[index];
-  auto pos = addr.find(":");
+  auto pos = addr.find("/");
   if (pos != std::string::npos) {
     meta_ip_ = addr.substr(0, pos);
     auto str_port = addr.substr(pos+1);

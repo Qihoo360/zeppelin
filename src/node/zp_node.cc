@@ -13,7 +13,7 @@
 ZPDataServer* zp_data_server;
 
 void Usage();
-void ParseArgs(int argc, char* argv[], ZPOptions& options);
+void ParseArgsFromFile(int argc, char* argv[], ZPOptions& options);
 
 static void GlogInit(const ZPOptions& options) {
   if (!slash::FileExists(options.log_path)) {
@@ -62,7 +62,7 @@ static void ZPDataSignalSetup() {
 int main(int argc, char** argv) {
   ZPOptions options;
 
-  ParseArgs(argc, argv, options);
+  ParseArgsFromFile(argc, argv, options);
 
   options.Dump();
   GlogInit(options);
@@ -81,50 +81,41 @@ int main(int argc, char** argv) {
 
 void Usage() {
   printf ("Usage:\n"
-          "  ./zp-node --meta_addr ip1:port1,ip2:port2 --local_ip local_ip --local_port local_port --data_path path --log_path path\n");
+          "  ./zp-node -c conf_file\n");
 }
 
-void ParseArgs(int argc, char* argv[], ZPOptions& options) {
+void ParseArgsFromFile(int argc, char* argv[], ZPOptions& options) {
   if (argc < 1) {
     Usage();
     exit(-1);
   }
-
-  const struct option long_options[] = {
-    {"meta_addr", required_argument, NULL, 'm'},
-    {"local_ip", required_argument, NULL, 'n'},
-    {"local_port", required_argument, NULL, 'p'},
-    {"data_path", required_argument, NULL, 'd'},
-    {"log_path", required_argument, NULL, 'l'},
-    {"help", no_argument, NULL, 'h'},
-    {NULL, 0, NULL, 0}, };
-
-  const char* short_options = "m:n:p:d:l:h";
-
-  int ch, longindex;
-  while ((ch = getopt_long(argc, argv, short_options, long_options,
-                           &longindex)) >= 0) {
-    switch (ch) {
-      case 'm':
-        InitMetaAddr(options, optarg);
-        break;
-      case 'n':
-        options.local_ip = optarg;
-        break;
-      case 'p':
-        options.local_port = atoi(optarg);
-        break;
-      case 'd':
-        options.data_path = optarg;
-        break;
-      case 'l':
-        options.log_path = optarg;
+  bool path_opt = false;
+  char c;
+  char path[1024];
+  while (-1 != (c = getopt(argc, argv, "c:h"))) {
+    switch (c) {
+      case 'c':
+        snprintf(path, 1024, "%s", optarg);
+        path_opt = true;
         break;
       case 'h':
         Usage();
-        exit(0);
+        exit(-1);
+        return ;
       default:
-        break;
+        Usage();
+        exit(-1);
     }
   }
+
+  if (path_opt == false) {
+    fprintf (stderr, "Please specify the conf file path\n" );
+    Usage();
+    exit(-1);
+  }
+
+  if (options.Load(path) != 0) {
+    LOG(FATAL) << "zp-meta load conf file error";
+  }
+  options.Dump();
 }
