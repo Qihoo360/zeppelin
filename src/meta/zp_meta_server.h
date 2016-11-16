@@ -17,6 +17,7 @@
 using slash::Status;
 
 typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
+typedef std::unordered_map<std::string, ZPMetaUpdateOP> ZPMetaUpdateTaskMap;
 
 class ZPMetaServer {
  public:
@@ -44,7 +45,11 @@ class ZPMetaServer {
   // Node alive related
   Status AddNodeAlive(const std::string& ip_port);
   void CheckNodeAlive();
+  void AddMetaUpdateTask(const std::string& ip_port, ZPMetaUpdateOP);
+  void ClearMetaUpdateTask();
+  void ScheduleUpdate();
   bool UpdateNodeAlive(const std::string& ip_port);
+  Status DoUpdate(ZPMetaUpdateTaskMap task_map);
   
   // Floyd related
   int version() {
@@ -54,7 +59,6 @@ class ZPMetaServer {
   Status Distribute(int num);
   Status GetMSInfo(ZPMeta::MetaCmdResponse_Pull &ms_info);
   int PartitionNums();
-  Status OffNode(const std::string &ip, int port);
 
   // Leader related
   bool IsLeader();
@@ -84,16 +88,19 @@ private:
   Status GetAllNode(ZPMeta::Nodes &nodes);
   void GetAllAliveNode(ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
   bool FindNode(ZPMeta::Nodes &nodes, const std::string &ip, int port);
-  Status SetNodeStatus(ZPMeta::Nodes &nodes, const std::string &ip, int port, int status /*0-UP 1-DOWN*/);
-  Status AddNode(const std::string &ip, int port);
+  Status SetNodeStatus(ZPMeta::Nodes &nodes, ZPMeta::MetaCmdResponse_Pull &ms_info, const std::string &ip, int port, int status /*0-UP 1-DOWN*/);
+  Status AddNode(ZPMeta::Nodes &nodes, ZPMeta::MetaCmdResponse_Pull &ms_info, const std::string &ip, int port);
   Status SetReplicaset(uint32_t partition_id, const ZPMeta::Replicaset &replicaset);
   Status SetMSInfo(const ZPMeta::MetaCmdResponse_Pull &ms_info);
-  Status OnNode(const std::string &ip, int port);
+  bool OnNode(ZPMeta::MetaCmdResponse_Pull &ms_info, const std::string &ip, int port);
+  Status OffNode(ZPMeta::Nodes &nodes, ZPMeta::MetaCmdResponse_Pull &ms_info, const std::string &ip, int port);
 
   // Alive Check
   slash::Mutex alive_mutex_;
   slash::Mutex node_mutex_;
+  slash::Mutex task_mutex_;
   NodeAliveMap node_alive_;
+  ZPMetaUpdateTaskMap task_map_;
   ZPMetaUpdateThread* update_thread_;
   void RestoreNodeAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes);
 
