@@ -3,13 +3,14 @@
 
 #include <queue>
 
+#include "worker_thread.h"
+#include "slash_mutex.h"
+#include "env.h"
+
 #include "zp_util.h"
 #include "zp_command.h"
 #include "zp_data_client_conn.h"
 
-#include "worker_thread.h"
-#include "slash_mutex.h"
-#include "env.h"
 
 class ZPDataWorkerThread : public pink::WorkerThread<ZPDataClientConn> {
  public:

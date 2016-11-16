@@ -47,8 +47,23 @@ int main(int argc, char** argv) {
 
   ParseArgsFromFile(argc, argv, options);
 
+  if (options.daemonize) {
+    daemonize();
+  }
+
   GlogInit(options);
   SignalSetup();
+
+  FileLocker db_lock(options.lock_file);
+  Status s = db_lock.Lock();
+  if (!s.ok()) {
+    return 0;
+  }
+
+  if (options.daemonize) {
+    create_pid_file(options);
+    close_std();
+  }
 
   zp_meta_server = new ZPMetaServer(options);
 

@@ -3,13 +3,14 @@
 
 #include <queue>
 
+#include "holy_thread.h"
+#include "slash_mutex.h"
+#include "env.h"
+
 #include "zp_util.h"
 #include "zp_sync_conn.h"
 #include "zp_command.h"
 
-#include "holy_thread.h"
-#include "slash_mutex.h"
-#include "env.h"
 
 class ZPBinlogReceiverThread : public pink::HolyThread<ZPSyncConn> {
  public:

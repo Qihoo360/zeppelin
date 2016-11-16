@@ -7,7 +7,8 @@ const int kMaxWorkerThread = 100;
 const int kMaxMetaWorkerThread = 16;
 
 const std::string kZPVersion = "0.0.1";
-const std::string kZPPidFile = "zp.pid";
+const std::string kZpPidFile = "zp.pid";
+const std::string kZpLockFile = "zp.lock";
 
 ////// Server State /////
 enum Role {

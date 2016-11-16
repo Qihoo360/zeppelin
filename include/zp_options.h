@@ -6,6 +6,8 @@
 #include "base_conf.h"
 #include "slash_string.h"
 
+#include "zp_const.h"
+
 class Server;
 struct ZPOptions;
 
@@ -44,6 +46,9 @@ struct ZPOptions {
 
   std::string data_path;
   std::string log_path;
+  bool daemonize;
+  std::string pid_file;
+  std::string lock_file;
 
   //std::vector<Server> servers;
 

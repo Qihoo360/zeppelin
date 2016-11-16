@@ -79,6 +79,9 @@ void ZPMetaServer::Stop() {
 }
 
 void ZPMetaServer::CleanUp() {
+  if (options_.daemonize) {
+    unlink(options_.pid_file.c_str());
+  }
   delete this;
   ::google::ShutdownGoogleLogging();
 }

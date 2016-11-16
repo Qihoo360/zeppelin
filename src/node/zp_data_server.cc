@@ -47,11 +47,11 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
 
     // TODO rm
     //LOG(INFO) << "local_host " << options_.local_ip << ":" << options.local_port;
-    DLOG(INFO) << "ZPDataServer cstor";
+    DLOG(INFO) << "ZPDataServer constructed";
   }
 
 ZPDataServer::~ZPDataServer() {
-  DLOG(INFO) << "~ZPDataServer dstor";
+  DLOG(INFO) << "~ZPDataServer destoryed";
   // Order:
   // 1, Meta thread should before trysunc thread
   // 2, Worker thread should before bgsave_thread

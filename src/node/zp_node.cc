@@ -64,9 +64,23 @@ int main(int argc, char** argv) {
 
   ParseArgsFromFile(argc, argv, options);
 
-  options.Dump();
+  if (options.daemonize) {
+    daemonize();
+  }
+
   GlogInit(options);
   ZPDataSignalSetup();
+
+  FileLocker db_lock(options.lock_file);
+  Status s = db_lock.Lock();
+  if (!s.ok()) {
+    return 1;
+  }
+
+  if (options.daemonize) {
+    create_pid_file(options);
+    close_std();
+  }
 
   zp_data_server = new ZPDataServer(options);
 
