@@ -3,6 +3,8 @@
 
 #include <string>
 #include <vector>
+#include "base_conf.h"
+#include "slash_string.h"
 
 class Server;
 struct ZPOptions;
@@ -50,6 +52,7 @@ struct ZPOptions {
   ZPOptions(const ZPOptions& options);
 
   void Dump();
+  int Load(const std::string& path);
 };
 
 #endif

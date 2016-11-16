@@ -11,6 +11,7 @@
 
 ZPDataServer::ZPDataServer(const ZPOptions& options)
   : options_(options),
+  partition_count_(0),
   should_exit_(false),
   should_rejoin_(false),
   meta_state_(MetaState::kMetaConnect),
@@ -113,7 +114,10 @@ Status ZPDataServer::Start() {
 
   while (!should_exit_) {
     DoTimingTask();
-    sleep(600);
+    int sleep_count = 600;
+    while (!should_exit_ && --sleep_count > 0){
+      sleep(1);
+    }
   }
   return Status::OK();
 }
@@ -165,7 +169,7 @@ void ZPDataServer::PickMeta() {
   int index = di(mt);
 
   auto addr = options_.meta_addr[index];
-  auto pos = addr.find(":");
+  auto pos = addr.find("/");
   if (pos != std::string::npos) {
     meta_ip_ = addr.substr(0, pos);
     auto str_port = addr.substr(pos+1);
@@ -242,9 +246,8 @@ Partition* ZPDataServer::GetPartitionById(const int partition_id) {
 }
 
 inline uint32_t ZPDataServer::KeyToPartition(const std::string &key) {
-  slash::RWLock l(&partition_rw_, false);
-  assert(partitions_.size() != 0);
-  return std::hash<std::string>()(key) % partitions_.size();
+  assert(partition_count_ != 0);
+  return std::hash<std::string>()(key) % partition_count_;
 }
 
 void ZPDataServer::BGSaveTaskSchedule(void (*function)(void*), void* arg) {

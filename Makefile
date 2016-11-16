@@ -103,6 +103,7 @@ all: $(ZP_META) $(ZP_NODE)
 	cp -r $(SO_PATH)/*  $(OUTPUT)/lib
 	mv $(ZP_META) $(OUTPUT)/bin/
 	mv $(ZP_NODE) $(OUTPUT)/bin/
+	cp -r conf $(OUTPUT)
 	#mkdir $(OUTPUT)/tools
 	@echo "Success, go, go, go..."
 

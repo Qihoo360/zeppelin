@@ -1,9 +1,8 @@
 #include "zp_metacmd_thread.h"
-
 #include <glog/logging.h>
 #include <google/protobuf/text_format.h>
-#include "zp_data_server.h"
 
+#include "zp_data_server.h"
 #include "zp_command.h"
 #include "zp_admin.h"
 
@@ -69,47 +68,51 @@ pink::Status ZPMetacmdThread::Recv(int64_t &receive_epoch) {
     DLOG(INFO) << "Receive from meta(" << meta_ip << ":" << meta_port << "), size: " << response.pull().info().size() << " Response:[" << text_format << "]";
 
     switch (response.type()) {
-      case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PULL: {
-        if (response.status().code() != ZPMeta::StatusCode::kOk) {
-          LOG(WARNING) << "MetacmdThread receive Pull from (" << meta_ip << ":" << meta_port << ") failed! caz: "
-            << response.status().msg();
-          return pink::Status::IOError(response.status().msg());
-        }
-
-        receive_epoch = response.pull().version();
-        ZPMeta::MetaCmdResponse_Pull pull = response.pull();
-
-        DLOG(INFO) << "receive Pull message, will handle " << pull.info_size() << " Partitions.";
-        for (int i = 0; i < pull.info_size(); i++) {
-          const ZPMeta::Partitions& partition = pull.info(i);
-          DLOG(INFO) << " - handle Partition " << partition.id() << 
-            ": master is " << partition.master().ip() << ":" << partition.master().port();
-
-          Node master_node(partition.master().ip(), partition.master().port());
-          if (master_node.empty()) {
-            // No master patitions, simply ignore
-            continue;
-          }
-          std::vector<Node> slave_nodes;
-          for (int j = 0; j < partition.slaves_size(); j++) {
-            slave_nodes.push_back(Node(partition.slaves(j).ip(), partition.slaves(j).port()));
-          }
-
-          bool result = zp_data_server->UpdateOrAddPartition(partition.id(), master_node, slave_nodes);
-          if (!result) {
-            LOG(WARNING) << "Failed to AddPartition " << partition.id() <<
-              ", partition master is " << partition.master().ip() << ":" << partition.master().port() ;
-          }
-        }
-        // Print partitioin info
-        zp_data_server->DumpPartitions();
+      case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PULL:
+        return ParsePullResponse(response, receive_epoch);
         break;
-      }
       default:
         break;
     }
   }
   return result;
+}
+
+pink::Status ZPMetacmdThread::ParsePullResponse(const ZPMeta::MetaCmdResponse &response, int64_t &receive_epoch) {
+  if (response.status().code() != ZPMeta::StatusCode::kOk) {
+    return pink::Status::IOError(response.status().msg());
+  }
+
+  receive_epoch = response.pull().version();
+  ZPMeta::MetaCmdResponse_Pull pull = response.pull();
+
+  DLOG(INFO) << "receive Pull message, will handle " << pull.info_size() << " Partitions.";
+  zp_data_server->SetPartitionCount(pull.info_size());
+  for (int i = 0; i < pull.info_size(); i++) {
+    const ZPMeta::Partitions& partition = pull.info(i);
+    DLOG(INFO) << " - handle Partition " << partition.id() << 
+      ": master is " << partition.master().ip() << ":" << partition.master().port();
+
+    Node master_node(partition.master().ip(), partition.master().port());
+    if (master_node.empty()) {
+      // No master patitions, simply ignore
+      continue;
+    }
+    std::vector<Node> slave_nodes;
+    for (int j = 0; j < partition.slaves_size(); j++) {
+      slave_nodes.push_back(Node(partition.slaves(j).ip(), partition.slaves(j).port()));
+    }
+
+    bool result = zp_data_server->UpdateOrAddPartition(partition.id(), master_node, slave_nodes);
+    if (!result) {
+      LOG(WARNING) << "Failed to AddPartition " << partition.id() <<
+        ", partition master is " << partition.master().ip() << ":" << partition.master().port() ;
+    }
+  }
+  // Print partitioin info
+  zp_data_server->DumpPartitions();
+  return pink::Status::OK();
+
 }
 
 bool ZPMetacmdThread::FetchMetaInfo(int64_t &receive_epoch) {
