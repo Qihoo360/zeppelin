@@ -30,6 +30,7 @@ void ZPMetaDispatchThread::CronHandle() {
   
   // Check alive
   zp_meta_server->CheckNodeAlive();
+  zp_meta_server->ScheduleUpdate();
 }
 
 int ZPMetaDispatchThread::ClientNum() {

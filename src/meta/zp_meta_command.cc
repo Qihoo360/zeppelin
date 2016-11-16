@@ -65,6 +65,7 @@ void PullCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
 
   ZPMeta::MetaCmdResponse_Pull ms_info;
   Status s = zp_meta_server->GetMSInfo(ms_info);
+  LOG(INFO) << "Pull size: " << ms_info.info().size();
   if (!s.ok()) {
     ms_info.set_version(-1);
     status_res->set_code(ZPMeta::StatusCode::kError);

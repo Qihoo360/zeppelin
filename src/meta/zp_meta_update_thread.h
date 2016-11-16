@@ -10,32 +10,30 @@
 #include "pb_cli.h"
 #include "zp_meta.pb.h"
 
-typedef std::unordered_map<std::string, pink::PbCli*> DataCliMap;
-
 enum ZPMetaUpdateOP {
   kOpAdd,
   kOpRemove
 };
+
+typedef std::unordered_map<std::string, ZPMetaUpdateOP> ZPMetaUpdateTaskMap;
 
 class ZPMetaUpdateThread {
 public:
   ZPMetaUpdateThread();
   ~ZPMetaUpdateThread();
 
-  void ScheduleUpdate(const std::string ip_port, ZPMetaUpdateOP op);
+  void ScheduleUpdate(ZPMetaUpdateTaskMap task_map);
   static void DoMetaUpdate(void *p);
 
 private:
   pink::BGThread worker_;
-  slash::Status MetaUpdate(const std::string ip, int port, ZPMetaUpdateOP op);
+  slash::Status MetaUpdate(ZPMetaUpdateTaskMap task_map);
 
   struct ZPMetaUpdateArgs {
-    ZPMetaUpdateThread *thread;
-    std::string ip;
-    int port;
-    ZPMetaUpdateOP op;
-    ZPMetaUpdateArgs(ZPMetaUpdateThread *_thread, const std::string& _ip, int _port, ZPMetaUpdateOP _op) :
-      thread(_thread), ip(_ip), port(_port), op(_op) {}
+    ZPMetaUpdateThread * thread;
+    ZPMetaUpdateTaskMap task_map;
+    ZPMetaUpdateArgs(ZPMetaUpdateThread *_thread, ZPMetaUpdateTaskMap _task_map) :
+      thread(_thread), task_map(_task_map) {}
   };
 
 };
