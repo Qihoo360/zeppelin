@@ -9,14 +9,13 @@
 
 #include "rsync.h"
 
-ZPDataServer::ZPDataServer(const ZPOptions& options)
-  : options_(options),
-  partition_count_(0),
-  should_exit_(false),
-  should_rejoin_(false),
-  meta_state_(MetaState::kMetaConnect),
-  meta_epoch_(-1),
-  should_pull_meta_(false) {
+ZPDataServer::ZPDataServer()
+  :partition_count_(0),
+   should_exit_(false),
+   should_rejoin_(false),
+   meta_state_(MetaState::kMetaConnect),
+   meta_epoch_(-1),
+   should_pull_meta_(false) {
     pthread_rwlock_init(&meta_state_rw_, NULL);
     pthread_rwlockattr_t attr;
     pthread_rwlockattr_init(&attr);
@@ -33,7 +32,7 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
       zp_worker_thread_[i] = new ZPDataWorkerThread(kWorkerCronInterval);
     }
 
-    zp_dispatch_thread_ = new ZPDataDispatchThread(options_.local_port, worker_num_, zp_worker_thread_, kDispatchCronInterval);
+    zp_dispatch_thread_ = new ZPDataDispatchThread(g_zp_conf->local_port(), worker_num_, zp_worker_thread_, kDispatchCronInterval);
     zp_ping_thread_ = new ZPPingThread();
     //zp_metacmd_worker_thread_ = new ZPMetacmdWorkerThread(options_.local_port + kPortShiftDataCmd, kMetaCmdCronInterval);
     zp_metacmd_thread_ = new ZPMetacmdThread();
@@ -43,7 +42,7 @@ ZPDataServer::ZPDataServer(const ZPOptions& options)
       zp_binlog_receive_bgworkers_.push_back(
           new ZPBinlogReceiveBgWorker(kBinlogReceiveBgWorkerFull));
     }
-    zp_binlog_receiver_thread_ = new ZPBinlogReceiverThread(options_.local_port + kPortShiftSync, kBinlogReceiverCronInterval);
+    zp_binlog_receiver_thread_ = new ZPBinlogReceiverThread(g_zp_conf->local_port() + kPortShiftSync, kBinlogReceiverCronInterval);
 
     // TODO rm
     //LOG(INFO) << "local_host " << options_.local_ip << ":" << options.local_port;
@@ -105,9 +104,9 @@ Status ZPDataServer::Start() {
   zp_ping_thread_->StartThread();
 
   // TEST 
-  LOG(INFO) << "ZPDataServer started on port:" <<  options_.local_port;
-  auto iter = options_.meta_addr.begin();
-  while (iter != options_.meta_addr.end()) {
+  LOG(INFO) << "ZPDataServer started on port:" <<  g_zp_conf->local_port();
+  auto iter = g_zp_conf->meta_addr().begin();
+  while (iter != g_zp_conf->meta_addr().end()) {
     LOG(INFO) << "seed is: " << *iter;
     iter++;
   }
@@ -159,16 +158,16 @@ void ZPDataServer::MetaDisconnect() {
 
 void ZPDataServer::PickMeta() {
   slash::RWLock l(&meta_state_rw_, true);
-  if (options_.meta_addr.empty()) {
+  if (g_zp_conf->meta_addr().empty()) {
     return;
   }
 
   std::random_device rd;
   std::mt19937 mt(rd());
-  std::uniform_int_distribution<int> di(0, options_.meta_addr.size()-1);
+  std::uniform_int_distribution<int> di(0, g_zp_conf->meta_addr().size()-1);
   int index = di(mt);
 
-  auto addr = options_.meta_addr[index];
+  auto addr = g_zp_conf->meta_addr()[index];
   auto pos = addr.find("/");
   if (pos != std::string::npos) {
     meta_ip_ = addr.substr(0, pos);
@@ -198,7 +197,7 @@ bool ZPDataServer::UpdateOrAddPartition(const int partition_id, const Node& mast
   }
 
   // New Partition
-  Partition* partition = NewPartition(options_.log_path, options_.data_path, partition_id, master, slaves);
+  Partition* partition = NewPartition(g_zp_conf->log_path(), g_zp_conf->data_path(), partition_id, master, slaves);
   assert(partition != NULL);
   partitions_[partition_id] = partition;
 

@@ -3,18 +3,20 @@
 
 #include <stdio.h>
 #include <string>
-#include "zp_options.h"
-#include "zp_const.h"
+
 #include "slash_status.h"
 #include "slash_mutex.h"
-
 #include "floyd.h"
+
+#include "zp_conf.h"
+#include "zp_const.h"
 #include "zp_meta_command.h"
 #include "zp_meta_dispatch_thread.h"
 #include "zp_meta_worker_thread.h"
 #include "zp_meta_update_thread.h"
 
 using slash::Status;
+extern ZpConf* g_zp_conf;
 
 typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
 typedef std::unordered_map<std::string, ZPMetaUpdateOP> ZPMetaUpdateTaskMap;
@@ -22,22 +24,22 @@ typedef std::unordered_map<std::string, ZPMetaUpdateOP> ZPMetaUpdateTaskMap;
 class ZPMetaServer {
  public:
 
-  explicit ZPMetaServer(const ZPOptions& option);
+  explicit ZPMetaServer();
   virtual ~ZPMetaServer();
   void Start();
   void Stop();
   void CleanUp();
   std::string seed_ip() {
-    return options_.seed_ip;
+    return g_zp_conf->seed_ip();
   }
   int seed_port() {
-    return options_.seed_port;
+    return g_zp_conf->seed_port();
   }
   std::string local_ip() {
-    return options_.local_ip;
+    return g_zp_conf->local_ip();
   }
   int local_port() {
-    return options_.local_port;
+    return g_zp_conf->local_port();
   }
 
   Cmd* GetCmd(const int op);
@@ -73,7 +75,6 @@ private:
   int worker_num_;
   ZPMetaWorkerThread* zp_meta_worker_thread_[kMaxMetaWorkerThread];
   ZPMetaDispatchThread* zp_meta_dispatch_thread_;
-  ZPOptions options_;
   slash::Mutex server_mutex_;
   std::atomic<int> version_;
   std::atomic<bool> should_exit_;

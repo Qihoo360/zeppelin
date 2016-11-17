@@ -5,7 +5,7 @@
 #include "env.h"
 #include "zp_util.h"
 #include "zp_const.h"
-
+extern ZpConf* g_zp_conf;
 void daemonize() {
   if (fork() != 0) exit(0); /* parent exits */
   setsid(); /* create a new session */
@@ -21,9 +21,9 @@ void close_std() {
   }
 }
 
-void create_pid_file(ZPOptions& options) {
+void create_pid_file() {
   /* Try to write the pid file in a best-effort way. */
-  std::string path(options.pid_file);
+  std::string path(g_zp_conf->pid_file());
 
   size_t pos = path.find_last_of('/');
   if (pos != std::string::npos) {
@@ -39,7 +39,6 @@ void create_pid_file(ZPOptions& options) {
     fclose(fp);
   }
 }
-
 
 FileLocker::FileLocker(const std::string& file)
   : file_(file) {
