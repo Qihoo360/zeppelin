@@ -260,11 +260,19 @@ Status ZPMetaServer::Distribute(int num) {
 }
 
 Status ZPMetaServer::AddNodeAlive(const std::string& ip_port) {
+  bool should_add = false;
   {
   struct timeval now;
   slash::MutexLock l(&alive_mutex_);
+  if (node_alive_.find(ip_port) == node_alive_.end()) {
+    should_add = true;
+  }
   gettimeofday(&now, NULL);
   node_alive_[ip_port] = now;
+  }
+
+  if (!should_add) {
+    return Status::OK();
   }
 
   std::string ip;
@@ -273,7 +281,7 @@ Status ZPMetaServer::AddNodeAlive(const std::string& ip_port) {
     return Status::Corruption("parse ip_port error");
   }
 
-  LOG(INFO) << "Add Node Alive";
+  LOG(INFO) << "Add Node Alive " << ip_port;
   AddMetaUpdateTask(ip_port, ZPMetaUpdateOP::kOpAdd);
   return Status::OK();
 }
@@ -533,17 +541,17 @@ void ZPMetaServer::ScheduleUpdate() {
   }
 }
 
-bool ZPMetaServer::UpdateNodeAlive(const std::string& ip_port) {
-  struct timeval now;
-  slash::MutexLock l(&alive_mutex_);
-  gettimeofday(&now, NULL);
-  if (node_alive_.find(ip_port) == node_alive_.end()) {
-    LOG(WARNING) << "Update unknown node alive:" << ip_port;
-    return false;
-  }
-  node_alive_[ip_port] = now;
-  return true;
-}
+//bool ZPMetaServer::UpdateNodeAlive(const std::string& ip_port) {
+//  struct timeval now;
+//  slash::MutexLock l(&alive_mutex_);
+//  gettimeofday(&now, NULL);
+//  if (node_alive_.find(ip_port) == node_alive_.end()) {
+//    LOG(WARNING) << "Update unknown node alive:" << ip_port;
+//    return false;
+//  }
+//  node_alive_[ip_port] = now;
+//  return true;
+//}
 
 Status ZPMetaServer::SetReplicaset(uint32_t partition_id, const ZPMeta::Replicaset &replicaset) {
   std::string new_value;
@@ -750,8 +758,8 @@ std::string PartitionId2Key(uint32_t id) {
 
 void ZPMetaServer::InitClientCmdTable() {
   // Join Command
-  Cmd* joinptr = new JoinCmd(kCmdFlagsWrite);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::MetaCmd_Type::MetaCmd_Type_JOIN), joinptr));
+//  Cmd* joinptr = new JoinCmd(kCmdFlagsWrite);
+//  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::MetaCmd_Type::MetaCmd_Type_JOIN), joinptr));
 
   // Ping Command
   Cmd* pingptr = new PingCmd(kCmdFlagsRead);
