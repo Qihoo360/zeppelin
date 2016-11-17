@@ -27,10 +27,6 @@ enum ReplState {
   kConnected = 2,
   kWaitDBSync = 3,
 };
-enum MetaState {
-  kMetaConnect = 1,
-  kMetaConnected = 2,
-};
 // debug only
 const std::string ReplStateMsg[] = {
   "kNoConnect",

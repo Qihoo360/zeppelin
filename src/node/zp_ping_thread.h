@@ -8,20 +8,17 @@
 class ZPPingThread : public pink::Thread {
  public:
 
-  ZPPingThread()
-      : is_first_send_(true) {
+  ZPPingThread() {
         cli_ = new pink::PbCli();
         cli_->set_connect_timeout(1500);
       }
   virtual ~ZPPingThread();
 
  private:
-  bool is_first_send_;
   pink::PbCli *cli_;
   pink::Status Send();
   pink::Status RecvProc();
   virtual void* ThreadMain();
-
 };
 
 #endif

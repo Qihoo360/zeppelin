@@ -47,11 +47,13 @@ class ZPDataServer {
   explicit ZPDataServer(const ZPOptions& option);
   virtual ~ZPDataServer();
   Status Start();
-  
+
   std::string meta_ip() {
+    slash::RWLock l(&meta_state_rw_, false);
     return meta_ip_;
   }
   int meta_port() {
+    slash::RWLock l(&meta_state_rw_, false);
     return meta_port_;
   }
   std::string local_ip() {
@@ -167,8 +169,6 @@ class ZPDataServer {
 
   // Meta State related
   pthread_rwlock_t meta_state_rw_;
-  std::atomic<bool> should_rejoin_;
-  int meta_state_;
   std::string meta_ip_;
   long meta_port_;
   
