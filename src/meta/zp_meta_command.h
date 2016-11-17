@@ -3,12 +3,12 @@
 
 #include "zp_command.h"
 
-class JoinCmd : public Cmd {
- public:
-  JoinCmd(int flag) : Cmd(flag) {}
-  virtual void Do(const google::protobuf::Message *req,
-      google::protobuf::Message *res, void* partition = NULL) const;
-};
+//class JoinCmd : public Cmd {
+// public:
+//  JoinCmd(int flag) : Cmd(flag) {}
+//  virtual void Do(const google::protobuf::Message *req,
+//      google::protobuf::Message *res, void* partition = NULL) const;
+//};
 
 class PingCmd : public Cmd {
  public:

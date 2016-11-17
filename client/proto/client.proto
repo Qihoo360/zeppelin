@@ -1,0 +1,58 @@
+package client;
+
+enum Type {
+  SYNC = 0;
+  SET = 1;
+  GET = 2;
+}
+
+enum StatusCode {
+  kOk = 0;
+  kNotFound = 1;
+  kWait = 2;
+  kError = 3;
+}
+
+message Node {
+  required bytes ip = 1;
+  required int32 port = 2;
+}
+
+message CmdRequest {
+  required Type type = 1;
+
+  // Sync
+  message Sync {
+    required Node node = 1;
+    required int32 partition_id = 2;
+    required int32 filenum = 3 [default = 0];
+    required int32 offset = 4 [default = 0];
+  }
+  optional Sync sync = 2; 
+
+
+  message Set {
+    required bytes key = 1;
+    required bytes value = 2;
+    optional bytes uuid = 3;
+  }
+
+  optional Set set = 3;
+
+  message Get {
+    required bytes key = 1;
+    optional bytes uuid = 2;
+  }
+  optional Get get = 4;
+}
+
+message CmdResponse {
+  required Type type = 1;
+  required StatusCode code = 2;
+  optional bytes msg = 3;
+
+  message Get {
+    optional bytes value = 1;
+  }
+  optional Get get = 4;
+}

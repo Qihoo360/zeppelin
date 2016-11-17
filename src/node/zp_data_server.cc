@@ -12,8 +12,6 @@
 ZPDataServer::ZPDataServer()
   :partition_count_(0),
    should_exit_(false),
-   should_rejoin_(false),
-   meta_state_(MetaState::kMetaConnect),
    meta_epoch_(-1),
    should_pull_meta_(false) {
     pthread_rwlock_init(&meta_state_rw_, NULL);
@@ -121,12 +119,6 @@ Status ZPDataServer::Start() {
   return Status::OK();
 }
 
-bool ZPDataServer::ShouldJoinMeta() {
-  slash::RWLock l(&meta_state_rw_, false);
-  DLOG(INFO) <<  "ShouldJoinMeta meta_state: " << meta_state_;
-  return meta_state_ == MetaState::kMetaConnect;
-}
-
 void ZPDataServer::TryUpdateEpoch(int64_t epoch) {
   slash::MutexLock l(&mutex_epoch_);
   if (epoch != meta_epoch_) {
@@ -141,19 +133,6 @@ void ZPDataServer::FinishPullMeta(int64_t epoch) {
   DLOG(INFO) <<  "UpdateEpoch (" << meta_epoch_ << "->" << epoch << ") ok...";
   meta_epoch_ = epoch;
   should_pull_meta_ = false;
-}
-
-// Now we only need to keep one connection for Meta Node;
-void ZPDataServer::MetaConnected() {
-  slash::RWLock l(&meta_state_rw_, true);
-  assert (meta_state_ == MetaState::kMetaConnect);
-  meta_state_ = MetaState::kMetaConnected;
-}
-
-void ZPDataServer::MetaDisconnect() {
-  slash::RWLock l(&meta_state_rw_, true);
-  assert (meta_state_ == MetaState::kMetaConnected);
-  meta_state_ = MetaState::kMetaConnect;
 }
 
 void ZPDataServer::PickMeta() {

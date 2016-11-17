@@ -50,7 +50,7 @@ class ZPMetaServer {
   void AddMetaUpdateTask(const std::string& ip_port, ZPMetaUpdateOP);
   void ClearMetaUpdateTask();
   void ScheduleUpdate();
-  bool UpdateNodeAlive(const std::string& ip_port);
+//  bool UpdateNodeAlive(const std::string& ip_port);
   Status DoUpdate(ZPMetaUpdateTaskMap task_map);
   
   // Floyd related
