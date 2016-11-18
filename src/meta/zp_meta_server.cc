@@ -49,7 +49,11 @@ ZPMetaServer::~ZPMetaServer() {
 
 void ZPMetaServer::Start() {
   LOG(INFO) << "ZPMetaServer started on port:" << g_zp_conf->local_port() << ", seed is " << g_zp_conf->seed_ip().c_str() << ":" <<g_zp_conf->seed_port();
-  floyd_->Start();
+  floyd::Status s = floyd_->Start();
+  if (!s.ok()) {
+    LOG(ERROR) << "Start floyd failed: " << s.ToString();
+    return;
+  }
   std::string leader_ip;
   int leader_port;
   while (!GetLeader(leader_ip, leader_port) && !should_exit_) {
