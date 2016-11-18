@@ -7,19 +7,6 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include "zp_data_command.h"
-#include "zp_options.h"
-#include "zp_binlog.h"
-#include "zp_meta_utils.h"
-#include "zp_const.h"
-#include "zp_metacmd_thread.h"
-#include "zp_ping_thread.h"
-#include "zp_trysync_thread.h"
-#include "zp_binlog_sender_thread.h"
-#include "zp_binlog_receiver_thread.h"
-#include "zp_binlog_receive_bgworker.h"
-#include "zp_data_partition.h"
-
 #include "bg_thread.h"
 #include "pb_conn.h"
 #include "pb_cli.h"
@@ -31,6 +18,20 @@
 #include "nemo.h"
 #include "nemo_backupable.h"
 
+#include "zp_data_command.h"
+#include "zp_conf.h"
+#include "zp_binlog.h"
+#include "zp_meta_utils.h"
+#include "zp_const.h"
+#include "zp_metacmd_thread.h"
+#include "zp_ping_thread.h"
+#include "zp_trysync_thread.h"
+#include "zp_binlog_sender_thread.h"
+#include "zp_binlog_receiver_thread.h"
+#include "zp_binlog_receive_bgworker.h"
+#include "zp_data_partition.h"
+
+
 using slash::Status;
 
 class ZPDataServer;
@@ -41,10 +42,11 @@ class ZPDataWorkerThread;
 class ZPDataDispatchThread;
 
 
+extern ZpConf* g_zp_conf;
 class ZPDataServer {
  public:
 
-  explicit ZPDataServer(const ZPOptions& option);
+  explicit ZPDataServer();
   virtual ~ZPDataServer();
   Status Start();
 
@@ -57,22 +59,22 @@ class ZPDataServer {
     return meta_port_;
   }
   std::string local_ip() {
-    return options_.local_ip;
+    return g_zp_conf->local_ip();
   }
   int local_port() {
-    return options_.local_port;
+    return g_zp_conf->local_port();
   }
 
   bool IsSelf(const Node& node) {
-    return (options_.local_ip == node.ip && options_.local_port == node.port);
+    return (g_zp_conf->local_ip() == node.ip && g_zp_conf->local_port() == node.port);
   }
 
   std::string db_sync_path() {
-    return "./sync_" + std::to_string(options_.local_port) + "/";
+    return "./sync_" + std::to_string(g_zp_conf->local_port()) + "/";
   }
 
   std::string bgsave_path() {
-    return options_.data_path + "/dump/";
+    return g_zp_conf->data_path() + "/dump/";
   }
 
   void Exit() {
@@ -140,7 +142,6 @@ class ZPDataServer {
 
  private:
 
-  ZPOptions options_;
   slash::Mutex server_mutex_;
   std::unordered_map<int, Cmd*> cmds_;
 

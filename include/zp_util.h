@@ -3,8 +3,7 @@
 
 #include <string>
 
-#include "zp_options.h"
-class ZPOptions;
+#include "zp_conf.h"
 // TODO use Tasktype instead of macro
 enum TaskType {
   kTaskKill = 0,
@@ -21,7 +20,7 @@ struct WorkerCronTask {
 
 void daemonize();
 void close_std();
-void create_pid_file(ZPOptions& options);
+void create_pid_file();
 class FileLocker {
   public:
 

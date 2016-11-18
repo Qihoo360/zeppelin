@@ -6,19 +6,20 @@
 #include <functional>
 #include <unordered_set>
 
+#include "pb_conn.h"
+#include "pb_cli.h"
+#include "holy_thread.h"
+#include "nemo.h"
+#include "nemo_backupable.h"
+
+
 #include "zp_const.h"
 #include "client.pb.h"
-#include "zp_options.h"
+#include "zp_conf.h"
 #include "zp_binlog.h"
 #include "zp_meta_utils.h"
 #include "zp_command.h"
 
-#include "pb_conn.h"
-#include "pb_cli.h"
-#include "holy_thread.h"
-
-#include "nemo.h"
-#include "nemo_backupable.h"
 
 class Partition;
 std::string NewPartitionPath(const std::string& name, const uint32_t current);

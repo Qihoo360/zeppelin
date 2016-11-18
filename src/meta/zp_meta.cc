@@ -5,25 +5,26 @@
 #include <sstream>
 #include <glog/logging.h>
 
-#include "zp_meta_server.h"
-#include "zp_options.h"
-
 #include "env.h"
 
+#include "zp_meta_server.h"
+#include "zp_conf.h"
+
+
+ZpConf *g_zp_conf;
 ZPMetaServer* zp_meta_server;
 
 void Usage();
-void ParseArgs(int argc, char* argv[], ZPOptions& options);
-void ParseArgsFromFile(int argc, char* argv[], ZPOptions& options);
+void ParseArgsFromFile(int argc, char* argv[]);
 
-static void GlogInit(const ZPOptions& options) {
-  if (!slash::FileExists(options.log_path)) {
-    slash::CreatePath(options.log_path); 
+static void GlogInit() {
+  if (!slash::FileExists(g_zp_conf->log_path())) {
+    slash::CreatePath(g_zp_conf->log_path()); 
   }
 
   FLAGS_alsologtostderr = true;
 
-  FLAGS_log_dir = options.log_path;
+  FLAGS_log_dir = g_zp_conf->log_path();
   FLAGS_minloglevel = 0;
   FLAGS_max_log_size = 1800;
   ::google::InitGoogleLogging("zp");
@@ -42,44 +43,14 @@ static void SignalSetup() {
   signal(SIGTERM, &IntSigHandle);
 }
 
-int main(int argc, char** argv) {
-  ZPOptions options;
-
-  ParseArgsFromFile(argc, argv, options);
-
-  if (options.daemonize) {
-    daemonize();
-  }
-
-  GlogInit(options);
-  SignalSetup();
-
-  FileLocker db_lock(options.lock_file);
-  Status s = db_lock.Lock();
-  if (!s.ok()) {
-    return 0;
-  }
-
-  if (options.daemonize) {
-    create_pid_file(options);
-    close_std();
-  }
-
-  zp_meta_server = new ZPMetaServer(options);
-
-  zp_meta_server->Start();
-
-  printf ("Exit\n");
-
-  return 0;
-}
 
 void Usage() {
   printf ("Usage:\n"
           "  ./output/bin/zp-meta -c conf\n");
 }
 
-void ParseArgsFromFile(int argc, char* argv[], ZPOptions& options) {
+
+void ZpConfInit(int argc, char* argv[]) {
   if (argc < 1) {
     Usage();
     exit(-1);
@@ -108,8 +79,40 @@ void ParseArgsFromFile(int argc, char* argv[], ZPOptions& options) {
     exit(-1);
   }
 
-  if (options.Load(path) != 0) {
+  g_zp_conf = new ZpConf();
+  if (g_zp_conf->Load(path) != 0) {
     LOG(FATAL) << "zp-meta load conf file error";
   }
-  options.Dump();
+  g_zp_conf->Dump();
 }
+
+int main(int argc, char** argv) {
+  ZpConfInit(argc, argv);
+
+  GlogInit();
+  SignalSetup();
+
+  if (g_zp_conf->daemonize()) {
+    daemonize();
+  }
+
+  FileLocker db_lock(g_zp_conf->lock_file());
+  Status s = db_lock.Lock();
+  if (!s.ok()) {
+    return 0;
+  }
+
+  if (g_zp_conf->daemonize()) {
+    create_pid_file();
+    close_std();
+  }
+
+  zp_meta_server = new ZPMetaServer();
+
+  zp_meta_server->Start();
+
+  printf ("Exit\n");
+
+  return 0;
+}
+

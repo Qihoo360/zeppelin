@@ -11,17 +11,16 @@ enum ZPNodeStatus {
   kNodeDown
 };
 
-ZPMetaServer::ZPMetaServer(const ZPOptions& options)
-  : worker_num_(6), options_(options), version_(-1), should_exit_(false), started_(false), leader_first_time_(true), leader_cli_(NULL), leader_cmd_port_(0) {
+ZPMetaServer::ZPMetaServer()
+  : worker_num_(6), version_(-1), should_exit_(false), started_(false), leader_first_time_(true), leader_cli_(NULL), leader_cmd_port_(0) {
 
-  // Convert ZPOptions
   floyd::Options fy_options;
-  fy_options.seed_ip = options.seed_ip;
-  fy_options.seed_port = options.seed_port + kMetaPortShiftFY;
-  fy_options.local_ip = options.local_ip;
-  fy_options.local_port = options.local_port + kMetaPortShiftFY;
-  fy_options.data_path = options.data_path;
-  fy_options.log_path = options.log_path;
+  fy_options.seed_ip = g_zp_conf->seed_ip();
+  fy_options.seed_port = g_zp_conf->seed_port() + kMetaPortShiftFY;
+  fy_options.local_ip = g_zp_conf->local_ip();
+  fy_options.local_port = g_zp_conf->local_port() + kMetaPortShiftFY;
+  fy_options.data_path = g_zp_conf->data_path();
+  fy_options.log_path = g_zp_conf->log_path();
   fy_options.log_type = "FileLog";
 
   floyd_ = new floyd::Floyd(fy_options);
@@ -32,7 +31,7 @@ ZPMetaServer::ZPMetaServer(const ZPOptions& options)
   for (int i = 0; i < worker_num_ ; ++i) {
     zp_meta_worker_thread_[i] = new ZPMetaWorkerThread(kMetaWorkerCronInterval);
   }
-  zp_meta_dispatch_thread_ = new ZPMetaDispatchThread(options.local_port + kMetaPortShiftCmd, worker_num_, zp_meta_worker_thread_, kMetaDispathCronInterval);
+  zp_meta_dispatch_thread_ = new ZPMetaDispatchThread(g_zp_conf->local_port() + kMetaPortShiftCmd, worker_num_, zp_meta_worker_thread_, kMetaDispathCronInterval);
   update_thread_ = new ZPMetaUpdateThread();
 }
 
@@ -49,7 +48,7 @@ ZPMetaServer::~ZPMetaServer() {
 }
 
 void ZPMetaServer::Start() {
-  LOG(INFO) << "ZPMetaServer started on port:" << options_.local_port << ", seed is " << options_.seed_ip.c_str() << ":" <<options_.seed_port;
+  LOG(INFO) << "ZPMetaServer started on port:" << g_zp_conf->local_port() << ", seed is " << g_zp_conf->seed_ip().c_str() << ":" <<g_zp_conf->seed_port();
   floyd_->Start();
   std::string leader_ip;
   int leader_port;
@@ -79,8 +78,8 @@ void ZPMetaServer::Stop() {
 }
 
 void ZPMetaServer::CleanUp() {
-  if (options_.daemonize) {
-    unlink(options_.pid_file.c_str());
+  if (g_zp_conf->daemonize()) {
+    unlink(g_zp_conf->pid_file().c_str());
   }
   delete this;
   ::google::ShutdownGoogleLogging();
@@ -647,8 +646,8 @@ bool ZPMetaServer::IsLeader() {
   }
   
   // Leader changed
-  if (leader_ip == options_.local_ip && 
-      leader_port == options_.local_port) {
+  if (leader_ip == g_zp_conf->local_ip() && 
+      leader_port == g_zp_conf->local_port()) {
     // I am Leader
     if (leader_first_time_) {
       leader_first_time_ = false;
