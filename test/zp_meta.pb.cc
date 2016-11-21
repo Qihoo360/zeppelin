@@ -205,7 +205,8 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(MetaCmd_Ping));
   MetaCmd_Pull_descriptor_ = MetaCmd_descriptor_->nested_type(1);
-  static const int MetaCmd_Pull_offsets_[1] = {
+  static const int MetaCmd_Pull_offsets_[2] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmd_Pull, node_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmd_Pull, name_),
   };
   MetaCmd_Pull_reflection_ =
@@ -393,25 +394,26 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "\0132\014.ZPMeta.Node\022\034\n\006slaves\030\003 \003(\0132\014.ZPMeta"
     ".Node\"\031\n\tTablaName\022\014\n\004name\030\001 \003(\t\"=\n\005Tabl"
     "e\022\014\n\004name\030\001 \002(\t\022&\n\npartitions\030\002 \003(\0132\022.ZP"
-    "Meta.Partitions\"\255\002\n\007MetaCmd\022\"\n\004type\030\001 \002("
+    "Meta.Partitions\"\311\002\n\007MetaCmd\022\"\n\004type\030\001 \002("
     "\0162\024.ZPMeta.MetaCmd.Type\022\"\n\004ping\030\002 \001(\0132\024."
     "ZPMeta.MetaCmd.Ping\022\"\n\004pull\030\003 \001(\0132\024.ZPMe"
     "ta.MetaCmd.Pull\022\"\n\004init\030\004 \001(\0132\024.ZPMeta.M"
     "etaCmd.Init\0323\n\004Ping\022\017\n\007version\030\001 \002(\005\022\032\n\004"
-    "node\030\002 \002(\0132\014.ZPMeta.Node\032\024\n\004Pull\022\014\n\004name"
-    "\030\001 \003(\t\032!\n\004Init\022\014\n\004name\030\001 \002(\t\022\013\n\003num\030\002 \002("
-    "\005\"$\n\004Type\022\010\n\004PING\020\001\022\010\n\004PULL\020\002\022\010\n\004INIT\020\003\""
-    "\363\002\n\017MetaCmdResponse\022*\n\004type\030\001 \002(\0162\034.ZPMe"
-    "ta.MetaCmdResponse.Type\022.\n\006status\030\002 \002(\0132"
-    "\036.ZPMeta.MetaCmdResponse.Status\022*\n\004ping\030"
-    "\003 \001(\0132\034.ZPMeta.MetaCmdResponse.Ping\022*\n\004p"
-    "ull\030\004 \001(\0132\034.ZPMeta.MetaCmdResponse.Pull\032"
-    "7\n\006Status\022 \n\004code\030\001 \002(\0162\022.ZPMeta.StatusC"
-    "ode\022\013\n\003msg\030\002 \001(\014\032\027\n\004Ping\022\017\n\007version\030\001 \002("
-    "\005\0324\n\004Pull\022\017\n\007version\030\001 \002(\005\022\033\n\004info\030\002 \003(\013"
-    "2\r.ZPMeta.Table\"$\n\004Type\022\010\n\004PING\020\001\022\010\n\004PUL"
-    "L\020\002\022\010\n\004INIT\020\003*0\n\nStatusCode\022\007\n\003kOk\020\000\022\r\n\t"
-    "kNotFound\020\001\022\n\n\006kError\020\002", 1063);
+    "node\030\002 \002(\0132\014.ZPMeta.Node\0320\n\004Pull\022\032\n\004node"
+    "\030\001 \001(\0132\014.ZPMeta.Node\022\014\n\004name\030\002 \001(\t\032!\n\004In"
+    "it\022\014\n\004name\030\001 \002(\t\022\013\n\003num\030\002 \002(\005\"$\n\004Type\022\010\n"
+    "\004PING\020\001\022\010\n\004PULL\020\002\022\010\n\004INIT\020\003\"\363\002\n\017MetaCmdR"
+    "esponse\022*\n\004type\030\001 \002(\0162\034.ZPMeta.MetaCmdRe"
+    "sponse.Type\022.\n\006status\030\002 \002(\0132\036.ZPMeta.Met"
+    "aCmdResponse.Status\022*\n\004ping\030\003 \001(\0132\034.ZPMe"
+    "ta.MetaCmdResponse.Ping\022*\n\004pull\030\004 \001(\0132\034."
+    "ZPMeta.MetaCmdResponse.Pull\0327\n\006Status\022 \n"
+    "\004code\030\001 \002(\0162\022.ZPMeta.StatusCode\022\013\n\003msg\030\002"
+    " \001(\014\032\027\n\004Ping\022\017\n\007version\030\001 \002(\005\0324\n\004Pull\022\017\n"
+    "\007version\030\001 \002(\005\022\033\n\004info\030\002 \003(\0132\r.ZPMeta.Ta"
+    "ble\"$\n\004Type\022\010\n\004PING\020\001\022\010\n\004PULL\020\002\022\010\n\004INIT\020"
+    "\003*0\n\nStatusCode\022\007\n\003kOk\020\000\022\r\n\tkNotFound\020\001\022"
+    "\n\n\006kError\020\002", 1091);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zp_meta.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -2250,6 +2252,7 @@ void MetaCmd_Ping::Swap(MetaCmd_Ping* other) {
 // -------------------------------------------------------------------
 
 #ifndef _MSC_VER
+const int MetaCmd_Pull::kNodeFieldNumber;
 const int MetaCmd_Pull::kNameFieldNumber;
 #endif  // !_MSC_VER
 
@@ -2259,6 +2262,7 @@ MetaCmd_Pull::MetaCmd_Pull()
 }
 
 void MetaCmd_Pull::InitAsDefaultInstance() {
+  node_ = const_cast< ::ZPMeta::Node*>(&::ZPMeta::Node::default_instance());
 }
 
 MetaCmd_Pull::MetaCmd_Pull(const MetaCmd_Pull& from)
@@ -2269,6 +2273,8 @@ MetaCmd_Pull::MetaCmd_Pull(const MetaCmd_Pull& from)
 
 void MetaCmd_Pull::SharedCtor() {
   _cached_size_ = 0;
+  node_ = NULL;
+  name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -2277,7 +2283,11 @@ MetaCmd_Pull::~MetaCmd_Pull() {
 }
 
 void MetaCmd_Pull::SharedDtor() {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    delete name_;
+  }
   if (this != default_instance_) {
+    delete node_;
   }
 }
 
@@ -2303,7 +2313,16 @@ MetaCmd_Pull* MetaCmd_Pull::New() const {
 }
 
 void MetaCmd_Pull::Clear() {
-  name_.Clear();
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (has_node()) {
+      if (node_ != NULL) node_->::ZPMeta::Node::Clear();
+    }
+    if (has_name()) {
+      if (name_ != &::google::protobuf::internal::kEmptyString) {
+        name_->clear();
+      }
+    }
+  }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
 }
@@ -2314,21 +2333,32 @@ bool MetaCmd_Pull::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // repeated string name = 1;
+      // optional .ZPMeta.Node node = 1;
       case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_node()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(18)) goto parse_name;
+        break;
+      }
+
+      // optional string name = 2;
+      case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
          parse_name:
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->add_name()));
+                input, this->mutable_name()));
           ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-            this->name(this->name_size() - 1).data(),
-            this->name(this->name_size() - 1).length(),
+            this->name().data(), this->name().length(),
             ::google::protobuf::internal::WireFormat::PARSE);
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(10)) goto parse_name;
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -2351,13 +2381,19 @@ bool MetaCmd_Pull::MergePartialFromCodedStream(
 
 void MetaCmd_Pull::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // repeated string name = 1;
-  for (int i = 0; i < this->name_size(); i++) {
-  ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-    this->name(i).data(), this->name(i).length(),
-    ::google::protobuf::internal::WireFormat::SERIALIZE);
+  // optional .ZPMeta.Node node = 1;
+  if (has_node()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      1, this->node(), output);
+  }
+
+  // optional string name = 2;
+  if (has_name()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+      this->name().data(), this->name().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE);
     ::google::protobuf::internal::WireFormatLite::WriteString(
-      1, this->name(i), output);
+      2, this->name(), output);
   }
 
   if (!unknown_fields().empty()) {
@@ -2368,13 +2404,21 @@ void MetaCmd_Pull::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* MetaCmd_Pull::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // repeated string name = 1;
-  for (int i = 0; i < this->name_size(); i++) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->name(i).data(), this->name(i).length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
+  // optional .ZPMeta.Node node = 1;
+  if (has_node()) {
     target = ::google::protobuf::internal::WireFormatLite::
-      WriteStringToArray(1, this->name(i), target);
+      WriteMessageNoVirtualToArray(
+        1, this->node(), target);
+  }
+
+  // optional string name = 2;
+  if (has_name()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+      this->name().data(), this->name().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE);
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        2, this->name(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -2387,13 +2431,22 @@ void MetaCmd_Pull::SerializeWithCachedSizes(
 int MetaCmd_Pull::ByteSize() const {
   int total_size = 0;
 
-  // repeated string name = 1;
-  total_size += 1 * this->name_size();
-  for (int i = 0; i < this->name_size(); i++) {
-    total_size += ::google::protobuf::internal::WireFormatLite::StringSize(
-      this->name(i));
-  }
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // optional .ZPMeta.Node node = 1;
+    if (has_node()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->node());
+    }
 
+    // optional string name = 2;
+    if (has_name()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->name());
+    }
+
+  }
   if (!unknown_fields().empty()) {
     total_size +=
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
@@ -2419,7 +2472,14 @@ void MetaCmd_Pull::MergeFrom(const ::google::protobuf::Message& from) {
 
 void MetaCmd_Pull::MergeFrom(const MetaCmd_Pull& from) {
   GOOGLE_CHECK_NE(&from, this);
-  name_.MergeFrom(from.name_);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_node()) {
+      mutable_node()->::ZPMeta::Node::MergeFrom(from.node());
+    }
+    if (from.has_name()) {
+      set_name(from.name());
+    }
+  }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
 
@@ -2437,12 +2497,16 @@ void MetaCmd_Pull::CopyFrom(const MetaCmd_Pull& from) {
 
 bool MetaCmd_Pull::IsInitialized() const {
 
+  if (has_node()) {
+    if (!this->node().IsInitialized()) return false;
+  }
   return true;
 }
 
 void MetaCmd_Pull::Swap(MetaCmd_Pull* other) {
   if (other != this) {
-    name_.Swap(&other->name_);
+    std::swap(node_, other->node_);
+    std::swap(name_, other->name_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);
@@ -3052,6 +3116,9 @@ bool MetaCmd::IsInitialized() const {
 
   if (has_ping()) {
     if (!this->ping().IsInitialized()) return false;
+  }
+  if (has_pull()) {
+    if (!this->pull().IsInitialized()) return false;
   }
   if (has_init()) {
     if (!this->init().IsInitialized()) return false;

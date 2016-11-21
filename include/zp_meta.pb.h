@@ -831,31 +831,41 @@ class MetaCmd_Pull : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // repeated string name = 1;
-  inline int name_size() const;
+  // optional .ZPMeta.Node node = 1;
+  inline bool has_node() const;
+  inline void clear_node();
+  static const int kNodeFieldNumber = 1;
+  inline const ::ZPMeta::Node& node() const;
+  inline ::ZPMeta::Node* mutable_node();
+  inline ::ZPMeta::Node* release_node();
+  inline void set_allocated_node(::ZPMeta::Node* node);
+
+  // optional string name = 2;
+  inline bool has_name() const;
   inline void clear_name();
-  static const int kNameFieldNumber = 1;
-  inline const ::std::string& name(int index) const;
-  inline ::std::string* mutable_name(int index);
-  inline void set_name(int index, const ::std::string& value);
-  inline void set_name(int index, const char* value);
-  inline void set_name(int index, const char* value, size_t size);
-  inline ::std::string* add_name();
-  inline void add_name(const ::std::string& value);
-  inline void add_name(const char* value);
-  inline void add_name(const char* value, size_t size);
-  inline const ::google::protobuf::RepeatedPtrField< ::std::string>& name() const;
-  inline ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_name();
+  static const int kNameFieldNumber = 2;
+  inline const ::std::string& name() const;
+  inline void set_name(const ::std::string& value);
+  inline void set_name(const char* value);
+  inline void set_name(const char* value, size_t size);
+  inline ::std::string* mutable_name();
+  inline ::std::string* release_name();
+  inline void set_allocated_name(::std::string* name);
 
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd.Pull)
  private:
+  inline void set_has_node();
+  inline void clear_has_node();
+  inline void set_has_name();
+  inline void clear_has_name();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
-  ::google::protobuf::RepeatedPtrField< ::std::string> name_;
+  ::ZPMeta::Node* node_;
+  ::std::string* name_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -2025,48 +2035,112 @@ inline void MetaCmd_Ping::set_allocated_node(::ZPMeta::Node* node) {
 
 // MetaCmd_Pull
 
-// repeated string name = 1;
-inline int MetaCmd_Pull::name_size() const {
-  return name_.size();
+// optional .ZPMeta.Node node = 1;
+inline bool MetaCmd_Pull::has_node() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void MetaCmd_Pull::set_has_node() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void MetaCmd_Pull::clear_has_node() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void MetaCmd_Pull::clear_node() {
+  if (node_ != NULL) node_->::ZPMeta::Node::Clear();
+  clear_has_node();
+}
+inline const ::ZPMeta::Node& MetaCmd_Pull::node() const {
+  return node_ != NULL ? *node_ : *default_instance_->node_;
+}
+inline ::ZPMeta::Node* MetaCmd_Pull::mutable_node() {
+  set_has_node();
+  if (node_ == NULL) node_ = new ::ZPMeta::Node;
+  return node_;
+}
+inline ::ZPMeta::Node* MetaCmd_Pull::release_node() {
+  clear_has_node();
+  ::ZPMeta::Node* temp = node_;
+  node_ = NULL;
+  return temp;
+}
+inline void MetaCmd_Pull::set_allocated_node(::ZPMeta::Node* node) {
+  delete node_;
+  node_ = node;
+  if (node) {
+    set_has_node();
+  } else {
+    clear_has_node();
+  }
+}
+
+// optional string name = 2;
+inline bool MetaCmd_Pull::has_name() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void MetaCmd_Pull::set_has_name() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void MetaCmd_Pull::clear_has_name() {
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline void MetaCmd_Pull::clear_name() {
-  name_.Clear();
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    name_->clear();
+  }
+  clear_has_name();
 }
-inline const ::std::string& MetaCmd_Pull::name(int index) const {
-  return name_.Get(index);
+inline const ::std::string& MetaCmd_Pull::name() const {
+  return *name_;
 }
-inline ::std::string* MetaCmd_Pull::mutable_name(int index) {
-  return name_.Mutable(index);
+inline void MetaCmd_Pull::set_name(const ::std::string& value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
 }
-inline void MetaCmd_Pull::set_name(int index, const ::std::string& value) {
-  name_.Mutable(index)->assign(value);
+inline void MetaCmd_Pull::set_name(const char* value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
 }
-inline void MetaCmd_Pull::set_name(int index, const char* value) {
-  name_.Mutable(index)->assign(value);
+inline void MetaCmd_Pull::set_name(const char* value, size_t size) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(reinterpret_cast<const char*>(value), size);
 }
-inline void MetaCmd_Pull::set_name(int index, const char* value, size_t size) {
-  name_.Mutable(index)->assign(
-    reinterpret_cast<const char*>(value), size);
-}
-inline ::std::string* MetaCmd_Pull::add_name() {
-  return name_.Add();
-}
-inline void MetaCmd_Pull::add_name(const ::std::string& value) {
-  name_.Add()->assign(value);
-}
-inline void MetaCmd_Pull::add_name(const char* value) {
-  name_.Add()->assign(value);
-}
-inline void MetaCmd_Pull::add_name(const char* value, size_t size) {
-  name_.Add()->assign(reinterpret_cast<const char*>(value), size);
-}
-inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
-MetaCmd_Pull::name() const {
+inline ::std::string* MetaCmd_Pull::mutable_name() {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
   return name_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::std::string>*
-MetaCmd_Pull::mutable_name() {
-  return &name_;
+inline ::std::string* MetaCmd_Pull::release_name() {
+  clear_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = name_;
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void MetaCmd_Pull::set_allocated_name(::std::string* name) {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    delete name_;
+  }
+  if (name) {
+    set_has_name();
+    name_ = name;
+  } else {
+    clear_has_name();
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
 }
 
 // -------------------------------------------------------------------
