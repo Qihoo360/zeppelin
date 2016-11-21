@@ -26,6 +26,10 @@ message Partitions {
   repeated Node slaves = 3;
 }
 
+message TablaName {
+  repeated string name = 1;
+}
+
 message Table {
   required string name = 1;
   repeated Partitions partitions = 2;
@@ -49,13 +53,14 @@ message MetaCmd {
 
   // Pull
   message Pull {
-    optional int32 table_id = 1;
+    repeated string name = 1;
   }
   optional Pull pull = 3;
 
   // Init
   message Init {
-    optional int32 num = 1;  
+    required string name = 1;
+    required int32 num = 2;
   }
   optional Init init = 4;
 }

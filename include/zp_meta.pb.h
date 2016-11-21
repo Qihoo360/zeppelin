@@ -38,6 +38,7 @@ class Node;
 class NodeStatus;
 class Nodes;
 class Partitions;
+class TablaName;
 class Table;
 class MetaCmd;
 class MetaCmd_Ping;
@@ -493,6 +494,95 @@ class Partitions : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class TablaName : public ::google::protobuf::Message {
+ public:
+  TablaName();
+  virtual ~TablaName();
+
+  TablaName(const TablaName& from);
+
+  inline TablaName& operator=(const TablaName& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const TablaName& default_instance();
+
+  void Swap(TablaName* other);
+
+  // implements Message ----------------------------------------------
+
+  TablaName* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const TablaName& from);
+  void MergeFrom(const TablaName& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated string name = 1;
+  inline int name_size() const;
+  inline void clear_name();
+  static const int kNameFieldNumber = 1;
+  inline const ::std::string& name(int index) const;
+  inline ::std::string* mutable_name(int index);
+  inline void set_name(int index, const ::std::string& value);
+  inline void set_name(int index, const char* value);
+  inline void set_name(int index, const char* value, size_t size);
+  inline ::std::string* add_name();
+  inline void add_name(const ::std::string& value);
+  inline void add_name(const char* value);
+  inline void add_name(const char* value, size_t size);
+  inline const ::google::protobuf::RepeatedPtrField< ::std::string>& name() const;
+  inline ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_name();
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.TablaName)
+ private:
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::RepeatedPtrField< ::std::string> name_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static TablaName* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class Table : public ::google::protobuf::Message {
  public:
   Table();
@@ -741,21 +831,28 @@ class MetaCmd_Pull : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // optional int32 table_id = 1;
-  inline bool has_table_id() const;
-  inline void clear_table_id();
-  static const int kTableIdFieldNumber = 1;
-  inline ::google::protobuf::int32 table_id() const;
-  inline void set_table_id(::google::protobuf::int32 value);
+  // repeated string name = 1;
+  inline int name_size() const;
+  inline void clear_name();
+  static const int kNameFieldNumber = 1;
+  inline const ::std::string& name(int index) const;
+  inline ::std::string* mutable_name(int index);
+  inline void set_name(int index, const ::std::string& value);
+  inline void set_name(int index, const char* value);
+  inline void set_name(int index, const char* value, size_t size);
+  inline ::std::string* add_name();
+  inline void add_name(const ::std::string& value);
+  inline void add_name(const char* value);
+  inline void add_name(const char* value, size_t size);
+  inline const ::google::protobuf::RepeatedPtrField< ::std::string>& name() const;
+  inline ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_name();
 
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd.Pull)
  private:
-  inline void set_has_table_id();
-  inline void clear_has_table_id();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
-  ::google::protobuf::int32 table_id_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> name_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
@@ -823,24 +920,39 @@ class MetaCmd_Init : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // optional int32 num = 1;
+  // required string name = 1;
+  inline bool has_name() const;
+  inline void clear_name();
+  static const int kNameFieldNumber = 1;
+  inline const ::std::string& name() const;
+  inline void set_name(const ::std::string& value);
+  inline void set_name(const char* value);
+  inline void set_name(const char* value, size_t size);
+  inline ::std::string* mutable_name();
+  inline ::std::string* release_name();
+  inline void set_allocated_name(::std::string* name);
+
+  // required int32 num = 2;
   inline bool has_num() const;
   inline void clear_num();
-  static const int kNumFieldNumber = 1;
+  static const int kNumFieldNumber = 2;
   inline ::google::protobuf::int32 num() const;
   inline void set_num(::google::protobuf::int32 value);
 
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd.Init)
  private:
+  inline void set_has_name();
+  inline void clear_has_name();
   inline void set_has_num();
   inline void clear_has_num();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
+  ::std::string* name_;
   ::google::protobuf::int32 num_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -1700,6 +1812,54 @@ Partitions::mutable_slaves() {
 
 // -------------------------------------------------------------------
 
+// TablaName
+
+// repeated string name = 1;
+inline int TablaName::name_size() const {
+  return name_.size();
+}
+inline void TablaName::clear_name() {
+  name_.Clear();
+}
+inline const ::std::string& TablaName::name(int index) const {
+  return name_.Get(index);
+}
+inline ::std::string* TablaName::mutable_name(int index) {
+  return name_.Mutable(index);
+}
+inline void TablaName::set_name(int index, const ::std::string& value) {
+  name_.Mutable(index)->assign(value);
+}
+inline void TablaName::set_name(int index, const char* value) {
+  name_.Mutable(index)->assign(value);
+}
+inline void TablaName::set_name(int index, const char* value, size_t size) {
+  name_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* TablaName::add_name() {
+  return name_.Add();
+}
+inline void TablaName::add_name(const ::std::string& value) {
+  name_.Add()->assign(value);
+}
+inline void TablaName::add_name(const char* value) {
+  name_.Add()->assign(value);
+}
+inline void TablaName::add_name(const char* value, size_t size) {
+  name_.Add()->assign(reinterpret_cast<const char*>(value), size);
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+TablaName::name() const {
+  return name_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+TablaName::mutable_name() {
+  return &name_;
+}
+
+// -------------------------------------------------------------------
+
 // Table
 
 // required string name = 1;
@@ -1865,41 +2025,133 @@ inline void MetaCmd_Ping::set_allocated_node(::ZPMeta::Node* node) {
 
 // MetaCmd_Pull
 
-// optional int32 table_id = 1;
-inline bool MetaCmd_Pull::has_table_id() const {
-  return (_has_bits_[0] & 0x00000001u) != 0;
+// repeated string name = 1;
+inline int MetaCmd_Pull::name_size() const {
+  return name_.size();
 }
-inline void MetaCmd_Pull::set_has_table_id() {
-  _has_bits_[0] |= 0x00000001u;
+inline void MetaCmd_Pull::clear_name() {
+  name_.Clear();
 }
-inline void MetaCmd_Pull::clear_has_table_id() {
-  _has_bits_[0] &= ~0x00000001u;
+inline const ::std::string& MetaCmd_Pull::name(int index) const {
+  return name_.Get(index);
 }
-inline void MetaCmd_Pull::clear_table_id() {
-  table_id_ = 0;
-  clear_has_table_id();
+inline ::std::string* MetaCmd_Pull::mutable_name(int index) {
+  return name_.Mutable(index);
 }
-inline ::google::protobuf::int32 MetaCmd_Pull::table_id() const {
-  return table_id_;
+inline void MetaCmd_Pull::set_name(int index, const ::std::string& value) {
+  name_.Mutable(index)->assign(value);
 }
-inline void MetaCmd_Pull::set_table_id(::google::protobuf::int32 value) {
-  set_has_table_id();
-  table_id_ = value;
+inline void MetaCmd_Pull::set_name(int index, const char* value) {
+  name_.Mutable(index)->assign(value);
+}
+inline void MetaCmd_Pull::set_name(int index, const char* value, size_t size) {
+  name_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* MetaCmd_Pull::add_name() {
+  return name_.Add();
+}
+inline void MetaCmd_Pull::add_name(const ::std::string& value) {
+  name_.Add()->assign(value);
+}
+inline void MetaCmd_Pull::add_name(const char* value) {
+  name_.Add()->assign(value);
+}
+inline void MetaCmd_Pull::add_name(const char* value, size_t size) {
+  name_.Add()->assign(reinterpret_cast<const char*>(value), size);
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+MetaCmd_Pull::name() const {
+  return name_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+MetaCmd_Pull::mutable_name() {
+  return &name_;
 }
 
 // -------------------------------------------------------------------
 
 // MetaCmd_Init
 
-// optional int32 num = 1;
-inline bool MetaCmd_Init::has_num() const {
+// required string name = 1;
+inline bool MetaCmd_Init::has_name() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void MetaCmd_Init::set_has_num() {
+inline void MetaCmd_Init::set_has_name() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void MetaCmd_Init::clear_has_num() {
+inline void MetaCmd_Init::clear_has_name() {
   _has_bits_[0] &= ~0x00000001u;
+}
+inline void MetaCmd_Init::clear_name() {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    name_->clear();
+  }
+  clear_has_name();
+}
+inline const ::std::string& MetaCmd_Init::name() const {
+  return *name_;
+}
+inline void MetaCmd_Init::set_name(const ::std::string& value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
+}
+inline void MetaCmd_Init::set_name(const char* value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
+}
+inline void MetaCmd_Init::set_name(const char* value, size_t size) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* MetaCmd_Init::mutable_name() {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  return name_;
+}
+inline ::std::string* MetaCmd_Init::release_name() {
+  clear_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = name_;
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void MetaCmd_Init::set_allocated_name(::std::string* name) {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    delete name_;
+  }
+  if (name) {
+    set_has_name();
+    name_ = name;
+  } else {
+    clear_has_name();
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required int32 num = 2;
+inline bool MetaCmd_Init::has_num() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void MetaCmd_Init::set_has_num() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void MetaCmd_Init::clear_has_num() {
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline void MetaCmd_Init::clear_num() {
   num_ = 0;
