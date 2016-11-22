@@ -58,9 +58,10 @@ class ZPMetaServer {
     return version_;
   }
   void Reorganize(std::vector<ZPMeta::NodeStatus> &t_alive_nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
-  Status Distribute(int num);
-  Status GetMSInfo(ZPMeta::MetaCmdResponse_Pull &ms_info);
-  int PartitionNums();
+  Status Distribute(std::string table, int num);
+  Status GetTablesFromNode(std::string &ip_port, std::vector<std::string> &tables);
+  Status GetTableInfo(std::string &table, ZPMeta::Table &table_info);
+  Status GetMSInfo(std::vector<std::string> &tables, ZPMeta::MetaCmdResponse_Pull &ms_info);
 
   // Leader related
   bool IsLeader();
@@ -79,6 +80,7 @@ private:
   std::atomic<int> version_;
   std::atomic<bool> should_exit_;
   std::atomic<bool> started_;
+  std::unordered_map<std::string, std::vector<std::string> > nodes_;
 
   // Floyd related
   floyd::Floyd* floyd_;
@@ -89,12 +91,12 @@ private:
   Status GetAllNode(ZPMeta::Nodes &nodes);
   void GetAllAliveNode(ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
   bool FindNode(ZPMeta::Nodes &nodes, const std::string &ip, int port);
-  Status SetNodeStatus(ZPMeta::Nodes &nodes, ZPMeta::MetaCmdResponse_Pull &ms_info, const std::string &ip, int port, int status /*0-UP 1-DOWN*/);
-  Status AddNode(ZPMeta::Nodes &nodes, ZPMeta::MetaCmdResponse_Pull &ms_info, const std::string &ip, int port);
-  Status SetReplicaset(uint32_t partition_id, const ZPMeta::Replicaset &replicaset);
-  Status SetMSInfo(const ZPMeta::MetaCmdResponse_Pull &ms_info);
-  bool OnNode(ZPMeta::MetaCmdResponse_Pull &ms_info, const std::string &ip, int port);
-  Status OffNode(ZPMeta::Nodes &nodes, ZPMeta::MetaCmdResponse_Pull &ms_info, const std::string &ip, int port);
+  Status SetNodeStatus(ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, const std::string &ip, int port, int status /*0-UP 1-DOWN*/);
+  Status AddNode(ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, const std::string &ip, int port);
+  Status SetTable(const ZPMeta::Table &table);
+  Status GetTable(std::vector<std::string> tables);
+  bool OnNode(ZPMeta::Table &table_info, const std::string &ip, int port);
+  Status OffNode(ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, const std::string &ip, int port);
 
   // Alive Check
   slash::Mutex alive_mutex_;
@@ -115,7 +117,5 @@ private:
   void CleanLeader();
   bool GetLeader(std::string& ip, int& port);
 };
-
-std::string PartitionId2Key(uint32_t id);
 
 #endif

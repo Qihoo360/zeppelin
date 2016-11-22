@@ -26,10 +26,6 @@ int ZPMetaClientConn::DealMessage() {
   // TODO test only
   ZPMeta::MetaCmdResponse_Type response_type;
   switch (request_.type()) {
-    case ZPMeta::MetaCmd_Type::MetaCmd_Type_JOIN:
-      response_type = ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_JOIN;
-      DLOG(INFO) << "Receive join cmd";
-      break;
     case ZPMeta::MetaCmd_Type::MetaCmd_Type_PING:
       response_type = ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PING;
       DLOG(INFO) << "Receive ping cmd";
