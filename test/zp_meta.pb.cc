@@ -32,9 +32,9 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* Partitions_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Partitions_reflection_ = NULL;
-const ::google::protobuf::Descriptor* TablaName_descriptor_ = NULL;
+const ::google::protobuf::Descriptor* TableName_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
-  TablaName_reflection_ = NULL;
+  TableName_reflection_ = NULL;
 const ::google::protobuf::Descriptor* Table_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Table_reflection_ = NULL;
@@ -139,21 +139,21 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(Partitions));
-  TablaName_descriptor_ = file->message_type(4);
-  static const int TablaName_offsets_[1] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TablaName, name_),
+  TableName_descriptor_ = file->message_type(4);
+  static const int TableName_offsets_[1] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TableName, name_),
   };
-  TablaName_reflection_ =
+  TableName_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
-      TablaName_descriptor_,
-      TablaName::default_instance_,
-      TablaName_offsets_,
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TablaName, _has_bits_[0]),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TablaName, _unknown_fields_),
+      TableName_descriptor_,
+      TableName::default_instance_,
+      TableName_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TableName, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TableName, _unknown_fields_),
       -1,
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
-      sizeof(TablaName));
+      sizeof(TableName));
   Table_descriptor_ = file->message_type(5);
   static const int Table_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Table, name_),
@@ -325,7 +325,7 @@ void protobuf_RegisterTypes(const ::std::string&) {
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     Partitions_descriptor_, &Partitions::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-    TablaName_descriptor_, &TablaName::default_instance());
+    TableName_descriptor_, &TableName::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     Table_descriptor_, &Table::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
@@ -357,8 +357,8 @@ void protobuf_ShutdownFile_zp_5fmeta_2eproto() {
   delete Nodes_reflection_;
   delete Partitions::default_instance_;
   delete Partitions_reflection_;
-  delete TablaName::default_instance_;
-  delete TablaName_reflection_;
+  delete TableName::default_instance_;
+  delete TableName_reflection_;
   delete Table::default_instance_;
   delete Table_reflection_;
   delete MetaCmd::default_instance_;
@@ -392,7 +392,7 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "odes\022!\n\005nodes\030\001 \003(\0132\022.ZPMeta.NodeStatus\""
     "T\n\nPartitions\022\n\n\002id\030\001 \002(\005\022\034\n\006master\030\002 \002("
     "\0132\014.ZPMeta.Node\022\034\n\006slaves\030\003 \003(\0132\014.ZPMeta"
-    ".Node\"\031\n\tTablaName\022\014\n\004name\030\001 \003(\t\"=\n\005Tabl"
+    ".Node\"\031\n\tTableName\022\014\n\004name\030\001 \003(\t\"=\n\005Tabl"
     "e\022\014\n\004name\030\001 \002(\t\022&\n\npartitions\030\002 \003(\0132\022.ZP"
     "Meta.Partitions\"\311\002\n\007MetaCmd\022\"\n\004type\030\001 \002("
     "\0162\024.ZPMeta.MetaCmd.Type\022\"\n\004ping\030\002 \001(\0132\024."
@@ -420,7 +420,7 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
   NodeStatus::default_instance_ = new NodeStatus();
   Nodes::default_instance_ = new Nodes();
   Partitions::default_instance_ = new Partitions();
-  TablaName::default_instance_ = new TablaName();
+  TableName::default_instance_ = new TableName();
   Table::default_instance_ = new Table();
   MetaCmd::default_instance_ = new MetaCmd();
   MetaCmd_Ping::default_instance_ = new MetaCmd_Ping();
@@ -434,7 +434,7 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
   NodeStatus::default_instance_->InitAsDefaultInstance();
   Nodes::default_instance_->InitAsDefaultInstance();
   Partitions::default_instance_->InitAsDefaultInstance();
-  TablaName::default_instance_->InitAsDefaultInstance();
+  TableName::default_instance_->InitAsDefaultInstance();
   Table::default_instance_->InitAsDefaultInstance();
   MetaCmd::default_instance_->InitAsDefaultInstance();
   MetaCmd_Ping::default_instance_->InitAsDefaultInstance();
@@ -1492,65 +1492,65 @@ void Partitions::Swap(Partitions* other) {
 // ===================================================================
 
 #ifndef _MSC_VER
-const int TablaName::kNameFieldNumber;
+const int TableName::kNameFieldNumber;
 #endif  // !_MSC_VER
 
-TablaName::TablaName()
+TableName::TableName()
   : ::google::protobuf::Message() {
   SharedCtor();
 }
 
-void TablaName::InitAsDefaultInstance() {
+void TableName::InitAsDefaultInstance() {
 }
 
-TablaName::TablaName(const TablaName& from)
+TableName::TableName(const TableName& from)
   : ::google::protobuf::Message() {
   SharedCtor();
   MergeFrom(from);
 }
 
-void TablaName::SharedCtor() {
+void TableName::SharedCtor() {
   _cached_size_ = 0;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
-TablaName::~TablaName() {
+TableName::~TableName() {
   SharedDtor();
 }
 
-void TablaName::SharedDtor() {
+void TableName::SharedDtor() {
   if (this != default_instance_) {
   }
 }
 
-void TablaName::SetCachedSize(int size) const {
+void TableName::SetCachedSize(int size) const {
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
   _cached_size_ = size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
 }
-const ::google::protobuf::Descriptor* TablaName::descriptor() {
+const ::google::protobuf::Descriptor* TableName::descriptor() {
   protobuf_AssignDescriptorsOnce();
-  return TablaName_descriptor_;
+  return TableName_descriptor_;
 }
 
-const TablaName& TablaName::default_instance() {
+const TableName& TableName::default_instance() {
   if (default_instance_ == NULL) protobuf_AddDesc_zp_5fmeta_2eproto();
   return *default_instance_;
 }
 
-TablaName* TablaName::default_instance_ = NULL;
+TableName* TableName::default_instance_ = NULL;
 
-TablaName* TablaName::New() const {
-  return new TablaName;
+TableName* TableName::New() const {
+  return new TableName;
 }
 
-void TablaName::Clear() {
+void TableName::Clear() {
   name_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
 }
 
-bool TablaName::MergePartialFromCodedStream(
+bool TableName::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
 #define DO_(EXPRESSION) if (!(EXPRESSION)) return false
   ::google::protobuf::uint32 tag;
@@ -1591,7 +1591,7 @@ bool TablaName::MergePartialFromCodedStream(
 #undef DO_
 }
 
-void TablaName::SerializeWithCachedSizes(
+void TableName::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
   // repeated string name = 1;
   for (int i = 0; i < this->name_size(); i++) {
@@ -1608,7 +1608,7 @@ void TablaName::SerializeWithCachedSizes(
   }
 }
 
-::google::protobuf::uint8* TablaName::SerializeWithCachedSizesToArray(
+::google::protobuf::uint8* TableName::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
   // repeated string name = 1;
   for (int i = 0; i < this->name_size(); i++) {
@@ -1626,7 +1626,7 @@ void TablaName::SerializeWithCachedSizes(
   return target;
 }
 
-int TablaName::ByteSize() const {
+int TableName::ByteSize() const {
   int total_size = 0;
 
   // repeated string name = 1;
@@ -1647,10 +1647,10 @@ int TablaName::ByteSize() const {
   return total_size;
 }
 
-void TablaName::MergeFrom(const ::google::protobuf::Message& from) {
+void TableName::MergeFrom(const ::google::protobuf::Message& from) {
   GOOGLE_CHECK_NE(&from, this);
-  const TablaName* source =
-    ::google::protobuf::internal::dynamic_cast_if_available<const TablaName*>(
+  const TableName* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const TableName*>(
       &from);
   if (source == NULL) {
     ::google::protobuf::internal::ReflectionOps::Merge(from, this);
@@ -1659,30 +1659,30 @@ void TablaName::MergeFrom(const ::google::protobuf::Message& from) {
   }
 }
 
-void TablaName::MergeFrom(const TablaName& from) {
+void TableName::MergeFrom(const TableName& from) {
   GOOGLE_CHECK_NE(&from, this);
   name_.MergeFrom(from.name_);
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
 
-void TablaName::CopyFrom(const ::google::protobuf::Message& from) {
+void TableName::CopyFrom(const ::google::protobuf::Message& from) {
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
-void TablaName::CopyFrom(const TablaName& from) {
+void TableName::CopyFrom(const TableName& from) {
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
-bool TablaName::IsInitialized() const {
+bool TableName::IsInitialized() const {
 
   return true;
 }
 
-void TablaName::Swap(TablaName* other) {
+void TableName::Swap(TableName* other) {
   if (other != this) {
     name_.Swap(&other->name_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
@@ -1691,11 +1691,11 @@ void TablaName::Swap(TablaName* other) {
   }
 }
 
-::google::protobuf::Metadata TablaName::GetMetadata() const {
+::google::protobuf::Metadata TableName::GetMetadata() const {
   protobuf_AssignDescriptorsOnce();
   ::google::protobuf::Metadata metadata;
-  metadata.descriptor = TablaName_descriptor_;
-  metadata.reflection = TablaName_reflection_;
+  metadata.descriptor = TableName_descriptor_;
+  metadata.reflection = TableName_reflection_;
   return metadata;
 }
 

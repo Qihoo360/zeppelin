@@ -38,7 +38,7 @@ class Node;
 class NodeStatus;
 class Nodes;
 class Partitions;
-class TablaName;
+class TableName;
 class Table;
 class MetaCmd;
 class MetaCmd_Ping;
@@ -494,14 +494,14 @@ class Partitions : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
-class TablaName : public ::google::protobuf::Message {
+class TableName : public ::google::protobuf::Message {
  public:
-  TablaName();
-  virtual ~TablaName();
+  TableName();
+  virtual ~TableName();
 
-  TablaName(const TablaName& from);
+  TableName(const TableName& from);
 
-  inline TablaName& operator=(const TablaName& from) {
+  inline TableName& operator=(const TableName& from) {
     CopyFrom(from);
     return *this;
   }
@@ -515,17 +515,17 @@ class TablaName : public ::google::protobuf::Message {
   }
 
   static const ::google::protobuf::Descriptor* descriptor();
-  static const TablaName& default_instance();
+  static const TableName& default_instance();
 
-  void Swap(TablaName* other);
+  void Swap(TableName* other);
 
   // implements Message ----------------------------------------------
 
-  TablaName* New() const;
+  TableName* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const TablaName& from);
-  void MergeFrom(const TablaName& from);
+  void CopyFrom(const TableName& from);
+  void MergeFrom(const TableName& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -564,7 +564,7 @@ class TablaName : public ::google::protobuf::Message {
   inline const ::google::protobuf::RepeatedPtrField< ::std::string>& name() const;
   inline ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_name();
 
-  // @@protoc_insertion_point(class_scope:ZPMeta.TablaName)
+  // @@protoc_insertion_point(class_scope:ZPMeta.TableName)
  private:
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
@@ -579,7 +579,7 @@ class TablaName : public ::google::protobuf::Message {
   friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
 
   void InitAsDefaultInstance();
-  static TablaName* default_instance_;
+  static TableName* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -1822,49 +1822,49 @@ Partitions::mutable_slaves() {
 
 // -------------------------------------------------------------------
 
-// TablaName
+// TableName
 
 // repeated string name = 1;
-inline int TablaName::name_size() const {
+inline int TableName::name_size() const {
   return name_.size();
 }
-inline void TablaName::clear_name() {
+inline void TableName::clear_name() {
   name_.Clear();
 }
-inline const ::std::string& TablaName::name(int index) const {
+inline const ::std::string& TableName::name(int index) const {
   return name_.Get(index);
 }
-inline ::std::string* TablaName::mutable_name(int index) {
+inline ::std::string* TableName::mutable_name(int index) {
   return name_.Mutable(index);
 }
-inline void TablaName::set_name(int index, const ::std::string& value) {
+inline void TableName::set_name(int index, const ::std::string& value) {
   name_.Mutable(index)->assign(value);
 }
-inline void TablaName::set_name(int index, const char* value) {
+inline void TableName::set_name(int index, const char* value) {
   name_.Mutable(index)->assign(value);
 }
-inline void TablaName::set_name(int index, const char* value, size_t size) {
+inline void TableName::set_name(int index, const char* value, size_t size) {
   name_.Mutable(index)->assign(
     reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* TablaName::add_name() {
+inline ::std::string* TableName::add_name() {
   return name_.Add();
 }
-inline void TablaName::add_name(const ::std::string& value) {
+inline void TableName::add_name(const ::std::string& value) {
   name_.Add()->assign(value);
 }
-inline void TablaName::add_name(const char* value) {
+inline void TableName::add_name(const char* value) {
   name_.Add()->assign(value);
 }
-inline void TablaName::add_name(const char* value, size_t size) {
+inline void TableName::add_name(const char* value, size_t size) {
   name_.Add()->assign(reinterpret_cast<const char*>(value), size);
 }
 inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
-TablaName::name() const {
+TableName::name() const {
   return name_;
 }
 inline ::google::protobuf::RepeatedPtrField< ::std::string>*
-TablaName::mutable_name() {
+TableName::mutable_name() {
   return &name_;
 }
 

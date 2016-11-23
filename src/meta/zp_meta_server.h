@@ -16,16 +16,18 @@
 #include "zp_meta_update_thread.h"
 
 using slash::Status;
+
 extern ZpConf* g_zp_conf;
 
-typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
 typedef std::unordered_map<std::string, ZPMetaUpdateOP> ZPMetaUpdateTaskMap;
+typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
 
 class ZPMetaServer {
  public:
 
   explicit ZPMetaServer();
   virtual ~ZPMetaServer();
+  // Server related
   void Start();
   void Stop();
   void CleanUp();
@@ -41,81 +43,89 @@ class ZPMetaServer {
   int local_port() {
     return g_zp_conf->local_port();
   }
-
-  Cmd* GetCmd(const int op);
-  
-  // Node alive related
-  Status AddNodeAlive(const std::string& ip_port);
-  void CheckNodeAlive();
-  void AddMetaUpdateTask(const std::string& ip_port, ZPMetaUpdateOP);
-  void ClearMetaUpdateTask();
-  void ScheduleUpdate();
-//  bool UpdateNodeAlive(const std::string& ip_port);
-  Status DoUpdate(ZPMetaUpdateTaskMap task_map);
-  
-  // Floyd related
   int version() {
     return version_;
   }
-  void Reorganize(std::vector<ZPMeta::NodeStatus> &t_alive_nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
-  Status Distribute(int num);
-  Status GetMSInfo(ZPMeta::MetaCmdResponse_Pull &ms_info);
-  int PartitionNums();
+
+  //Cmd related
+  Cmd* GetCmd(const int op);
+  
+  // Node & Meta update related
+  Status ProcessUpdate(ZPMetaUpdateTaskMap taks_map, ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, bool &should_update_version);
+  void AddMetaUpdateTask(const std::string& ip_port, ZPMetaUpdateOP);
+  Status AddNodeAlive(const std::string& ip_port);
+  Status DoUpdate(ZPMetaUpdateTaskMap task_map);
+  void CheckNodeAlive();
+  void ScheduleUpdate();
+  
+  // Meta related
+  Status GetMSInfo(std::vector<std::string> &tables, ZPMeta::MetaCmdResponse_Pull &ms_info);
+  Status GetTablesFromNode(const std::string &ip_port, std::vector<std::string> &tables);
+  Status Distribute(const std::string table, int num);
 
   // Leader related
-  bool IsLeader();
   Status RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse &response);
+  bool IsLeader();
 
 private:
-  // Cmd related
-  std::unordered_map<int, Cmd*> cmds_;
-  void InitClientCmdTable();
 
   // Server related
-  int worker_num_;
   ZPMetaWorkerThread* zp_meta_worker_thread_[kMaxMetaWorkerThread];
   ZPMetaDispatchThread* zp_meta_dispatch_thread_;
-  slash::Mutex server_mutex_;
-  std::atomic<int> version_;
   std::atomic<bool> should_exit_;
+  slash::Mutex server_mutex_;
   std::atomic<bool> started_;
+  std::atomic<int> version_;
+  int worker_num_;
+
+  // Cmd related
+  void InitClientCmdTable();
+
+  std::unordered_map<int, Cmd*> cmds_;
+
+  // Node & Meta update related
+  Status AddNode(ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, const std::string &ip, int port);
+  Status OffNode(ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, const std::string &ip, int port);
+  bool OnNode(ZPMeta::Table &table_info, const std::string &ip, int port);
+
+  ZPMetaUpdateThread* update_thread_;
+  ZPMetaUpdateTaskMap task_map_;
+  slash::Mutex alive_mutex_;
+  slash::Mutex task_mutex_;
+  NodeAliveMap node_alive_;
+
+  // Meta related
+  Status SetNodeStatus(ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, const std::string &ip, int port, int status /*0-UP 1-DOWN*/);
+  void Reorganize(std::vector<ZPMeta::NodeStatus> &t_alive_nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
+  void GetAllAliveNode(ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
+  Status GetTableInfo(const std::string &table, ZPMeta::Table &table_info);
+  bool FindNode(ZPMeta::Nodes &nodes, const std::string &ip, int port);
+  void RestoreNodeAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes);
+  Status GetTable(std::vector<std::string>& tables);
+  Status SetTable(const ZPMeta::Table &table);
+  Status GetAllNode(ZPMeta::Nodes &nodes);
+  Status InitVersion();
+
+  std::unordered_map<std::string, std::vector<std::string> > nodes_;
+  slash::Mutex node_mutex_;
 
   // Floyd related
-  floyd::Floyd* floyd_;
-  Status InitVersion();
   Status Set(const std::string &key, const std::string &value);
   Status Get(const std::string &key, std::string &value);
   Status Delete(const std::string &key);
-  Status GetAllNode(ZPMeta::Nodes &nodes);
-  void GetAllAliveNode(ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
-  bool FindNode(ZPMeta::Nodes &nodes, const std::string &ip, int port);
-  Status SetNodeStatus(ZPMeta::Nodes &nodes, ZPMeta::MetaCmdResponse_Pull &ms_info, const std::string &ip, int port, int status /*0-UP 1-DOWN*/);
-  Status AddNode(ZPMeta::Nodes &nodes, ZPMeta::MetaCmdResponse_Pull &ms_info, const std::string &ip, int port);
-  Status SetReplicaset(uint32_t partition_id, const ZPMeta::Replicaset &replicaset);
-  Status SetMSInfo(const ZPMeta::MetaCmdResponse_Pull &ms_info);
-  bool OnNode(ZPMeta::MetaCmdResponse_Pull &ms_info, const std::string &ip, int port);
-  Status OffNode(ZPMeta::Nodes &nodes, ZPMeta::MetaCmdResponse_Pull &ms_info, const std::string &ip, int port);
 
-  // Alive Check
-  slash::Mutex alive_mutex_;
-  slash::Mutex node_mutex_;
-  slash::Mutex task_mutex_;
-  NodeAliveMap node_alive_;
-  ZPMetaUpdateTaskMap task_map_;
-  ZPMetaUpdateThread* update_thread_;
-  void RestoreNodeAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes);
+  floyd::Floyd* floyd_;
 
   // Leader slave
-  bool leader_first_time_;
-  slash::Mutex leader_mutex_;
-  pink::PbCli* leader_cli_;
-  std::string leader_ip_;
-  int leader_cmd_port_;
+  bool GetLeader(std::string& ip, int& port);
   Status BecomeLeader();
   void CleanLeader();
-  bool GetLeader(std::string& ip, int& port);
-};
 
-std::string PartitionId2Key(uint32_t id);
+  slash::Mutex leader_mutex_;
+  pink::PbCli* leader_cli_;
+  bool leader_first_time_;
+  std::string leader_ip_;
+  int leader_cmd_port_;
+};
 
 #endif
