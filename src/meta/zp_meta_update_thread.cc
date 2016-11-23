@@ -70,5 +70,14 @@ void ZPMetaUpdateThread::DoMetaUpdate(void *p) {
 slash::Status ZPMetaUpdateThread::MetaUpdate(ZPMetaUpdateTaskMap task_map) {
   slash::Status s;
   s = zp_meta_server->DoUpdate(task_map);
+  if (s.IsCorruption() && s.ToString() == "Corruption: add version failed") {
+    zp_meta_server->AddMetaUpdateTask("", kOpAddVersion);
+  }
+  if (!s.ok()) {
+    sleep(2);
+    for (auto iter = task_map.begin(); iter != task_map.end(); iter++) {
+      zp_meta_server->AddMetaUpdateTask(iter->first, iter->second);
+    }
+  }
   return s;
 }

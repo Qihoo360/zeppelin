@@ -16,10 +16,11 @@
 #include "zp_meta_update_thread.h"
 
 using slash::Status;
+
 extern ZpConf* g_zp_conf;
 
-typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
 typedef std::unordered_map<std::string, ZPMetaUpdateOP> ZPMetaUpdateTaskMap;
+typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
 
 class ZPMetaServer {
  public:
@@ -50,6 +51,7 @@ class ZPMetaServer {
   Cmd* GetCmd(const int op);
   
   // Node & Meta update related
+  Status ProcessUpdate(ZPMetaUpdateTaskMap taks_map, ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, bool &should_update_version);
   void AddMetaUpdateTask(const std::string& ip_port, ZPMetaUpdateOP);
   Status AddNodeAlive(const std::string& ip_port);
   Status DoUpdate(ZPMetaUpdateTaskMap task_map);

@@ -12,7 +12,8 @@
 
 enum ZPMetaUpdateOP {
   kOpAdd,
-  kOpRemove
+  kOpRemove,
+  kOpAddVersion
 };
 
 typedef std::unordered_map<std::string, ZPMetaUpdateOP> ZPMetaUpdateTaskMap;
