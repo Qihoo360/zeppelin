@@ -10,7 +10,7 @@
 #include "rsync.h"
 
 ZPDataServer::ZPDataServer()
-  :partition_count_(0),
+  : table_count_(0),
    should_exit_(false),
    meta_epoch_(-1),
    should_pull_meta_(false) {
@@ -18,7 +18,7 @@ ZPDataServer::ZPDataServer()
     pthread_rwlockattr_t attr;
     pthread_rwlockattr_init(&attr);
     pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
-    pthread_rwlock_init(&partition_rw_, NULL);
+    pthread_rwlock_init(&table_rw_, NULL);
     
     // Command table
     cmds_.reserve(300);
@@ -79,8 +79,9 @@ ZPDataServer::~ZPDataServer() {
   }
 
   {
-    slash::RWLock l(&partition_rw_, true);
-    for (auto iter = partitions_.begin(); iter != partitions_.end(); iter++) {
+    slash::RWLock l(&table_rw_, true);
+    // TODO
+    for (auto iter = tables_.begin(); iter != tables_.end(); iter++) {
       delete iter->second;
     }
   }
@@ -91,7 +92,7 @@ ZPDataServer::~ZPDataServer() {
   DestoryCmdTable(cmds_);
   // TODO 
   pthread_rwlock_destroy(&meta_state_rw_);
-  pthread_rwlock_destroy(&partition_rw_);
+  pthread_rwlock_destroy(&table_rw_);
 
   LOG(INFO) << "ZPDataServerThread " << pthread_self() << " exit!!!";
 }
@@ -156,31 +157,30 @@ void ZPDataServer::PickMeta() {
   LOG(INFO) << "PickMeta ip: " << meta_ip_ << " port: " << meta_port_;
 }
 
-void ZPDataServer::DumpPartitions() {
-  slash::RWLock l(&partition_rw_, false);
+void ZPDataServer::DumpTablePartitions() {
+  slash::RWLock l(&table_rw_, false);
 
   DLOG(INFO) << "==========================";
-  for (auto iter = partitions_.begin(); iter != partitions_.end(); iter++) {
+  for (auto iter = tables_.begin(); iter != tables_.end(); iter++) {
     iter->second->Dump();
   }
   DLOG(INFO) << "--------------------------";
 }
 
-bool ZPDataServer::UpdateOrAddPartition(const int partition_id, const Node& master, const std::vector<Node>& slaves) {
-  slash::RWLock l(&partition_rw_, true);
-  auto iter = partitions_.find(partition_id);
-  if (iter != partitions_.end()) {
-    //Exist partition: update it
-    (iter->second)->Update(master, slaves);
-    return true;
+bool ZPDataServer::UpdateOrAddTablePartition(const std::string &table_name, const int partition_id, const Node& master, const std::vector<Node>& slaves) {
+  Table* table = NULL;
+  {
+    slash::RWLock l(&table_rw_, true);
+    auto it = tables_.find(table_name);
+
+    if (it == tables_.end()) {
+      table = NewTable(table_name, g_zp_conf->log_path(), g_zp_conf->data_path());
+      tables_[table_name] = table;
+    }
   }
+  assert(table != NULL);
 
-  // New Partition
-  Partition* partition = NewPartition(g_zp_conf->log_path(), g_zp_conf->data_path(), partition_id, master, slaves);
-  assert(partition != NULL);
-  partitions_[partition_id] = partition;
-
-  return true;
+  return table->UpdateOrAddPartition(partition_id, master, slaves);
 }
 
 Status ZPDataServer::SendToPeer(const std::string &peer_ip, int peer_port, const std::string &data) {
@@ -210,23 +210,43 @@ Status ZPDataServer::SendToPeer(const std::string &peer_ip, int peer_port, const
   return Status::OK();
 }
 
-Partition* ZPDataServer::GetPartition(const std::string &key) {
-  uint32_t id = KeyToPartition(key);
-  return GetPartitionById(id);
+//Partition* ZPDataServer::GetPartition(const std::string &key) {
+//  uint32_t id = KeyToPartition(key);
+//  return GetPartitionById(id);
+//}
+
+
+bool ZPDataServer::SetTablePartitionCount(const std::string &table_name, const int count) {
+  Table* table = GetTable(table_name);
+  
+  return table == NULL ? false : table->SetPartitionCount(count);
 }
 
-Partition* ZPDataServer::GetPartitionById(const int partition_id) {
-  slash::RWLock l(&partition_rw_, false);
-  if (partitions_.find(partition_id) != partitions_.end()) {
-    return partitions_[partition_id];
+// Note: table pointer 
+Table* ZPDataServer::GetTable(const std::string &table_name) {
+  slash::RWLock l(&table_rw_, false);
+  auto it = tables_.find(table_name);
+  //std::unordered_map<std::string, Table*>::iterator it = tables_.find(table_name);
+  if (it != tables_.end()) {
+    return it->second;
   }
   return NULL;
 }
 
-inline uint32_t ZPDataServer::KeyToPartition(const std::string &key) {
-  assert(partition_count_ != 0);
-  return std::hash<std::string>()(key) % partition_count_;
+Partition* ZPDataServer::GetTablePartition(const std::string &table_name, const std::string &key) {
+  Table* table = GetTable(table_name);
+  return table == NULL ? NULL : table->GetPartition(key);
 }
+
+Partition* ZPDataServer::GetTablePartitionById(const std::string &table_name, const int partition_id) {
+  Table* table = GetTable(table_name);
+  return table == NULL ? NULL : table->GetPartitionById(partition_id);
+}
+
+//inline uint32_t ZPDataServer::KeyToPartition(const std::string &key) {
+//  assert(partition_count_ != 0);
+//  return std::hash<std::string>()(key) % partition_count_;
+//}
 
 void ZPDataServer::BGSaveTaskSchedule(void (*function)(void*), void* arg) {
   slash::MutexLock l(&bgsave_thread_protector_);
@@ -240,8 +260,8 @@ void ZPDataServer::BGPurgeTaskSchedule(void (*function)(void*), void* arg) {
   bgpurge_thread_.Schedule(function, arg);
 }
 
-void ZPDataServer::AddSyncTask(int parititon_id) {
-  zp_trysync_thread_->TrySyncTaskSchedule(parititon_id);
+void ZPDataServer::AddSyncTask(const std::string &table_name, int parititon_id) {
+  zp_trysync_thread_->TrySyncTaskSchedule(table_name, parititon_id);
 }
 
 void ZPDataServer::AddMetacmdTask() {
@@ -251,13 +271,18 @@ void ZPDataServer::AddMetacmdTask() {
 // Here, we dispatch task base on its partition id
 // So that the task within same partition will be located on same thread
 // So there could be no lock in DoBinlogReceiveTask to keep binlogs order
-void ZPDataServer::DispatchBinlogBGWorker(const std::string key, ZPBinlogReceiveArg *arg) {
-  uint32_t id = KeyToPartition(key);
-  arg->partition_id = id;
-  size_t index = id % zp_binlog_receive_bgworkers_.size();
-  zp_binlog_receive_bgworkers_[index]->StartIfNeed();
-  zp_binlog_receive_bgworkers_[index]->Schedule(
+void ZPDataServer::DispatchBinlogBGWorker(const std::string &table_name, const std::string& key, ZPBinlogReceiveArg *arg) {
+  Table* table = GetTable(table_name);
+  assert(table != NULL);
+
+  if (table != NULL) {
+    uint32_t id = table->KeyToPartition(key);
+    arg->partition_id = id;
+    size_t index = id % zp_binlog_receive_bgworkers_.size();
+    zp_binlog_receive_bgworkers_[index]->StartIfNeed();
+    zp_binlog_receive_bgworkers_[index]->Schedule(
       &ZPBinlogReceiveBgWorker::DoBinlogReceiveTask, static_cast<void*>(arg));
+  }
 }
 
 void ZPDataServer::InitClientCmdTable() {
@@ -273,9 +298,8 @@ void ZPDataServer::InitClientCmdTable() {
 }
 
 void ZPDataServer::DoTimingTask() {
-  slash::RWLock l(&partition_rw_, false);
-  for (auto pair : partitions_) {
-    sleep(1);
-    pair.second->AutoPurge();
+  slash::RWLock l(&table_rw_, false);
+  for (auto pair : tables_) {
+    pair.second->DoTimingTask();
   }
 }

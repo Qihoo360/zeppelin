@@ -86,10 +86,11 @@ GLOG = $(THIRD_PATH)/glog/.libs/libglog.so.0
 PINK = $(THIRD_PATH)/pink/output/lib/libpink.a
 SLASH = $(THIRD_PATH)/slash/output/lib/libslash.a
 
-.PHONY: all clean
+.PHONY: all clean distclean
 
 
 all: $(ZP_META) $(ZP_NODE)
+#all: $(ZP_NODE)
 #all: 
 	@echo "COMMON_OBJS $(COMMON_OBJS)"
 	@echo "ZP_META_OBJS $(META_OBJS)"
@@ -137,6 +138,18 @@ $(GLOG):
 	fi; 
 	
 clean: 
+	rm -rf $(COMMON_SRC_PATH)/*.o
+	rm -rf $(META_SRC_PATH)/*.o
+	rm -rf $(NODE_SRC_PATH)/*.o
+	rm -rf $(OUTPUT)
+
+distclean: 
+	make -C $(THIRD_PATH)/pink/ clean
+	make -C $(THIRD_PATH)/slash/ clean
+	make -C $(THIRD_PATH)/nemo/ clean
+	make -C $(THIRD_PATH)/floyd/third/pink clean
+	make -C $(THIRD_PATH)/floyd/third/slash clean
+	make -C $(THIRD_PATH)/floyd/ clean
 	rm -rf $(COMMON_SRC_PATH)/*.o
 	rm -rf $(META_SRC_PATH)/*.o
 	rm -rf $(NODE_SRC_PATH)/*.o

@@ -4,7 +4,6 @@
 
 #include "zp_data_server.h"
 #include "zp_command.h"
-#include "zp_admin.h"
 
 extern ZPDataServer* zp_data_server;
 
@@ -51,7 +50,13 @@ pink::Status ZPMetacmdThread::Send() {
   DLOG(INFO) << "MetacmdThread send pull to MetaServer(" << zp_data_server->meta_ip() << ":"
     << zp_data_server->meta_port() + kMetaPortShiftCmd
     << ") with local("<< zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
+
   request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_PULL);
+  ZPMeta::MetaCmd_Pull* pull = request.mutable_pull();
+  ZPMeta::Node* node = pull->mutable_node();
+  node->set_ip(zp_data_server->local_ip());
+  node->set_port(zp_data_server->local_port());
+
   return cli_->Send(&request);
 }
 
@@ -86,31 +91,35 @@ pink::Status ZPMetacmdThread::ParsePullResponse(const ZPMeta::MetaCmdResponse &r
   receive_epoch = response.pull().version();
   ZPMeta::MetaCmdResponse_Pull pull = response.pull();
 
-  DLOG(INFO) << "receive Pull message, will handle " << pull.info_size() << " Partitions.";
-  zp_data_server->SetPartitionCount(pull.info_size());
+  DLOG(INFO) << "receive Pull message, will handle " << pull.info_size() << " Tables.";
   for (int i = 0; i < pull.info_size(); i++) {
-    const ZPMeta::Partitions& partition = pull.info(i);
-    DLOG(INFO) << " - handle Partition " << partition.id() << 
-      ": master is " << partition.master().ip() << ":" << partition.master().port();
+    const ZPMeta::Table& table = pull.info(i);
+    DLOG(INFO) << " - handle Table " << table.name();
+    zp_data_server->SetTablePartitionCount(table.name(), table.partitions_size());
+    for (int j = 0; j < table.partitions_size(); j++) {
+      const ZPMeta::Partitions& partition = table.partitions(j);
+      DLOG(INFO) << " - - handle Partition " << partition.id() << 
+          ": master is " << partition.master().ip() << ":" << partition.master().port();
 
-    Node master_node(partition.master().ip(), partition.master().port());
-    if (master_node.empty()) {
-      // No master patitions, simply ignore
-      continue;
-    }
-    std::vector<Node> slave_nodes;
-    for (int j = 0; j < partition.slaves_size(); j++) {
-      slave_nodes.push_back(Node(partition.slaves(j).ip(), partition.slaves(j).port()));
-    }
+      Node master_node(partition.master().ip(), partition.master().port());
+      if (master_node.empty()) {
+        // No master patitions, simply ignore
+        continue;
+      }
+      std::vector<Node> slave_nodes;
+      for (int j = 0; j < partition.slaves_size(); j++) {
+        slave_nodes.push_back(Node(partition.slaves(j).ip(), partition.slaves(j).port()));
+      }
 
-    bool result = zp_data_server->UpdateOrAddPartition(partition.id(), master_node, slave_nodes);
-    if (!result) {
-      LOG(WARNING) << "Failed to AddPartition " << partition.id() <<
-        ", partition master is " << partition.master().ip() << ":" << partition.master().port() ;
+      bool result = zp_data_server->UpdateOrAddTablePartition(table.name(), partition.id(), master_node, slave_nodes);
+      if (!result) {
+        LOG(WARNING) << "Failed to AddPartition " << partition.id() <<
+            ", partition master is " << partition.master().ip() << ":" << partition.master().port() ;
+      }
     }
   }
   // Print partitioin info
-  zp_data_server->DumpPartitions();
+  zp_data_server->DumpTablePartitions();
   return pink::Status::OK();
 
 }

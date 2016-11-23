@@ -9,8 +9,9 @@
 
 extern ZPDataServer* zp_data_server;
 
-Partition::Partition(const int partition_id, const std::string &log_path, const std::string &data_path)
-  : partition_id_(partition_id),
+Partition::Partition(const std::string &table_name, const int partition_id, const std::string &log_path, const std::string &data_path)
+  : table_name_(table_name),
+  partition_id_(partition_id),
   readonly_(false),
   role_(Role::kNodeSingle),
   repl_state_(ReplState::kNoConnect),
@@ -440,7 +441,7 @@ void Partition::BecomeSlave() {
   role_ = Role::kNodeSlave;
   repl_state_ = ReplState::kShouldConnect;
   readonly_ = true;
-  zp_data_server->AddSyncTask(partition_id_);
+  zp_data_server->AddSyncTask(table_name_, partition_id_);
 }
 
 void Partition::Update(const Node &master, const std::vector<Node> &slaves) {
@@ -493,8 +494,8 @@ std::string NewPartitionPath(const std::string& name, const uint32_t current) {
   return std::string(buf);
 }
 
-Partition* NewPartition(const std::string log_path, const std::string data_path, const int partition_id, const Node& master, const std::vector<Node> &slaves) {
-  Partition* partition = new Partition(partition_id, log_path, data_path);
+Partition* NewPartition(const std::string &table_name, const std::string& log_path, const std::string& data_path, const int partition_id, const Node& master, const std::vector<Node> &slaves) {
+  Partition* partition = new Partition(table_name, partition_id, log_path, data_path);
 
   // Check and update purged_index_
   if (!partition->CheckBinlogFiles()) {

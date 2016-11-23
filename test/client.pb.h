@@ -245,24 +245,36 @@ class CmdRequest_Sync : public ::google::protobuf::Message {
   inline ::client::Node* release_node();
   inline void set_allocated_node(::client::Node* node);
 
-  // required int32 partition_id = 2;
+  // required bytes table_name = 2;
+  inline bool has_table_name() const;
+  inline void clear_table_name();
+  static const int kTableNameFieldNumber = 2;
+  inline const ::std::string& table_name() const;
+  inline void set_table_name(const ::std::string& value);
+  inline void set_table_name(const char* value);
+  inline void set_table_name(const void* value, size_t size);
+  inline ::std::string* mutable_table_name();
+  inline ::std::string* release_table_name();
+  inline void set_allocated_table_name(::std::string* table_name);
+
+  // required int32 partition_id = 3;
   inline bool has_partition_id() const;
   inline void clear_partition_id();
-  static const int kPartitionIdFieldNumber = 2;
+  static const int kPartitionIdFieldNumber = 3;
   inline ::google::protobuf::int32 partition_id() const;
   inline void set_partition_id(::google::protobuf::int32 value);
 
-  // required int32 filenum = 3 [default = 0];
+  // required int32 filenum = 4 [default = 0];
   inline bool has_filenum() const;
   inline void clear_filenum();
-  static const int kFilenumFieldNumber = 3;
+  static const int kFilenumFieldNumber = 4;
   inline ::google::protobuf::int32 filenum() const;
   inline void set_filenum(::google::protobuf::int32 value);
 
-  // required int32 offset = 4 [default = 0];
+  // required int32 offset = 5 [default = 0];
   inline bool has_offset() const;
   inline void clear_offset();
-  static const int kOffsetFieldNumber = 4;
+  static const int kOffsetFieldNumber = 5;
   inline ::google::protobuf::int32 offset() const;
   inline void set_offset(::google::protobuf::int32 value);
 
@@ -270,6 +282,8 @@ class CmdRequest_Sync : public ::google::protobuf::Message {
  private:
   inline void set_has_node();
   inline void clear_has_node();
+  inline void set_has_table_name();
+  inline void clear_has_table_name();
   inline void set_has_partition_id();
   inline void clear_has_partition_id();
   inline void set_has_filenum();
@@ -280,12 +294,13 @@ class CmdRequest_Sync : public ::google::protobuf::Message {
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::client::Node* node_;
+  ::std::string* table_name_;
   ::google::protobuf::int32 partition_id_;
   ::google::protobuf::int32 filenum_;
   ::google::protobuf::int32 offset_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -350,10 +365,22 @@ class CmdRequest_Set : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required bytes key = 1;
+  // required bytes table_name = 1;
+  inline bool has_table_name() const;
+  inline void clear_table_name();
+  static const int kTableNameFieldNumber = 1;
+  inline const ::std::string& table_name() const;
+  inline void set_table_name(const ::std::string& value);
+  inline void set_table_name(const char* value);
+  inline void set_table_name(const void* value, size_t size);
+  inline ::std::string* mutable_table_name();
+  inline ::std::string* release_table_name();
+  inline void set_allocated_table_name(::std::string* table_name);
+
+  // required bytes key = 2;
   inline bool has_key() const;
   inline void clear_key();
-  static const int kKeyFieldNumber = 1;
+  static const int kKeyFieldNumber = 2;
   inline const ::std::string& key() const;
   inline void set_key(const ::std::string& value);
   inline void set_key(const char* value);
@@ -362,10 +389,10 @@ class CmdRequest_Set : public ::google::protobuf::Message {
   inline ::std::string* release_key();
   inline void set_allocated_key(::std::string* key);
 
-  // required bytes value = 2;
+  // required bytes value = 3;
   inline bool has_value() const;
   inline void clear_value();
-  static const int kValueFieldNumber = 2;
+  static const int kValueFieldNumber = 3;
   inline const ::std::string& value() const;
   inline void set_value(const ::std::string& value);
   inline void set_value(const char* value);
@@ -374,10 +401,10 @@ class CmdRequest_Set : public ::google::protobuf::Message {
   inline ::std::string* release_value();
   inline void set_allocated_value(::std::string* value);
 
-  // optional bytes uuid = 3;
+  // optional bytes uuid = 4;
   inline bool has_uuid() const;
   inline void clear_uuid();
-  static const int kUuidFieldNumber = 3;
+  static const int kUuidFieldNumber = 4;
   inline const ::std::string& uuid() const;
   inline void set_uuid(const ::std::string& value);
   inline void set_uuid(const char* value);
@@ -388,6 +415,8 @@ class CmdRequest_Set : public ::google::protobuf::Message {
 
   // @@protoc_insertion_point(class_scope:client.CmdRequest.Set)
  private:
+  inline void set_has_table_name();
+  inline void clear_has_table_name();
   inline void set_has_key();
   inline void clear_has_key();
   inline void set_has_value();
@@ -397,12 +426,13 @@ class CmdRequest_Set : public ::google::protobuf::Message {
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
+  ::std::string* table_name_;
   ::std::string* key_;
   ::std::string* value_;
   ::std::string* uuid_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -467,10 +497,22 @@ class CmdRequest_Get : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required bytes key = 1;
+  // required bytes table_name = 1;
+  inline bool has_table_name() const;
+  inline void clear_table_name();
+  static const int kTableNameFieldNumber = 1;
+  inline const ::std::string& table_name() const;
+  inline void set_table_name(const ::std::string& value);
+  inline void set_table_name(const char* value);
+  inline void set_table_name(const void* value, size_t size);
+  inline ::std::string* mutable_table_name();
+  inline ::std::string* release_table_name();
+  inline void set_allocated_table_name(::std::string* table_name);
+
+  // required bytes key = 2;
   inline bool has_key() const;
   inline void clear_key();
-  static const int kKeyFieldNumber = 1;
+  static const int kKeyFieldNumber = 2;
   inline const ::std::string& key() const;
   inline void set_key(const ::std::string& value);
   inline void set_key(const char* value);
@@ -479,10 +521,10 @@ class CmdRequest_Get : public ::google::protobuf::Message {
   inline ::std::string* release_key();
   inline void set_allocated_key(::std::string* key);
 
-  // optional bytes uuid = 2;
+  // optional bytes uuid = 3;
   inline bool has_uuid() const;
   inline void clear_uuid();
-  static const int kUuidFieldNumber = 2;
+  static const int kUuidFieldNumber = 3;
   inline const ::std::string& uuid() const;
   inline void set_uuid(const ::std::string& value);
   inline void set_uuid(const char* value);
@@ -493,6 +535,8 @@ class CmdRequest_Get : public ::google::protobuf::Message {
 
   // @@protoc_insertion_point(class_scope:client.CmdRequest.Get)
  private:
+  inline void set_has_table_name();
+  inline void clear_has_table_name();
   inline void set_has_key();
   inline void clear_has_key();
   inline void set_has_uuid();
@@ -500,11 +544,12 @@ class CmdRequest_Get : public ::google::protobuf::Message {
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
+  ::std::string* table_name_;
   ::std::string* key_;
   ::std::string* uuid_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -984,15 +1029,85 @@ inline void CmdRequest_Sync::set_allocated_node(::client::Node* node) {
   }
 }
 
-// required int32 partition_id = 2;
-inline bool CmdRequest_Sync::has_partition_id() const {
+// required bytes table_name = 2;
+inline bool CmdRequest_Sync::has_table_name() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void CmdRequest_Sync::set_has_partition_id() {
+inline void CmdRequest_Sync::set_has_table_name() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void CmdRequest_Sync::clear_has_partition_id() {
+inline void CmdRequest_Sync::clear_has_table_name() {
   _has_bits_[0] &= ~0x00000002u;
+}
+inline void CmdRequest_Sync::clear_table_name() {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    table_name_->clear();
+  }
+  clear_has_table_name();
+}
+inline const ::std::string& CmdRequest_Sync::table_name() const {
+  return *table_name_;
+}
+inline void CmdRequest_Sync::set_table_name(const ::std::string& value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdRequest_Sync::set_table_name(const char* value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdRequest_Sync::set_table_name(const void* value, size_t size) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CmdRequest_Sync::mutable_table_name() {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  return table_name_;
+}
+inline ::std::string* CmdRequest_Sync::release_table_name() {
+  clear_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = table_name_;
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CmdRequest_Sync::set_allocated_table_name(::std::string* table_name) {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    delete table_name_;
+  }
+  if (table_name) {
+    set_has_table_name();
+    table_name_ = table_name;
+  } else {
+    clear_has_table_name();
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required int32 partition_id = 3;
+inline bool CmdRequest_Sync::has_partition_id() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void CmdRequest_Sync::set_has_partition_id() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void CmdRequest_Sync::clear_has_partition_id() {
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline void CmdRequest_Sync::clear_partition_id() {
   partition_id_ = 0;
@@ -1006,15 +1121,15 @@ inline void CmdRequest_Sync::set_partition_id(::google::protobuf::int32 value) {
   partition_id_ = value;
 }
 
-// required int32 filenum = 3 [default = 0];
+// required int32 filenum = 4 [default = 0];
 inline bool CmdRequest_Sync::has_filenum() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
+  return (_has_bits_[0] & 0x00000008u) != 0;
 }
 inline void CmdRequest_Sync::set_has_filenum() {
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000008u;
 }
 inline void CmdRequest_Sync::clear_has_filenum() {
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline void CmdRequest_Sync::clear_filenum() {
   filenum_ = 0;
@@ -1028,15 +1143,15 @@ inline void CmdRequest_Sync::set_filenum(::google::protobuf::int32 value) {
   filenum_ = value;
 }
 
-// required int32 offset = 4 [default = 0];
+// required int32 offset = 5 [default = 0];
 inline bool CmdRequest_Sync::has_offset() const {
-  return (_has_bits_[0] & 0x00000008u) != 0;
+  return (_has_bits_[0] & 0x00000010u) != 0;
 }
 inline void CmdRequest_Sync::set_has_offset() {
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000010u;
 }
 inline void CmdRequest_Sync::clear_has_offset() {
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000010u;
 }
 inline void CmdRequest_Sync::clear_offset() {
   offset_ = 0;
@@ -1054,15 +1169,85 @@ inline void CmdRequest_Sync::set_offset(::google::protobuf::int32 value) {
 
 // CmdRequest_Set
 
-// required bytes key = 1;
-inline bool CmdRequest_Set::has_key() const {
+// required bytes table_name = 1;
+inline bool CmdRequest_Set::has_table_name() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void CmdRequest_Set::set_has_key() {
+inline void CmdRequest_Set::set_has_table_name() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void CmdRequest_Set::clear_has_key() {
+inline void CmdRequest_Set::clear_has_table_name() {
   _has_bits_[0] &= ~0x00000001u;
+}
+inline void CmdRequest_Set::clear_table_name() {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    table_name_->clear();
+  }
+  clear_has_table_name();
+}
+inline const ::std::string& CmdRequest_Set::table_name() const {
+  return *table_name_;
+}
+inline void CmdRequest_Set::set_table_name(const ::std::string& value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdRequest_Set::set_table_name(const char* value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdRequest_Set::set_table_name(const void* value, size_t size) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CmdRequest_Set::mutable_table_name() {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  return table_name_;
+}
+inline ::std::string* CmdRequest_Set::release_table_name() {
+  clear_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = table_name_;
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CmdRequest_Set::set_allocated_table_name(::std::string* table_name) {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    delete table_name_;
+  }
+  if (table_name) {
+    set_has_table_name();
+    table_name_ = table_name;
+  } else {
+    clear_has_table_name();
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required bytes key = 2;
+inline bool CmdRequest_Set::has_key() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void CmdRequest_Set::set_has_key() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void CmdRequest_Set::clear_has_key() {
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline void CmdRequest_Set::clear_key() {
   if (key_ != &::google::protobuf::internal::kEmptyString) {
@@ -1124,15 +1309,15 @@ inline void CmdRequest_Set::set_allocated_key(::std::string* key) {
   }
 }
 
-// required bytes value = 2;
+// required bytes value = 3;
 inline bool CmdRequest_Set::has_value() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
+  return (_has_bits_[0] & 0x00000004u) != 0;
 }
 inline void CmdRequest_Set::set_has_value() {
-  _has_bits_[0] |= 0x00000002u;
+  _has_bits_[0] |= 0x00000004u;
 }
 inline void CmdRequest_Set::clear_has_value() {
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline void CmdRequest_Set::clear_value() {
   if (value_ != &::google::protobuf::internal::kEmptyString) {
@@ -1194,15 +1379,15 @@ inline void CmdRequest_Set::set_allocated_value(::std::string* value) {
   }
 }
 
-// optional bytes uuid = 3;
+// optional bytes uuid = 4;
 inline bool CmdRequest_Set::has_uuid() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
+  return (_has_bits_[0] & 0x00000008u) != 0;
 }
 inline void CmdRequest_Set::set_has_uuid() {
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000008u;
 }
 inline void CmdRequest_Set::clear_has_uuid() {
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline void CmdRequest_Set::clear_uuid() {
   if (uuid_ != &::google::protobuf::internal::kEmptyString) {
@@ -1268,15 +1453,85 @@ inline void CmdRequest_Set::set_allocated_uuid(::std::string* uuid) {
 
 // CmdRequest_Get
 
-// required bytes key = 1;
-inline bool CmdRequest_Get::has_key() const {
+// required bytes table_name = 1;
+inline bool CmdRequest_Get::has_table_name() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void CmdRequest_Get::set_has_key() {
+inline void CmdRequest_Get::set_has_table_name() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void CmdRequest_Get::clear_has_key() {
+inline void CmdRequest_Get::clear_has_table_name() {
   _has_bits_[0] &= ~0x00000001u;
+}
+inline void CmdRequest_Get::clear_table_name() {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    table_name_->clear();
+  }
+  clear_has_table_name();
+}
+inline const ::std::string& CmdRequest_Get::table_name() const {
+  return *table_name_;
+}
+inline void CmdRequest_Get::set_table_name(const ::std::string& value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdRequest_Get::set_table_name(const char* value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdRequest_Get::set_table_name(const void* value, size_t size) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CmdRequest_Get::mutable_table_name() {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  return table_name_;
+}
+inline ::std::string* CmdRequest_Get::release_table_name() {
+  clear_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = table_name_;
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CmdRequest_Get::set_allocated_table_name(::std::string* table_name) {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    delete table_name_;
+  }
+  if (table_name) {
+    set_has_table_name();
+    table_name_ = table_name;
+  } else {
+    clear_has_table_name();
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required bytes key = 2;
+inline bool CmdRequest_Get::has_key() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void CmdRequest_Get::set_has_key() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void CmdRequest_Get::clear_has_key() {
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline void CmdRequest_Get::clear_key() {
   if (key_ != &::google::protobuf::internal::kEmptyString) {
@@ -1338,15 +1593,15 @@ inline void CmdRequest_Get::set_allocated_key(::std::string* key) {
   }
 }
 
-// optional bytes uuid = 2;
+// optional bytes uuid = 3;
 inline bool CmdRequest_Get::has_uuid() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
+  return (_has_bits_[0] & 0x00000004u) != 0;
 }
 inline void CmdRequest_Get::set_has_uuid() {
-  _has_bits_[0] |= 0x00000002u;
+  _has_bits_[0] |= 0x00000004u;
 }
 inline void CmdRequest_Get::clear_has_uuid() {
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline void CmdRequest_Get::clear_uuid() {
   if (uuid_ != &::google::protobuf::internal::kEmptyString) {

@@ -23,7 +23,8 @@
 
 class Partition;
 std::string NewPartitionPath(const std::string& name, const uint32_t current);
-Partition* NewPartition(const std::string log_path, const std::string data_path, const int partition_id, const Node& master, const std::vector<Node> &slaves);
+Partition* NewPartition(const std::string &table_name, const std::string& log_path, const std::string& data_path,
+                        const int partition_id, const Node& master, const std::vector<Node> &slaves);
 
 // Slave item
 struct SlaveItem {
@@ -48,7 +49,7 @@ struct SlaveItem {
 class Partition {
   friend class ZPBinlogSenderThread;
   public:
-  Partition(const int partition_id, const std::string &log_path, const std::string &data_path);
+  Partition(const std::string &table_name, const int partition_id, const std::string &log_path, const std::string &data_path);
   ~Partition();
 
   bool readonly() {
@@ -151,6 +152,8 @@ class Partition {
 
  private:
   //TODO define PartitionOption if needed
+
+  std::string table_name_;
   int partition_id_;
   std::string log_path_;
   std::string data_path_;

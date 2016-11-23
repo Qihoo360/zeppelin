@@ -54,9 +54,9 @@ int ZPDataClientConn::DealMessage() {
 
   Partition* partition = NULL;
   if (request_.type() ==  client::Type::SYNC) {
-    partition = zp_data_server->GetPartitionById(request_.sync().partition_id());
+    partition = zp_data_server->GetTablePartitionById(cmd->ExtractTable(&request_), request_.sync().partition_id());
   } else {
-    partition = zp_data_server->GetPartition(cmd->ExtractKey(&request_));
+    partition = zp_data_server->GetTablePartition(cmd->ExtractTable(&request_), cmd->ExtractKey(&request_));
   }
 
   if (partition == NULL) {
