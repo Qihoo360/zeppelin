@@ -7,19 +7,29 @@ CXX = g++
 	# CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -D__STDC_FORMAT_MACROS -fPIC -std=c++11 -gdwarf-2
 #endif
 PRO_DIR := ./proto/
+THIRD_PATH = ../third
 SRC_DIR := ./src/
 INC_DIR := ./include/
 OUTPUT := ./output/
 PB := $(shell sh -c 'protoc --proto_path=$(PRO_DIR) --cpp_out=$(PRO_DIR) $(PRO_DIR)/*.proto && mv $(PRO_DIR)/*.h  $(INC_DIR) && mv $(PRO_DIR)/*.cc $(SRC_DIR)')
 
+
 INCLUDE_PATH = -I./include/ \
+			   -I$(THIRD_PATH)/glog/src/ \
+			   -I$(THIRD_PATH)/slash/output/include/ \
+			   -I$(THIRD_PATH)/pink/output/include/ \
+			   -I$(THIRD_PATH)/pink/output/ 
+
 
 LIB_PATH = -L./ \
+		   -L$(THIRD_PATH)/slash/output/lib/ \
+		   -L$(THIRD_PATH)/pink/output/lib/ 
+
 
 
 LIBS = 
 
-LIBRARY = libzpclient.a
+LIBRARY = libzp.a
 
 
 .PHONY: all clean
@@ -43,7 +53,7 @@ $(LIBRARY): $(OBJS)
 	ar -rcs $@ $(OBJS)
 	cp -r ./include $(OUTPUT)/
 	mv $@ $(OUTPUT)/lib/
-	make -C example
+	#make -C hizeppelin
 
 
 $(OBJECT): $(OBJS)
@@ -53,7 +63,7 @@ $(OBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) 
 
 clean: 
-	make -C example clean
+	make -C hizeppelin clean
 	rm -rf $(SRC_DIR)/*.o
 	rm -rf $(OUTPUT)/*
 	rm -rf $(OUTPUT)
