@@ -14,7 +14,8 @@ OUTPUT := ./output/
 PB := $(shell sh -c 'protoc --proto_path=$(PRO_DIR) --cpp_out=$(PRO_DIR) $(PRO_DIR)/*.proto && mv $(PRO_DIR)/*.h  $(INC_DIR) && mv $(PRO_DIR)/*.cc $(SRC_DIR)')
 
 
-INCLUDE_PATH = -I./include/ \
+INCLUDE_PATH = -I./ \
+			   -I./include/ \
 			   -I$(THIRD_PATH)/glog/src/ \
 			   -I$(THIRD_PATH)/slash/output/include/ \
 			   -I$(THIRD_PATH)/pink/output/include/ \

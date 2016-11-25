@@ -1,10 +1,12 @@
+/*
+ * "Copyright [2016] <hrxwwd@163.com>"
+ */
 #include <string>
-#include <strings.h>
 #include <vector>
 #include <iostream>
 #include <algorithm>
 
-#include "zp_cluster.h"
+#include "include/zp_cluster.h"
 
 void usage() {
   std::cout << "usage:\n"
@@ -21,7 +23,7 @@ int main(int argc, char* argv[]) {
   libZp::IpPort ipPort = libZp::IpPort(argv[1], atoi(argv[2]));
   option.meta_addr.push_back(ipPort);
 
-  // cluster handle cluster operation 
+  // cluster handle cluster operation
   std::cout << "create cluster" << std::endl;
   libZp::Cluster cluster = libZp::Cluster(option);
   std::cout << "connect cluster" << std::endl;
@@ -32,8 +34,9 @@ int main(int argc, char* argv[]) {
     exit(-1);
   }
   std::cout << "create table" << std::endl;
-  std::string table_name = "test";
-  s = cluster.CreateTable(table_name, 1024);
+  std::string table_name = "test2";
+  s = cluster.CreateTable(table_name, 3);
+  s = cluster.CreateTable(table_name, 6);
   if (!s.ok()) {
     std::cout << s.ToString() << std::endl;
     exit(-1);
@@ -50,5 +53,4 @@ int main(int argc, char* argv[]) {
   std::string val;
   s = ioctx.get("key",val);
   */
-
 }

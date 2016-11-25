@@ -23,6 +23,7 @@ LIBS = -lzp \
 			 -lpthread
 
 INCLUDE_PATH = -I../output/include/ \
+		   -I../output/  \
 		   -I$(THIRD_PATH)/pink/output/  \
 		   -I$(THIRD_PATH)/pink/output/include/
 

@@ -1,4 +1,7 @@
-#include "zp_meta_cli.h"
+/*
+ * "Copyright [2016] <hrxwwd@163.com>"
+ */
+#include "include/zp_meta_cli.h"
 namespace libZp {
 ZpMetaCli::ZpMetaCli(const std::string& ip, const int port)
   : meta_ip_(ip), meta_port_(port) {
@@ -7,8 +10,8 @@ ZpMetaCli::ZpMetaCli(const std::string& ip, const int port)
 ZpMetaCli::~ZpMetaCli() {
 }
 
-
-Status ZpMetaCli::ResetClusterMap(ZPMeta::MetaCmdResponse_Pull& pull, ClusterMap& cluster_map) {
+Status ZpMetaCli::ResetClusterMap(const ZPMeta::MetaCmdResponse_Pull& pull,
+    ClusterMap& cluster_map) {
   cluster_map.table_num = pull.info_size();
   cluster_map.table_maps.clear();
   for (int i = 0; i < pull.info_size(); i++) {
@@ -42,7 +45,8 @@ Status ZpMetaCli::Pull(ClusterMap& cluster_map) {
   return ResetClusterMap(info, cluster_map);
 }
 
-Status ZpMetaCli::CreateTable(std::string& table_name, int partition_num) {
+Status ZpMetaCli::CreateTable(const std::string& table_name,
+    const int partition_num) {
   ::ZPMeta::MetaCmd meta_cmd = ::ZPMeta::MetaCmd();
   meta_cmd.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_INIT);
   ZPMeta::MetaCmd_Init* init = meta_cmd.mutable_init();
@@ -53,7 +57,7 @@ Status ZpMetaCli::CreateTable(std::string& table_name, int partition_num) {
   ::ZPMeta::MetaCmdResponse meta_res;
   ret = Recv(&meta_res);
 
-  if (ret.ok()) {
+  if (!ret.ok()) {
     return pink::Status::IOError(meta_res.status().msg());
   }
   if (meta_res.status().code() != ZPMeta::StatusCode::kOk) {
@@ -61,7 +65,6 @@ Status ZpMetaCli::CreateTable(std::string& table_name, int partition_num) {
   } else {
     return Status::OK();
   }
-
 }
 
-}
+}  // namespace libZp

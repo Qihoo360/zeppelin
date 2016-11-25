@@ -1,5 +1,8 @@
-#include "zp_cluster.h"
-#include "zp_meta_cli.h"
+/*
+ * "Copyright [2016] <hrxwwd@163.com>"
+ */
+#include "include/zp_cluster.h"
+#include "include/zp_meta_cli.h"
 namespace libZp {
 
 Cluster::Cluster(const Options& options) {
@@ -21,7 +24,7 @@ Status Cluster::Connect() {
   Status s;
   int attemp_count = 0;
   #define ATTEMP 10
-    while (attemp_count ++ < ATTEMP) {
+    while (attemp_count++ < ATTEMP) {
       IpPort meta = GetRandomMetaAddr();
       std::shared_ptr<ZpMetaCli> meta_cli = CreateMetaCli(meta);
       if (meta_cli) {
@@ -42,7 +45,7 @@ Status Cluster::Pull() {
   }
   return s;
 }
-Status Cluster::CreateTable(std::string& table_name, int partition_num) {
+Status Cluster::CreateTable(const std::string& table_name, const int partition_num) {
   Status s;
   std::shared_ptr<ZpMetaCli> meta_cli = GetMetaCli();
   if (meta_cli) {
@@ -52,8 +55,9 @@ Status Cluster::CreateTable(std::string& table_name, int partition_num) {
   }
   return s;
 }
-std::shared_ptr<ZpMetaCli> Cluster::CreateMetaCli(IpPort& ipPort) {
-  std::shared_ptr<ZpMetaCli> cli = std::make_shared<ZpMetaCli>(ipPort.ip, ipPort.port);
+std::shared_ptr<ZpMetaCli> Cluster::CreateMetaCli(const IpPort& ipPort) {
+  std::shared_ptr<ZpMetaCli> cli =
+    std::make_shared<ZpMetaCli>(ipPort.ip, ipPort.port);
   Status s = cli->Connect(ipPort.ip, ipPort.port);
   if (s.ok()) {
     meta_cli_.emplace(ipPort, cli);
@@ -91,4 +95,4 @@ std::shared_ptr<ZpMetaCli> Cluster::GetMetaCli() {
   }
   */
 
-}
+}  // namespace libZp
