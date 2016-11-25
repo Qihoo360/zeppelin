@@ -30,6 +30,12 @@ int main(int argc, char* argv[]) {
   if (!s.ok()) {
     std::cout << s.ToString();
   }
+  std::string table_name = "test";
+  s = cluster.CreateTable(table_name, 1024);
+  if (!s.ok()) {
+    std::cout << s.ToString();
+  }
+
   /*
   Status s = cluster.ListMetaNode(node_list);
   node_list.clear();

@@ -41,4 +41,27 @@ Status ZpMetaCli::Pull(ClusterMap& cluster_map) {
   // update clustermap now
   return ResetClusterMap(info, cluster_map);
 }
+
+Status ZpMetaCli::CreateTable(std::string& table_name, int partition_num) {
+  ::ZPMeta::MetaCmd meta_cmd = ::ZPMeta::MetaCmd();
+  meta_cmd.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_INIT);
+  ZPMeta::MetaCmd_Init* init = meta_cmd.mutable_init();
+  init->set_name(table_name);
+  init->set_num(partition_num);
+  pink::Status ret = Send(&meta_cmd);
+
+  ::ZPMeta::MetaCmdResponse meta_res;
+  ret = Recv(&meta_res);
+
+  if (ret.ok()) {
+    return pink::Status::IOError(meta_res.status().msg());
+  }
+  if (meta_res.status().code() != ZPMeta::StatusCode::kOk) {
+    return Status::IOError(meta_res.status().msg());
+  } else {
+    return Status::OK();
+  }
+
+}
+
 }

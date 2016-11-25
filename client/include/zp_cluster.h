@@ -30,6 +30,7 @@ namespace libZp {
       Cluster (const Options& options);
       virtual ~Cluster ();
       Status Connect();
+      Status CreateTable(std::string& table_name, int partition_num);
       IoCtx CreateIoCtx (const std::string &table);
       Status ListMetaNode (std::vector<IpPort> &node_list);
       //Status ListDataNode (std::vector<IpPort> &node_list);
