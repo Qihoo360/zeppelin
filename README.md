@@ -6,4 +6,4 @@ Yet another huge kv storage
 
 [DataServer Design](https://github.com/baotiao/zeppelin/wiki/zeppelin-data-server)
 
-[MetaServer Design]https://github.com/baotiao/zeppelin/wiki/zeppelin-meta-server
+[MetaServer Design](https://github.com/baotiao/zeppelin/wiki/zeppelin-meta-server)
