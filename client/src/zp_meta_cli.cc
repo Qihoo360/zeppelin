@@ -25,8 +25,8 @@ Status ZpMetaCli::Pull(ClusterMap& cluster_map) {
   ::ZPMeta::MetaCmdResponse meta_res;
   ret = Recv(&meta_res);
 
-  if (ret.ok()) {
-    return pink::Status::IOError(meta_res.status().msg());
+  if (!ret.ok()) {
+    return Status::IOError(meta_res.status().msg());
   }
   if (meta_res.status().code() != ZPMeta::StatusCode::kOk) {
     return Status::IOError(meta_res.status().msg());

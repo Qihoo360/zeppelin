@@ -57,6 +57,8 @@ std::shared_ptr<ZpMetaCli> Cluster::CreateMetaCli(IpPort& ipPort) {
   Status s = cli->Connect(ipPort.ip, ipPort.port);
   if (s.ok()) {
     meta_cli_.emplace(ipPort, cli);
+  } else {
+    cli.reset();
   }
   return cli;
 }

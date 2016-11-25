@@ -22,18 +22,21 @@ int main(int argc, char* argv[]) {
   option.meta_addr.push_back(ipPort);
 
   // cluster handle cluster operation 
-    std::cout << "create cluster";
+  std::cout << "create cluster" << std::endl;
   libZp::Cluster cluster = libZp::Cluster(option);
-    std::cout << "connect cluster";
+  std::cout << "connect cluster" << std::endl;
   // needs connect to cluster first
   libZp::Status s = cluster.Connect();
   if (!s.ok()) {
-    std::cout << s.ToString();
+    std::cout << s.ToString() << std::endl;
+    exit(-1);
   }
+  std::cout << "create table" << std::endl;
   std::string table_name = "test";
   s = cluster.CreateTable(table_name, 1024);
   if (!s.ok()) {
-    std::cout << s.ToString();
+    std::cout << s.ToString() << std::endl;
+    exit(-1);
   }
 
   /*
