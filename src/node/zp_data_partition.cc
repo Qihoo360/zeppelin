@@ -4,7 +4,6 @@
 #include <fstream>
 #include <glog/logging.h>
 #include "zp_data_server.h"
-#include "zp_binlog_sender_thread.h"
 #include "rsync.h"
 
 extern ZPDataServer* zp_data_server;
@@ -38,15 +37,6 @@ Partition::Partition(const int partition_id, const std::string &log_path, const 
   }
 
 Partition::~Partition() {
-  {
-    slash::MutexLock l(&slave_mutex_);
-    std::vector<SlaveItem>::iterator iter = slaves_.begin();
-
-    while (iter != slaves_.end()) {
-      delete static_cast<ZPBinlogSenderThread*>(iter->sender);
-      iter =  slaves_.erase(iter);
-    }
-  }
   delete logger_;
   db_.reset();
   delete bgsave_engine_;
@@ -54,30 +44,6 @@ Partition::~Partition() {
   pthread_rwlock_destroy(&state_rw_);
   LOG(INFO) << "Partition " << partition_id_ << " exit!!!";
 }
-
-// NOTE: slave_mutex should be held
-bool Partition::FindSlave(const Node& node) {
-  for (auto iter = slaves_.begin(); iter != slaves_.end(); iter++) {
-    if (iter->node == node) {
-      return true;
-    }
-  }
-  return false;
-}
-
-// NOTE: slave_mutex should be held
-void Partition::DeleteSlave(const Node& node) {
-  //slash::MutexLock l(&slave_mutex_);
-  for (auto iter = slaves_.begin(); iter != slaves_.end(); iter++) {
-    if (iter->node == node) {
-      delete static_cast<ZPBinlogSenderThread*>(iter->sender);
-      slaves_.erase(iter);
-      DLOG(INFO) << "Delete slave(" << node.ip << ":" << node.port << ") success";
-      break;
-    }
-  }
-}
-
 
 bool Partition::ShouldWaitDBSync() {
   slash::RWLock l(&state_rw_, false);
@@ -335,22 +301,7 @@ bool Partition::TryUpdateMasterOffset() {
   return true;
 }
 
-Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t offset) {
-  slash::MutexLock l(&slave_mutex_);
-  // Check exist
-  if (FindSlave(node)) {
-    LOG(WARNING) << "BinlogSender for "
-      << node.ip << ":" << node.port << "already exist, we will remove it first"
-      << "Partition:" << partition_id_;
-    DeleteSlave(node);
-    //return Status::InvalidArgument("Binlog sender already exist");
-  }
-
-  // New slave
-  SlaveItem slave;
-  slave.node = node;
-  gettimeofday(&slave.create_time, NULL);
-
+Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset) {
   // Sanity check
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
@@ -368,42 +319,23 @@ Status Partition::AddBinlogSender(const Node &node, uint32_t filenum, uint64_t o
     return Status::Incomplete("Bgsaving and DBSync first");
   }
 
-  slash::SequentialFile *readfile;
-  std::string confile = NewFileName(logger_->filename, filenum);
-  if (!slash::NewSequentialFile(confile, &readfile).ok()) {
-    return Status::IOError("AddBinlogSender new sequtial file failed");
-  }
-
-  ZPBinlogSenderThread *sender = new ZPBinlogSenderThread(this, slave.node.ip, slave.node.port, readfile, filenum, offset);
-
-  if (sender->trim() == 0) {
-    sender->StartThread();
-    pthread_t tid = sender->thread_id();
-    slave.sender_tid = tid;
-    slave.sender = sender;
-
-    LOG(INFO) << "AddBinlogSender for node(" << node.ip << ":" << node.port
-      << ") ok, Partition:" << partition_id_ << " tid is " << slave.sender_tid;
-    // Add sender
-    //slash::MutexLock l(&slave_mutex_);
-    slaves_.push_back(slave);
-
-    return Status::OK();
+  // Add binlog send task
+  Status s = zp_data_server->AddBinlogSendTask(partition_id_,
+      Node(node.ip, node.port + kPortShiftSync), filenum, offset);
+  if (s.ok()) {
+    LOG(INFO) << "Success AddBinlogSendTask for Partition: " << partition_id_ << " To "
+      << node.ip << ":" << node.port + kPortShiftSync << " at " << filenum << ", " << offset;
   } else {
-    delete sender;
-    LOG(WARNING) << "AddBinlogSender failed, Partition:" << partition_id_;
-    return Status::NotFound("AddBinlogSender bad sender");
+    LOG(WARNING) << "Failed AddBinlogSendTask for Partition: " << partition_id_ << " To "
+      << node.ip << ":" << node.port + kPortShiftSync << " at " << filenum << ", " << offset;
   }
+  return s;
 }
 
 void Partition::CleanRoleEnv(Role role) {
   // Clean binlog sender if needed
-  {
-    slash::MutexLock l(&slave_mutex_);
-    for (auto iter = slaves_.begin(); iter != slaves_.end(); ) {
-      delete static_cast<ZPBinlogSenderThread*>(iter->sender);
-      iter = slaves_.erase(iter);
-    }
+  for (auto iter = slave_nodes_.begin(); iter != slave_nodes_.end(); ) {
+    zp_data_server->RemoveBinlogSendTask(partition_id_, *iter);
   }
 
   // Clean binlog if needed
@@ -516,7 +448,7 @@ void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req, c
 
   client::CmdResponse res;
   cmd->Do(&req, &res, this);
-  WriteBinlog(raw_msg);
+  logger_->Put(raw_msg);
 
   if (!cmd->is_suspend()) {
     pthread_rwlock_unlock(&partition_rw_);
@@ -550,7 +482,7 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req, client:
   if (cmd->is_write()) {
     if (res.code() == client::StatusCode::kOk  && req.type() != client::Type::SYNC) {
       // Restore Message
-      WriteBinlog(raw_msg);
+      logger_->Put(raw_msg);
     }
     mutex_record_.Unlock(key);
   }
@@ -558,12 +490,6 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req, client:
   if (!cmd->is_suspend()) {
     pthread_rwlock_unlock(&partition_rw_);
   }
-}
-
-inline void Partition::WriteBinlog(const std::string &content) {
-  logger_->Lock();
-  logger_->Put(content);
-  logger_->Unlock();
 }
 
 void Partition::TryDBSync(const std::string& ip, int port, int32_t top) {
@@ -578,7 +504,7 @@ void Partition::TryDBSync(const std::string& ip, int port, int32_t top) {
   }
 
   if (0 != slash::IsDir(bg_path) ||                               //Bgsaving dir exist
-      !slash::FileExists(NewFileName(logger_->filename, bg_filenum)) ||  //filenum can be found in binglog
+      !slash::FileExists(NewFileName(logger_->filename(), bg_filenum)) ||  //filenum can be found in binglog
       top - bg_filenum > kDBSyncMaxGap) {      //The file is not too old
     // Need Bgsave first
     Bgsave();
@@ -847,12 +773,12 @@ bool Partition::CouldPurge(uint32_t index) {
   if (index >= pro_num) {
     return false;
   }
-  slash::MutexLock l(&slave_mutex_);
-  std::vector<SlaveItem>::iterator it;
-  for (it = slaves_.begin(); it != slaves_.end(); ++it) {
-    ZPBinlogSenderThread *zpb = static_cast<ZPBinlogSenderThread*>((*it).sender);
-    uint32_t filenum = zpb->filenum();
-    if (index > filenum) { 
+  std::vector<Node>::iterator it;
+  for (it = slave_nodes_.begin(); it != slave_nodes_.end(); ++it) {
+    int32_t filenum = zp_data_server->GetBinlogSendFilenum(partition_id_, *it);
+    if (filenum == -2
+        || (filenum > 0
+          && index > static_cast<uint32_t>(filenum))) { 
       return false;
     }
   }
@@ -885,14 +811,6 @@ void Partition::Dump() {
 
   for (size_t i = 0; i < slave_nodes_.size(); i++) {
     LOG(INFO) << "     -* slave  " << i << " " <<  slave_nodes_[i];
-  }
-
-  {
-    LOG(INFO) << "----------------------------";
-    slash::MutexLock l(&slave_mutex_);
-    for (size_t i = 0; i < slaves_.size(); i++) {
-      LOG(INFO) << "     -my_slave  " << i << " " <<  slaves_[i].node;
-    }
   }
 }
 

@@ -46,7 +46,6 @@ struct SlaveItem {
 };
 
 class Partition {
-  friend class ZPBinlogSenderThread;
   public:
   Partition(const int partition_id, const std::string &log_path, const std::string &data_path);
   ~Partition();
@@ -90,12 +89,12 @@ class Partition {
   void Update(const Node& master, const std::vector<Node> &slaves);
 
   // Binlog related
-  Status AddBinlogSender(const Node &node, uint32_t filenum, uint64_t offset);
+  Status SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset);
   void GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) {
     logger_->GetProducerStatus(filenum, pro_offset);
   }
   std::string GetBinlogFilename() {
-    return logger_->filename;
+    return logger_->filename();
   }
   bool CheckBinlogFiles(); // Check binlog availible and update purge_index_
 
@@ -176,10 +175,8 @@ class Partition {
   // Binlog related
   Binlog* logger_;
   slash::Mutex slave_mutex_;
-  std::vector<SlaveItem> slaves_;
   bool FindSlave(const Node& node);
   void DeleteSlave(const Node& node);
-  void WriteBinlog(const std::string &content);
 
   // DoCommand related
   slash::RecordMutex mutex_record_;

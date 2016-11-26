@@ -65,7 +65,7 @@ void SyncCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
 
   LOG(INFO) << "SyncCmd Partition:" << ptr->partition_id()
     << " a new node(" << node.ip << ":" << node.port << ") filenum " << sync_req.filenum() << ", offset " << sync_req.offset();
-  s = ptr->AddBinlogSender(node, sync_req.filenum(), sync_req.offset());
+  s = ptr->SlaveAskSync(node, sync_req.filenum(), sync_req.offset());
 
   if (s.ok()) {
     response->set_code(client::StatusCode::kOk);

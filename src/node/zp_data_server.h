@@ -9,7 +9,7 @@
 
 #include "bg_thread.h"
 #include "pb_conn.h"
-#include "pb_cli.h"
+#include "zp_pb_cli.h"
 #include "holy_thread.h"
 
 #include "slash_status.h"
@@ -26,7 +26,7 @@
 #include "zp_metacmd_thread.h"
 #include "zp_ping_thread.h"
 #include "zp_trysync_thread.h"
-#include "zp_binlog_sender_thread.h"
+#include "zp_binlog_sender.h"
 #include "zp_binlog_receiver_thread.h"
 #include "zp_binlog_receive_bgworker.h"
 #include "zp_data_partition.h"
@@ -125,13 +125,17 @@ class ZPDataServer {
   void DumpPartitions();
   
   // Peer Client
-  Status SendToPeer(const std::string &peer_ip, int peer_port, const std::string &data);
+  Status SendToPeer(const Node &node, const std::string &data);
   
   // Backgroud thread
   void BGSaveTaskSchedule(void (*function)(void*), void* arg);
   void BGPurgeTaskSchedule(void (*function)(void*), void* arg);
   void AddSyncTask(int parititon_id);
   void AddMetacmdTask();
+  Status AddBinlogSendTask(int parititon_id, const Node& node,
+      int32_t filenum, int64_t offset);
+  Status RemoveBinlogSendTask(int parititon_id, const Node& node);
+  int32_t GetBinlogSendFilenum(int partition_id, const Node& node);
   void DispatchBinlogBGWorker(const Cmd* cmd, const client::CmdRequest &req);
   void DispatchBinlogBGWorker(const std::string key, ZPBinlogReceiveArg *arg);
 
@@ -152,9 +156,11 @@ class ZPDataServer {
   std::map<int, Partition*> partitions_;
   uint32_t KeyToPartition(const std::string &key);
 
-  // Peer Client
+  // Binlog Send related
   slash::Mutex mutex_peers_;
   std::unordered_map<std::string, ZPPbCli*> peers_;
+  ZPBinlogSendTaskPool* binlog_send_pool_;
+  std::vector<ZPBinlogSendThread*> binlog_send_workers_;
 
   // Server related
   int worker_num_;

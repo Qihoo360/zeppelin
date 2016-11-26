@@ -5,6 +5,7 @@
 
 const int kMaxWorkerThread = 100;
 const int kMaxMetaWorkerThread = 16;
+const int kNumBinlogSendThread = 6;
 
 const std::string kZPVersion = "0.0.1";
 const std::string kZpPidFile = "zp.pid";
@@ -122,5 +123,6 @@ const int ZP_META_UPDATE_RETRY_TIME = 3;
 // timeout between node and meta server, the one for meta should large than node
 const int kNodeMetaTimeoutN = 10;
 const int kNodeMetaTimeoutM= 15;
+const int kBinlogTimeSlice = 5;
 
 #endif

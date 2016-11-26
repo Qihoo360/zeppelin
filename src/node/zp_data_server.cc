@@ -25,22 +25,29 @@ ZPDataServer::ZPDataServer()
     InitClientCmdTable();
 
     // Create thread
-    worker_num_ = 4;
-    for (int i = 0; i < worker_num_; i++) {
-      zp_worker_thread_[i] = new ZPDataWorkerThread(kWorkerCronInterval);
-    }
-
-    zp_dispatch_thread_ = new ZPDataDispatchThread(g_zp_conf->local_port(), worker_num_, zp_worker_thread_, kDispatchCronInterval);
-    zp_ping_thread_ = new ZPPingThread();
-    //zp_metacmd_worker_thread_ = new ZPMetacmdWorkerThread(options_.local_port + kPortShiftDataCmd, kMetaCmdCronInterval);
     zp_metacmd_thread_ = new ZPMetacmdThread();
     zp_trysync_thread_ = new ZPTrySyncThread();
 
+    // Binlog related
     for (int j = 0; j < kBinlogReceiveBgWorkerCount; j++) {
       zp_binlog_receive_bgworkers_.push_back(
           new ZPBinlogReceiveBgWorker(kBinlogReceiveBgWorkerFull));
     }
     zp_binlog_receiver_thread_ = new ZPBinlogReceiverThread(g_zp_conf->local_port() + kPortShiftSync, kBinlogReceiverCronInterval);
+    binlog_send_pool_ = new ZPBinlogSendTaskPool();
+    for (int i = 0; i < kNumBinlogSendThread; ++i) {
+      ZPBinlogSendThread *thread = new ZPBinlogSendThread(binlog_send_pool_);
+      binlog_send_workers_.push_back(thread);
+      thread->StartThread();
+    }
+
+    worker_num_ = 4;
+    for (int i = 0; i < worker_num_; i++) {
+      zp_worker_thread_[i] = new ZPDataWorkerThread(kWorkerCronInterval);
+    }
+    zp_dispatch_thread_ = new ZPDataDispatchThread(g_zp_conf->local_port(), worker_num_, zp_worker_thread_, kDispatchCronInterval);
+
+    zp_ping_thread_ = new ZPPingThread();
 
     // TODO rm
     //LOG(INFO) << "local_host " << options_.local_ip << ":" << options.local_port;
@@ -50,9 +57,10 @@ ZPDataServer::ZPDataServer()
 ZPDataServer::~ZPDataServer() {
   DLOG(INFO) << "~ZPDataServer destoryed";
   // Order:
-  // 1, Meta thread should before trysunc thread
+  // 1, Meta thread should before trysync thread
   // 2, Worker thread should before bgsave_thread
   // 3, binlog reciever should before recieve bgworker
+  // 4, binlog send thread should before binlog send pool
   delete zp_ping_thread_;
   delete zp_dispatch_thread_;
   for (int i = 0; i < worker_num_; i++) {
@@ -69,14 +77,20 @@ ZPDataServer::~ZPDataServer() {
     }
   }
 
-  delete zp_metacmd_thread_;
-  delete zp_trysync_thread_;
+  std::vector<ZPBinlogSendThread*>::iterator it = binlog_send_workers_.begin();
+  for (; it != binlog_send_workers_.end(); ++it) {
+    delete *it;
+  }
+  delete binlog_send_pool_;
   delete zp_binlog_receiver_thread_;
   std::vector<ZPBinlogReceiveBgWorker*>::iterator binlogbg_iter = zp_binlog_receive_bgworkers_.begin();
   while(binlogbg_iter != zp_binlog_receive_bgworkers_.end()){
     delete (*binlogbg_iter);
     ++binlogbg_iter;
   }
+
+  delete zp_trysync_thread_;
+  delete zp_metacmd_thread_;
 
   {
     slash::RWLock l(&partition_rw_, true);
@@ -183,15 +197,15 @@ bool ZPDataServer::UpdateOrAddPartition(const int partition_id, const Node& mast
   return true;
 }
 
-Status ZPDataServer::SendToPeer(const std::string &peer_ip, int peer_port, const std::string &data) {
+Status ZPDataServer::SendToPeer(const Node &node, const std::string &data) {
   pink::Status res;
-  std::string ip_port = slash::IpPortString(peer_ip, peer_port);
+  std::string ip_port = slash::IpPortString(node.ip, node.port);
 
   slash::MutexLock pl(&mutex_peers_);
   std::unordered_map<std::string, ZPPbCli*>::iterator iter = peers_.find(ip_port);
   if (iter == peers_.end()) {
     ZPPbCli *cli = new ZPPbCli();
-    res = cli->Connect(peer_ip, peer_port);
+    res = cli->Connect(node.ip, node.port);
     if (!res.ok()) {
       delete cli;
       return Status::Corruption(res.ToString());
@@ -240,8 +254,27 @@ void ZPDataServer::BGPurgeTaskSchedule(void (*function)(void*), void* arg) {
   bgpurge_thread_.Schedule(function, arg);
 }
 
-void ZPDataServer::AddSyncTask(int parititon_id) {
-  zp_trysync_thread_->TrySyncTaskSchedule(parititon_id);
+void ZPDataServer::AddSyncTask(int partition_id) {
+  zp_trysync_thread_->TrySyncTaskSchedule(partition_id);
+}
+
+Status ZPDataServer::AddBinlogSendTask(int partition_id, const Node& node,
+    int32_t filenum, int64_t offset) {
+  std::string task_name = ZPBinlogSendTaskName(partition_id, node);
+  return binlog_send_pool_->AddNewTask(partition_id, node, filenum, offset);
+}
+
+Status ZPDataServer::RemoveBinlogSendTask(int partition_id, const Node& node) {
+  std::string task_name = ZPBinlogSendTaskName(partition_id, node);
+  return binlog_send_pool_->RemoveTask(task_name);
+}
+
+// Return the task filenum indicated by id and node
+// -1 when the task is not exist
+// -2 when the task is exist but is processing now
+int32_t ZPDataServer::GetBinlogSendFilenum(int partition_id, const Node& node) {
+  std::string task_name = ZPBinlogSendTaskName(partition_id, node);
+  return binlog_send_pool_->TaskFilenum(task_name);
 }
 
 void ZPDataServer::AddMetacmdTask() {

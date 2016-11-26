@@ -1,0 +1,285 @@
+#include "zp_binlog_sender.h"
+
+#include <glog/logging.h>
+#include "zp_const.h"
+#include "zp_data_server.h"
+#include "zp_data_partition.h"
+
+extern ZPDataServer* zp_data_server;
+
+std::string ZPBinlogSendTaskName(int32_t id, const Node& target) {
+  char buf[256];
+  sprintf(buf, "%d_%s_%d", id, target.ip.c_str(), target.port);
+  return std::string(buf);
+}
+
+/**
+ * ZPBinlogSendTask
+ */
+Status ZPBinlogSendTask::Create(int32_t id, const Node& target,
+      uint32_t ifilenum, uint64_t ioffset,
+      ZPBinlogSendTask** tptr) {
+  *tptr = NULL;
+  ZPBinlogSendTask* task = new ZPBinlogSendTask(id, target,
+      ifilenum, ioffset);
+  Status s = task->Init();
+  if (s.ok()) {
+    *tptr = task;
+  } else {
+    delete task;
+  }
+  return s;
+}
+
+ZPBinlogSendTask::ZPBinlogSendTask(int32_t id, const Node& target,
+    uint32_t ifilenum, uint64_t ioffset) :
+  partition_id_(id),
+  node_(target),
+  filenum_(ifilenum),
+  offset_(ioffset) {
+    name_ = ZPBinlogSendTaskName(partition_id_, target);
+  }
+
+ZPBinlogSendTask::~ZPBinlogSendTask() {
+  delete reader_;
+  delete queue_;
+}
+
+Status ZPBinlogSendTask::Init() {
+  Partition* partition = zp_data_server->GetPartitionById(partition_id_);
+  if (partition == NULL) {
+    return Status::NotFound("partiiton not exist");
+  }
+  binlog_filename_ = partition->GetBinlogFilename();
+  std::string confile = NewFileName(binlog_filename_, filenum_);
+  if (!slash::NewSequentialFile(confile, &queue_).ok()) {
+    return Status::IOError("ZPBinlogSendTask Init new sequtial file failed");
+  }
+  reader_ = new BinlogReader(queue_);
+  return reader_->Seek(offset_);
+}
+
+Status ZPBinlogSendTask::ProcessTask(std::string &item) {
+  uint64_t consume_len = 0;
+  Status s = reader_->Consume(&consume_len, item);
+  if (s.IsEndFile()) {
+    // Roll to next File
+    std::string confile = NewFileName(binlog_filename_, filenum_ + 1);
+
+    if (slash::FileExists(confile)) {
+      DLOG(INFO) << "BinlogSender roll to new binlog" << confile;
+      delete reader_;
+      delete queue_;
+      queue_ = NULL;
+
+      slash::NewSequentialFile(confile, &(queue_));
+      reader_ = new BinlogReader(queue_);
+      filenum_++;
+      offset_ = 0;
+      return ProcessTask(item);
+    }
+    // Return EndFile
+  } else if (!s.ok()) {
+    LOG(WARNING) << "ZPBinlogSendTask failed to Consume: " << s.ToString(); 
+    // Return Error
+  }
+  
+  if (s.ok()) {
+    offset_ += consume_len;
+  }
+  return s;
+}
+
+
+/**
+ * ZPBinlogSendTaskPool
+ */
+ZPBinlogSendTaskPool::ZPBinlogSendTaskPool() {
+  pthread_rwlock_init(&tasks_rwlock_, NULL);
+  task_ptrs_.reserve(1000);
+}
+
+ZPBinlogSendTaskPool::~ZPBinlogSendTaskPool() {
+  std::list<ZPBinlogSendTask*>::iterator it;
+  for (it = tasks_.begin(); it != tasks_.end(); ++it) {
+    delete *it;
+  }
+  pthread_rwlock_destroy(&tasks_rwlock_);
+}
+
+bool ZPBinlogSendTaskPool::TaskExist(const std::string& task_name) {
+    slash::RWLock l(&tasks_rwlock_, false);
+    if (task_ptrs_.find(task_name) == task_ptrs_.end()) {
+      return false;
+    }
+    return true;
+}
+
+Status ZPBinlogSendTaskPool::AddNewTask(int32_t id, const Node& target,
+    uint32_t ifilenum, uint64_t ioffset) {
+  ZPBinlogSendTask* task_prt = NULL;
+  Status s = ZPBinlogSendTask::Create(id, target, ifilenum, ioffset, &task_prt);
+  if (!s.ok()) {
+    return s;
+  }
+  s = AddTask(task_prt);
+  if (!s.ok()) {
+    delete task_prt;
+  }
+  return s;
+}
+
+Status ZPBinlogSendTaskPool::AddTask(ZPBinlogSendTask* task) {
+  assert(task != NULL);
+  slash::RWLock l(&tasks_rwlock_, true);
+  if (task_ptrs_.find(task->name()) != task_ptrs_.end()) {
+    return Status::InvalidArgument("Task already exist");
+  }
+  tasks_.push_back(task);
+  // index point to the last one just push back
+  task_ptrs_[task->name()] = tasks_.end();
+  --(task_ptrs_[task->name()]);
+  return Status::OK();
+}
+
+Status ZPBinlogSendTaskPool::RemoveTask(const std::string &name) {
+  slash::RWLock l(&tasks_rwlock_, true);
+  ZPBinlogSendTaskIndex::iterator it = task_ptrs_.find(name);
+  if (it == task_ptrs_.end()) {
+    return Status::NotFound("Task not exist");
+  }
+  delete *(it->second);
+  tasks_.erase(it->second);
+  task_ptrs_.erase(it);
+  return Status::OK();
+}
+
+// Return the task filenum indicated by id and node
+// -1 when the task is not exist
+// -2 when the task is exist but is processing now
+int32_t ZPBinlogSendTaskPool::TaskFilenum(const std::string &name) {
+  slash::RWLock l(&tasks_rwlock_, false);
+  ZPBinlogSendTaskIndex::iterator it = task_ptrs_.find(name);
+  if (it == task_ptrs_.end()) {
+    return -1;
+  }
+  if (it->second == tasks_.end()) {
+    // The task is processing by some thread
+    return -2;
+  }
+  return (*(it->second))->filenum();
+}
+
+Status ZPBinlogSendTaskPool::FetchOut(ZPBinlogSendTask** task_ptr) {
+  slash::RWLock l(&tasks_rwlock_, true);
+  if (tasks_.size() == 0) {
+    return Status::NotFound("No more task");
+  }
+  *task_ptr = tasks_.front();
+  tasks_.pop_front();
+  // Do not remove from the task_ptrs_ map
+  // When the same task put back we need to know it is a old one
+  task_ptrs_[(*task_ptr)->name()] = tasks_.end();
+  return Status::OK();
+}
+
+Status ZPBinlogSendTaskPool::PutBack(ZPBinlogSendTask* task) {
+  slash::RWLock l(&tasks_rwlock_, true);
+  ZPBinlogSendTaskIndex::iterator it = task_ptrs_.find(task->name());
+  if (it == task_ptrs_.end()) {
+    return Status::NotFound("Task may have been deleted");
+  }
+  tasks_.push_back(task);
+  it->second = tasks_.end();
+  --(it->second);
+  return Status::OK();
+}
+
+void ZPBinlogSendTaskPool::Dump() {
+  slash::RWLock l(&tasks_rwlock_, false);
+  ZPBinlogSendTaskIndex::iterator it = task_ptrs_.begin();
+  LOG(INFO) << "----------------------------";
+  for (; it != task_ptrs_.end(); ++it) {
+    std::list<ZPBinlogSendTask*>::iterator tptr = it->second;
+    LOG(INFO) << "----------------------------";
+    LOG(INFO) << "+Binlog Send Task" << it->first;
+    LOG(INFO) << "  +Partition  " << (*tptr)->partition_id();
+    LOG(INFO) << "  +Node  " << (*tptr)->node();
+    LOG(INFO) << "  +filenum " << (*tptr)->filenum();
+    LOG(INFO) << "  +offset " << (*tptr)->offset();
+    LOG(INFO) << "----------------------------";
+  }
+  LOG(INFO) << "----------------------------";
+}
+
+
+
+/**
+ * ZPBinlogSendThread
+ */
+
+ZPBinlogSendThread::ZPBinlogSendThread(ZPBinlogSendTaskPool *pool)
+  : pool_(pool) {
+  }
+
+  ZPBinlogSendThread::~ZPBinlogSendThread() {
+    should_exit_ = true;
+    pthread_join(thread_id(), NULL);
+    LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
+  }
+
+void* ZPBinlogSendThread::ThreadMain() {
+  std::string scratch;
+  scratch.reserve(1024 * 1024);
+
+  while (!should_exit_) {
+    ZPBinlogSendTask* task = NULL;
+    Status s = pool_->FetchOut(&task);
+    if (!s.ok()) {
+      // TODO change to condition
+      sleep(1);
+      continue;
+    }
+
+    // Fetched one task, process it
+    struct timeval begin, now;
+    gettimeofday(&begin, NULL);
+    while (!should_exit_) {
+      if (task->send_next) {
+        //Process ProcessTask
+        s = task->ProcessTask(scratch);
+        if (s.IsEndFile()) {
+          // No more binlog item in current task, switch to others
+          LOG(INFO) << "No more binlog item for parititon: " << task->partition_id();
+          break;
+        } else if (!s.ok()) {
+          LOG(WARNING) << "BinlogSender Parse error, " << s.ToString();
+          usleep(10000);
+        }
+      }
+
+      // Send binlog
+      if (s.ok()) {
+        s = zp_data_server->SendToPeer(task->node(), scratch);
+        if (!s.ok()) {
+          LOG(ERROR) << "Failed to send to peer " << task->node() << ", Error: " << s.ToString();
+          task->send_next = false;
+          sleep(1);
+        } else {
+          task->send_next = true;
+        }
+      }
+
+      // Check if need to switch task
+      gettimeofday(&now, NULL);
+      if (now.tv_sec - begin.tv_sec > kBinlogTimeSlice) {
+        // Switch Task
+        pool_->PutBack(task);
+        break;
+      }
+    }
+  }
+
+  return NULL;
+}
+
