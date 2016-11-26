@@ -46,11 +46,12 @@ ZPBinlogSendTask::~ZPBinlogSendTask() {
 }
 
 Status ZPBinlogSendTask::Init() {
-  Partition* partition = zp_data_server->GetPartitionById(partition_id_);
-  if (partition == NULL) {
-    return Status::NotFound("partiiton not exist");
-  }
-  binlog_filename_ = partition->GetBinlogFilename();
+  // TODO Table info
+ // Partition* partition = zp_data_server->GetPartitionById(partition_id_);
+ // if (partition == NULL) {
+ //   return Status::NotFound("partiiton not exist");
+ // }
+ // binlog_filename_ = partition->GetBinlogFilename();
   std::string confile = NewFileName(binlog_filename_, filenum_);
   if (!slash::NewSequentialFile(confile, &queue_).ok()) {
     return Status::IOError("ZPBinlogSendTask Init new sequtial file failed");

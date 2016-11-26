@@ -78,6 +78,9 @@ BinlogWriter::BinlogWriter(slash::WritableFile *queue)
   block_offset_(0) {
   }
 
+BinlogWriter::~BinlogWriter() {
+}
+
 void BinlogWriter::Load() {
   assert(queue_ != NULL);
   uint64_t filesize = queue_->Filesize();
