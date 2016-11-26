@@ -54,6 +54,9 @@ class Cmd {
   virtual ~Cmd() {}
 
   virtual void Do(const google::protobuf::Message *request, google::protobuf::Message *response, void* partition = NULL) const = 0;
+  virtual std::string ExtractTable(const google::protobuf::Message *request) const {
+    return "";
+  }
   virtual std::string ExtractKey(const google::protobuf::Message *request) const {
     return "";
   }

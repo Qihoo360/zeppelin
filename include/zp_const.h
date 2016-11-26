@@ -47,8 +47,8 @@ const int kPortShiftSync = 200;
 const int kPortShiftRsync = 300;
 
 // Meta port shift
-const int kMetaPortShiftCmd = 100;
-const int kMetaPortShiftFY = 200;
+const int kMetaPortShiftCmd = 0;
+const int kMetaPortShiftFY = 100;
 
 
 const int kTrySyncInterval = 3;
@@ -114,11 +114,12 @@ const uint32_t kBinlogRemainMaxDay = 7;
 //meta related
 //key in floyd is zpmeta##id
 //
-const std::string ZP_META_KEY_PREFIX = "zpmeta##";
-const std::string ZP_META_KEY_PN = "##partition_num";
-const std::string ZP_META_KEY_MT = "##full_meta";
-const std::string ZP_META_KEY_ND = "##nodes";
-const int ZP_META_UPDATE_RETRY_TIME = 3;
+//const std::string ZP_META_KEY_PREFIX = "zpmeta##";
+//const std::string ZP_META_KEY_PN = "##partition_num";
+//const std::string ZP_META_KEY_MT = "##full_meta";
+const std::string kMetaTables = "##tables";
+const std::string kMetaNodes = "##nodes";
+const std::string kMetaVersion = "##version";
 
 // timeout between node and meta server, the one for meta should large than node
 const int kNodeMetaTimeoutN = 10;

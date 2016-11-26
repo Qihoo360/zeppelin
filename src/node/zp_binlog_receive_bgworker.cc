@@ -16,7 +16,7 @@ void ZPBinlogReceiveBgWorker::DoBinlogReceiveTask(void* arg) {
   uint32_t partition_id = barg->partition_id;
   const Cmd *cmd = barg->cmd;
 
-  Partition* partition = zp_data_server->GetPartitionById(partition_id);
+  Partition* partition = zp_data_server->GetTablePartitionById(cmd->ExtractTable(&barg->request), partition_id);
   if (partition == NULL) {
     LOG(WARNING) << "No partition found for binlog receive bgworker, Partition: "
       << partition->partition_id();

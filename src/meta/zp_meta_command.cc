@@ -58,14 +58,23 @@ void PingCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
 void PullCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   assert(request->type() == ZPMeta::MetaCmd_Type_PULL);
+  std::vector<std::string> tables;
+  if (request->pull().has_name()) {
+    std::string name = request->pull().name();
+    tables.push_back(slash::StringToLower(name));
+  } else if (request->pull().has_node()) {
+    std::string ip_port = request->pull().node().ip() + ":" + std::to_string(request->pull().node().port());
+    zp_meta_server->GetTablesFromNode(ip_port, tables);
+  }
+
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   ZPMeta::MetaCmdResponse_Status* status_res = response->mutable_status();
   response->set_type(ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PULL);
 
   ZPMeta::MetaCmdResponse_Pull ms_info;
-  Status s = zp_meta_server->GetMSInfo(ms_info);
-  LOG(INFO) << "Pull size: " << ms_info.info().size();
+  Status s = zp_meta_server->GetMSInfo(tables, ms_info);
+  LOG(INFO) << "Pull table num: " << ms_info.info_size();
   if (!s.ok()) {
     ms_info.set_version(-1);
     status_res->set_code(ZPMeta::StatusCode::kError);
@@ -76,7 +85,6 @@ void PullCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
   }
 
   ZPMeta::MetaCmdResponse_Pull* pull = response->mutable_pull();
-  response->set_type(ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PULL);
   pull->CopyFrom(ms_info);
   
   DLOG(INFO) << "Receive Pull from client";
@@ -84,19 +92,21 @@ void PullCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
 
 void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+  std::string name = request->init().name();
+  std::string table = slash::StringToLower(name);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   ZPMeta::MetaCmdResponse_Status* status_res = response->mutable_status();
   response->set_type(ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_INIT);
 
-  Status s = zp_meta_server->Distribute(request->init().num());
+  Status s = zp_meta_server->Distribute(table, request->init().num());
 
   if (s.ok()) {
     status_res->set_code(ZPMeta::StatusCode::kOk);
     status_res->set_msg("Init OK!");
+    DLOG(INFO) << "Init, table: " << table << " partition num: " << request->init().num();
   } else {
     status_res->set_code(ZPMeta::StatusCode::kError);
     status_res->set_msg(s.ToString());
   }
-  DLOG(INFO) << "Init, partition num: " << request->init().num();
 }

@@ -42,7 +42,7 @@ int ZPSyncConn::DealMessage() {
       request_,
       std::string(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4));
 
-  zp_data_server->DispatchBinlogBGWorker(cmd->ExtractKey(&request_), arg);
+  zp_data_server->DispatchBinlogBGWorker(cmd->ExtractTable(&request_), cmd->ExtractKey(&request_), arg);
 
   return 0;
 }

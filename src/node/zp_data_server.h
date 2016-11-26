@@ -29,6 +29,7 @@
 #include "zp_binlog_sender.h"
 #include "zp_binlog_receiver_thread.h"
 #include "zp_binlog_receive_bgworker.h"
+#include "zp_data_table.h"
 #include "zp_data_partition.h"
 
 
@@ -41,6 +42,7 @@ class ZPDataServerThread;
 class ZPDataWorkerThread;
 class ZPDataDispatchThread;
 
+//class Table;
 
 extern ZpConf* g_zp_conf;
 class ZPDataServer {
@@ -109,20 +111,24 @@ class ZPDataServer {
     return meta_epoch_ >= 0;
   }
   
-  // Partition related
-  void SetPartitionCount(int count) {
-    partition_count_ = count;
-  }
-  bool UpdateOrAddPartition(const int partition_id, const Node& master, const std::vector<Node>& nodes);
-  Partition* GetPartition(const std::string &key);
-  Partition* GetPartitionById(const int partition_id);
-  template <class VisitorFunction>
-  void WalkPartitions(VisitorFunction vfn) {
-    slash::RWLock rl(&partition_rw_, false);
-    for_each(partitions_.begin(), partitions_.end(), vfn);
-  }
+  // Table related
+  //bool UpdateOrAddPartition(const int partition_id, const Node& master, const std::vector<Node>& nodes);
+  //Partition* GetPartition(const std::string &key);
+  //Partition* GetPartitionById(const int partition_id);
+  Table* GetTable(const std::string &table_name);
+  bool SetTablePartitionCount(const std::string &table_name, int count);
+  bool UpdateOrAddTablePartition(const std::string &table_name, const int partition_id, const Node& master, const std::vector<Node>& slaves);
+  Partition* GetTablePartition(const std::string &table_name, const std::string &key);
+  Partition* GetTablePartitionById(const std::string &table_name, const int partition_id);
 
-  void DumpPartitions();
+  // TODO 
+ // template <class VisitorFunction>
+ // void WalkPartitions(VisitorFunction vfn) {
+ //   slash::RWLock rl(&table_rw_, false);
+ //   for_each(partitions_.begin(), partitions_.end(), vfn);
+ // }
+
+  void DumpTablePartitions();
   
   // Peer Client
   Status SendToPeer(const Node &node, const std::string &data);
@@ -130,14 +136,14 @@ class ZPDataServer {
   // Backgroud thread
   void BGSaveTaskSchedule(void (*function)(void*), void* arg);
   void BGPurgeTaskSchedule(void (*function)(void*), void* arg);
-  void AddSyncTask(int parititon_id);
+  void AddSyncTask(const std::string& table_name, int parititon_id);
   void AddMetacmdTask();
   Status AddBinlogSendTask(int parititon_id, const Node& node,
       int32_t filenum, int64_t offset);
   Status RemoveBinlogSendTask(int parititon_id, const Node& node);
   int32_t GetBinlogSendFilenum(int partition_id, const Node& node);
-  void DispatchBinlogBGWorker(const Cmd* cmd, const client::CmdRequest &req);
-  void DispatchBinlogBGWorker(const std::string key, ZPBinlogReceiveArg *arg);
+  //void DispatchBinlogBGWorker(const Cmd* cmd, const client::CmdRequest &req);
+  void DispatchBinlogBGWorker(const std::string& table_name, const std::string& key, ZPBinlogReceiveArg *arg);
 
   // Command related
   Cmd* CmdGet(const int op) {
@@ -149,12 +155,13 @@ class ZPDataServer {
   slash::Mutex server_mutex_;
   std::unordered_map<int, Cmd*> cmds_;
 
-  // Partitions
-  //Note: this lock only protect partitions_ map, rather than certain partiton which should keep thread safty itself
-  pthread_rwlock_t partition_rw_;
-  std::atomic<int> partition_count_;
-  std::map<int, Partition*> partitions_;
-  uint32_t KeyToPartition(const std::string &key);
+  // Table and Partition
+  //Note: this lock only protect table map, rather than certain partiton which should keep thread safety itself
+  pthread_rwlock_t table_rw_;
+  std::atomic<int> table_count_;
+  //std::map<int, Partition*> partitions_;
+  std::unordered_map<std::string, Table*> tables_;
+  //uint32_t KeyToPartition(const std::string &key);
 
   // Binlog Send related
   slash::Mutex mutex_peers_;

@@ -23,20 +23,20 @@ ZPTrySyncThread::~ZPTrySyncThread() {
   LOG(INFO) << " TrySync thread " << pthread_self() << " exit!!!";
 }
 
-void ZPTrySyncThread::TrySyncTaskSchedule(int partition_id) {
+void ZPTrySyncThread::TrySyncTaskSchedule(const std::string &table_name, int partition_id) {
   slash::MutexLock l(&bg_thread_protector_);
   bg_thread_->StartIfNeed();
-  TrySyncTaskArg *targ = new TrySyncTaskArg(this, partition_id);
+  TrySyncTaskArg *targ = new TrySyncTaskArg(this, table_name, partition_id);
   bg_thread_->Schedule(&DoTrySyncTask, static_cast<void*>(targ));
 }
 
 void ZPTrySyncThread::DoTrySyncTask(void* arg) {
   TrySyncTaskArg* targ = static_cast<TrySyncTaskArg*>(arg);
-  (targ->thread)->TrySyncTask(targ->partition_id);
+  (targ->thread)->TrySyncTask(targ->table_name, targ->partition_id);
   delete targ;
 }
 
-void ZPTrySyncThread::TrySyncTask(int partition_id) {
+void ZPTrySyncThread::TrySyncTask(const std::string& table_name, int partition_id) {
   // Wait until the server is availible
   while (!should_exit_ && !zp_data_server->Availible()) {
     sleep(kTrySyncInterval);
@@ -46,13 +46,13 @@ void ZPTrySyncThread::TrySyncTask(int partition_id) {
   }
 
   //Get Partiton by id
-  Partition* partition = zp_data_server->GetPartitionById(partition_id);
+  Partition* partition = zp_data_server->GetTablePartitionById(table_name, partition_id);
   
   // Do try sync
   if (!SendTrySync(partition)) {
     // Need one more trysync, since error happenning or waiting for db sync
     sleep(kTrySyncInterval);
-    zp_data_server->AddSyncTask(partition_id);
+    zp_data_server->AddSyncTask(table_name, partition_id);
   }
 }
 
