@@ -741,7 +741,7 @@ Status ZPMetaServer::UpdateTableName(const std::string& name) {
   std::string value;
   ZPMeta::TableName table_name;
   Status s = Get(kMetaTables, value);
-  if (s.ok()) {
+  if (s.ok() || s.IsNotFound()) {
     if (!table_name.ParseFromString(value)) {
       LOG(ERROR) << "Deserialization table_name failed, error: " << value;
       return slash::Status::Corruption("Parse failed");
