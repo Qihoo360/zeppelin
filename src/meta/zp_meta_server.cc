@@ -810,8 +810,8 @@ Status ZPMetaServer::InitVersion() {
             return slash::Status::Corruption("Parse failed");
           }
 
-          for (int i = 0; i < table_info.partitions_size(); i++) {
-            partition = table_info.partitions(i);
+          for (int j = 0; j < table_info.partitions_size(); j++) {
+            partition = table_info.partitions(j);
 
             if (partition.master().ip() != "" && partition.master().port() != -1) {
               ip_port = slash::IpPortString(partition.master().ip(), partition.master().port());
