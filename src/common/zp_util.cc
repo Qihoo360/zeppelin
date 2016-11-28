@@ -50,5 +50,7 @@ slash::Status FileLocker::Lock() {
 }
 
 FileLocker::~FileLocker() {
-  slash::UnlockFile(file_lock_);  // Ignore error since state is already gone
+  if (file_lock_) {
+    slash::UnlockFile(file_lock_);
+  }
 }
