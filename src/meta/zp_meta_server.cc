@@ -293,6 +293,20 @@ Status ZPMetaServer::GetMSInfo(std::vector<std::string> &tables, ZPMeta::MetaCmd
   ZPMeta::Table table_info;
   ZPMeta::Table *t;
   Status s;
+
+  std::string value;
+  int version = -1;
+  floyd::Status fs = floyd_->DirtyRead(kMetaVersion, value);
+  if (fs.ok()) {
+    version = std::stoi(value);
+  } else {
+    LOG(ERROR) << "GetMSInfo error when get version key from floyd: " << fs.ToString();
+  }
+
+  if (version != version_) {
+    InitVersion();
+  }
+
   ms_info.set_version(version_);
   for (auto it = tables.begin(); it != tables.end(); it++) {
     s = GetTableInfo(*it, table_info);
