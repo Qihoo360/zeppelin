@@ -385,6 +385,13 @@ Status ZPMetaServer::Distribute(const std::string name, int num) {
     LOG(ERROR) << "SetTable error in Distribute, error: " << s.ToString();
     return s;
   }
+
+  s = UpdateTableName(name);
+  if (!s.ok()) {
+    LOG(ERROR) << "UpdateTableName error: " << s.ToString();
+    return s;
+  }
+
   s = Set(kMetaVersion, std::to_string(version_+1));
   if (s.ok()) {
     version_++; 
@@ -726,6 +733,25 @@ Status ZPMetaServer::GetTable(std::vector<std::string> &tables) {
     for (int i = 0; i< table_name.name_size(); i++) {
       tables.push_back(table_name.name(i));
     }
+  }
+  return s;
+}
+
+Status ZPMetaServer::UpdateTableName(const std::string& name) {
+  std::string value;
+  ZPMeta::TableName table_name;
+  Status s = Get(kMetaTables, value);
+  if (s.ok()) {
+    if (!table_name.ParseFromString(value)) {
+      LOG(ERROR) << "Deserialization table_name failed, error: " << value;
+      return slash::Status::Corruption("Parse failed");
+    }
+    table_name.add_name(name);
+    if (!table_name.SerializeToString(&value)) {
+      LOG(ERROR) << "Serialization table_name failed, value: " <<  value;
+      return Status::Corruption("Serialize error");
+    }
+    return Set(kMetaTables, value);
   }
   return s;
 }

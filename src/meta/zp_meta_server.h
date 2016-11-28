@@ -102,6 +102,7 @@ private:
   bool FindNode(ZPMeta::Nodes &nodes, const std::string &ip, int port);
   void RestoreNodeAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes);
   Status GetTable(std::vector<std::string>& tables);
+  Status UpdateTableName(const std::string& name);
   Status SetTable(const ZPMeta::Table &table);
   Status GetAllNode(ZPMeta::Nodes &nodes);
   Status InitVersion();
