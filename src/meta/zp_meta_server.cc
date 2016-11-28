@@ -293,6 +293,20 @@ Status ZPMetaServer::GetMSInfo(std::vector<std::string> &tables, ZPMeta::MetaCmd
   ZPMeta::Table table_info;
   ZPMeta::Table *t;
   Status s;
+
+  std::string value;
+  int version = -1;
+  floyd::Status fs = floyd_->DirtyRead(kMetaVersion, value);
+  if (fs.ok()) {
+    version = std::stoi(value);
+  } else {
+    LOG(ERROR) << "GetMSInfo error when get version key from floyd: " << fs.ToString();
+  }
+
+  if (version != version_) {
+    InitVersion();
+  }
+
   ms_info.set_version(version_);
   for (auto it = tables.begin(); it != tables.end(); it++) {
     s = GetTableInfo(*it, table_info);
@@ -371,6 +385,13 @@ Status ZPMetaServer::Distribute(const std::string name, int num) {
     LOG(ERROR) << "SetTable error in Distribute, error: " << s.ToString();
     return s;
   }
+
+  s = UpdateTableName(name);
+  if (!s.ok()) {
+    LOG(ERROR) << "UpdateTableName error: " << s.ToString();
+    return s;
+  }
+
   s = Set(kMetaVersion, std::to_string(version_+1));
   if (s.ok()) {
     version_++; 
@@ -716,6 +737,25 @@ Status ZPMetaServer::GetTable(std::vector<std::string> &tables) {
   return s;
 }
 
+Status ZPMetaServer::UpdateTableName(const std::string& name) {
+  std::string value;
+  ZPMeta::TableName table_name;
+  Status s = Get(kMetaTables, value);
+  if (s.ok() || s.IsNotFound()) {
+    if (!table_name.ParseFromString(value)) {
+      LOG(ERROR) << "Deserialization table_name failed, error: " << value;
+      return slash::Status::Corruption("Parse failed");
+    }
+    table_name.add_name(name);
+    if (!table_name.SerializeToString(&value)) {
+      LOG(ERROR) << "Serialization table_name failed, value: " <<  value;
+      return Status::Corruption("Serialize error");
+    }
+    return Set(kMetaTables, value);
+  }
+  return s;
+}
+
 Status ZPMetaServer::SetTable(const ZPMeta::Table &table) {
   std::string new_value;
   if (!table.SerializeToString(&new_value)) {
@@ -756,7 +796,7 @@ Status ZPMetaServer::InitVersion() {
   while(1) {
     fs = floyd_->Read(kMetaTables, value);
     if (fs.ok()) {
-      if (value == "") {
+      if (value != "") {
         if (!tables.ParseFromString(value)) {
           LOG(ERROR) << "Deserialization table failed, error: " << value;
           return slash::Status::Corruption("Parse failed");
@@ -770,8 +810,8 @@ Status ZPMetaServer::InitVersion() {
             return slash::Status::Corruption("Parse failed");
           }
 
-          for (int i = 0; i < table_info.partitions_size(); i++) {
-            partition = table_info.partitions(i);
+          for (int j = 0; j < table_info.partitions_size(); j++) {
+            partition = table_info.partitions(j);
 
             if (partition.master().ip() != "" && partition.master().port() != -1) {
               ip_port = slash::IpPortString(partition.master().ip(), partition.master().port());
