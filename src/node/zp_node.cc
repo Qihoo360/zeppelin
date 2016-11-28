@@ -36,6 +36,7 @@ static void IntSigHandle(const int sig) {
   LOG(INFO) << "Catch Signal " << sig << ", cleanup...";
   //zp_data_server->server_mutex_.Unlock();
   zp_data_server->Exit();
+  LOG(INFO) << "data server Exit";
 }
 
 static void ZPDataSignalSetup() {

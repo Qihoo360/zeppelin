@@ -11,15 +11,15 @@
 
 ZPDataServer::ZPDataServer()
   : table_count_(0),
-   should_exit_(false),
-   meta_epoch_(-1),
-   should_pull_meta_(false) {
+  should_exit_(false),
+  meta_epoch_(-1),
+  should_pull_meta_(false) {
     pthread_rwlock_init(&meta_state_rw_, NULL);
     pthread_rwlockattr_t attr;
     pthread_rwlockattr_init(&attr);
     pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
     pthread_rwlock_init(&table_rw_, NULL);
-    
+
     // Command table
     cmds_.reserve(300);
     InitClientCmdTable();
@@ -34,11 +34,10 @@ ZPDataServer::ZPDataServer()
           new ZPBinlogReceiveBgWorker(kBinlogReceiveBgWorkerFull));
     }
     zp_binlog_receiver_thread_ = new ZPBinlogReceiverThread(g_zp_conf->local_port() + kPortShiftSync, kBinlogReceiverCronInterval);
-    binlog_send_pool_ = new ZPBinlogSendTaskPool();
+    //binlog_send_pool_ = new ZPBinlogSendTaskPool();
     for (int i = 0; i < kNumBinlogSendThread; ++i) {
-      ZPBinlogSendThread *thread = new ZPBinlogSendThread(binlog_send_pool_);
+      ZPBinlogSendThread *thread = new ZPBinlogSendThread(&binlog_send_pool_);
       binlog_send_workers_.push_back(thread);
-      thread->StartThread();
     }
 
     worker_num_ = 4;
@@ -81,7 +80,7 @@ ZPDataServer::~ZPDataServer() {
   for (; it != binlog_send_workers_.end(); ++it) {
     delete *it;
   }
-  delete binlog_send_pool_;
+  //delete binlog_send_pool_;
   delete zp_binlog_receiver_thread_;
   std::vector<ZPBinlogReceiveBgWorker*>::iterator binlogbg_iter = zp_binlog_receive_bgworkers_.begin();
   while(binlogbg_iter != zp_binlog_receive_bgworkers_.end()){
@@ -115,6 +114,11 @@ Status ZPDataServer::Start() {
   zp_dispatch_thread_->StartThread();
   zp_binlog_receiver_thread_->StartThread();
   zp_ping_thread_->StartThread();
+  std::vector<ZPBinlogSendThread*>::iterator bsit = binlog_send_workers_.begin();
+  for (; bsit != binlog_send_workers_.end(); ++bsit) {
+    LOG(INFO) << "Start one binlog send worker thread";
+    (*bsit)->StartThread();
+  }
 
   // TEST 
   LOG(INFO) << "ZPDataServer started on port:" <<  g_zp_conf->local_port();
@@ -276,12 +280,12 @@ void ZPDataServer::BGPurgeTaskSchedule(void (*function)(void*), void* arg) {
 
 Status ZPDataServer::AddBinlogSendTask(const std::string &table, int partition_id, const Node& node,
     int32_t filenum, int64_t offset) {
-  return binlog_send_pool_->AddNewTask(table, partition_id, node, filenum, offset);
+  return binlog_send_pool_.AddNewTask(table, partition_id, node, filenum, offset);
 }
 
 Status ZPDataServer::RemoveBinlogSendTask(const std::string &table, int partition_id, const Node& node) {
   std::string task_name = ZPBinlogSendTaskName(table, partition_id, node);
-  return binlog_send_pool_->RemoveTask(task_name);
+  return binlog_send_pool_.RemoveTask(task_name);
 }
 
 // Return the task filenum indicated by id and node
@@ -289,7 +293,7 @@ Status ZPDataServer::RemoveBinlogSendTask(const std::string &table, int partitio
 // -2 when the task is exist but is processing now
 int32_t ZPDataServer::GetBinlogSendFilenum(const std::string &table, int partition_id, const Node& node) {
   std::string task_name = ZPBinlogSendTaskName(table, partition_id, node);
-  return binlog_send_pool_->TaskFilenum(task_name);
+  return binlog_send_pool_.TaskFilenum(task_name);
 }
 
 void ZPDataServer::AddSyncTask(const std::string &table_name, int parititon_id) {

@@ -1,5 +1,6 @@
 #include "zp_binlog_sender.h"
 
+#include <limits>
 #include <glog/logging.h>
 #include "zp_const.h"
 #include "zp_data_server.h"
@@ -33,6 +34,7 @@ Status ZPBinlogSendTask::Create(const std::string &table, int32_t id, const Node
 
 ZPBinlogSendTask::ZPBinlogSendTask(const std::string &table, int32_t id, const Node& target,
     uint32_t ifilenum, uint64_t ioffset) :
+  send_next(true),
   table_name_(table),
   partition_id_(id),
   node_(target),
@@ -47,7 +49,6 @@ ZPBinlogSendTask::~ZPBinlogSendTask() {
 }
 
 Status ZPBinlogSendTask::Init() {
-  // TODO Table info
   Partition* partition = zp_data_server->GetTablePartitionById(table_name_, partition_id_);
   if (partition == NULL) {
     return Status::NotFound("partiiton not exist");
@@ -62,6 +63,9 @@ Status ZPBinlogSendTask::Init() {
 }
 
 Status ZPBinlogSendTask::ProcessTask(std::string &item) {
+  if (reader_ == NULL || queue_ == NULL) {
+    return Status::InvalidArgument("Error Task");
+  }
   uint64_t consume_len = 0;
   Status s = reader_->Consume(&consume_len, item);
   if (s.IsEndFile()) {
@@ -74,7 +78,12 @@ Status ZPBinlogSendTask::ProcessTask(std::string &item) {
       delete queue_;
       queue_ = NULL;
 
-      slash::NewSequentialFile(confile, &(queue_));
+      s = slash::NewSequentialFile(confile, &(queue_));
+      if (!s.ok()) {
+        LOG(WARNING) << "Failed to roo to next binlog file:" << (filenum_ + 1)
+          << " Error:" << s.ToString(); 
+        return s;
+      }
       reader_ = new BinlogReader(queue_);
       filenum_++;
       offset_ = 0;
@@ -92,13 +101,13 @@ Status ZPBinlogSendTask::ProcessTask(std::string &item) {
   return s;
 }
 
-
 /**
  * ZPBinlogSendTaskPool
  */
 ZPBinlogSendTaskPool::ZPBinlogSendTaskPool() {
   pthread_rwlock_init(&tasks_rwlock_, NULL);
-  task_ptrs_.reserve(1000);
+  //task_ptrs_.reserve(1000);
+  //LOG(INFO) << "size: " << tasks_.size();
 }
 
 ZPBinlogSendTaskPool::~ZPBinlogSendTaskPool() {
@@ -150,7 +159,10 @@ Status ZPBinlogSendTaskPool::RemoveTask(const std::string &name) {
   if (it == task_ptrs_.end()) {
     return Status::NotFound("Task not exist");
   }
-  delete *(it->second);
+  // Task has been FetchOut should be deleted when Pushback
+  if (it->second != tasks_.end()) {
+    delete *(it->second);
+  }
   tasks_.erase(it->second);
   task_ptrs_.erase(it);
   return Status::OK();
@@ -158,7 +170,7 @@ Status ZPBinlogSendTaskPool::RemoveTask(const std::string &name) {
 
 // Return the task filenum indicated by id and node
 // -1 when the task is not exist
-// -2 when the task is exist but is processing now
+// max() when the task is exist but is processing now
 int32_t ZPBinlogSendTaskPool::TaskFilenum(const std::string &name) {
   slash::RWLock l(&tasks_rwlock_, false);
   ZPBinlogSendTaskIndex::iterator it = task_ptrs_.find(name);
@@ -167,11 +179,14 @@ int32_t ZPBinlogSendTaskPool::TaskFilenum(const std::string &name) {
   }
   if (it->second == tasks_.end()) {
     // The task is processing by some thread
-    return -2;
+    return std::numeric_limits<int32_t>::max();
   }
   return (*(it->second))->filenum();
 }
 
+// Fetch one task out from the front of tasks_ list
+// and live the its ptr point to the tasks_.end()
+// to distinguish from task has been removed
 Status ZPBinlogSendTaskPool::FetchOut(ZPBinlogSendTask** task_ptr) {
   slash::RWLock l(&tasks_rwlock_, true);
   if (tasks_.size() == 0) {
@@ -185,10 +200,14 @@ Status ZPBinlogSendTaskPool::FetchOut(ZPBinlogSendTask** task_ptr) {
   return Status::OK();
 }
 
+// PutBack the task who has been FetchOut
+// return NotFound when the task is not exist in index map task_pts_
+// which mean the task has been removed or its not a task fetch out before
 Status ZPBinlogSendTaskPool::PutBack(ZPBinlogSendTask* task) {
   slash::RWLock l(&tasks_rwlock_, true);
   ZPBinlogSendTaskIndex::iterator it = task_ptrs_.find(task->name());
   if (it == task_ptrs_.end()) {
+    delete task;
     return Status::NotFound("Task may have been deleted");
   }
   tasks_.push_back(task);
@@ -222,13 +241,14 @@ void ZPBinlogSendTaskPool::Dump() {
  */
 
 ZPBinlogSendThread::ZPBinlogSendThread(ZPBinlogSendTaskPool *pool)
-  : pool_(pool) {
+  : pink::Thread::Thread(),
+  pool_(pool) {
   }
 
-  ZPBinlogSendThread::~ZPBinlogSendThread() {
-    should_exit_ = true;
-    pthread_join(thread_id(), NULL);
-    LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
+ZPBinlogSendThread::~ZPBinlogSendThread() {
+  should_exit_ = true;
+  pthread_join(thread_id(), NULL);
+  LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
   }
 
 void* ZPBinlogSendThread::ThreadMain() {
@@ -240,7 +260,8 @@ void* ZPBinlogSendThread::ThreadMain() {
     Status s = pool_->FetchOut(&task);
     if (!s.ok()) {
       // TODO change to condition
-      sleep(1);
+      LOG(INFO) << "No task to be processed";
+      sleep(3);
       continue;
     }
 
@@ -255,6 +276,7 @@ void* ZPBinlogSendThread::ThreadMain() {
           // No more binlog item in current task, switch to others
           LOG(INFO) << "No more binlog item for table: " << task->table_name()
             << "parititon: " << task->partition_id();
+          sleep(1);
           break;
         } else if (!s.ok()) {
           LOG(WARNING) << "BinlogSender Parse error, " << s.ToString();
