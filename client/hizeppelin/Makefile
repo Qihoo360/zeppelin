@@ -13,6 +13,7 @@ THIRD_PATH = ../../third
 
 
 LIB_PATH = -L../output/lib/ \
+		   -L../third/linenoise/ \
 		   -L$(THIRD_PATH)/slash/output/lib/ \
 		   -L$(THIRD_PATH)/pink/output/lib/  \
 					 -L/usr/local/lib/
@@ -24,6 +25,7 @@ LIBS = -lzp \
 
 INCLUDE_PATH = -I../output/include/ \
 		   -I../output/  \
+		   -I../third/linenoise  \
 		   -I$(THIRD_PATH)/pink/output/  \
 		   -I$(THIRD_PATH)/pink/output/include/
 
@@ -49,7 +51,7 @@ zp_cli: zp_cli.cc
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
 
 zp_manager: zp_manager.cc
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ ../third/linenoise/linenoise.o $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
 
 qps_test: qps_test.cc
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
