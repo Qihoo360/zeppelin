@@ -796,7 +796,7 @@ Status ZPMetaServer::InitVersion() {
   while(1) {
     fs = floyd_->Read(kMetaTables, value);
     if (fs.ok()) {
-      if (value == "") {
+      if (value != "") {
         if (!tables.ParseFromString(value)) {
           LOG(ERROR) << "Deserialization table failed, error: " << value;
           return slash::Status::Corruption("Parse failed");
