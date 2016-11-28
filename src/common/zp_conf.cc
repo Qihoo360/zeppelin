@@ -29,8 +29,6 @@ void ZpConf::Dump() const{
   fprintf (stderr, "    Config.data_path   : %s\n", data_path_.c_str());
   fprintf (stderr, "    Config.log_path    : %s\n", log_path_.c_str());
   fprintf (stderr, "    Config.daemonize    : %s\n", daemonize_? "true":"false");
-  fprintf (stderr, "    Config.pid_file    : %s\n", pid_file_.c_str());
-  fprintf (stderr, "    Config.lock_file    : %s\n", lock_file_.c_str());
 }
 
 int ZpConf::Load(const std::string& path) {
@@ -48,9 +46,13 @@ int ZpConf::Load(const std::string& path) {
   READCONF(conf_reader, data_path, data_path_, STR);
   READCONF(conf_reader, log_path, log_path_, STR);
   READCONF(conf_reader, daemonize, daemonize_, BOOL);
-  READCONF(conf_reader, pid_file, pid_file_, STR);
-  READCONF(conf_reader, lock_file, lock_file_, STR);
 
   READCONF(conf_reader, meta_addr, meta_addr_, STRVEC);
+  std::string lock_path = log_path_;
+  if (lock_path.back() != '/') {
+    lock_path.append("/");
+  }
+  pid_file_ = lock_path + "meta.pid";
+  lock_file_ = lock_path + "meta.lock";
   return res;
 }
