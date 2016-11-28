@@ -7,20 +7,20 @@
 
 extern ZPDataServer* zp_data_server;
 
-std::string ZPBinlogSendTaskName(int32_t id, const Node& target) {
+std::string ZPBinlogSendTaskName(const std::string& table, int32_t id, const Node& target) {
   char buf[256];
-  sprintf(buf, "%d_%s_%d", id, target.ip.c_str(), target.port);
+  sprintf(buf, "%s_%d_%s_%d", table.c_str(), id, target.ip.c_str(), target.port);
   return std::string(buf);
 }
 
 /**
  * ZPBinlogSendTask
  */
-Status ZPBinlogSendTask::Create(int32_t id, const Node& target,
+Status ZPBinlogSendTask::Create(const std::string &table, int32_t id, const Node& target,
       uint32_t ifilenum, uint64_t ioffset,
       ZPBinlogSendTask** tptr) {
   *tptr = NULL;
-  ZPBinlogSendTask* task = new ZPBinlogSendTask(id, target,
+  ZPBinlogSendTask* task = new ZPBinlogSendTask(table, id, target,
       ifilenum, ioffset);
   Status s = task->Init();
   if (s.ok()) {
@@ -31,13 +31,14 @@ Status ZPBinlogSendTask::Create(int32_t id, const Node& target,
   return s;
 }
 
-ZPBinlogSendTask::ZPBinlogSendTask(int32_t id, const Node& target,
+ZPBinlogSendTask::ZPBinlogSendTask(const std::string &table, int32_t id, const Node& target,
     uint32_t ifilenum, uint64_t ioffset) :
+  table_name_(table),
   partition_id_(id),
   node_(target),
   filenum_(ifilenum),
   offset_(ioffset) {
-    name_ = ZPBinlogSendTaskName(partition_id_, target);
+    name_ = ZPBinlogSendTaskName(table, partition_id_, target);
   }
 
 ZPBinlogSendTask::~ZPBinlogSendTask() {
@@ -47,11 +48,11 @@ ZPBinlogSendTask::~ZPBinlogSendTask() {
 
 Status ZPBinlogSendTask::Init() {
   // TODO Table info
- // Partition* partition = zp_data_server->GetPartitionById(partition_id_);
- // if (partition == NULL) {
- //   return Status::NotFound("partiiton not exist");
- // }
- // binlog_filename_ = partition->GetBinlogFilename();
+  Partition* partition = zp_data_server->GetTablePartitionById(table_name_, partition_id_);
+  if (partition == NULL) {
+    return Status::NotFound("partiiton not exist");
+  }
+  binlog_filename_ = partition->GetBinlogFilename();
   std::string confile = NewFileName(binlog_filename_, filenum_);
   if (!slash::NewSequentialFile(confile, &queue_).ok()) {
     return Status::IOError("ZPBinlogSendTask Init new sequtial file failed");
@@ -116,10 +117,10 @@ bool ZPBinlogSendTaskPool::TaskExist(const std::string& task_name) {
     return true;
 }
 
-Status ZPBinlogSendTaskPool::AddNewTask(int32_t id, const Node& target,
+Status ZPBinlogSendTaskPool::AddNewTask(const std::string &table_name, int32_t id, const Node& target,
     uint32_t ifilenum, uint64_t ioffset) {
   ZPBinlogSendTask* task_prt = NULL;
-  Status s = ZPBinlogSendTask::Create(id, target, ifilenum, ioffset, &task_prt);
+  Status s = ZPBinlogSendTask::Create(table_name, id, target, ifilenum, ioffset, &task_prt);
   if (!s.ok()) {
     return s;
   }
@@ -204,6 +205,7 @@ void ZPBinlogSendTaskPool::Dump() {
     std::list<ZPBinlogSendTask*>::iterator tptr = it->second;
     LOG(INFO) << "----------------------------";
     LOG(INFO) << "+Binlog Send Task" << it->first;
+    LOG(INFO) << "  +Table  " << (*tptr)->table_name();
     LOG(INFO) << "  +Partition  " << (*tptr)->partition_id();
     LOG(INFO) << "  +Node  " << (*tptr)->node();
     LOG(INFO) << "  +filenum " << (*tptr)->filenum();
@@ -251,7 +253,8 @@ void* ZPBinlogSendThread::ThreadMain() {
         s = task->ProcessTask(scratch);
         if (s.IsEndFile()) {
           // No more binlog item in current task, switch to others
-          LOG(INFO) << "No more binlog item for parititon: " << task->partition_id();
+          LOG(INFO) << "No more binlog item for table: " << task->table_name()
+            << "parititon: " << task->partition_id();
           break;
         } else if (!s.ok()) {
           LOG(WARNING) << "BinlogSender Parse error, " << s.ToString();

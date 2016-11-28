@@ -138,10 +138,10 @@ class ZPDataServer {
   void BGPurgeTaskSchedule(void (*function)(void*), void* arg);
   void AddSyncTask(const std::string& table_name, int parititon_id);
   void AddMetacmdTask();
-  Status AddBinlogSendTask(int parititon_id, const Node& node,
+  Status AddBinlogSendTask(const std::string &table, int parititon_id, const Node& node,
       int32_t filenum, int64_t offset);
-  Status RemoveBinlogSendTask(int parititon_id, const Node& node);
-  int32_t GetBinlogSendFilenum(int partition_id, const Node& node);
+  Status RemoveBinlogSendTask(const std::string &table, int parititon_id, const Node& node);
+  int32_t GetBinlogSendFilenum(const std::string &table, int partition_id, const Node& node);
   //void DispatchBinlogBGWorker(const Cmd* cmd, const client::CmdRequest &req);
   void DispatchBinlogBGWorker(const std::string& table_name, const std::string& key, ZPBinlogReceiveArg *arg);
 

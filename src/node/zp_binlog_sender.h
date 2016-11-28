@@ -17,16 +17,17 @@ using slash::Status;
 using slash::Slice;
 #define ZPBinlogSendTaskIndex std::unordered_map< std::string, std::list< ZPBinlogSendTask* >::iterator >
 
-std::string ZPBinlogSendTaskName(int32_t id, const Node& target);
+std::string ZPBinlogSendTaskName(const std::string& table, int32_t id, const Node& target);
 
 /**
  * ZPBinlogSendTask
  */
 class ZPBinlogSendTask {
 public:
-  static Status Create(int32_t id, const Node& target, uint32_t ifilenum,
-      uint64_t ioffset, ZPBinlogSendTask** tptr);
-  ZPBinlogSendTask(int32_t id, const Node& target,
+  static Status Create(const std::string &table_name, int32_t id,
+      const Node& target, uint32_t ifilenum,uint64_t ioffset,
+      ZPBinlogSendTask** tptr);
+  ZPBinlogSendTask(const std::string &table_name, int32_t id, const Node& target,
     uint32_t ifilenum, uint64_t ioffset);
   ~ZPBinlogSendTask();
 
@@ -34,6 +35,13 @@ public:
 
   std::string name() const {
     return name_;
+  }
+  std::string table_name() const {
+    return table_name_;
+  }
+
+  int32_t partition_id() {
+    return partition_id_;
   }
   Node node() const {
     return node_;
@@ -44,14 +52,12 @@ public:
   uint64_t offset() {
     return offset_;
   }
-  int32_t partition_id() {
-    return partition_id_;
-  }
 
   Status ProcessTask(std::string &item);
 
 private:
   std::string name_;
+  const std::string table_name_;
   const int32_t partition_id_;
   const Node node_;
   uint32_t filenum_;
@@ -60,7 +66,6 @@ private:
   slash::SequentialFile *queue_;
   BinlogReader *reader_;
   Status Init();
-
 };
 
 
@@ -74,7 +79,7 @@ public:
 
   bool TaskExist(const std::string& task_name);
 
-  Status AddNewTask(int32_t id, const Node& target,
+  Status AddNewTask(const std::string &table, int32_t id, const Node& target,
     uint32_t ifilenum, uint64_t ioffset);
   Status RemoveTask(const std::string &name);
   int32_t TaskFilenum(const std::string &name);

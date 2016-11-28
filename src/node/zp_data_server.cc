@@ -274,22 +274,21 @@ void ZPDataServer::BGPurgeTaskSchedule(void (*function)(void*), void* arg) {
   bgpurge_thread_.Schedule(function, arg);
 }
 
-Status ZPDataServer::AddBinlogSendTask(int partition_id, const Node& node,
+Status ZPDataServer::AddBinlogSendTask(const std::string &table, int partition_id, const Node& node,
     int32_t filenum, int64_t offset) {
-  std::string task_name = ZPBinlogSendTaskName(partition_id, node);
-  return binlog_send_pool_->AddNewTask(partition_id, node, filenum, offset);
+  return binlog_send_pool_->AddNewTask(table, partition_id, node, filenum, offset);
 }
 
-Status ZPDataServer::RemoveBinlogSendTask(int partition_id, const Node& node) {
-  std::string task_name = ZPBinlogSendTaskName(partition_id, node);
+Status ZPDataServer::RemoveBinlogSendTask(const std::string &table, int partition_id, const Node& node) {
+  std::string task_name = ZPBinlogSendTaskName(table, partition_id, node);
   return binlog_send_pool_->RemoveTask(task_name);
 }
 
 // Return the task filenum indicated by id and node
 // -1 when the task is not exist
 // -2 when the task is exist but is processing now
-int32_t ZPDataServer::GetBinlogSendFilenum(int partition_id, const Node& node) {
-  std::string task_name = ZPBinlogSendTaskName(partition_id, node);
+int32_t ZPDataServer::GetBinlogSendFilenum(const std::string &table, int partition_id, const Node& node) {
+  std::string task_name = ZPBinlogSendTaskName(table, partition_id, node);
   return binlog_send_pool_->TaskFilenum(task_name);
 }
 

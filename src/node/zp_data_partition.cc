@@ -321,7 +321,7 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
   }
 
   // Add binlog send task
-  Status s = zp_data_server->AddBinlogSendTask(partition_id_,
+  Status s = zp_data_server->AddBinlogSendTask(table_name_, partition_id_,
       Node(node.ip, node.port + kPortShiftSync), filenum, offset);
   if (s.ok()) {
     LOG(INFO) << "Success AddBinlogSendTask for Partition: " << partition_id_ << " To "
@@ -336,7 +336,7 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
 void Partition::CleanRoleEnv(Role role) {
   // Clean binlog sender if needed
   for (auto iter = slave_nodes_.begin(); iter != slave_nodes_.end(); ) {
-    zp_data_server->RemoveBinlogSendTask(partition_id_, *iter);
+    zp_data_server->RemoveBinlogSendTask(table_name_, partition_id_, *iter);
   }
 
   // Clean binlog if needed
@@ -776,7 +776,7 @@ bool Partition::CouldPurge(uint32_t index) {
   }
   std::vector<Node>::iterator it;
   for (it = slave_nodes_.begin(); it != slave_nodes_.end(); ++it) {
-    int32_t filenum = zp_data_server->GetBinlogSendFilenum(partition_id_, *it);
+    int32_t filenum = zp_data_server->GetBinlogSendFilenum(table_name_, partition_id_, *it);
     if (filenum == -2
         || (filenum > 0
           && index > static_cast<uint32_t>(filenum))) { 
