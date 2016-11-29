@@ -216,10 +216,23 @@ Status ZPDataServer::SendToPeer(const std::string &peer_ip, int peer_port, const
 //}
 
 
+// TODO rm;
 bool ZPDataServer::SetTablePartitionCount(const std::string &table_name, const int count) {
   Table* table = GetTable(table_name);
-  
   return table == NULL ? false : table->SetPartitionCount(count);
+}
+
+Table* ZPDataServer::GetOrAddTable(const std::string &table_name) {
+  slash::RWLock l(&table_rw_, false);
+  auto it = tables_.find(table_name);
+  //std::unordered_map<std::string, Table*>::iterator it = tables_.find(table_name);
+  if (it != tables_.end()) {
+    return it->second;
+  }
+
+  Table *table = NewTable(table_name, g_zp_conf->log_path(), g_zp_conf->data_path());
+  tables_[table_name] = table;
+  return table;
 }
 
 // Note: table pointer 

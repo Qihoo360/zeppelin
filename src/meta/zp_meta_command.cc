@@ -1,4 +1,6 @@
 #include <glog/logging.h>
+#include <google/protobuf/text_format.h>
+#include <google/protobuf/repeated_field.h>
 #include "slash_string.h"
 
 #include "zp_meta.pb.h"
@@ -86,6 +88,12 @@ void PullCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
 
   ZPMeta::MetaCmdResponse_Pull* pull = response->mutable_pull();
   pull->CopyFrom(ms_info);
+
+  // TODO rm
+  std::string text_format;
+  google::protobuf::TextFormat::PrintToString(*pull, &text_format);
+  DLOG(INFO) << "pull : [" << text_format << "]";
+
   
   DLOG(INFO) << "Receive Pull from client";
 }

@@ -147,6 +147,7 @@ distclean:
 	make -C $(THIRD_PATH)/pink/ clean
 	make -C $(THIRD_PATH)/slash/ clean
 	make -C $(THIRD_PATH)/nemo/ clean
+	make -C $(THIRD_PATH)/nemo/3rdparty/rocksdb clean
 	make -C $(THIRD_PATH)/floyd/third/pink clean
 	make -C $(THIRD_PATH)/floyd/third/slash clean
 	make -C $(THIRD_PATH)/floyd/ clean
