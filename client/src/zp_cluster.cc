@@ -5,6 +5,40 @@
 #include "include/zp_meta_cli.h"
 namespace libZp {
 
+IoCtx::IoCtx(Cluster* cluster, const std::string& table) :
+  cluster_(cluster),
+  table_(table) {
+}
+
+IoCtx::~IoCtx() {
+}
+
+Status IoCtx::Set(const std::string& key, const std::string& value) {
+  Status s;
+  IpPort master;
+  s = cluster_->GetDataMaster(master, table_, key); 
+  std::shared_ptr<ZpDataCli> data_cli = cluster_->GetDataCli(master);
+  if (data_cli) {
+    s = data_cli->Set(table_, key, value);
+  } else {
+    s = Status::IOError("no data cli got");
+  }
+  return s;
+}
+
+Status IoCtx::Get(const std::string& key, std::string& value) {
+  Status s;
+  IpPort master;
+  s = cluster_->GetDataMaster(master, table_, key); 
+  std::shared_ptr<ZpDataCli> data_cli = cluster_->GetDataCli(master);
+  if (data_cli) {
+    s = data_cli->Get(table_, key, value);
+  } else {
+    s = Status::IOError("no data cli got");
+  }
+  return s;
+}
+
 Cluster::Cluster(const Options& options) {
   auto i = options.meta_addr.begin();
   while (i != options.meta_addr.end()) {
@@ -18,6 +52,11 @@ Cluster::Cluster(const Options& options) {
 }
 
 Cluster::~Cluster() {
+}
+
+
+IoCtx Cluster::CreateIoCtx(const std::string &table) {
+  return IoCtx(this, table);
 }
 
 Status Cluster::Connect() {
@@ -45,6 +84,7 @@ Status Cluster::Pull() {
   }
   return s;
 }
+
 Status Cluster::CreateTable(const std::string& table_name, const int partition_num) {
   Status s;
   std::shared_ptr<ZpMetaCli> meta_cli = GetMetaCli();
@@ -55,6 +95,7 @@ Status Cluster::CreateTable(const std::string& table_name, const int partition_n
   }
   return s;
 }
+
 std::shared_ptr<ZpMetaCli> Cluster::CreateMetaCli(const IpPort& ipPort) {
   std::shared_ptr<ZpMetaCli> cli =
     std::make_shared<ZpMetaCli>(ipPort.ip, ipPort.port);
@@ -67,6 +108,28 @@ std::shared_ptr<ZpMetaCli> Cluster::CreateMetaCli(const IpPort& ipPort) {
   return cli;
 }
 
+std::shared_ptr<ZpDataCli> Cluster::CreateDataCli(const IpPort& ipPort) {
+  std::shared_ptr<ZpDataCli> cli =
+    std::make_shared<ZpDataCli>(ipPort.ip, ipPort.port);
+  Status s = cli->Connect(ipPort.ip, ipPort.port);
+  if (s.ok()) {
+    data_cli_.emplace(ipPort, cli);
+  } else {
+    cli.reset();
+  }
+  return cli;
+}
+
+std::shared_ptr<ZpDataCli> Cluster::GetDataCli(const IpPort& ip_port) {
+  std::map<IpPort, std::shared_ptr<ZpDataCli>>::iterator it = data_cli_.find(ip_port);
+  if (it != data_cli_.end()) {
+    return it->second;
+  } else {
+    return CreateDataCli(ip_port);
+  }
+}
+
+
 IpPort Cluster::GetRandomMetaAddr() {
   std::random_device rd;
   std::mt19937 mt(rd());
@@ -74,6 +137,21 @@ IpPort Cluster::GetRandomMetaAddr() {
   int index = di(mt);
   return meta_addr_[index];
 }
+
+Status Cluster::GetDataMaster(IpPort& master, const std::string& table,
+    const std::string& key) {
+  std::map<std::string, TableMap>::iterator it =
+    cluster_map_.table_maps.find(table);
+  if (it == cluster_map_.table_maps.end()) {
+    return Status::NotFound("table does not exist");
+  }
+  int partition_num = it->second.partition_num;
+  int number = std::hash<std::string>()(key) % partition_num;
+  std::map<int, ReplicaSet>::iterator replica = it->second.partitions.find(number);
+  master = replica->second.master;
+  return Status::OK();
+}
+
 
 std::shared_ptr<ZpMetaCli> Cluster::GetMetaCli() {
   if (meta_cli_.size() != 0) {
@@ -83,16 +161,5 @@ std::shared_ptr<ZpMetaCli> Cluster::GetMetaCli() {
     return CreateMetaCli(meta);
   }
 }
-
-  /*
-     std::shared_ptr<MetaCli> Cluster::GetDataCli(IpPort& meta) {
-    map<IpPort, std::shared_ptr<ZpDataCli>>::iterator cli = data_cli_.find(meta);
-    if (cli != data_cli_.end()) {
-      return cli.second;
-    } else {
-      return CreateMetaCli(meta);
-    }
-  }
-  */
 
 }  // namespace libZp

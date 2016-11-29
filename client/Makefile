@@ -43,6 +43,7 @@ OBJS = $(patsubst %.cc,%.o,$(BASE_OBJS))
 
 
 all: $(LIBRARY)
+	make -C third/linenoise
 	@echo "Success, go, go, go..."
 
 $(LIBRARY): $(OBJS)

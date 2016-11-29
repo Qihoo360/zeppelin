@@ -73,8 +73,8 @@ namespace libZp {
   class TableMap {
     public:
       std::string table_name;
-      int32_t partition_num;
-      std::map<int32_t, ReplicaSet> partitions;
+      int partition_num;
+      std::map<int, ReplicaSet> partitions;
 
       TableMap(const ZPMeta::Table& table_info) {
         table_name = table_info.name();
@@ -85,7 +85,6 @@ namespace libZp {
           partitions.emplace(partition_info.id(), partition_info);
         }
       }
-
   };
 
   class ClusterMap {
@@ -94,7 +93,7 @@ namespace libZp {
       ~ClusterMap() {};
       int32_t table_num;
       int64_t epoch;
-      std::vector<TableMap> table_maps;
+      std::map<std::string, TableMap> table_maps;
   };
 
   class Options {
