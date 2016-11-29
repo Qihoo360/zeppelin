@@ -248,6 +248,7 @@ Status BinlogReader::Consume(uint64_t* size, std::string& scratch) {
       case kOldRecord:
         return Status::EndFile("Eof");
       default:
+        last_error_happened_ = true;
         return Status::IOError("Unknow reason");
     }
     if (s.ok()) {
