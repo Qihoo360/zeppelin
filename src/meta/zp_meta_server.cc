@@ -288,24 +288,11 @@ void ZPMetaServer::ScheduleUpdate() {
   }
 }
 
-Status ZPMetaServer::GetMSInfo(std::vector<std::string> &tables, ZPMeta::MetaCmdResponse_Pull &ms_info) {
+Status ZPMetaServer::GetMSInfo(std::set<std::string> &tables, ZPMeta::MetaCmdResponse_Pull &ms_info) {
   ms_info.Clear();
   ZPMeta::Table table_info;
   ZPMeta::Table *t;
   Status s;
-
-  std::string value;
-  int version = -1;
-  floyd::Status fs = floyd_->DirtyRead(kMetaVersion, value);
-  if (fs.ok()) {
-    version = std::stoi(value);
-  } else {
-    LOG(ERROR) << "GetMSInfo error when get version key from floyd: " << fs.ToString();
-  }
-
-  if (version != version_) {
-    InitVersion();
-  }
 
   ms_info.set_version(version_);
   for (auto it = tables.begin(); it != tables.end(); it++) {
@@ -323,7 +310,7 @@ Status ZPMetaServer::GetMSInfo(std::vector<std::string> &tables, ZPMeta::MetaCmd
   return s;
 }
 
-Status ZPMetaServer::GetTablesFromNode(const std::string &ip_port, std::vector<std::string> &tables) {
+Status ZPMetaServer::GetTablesFromNode(const std::string &ip_port, std::set<std::string> &tables) {
   tables.clear();
   slash::MutexLock l(&node_mutex_);
   auto iter = nodes_.find(ip_port);
@@ -406,11 +393,11 @@ Status ZPMetaServer::Distribute(const std::string name, int num) {
     ip_port = slash::IpPortString(iter->node().ip(), iter->node().port());
     auto it = nodes_.find(ip_port);
     if (it != nodes_.end()) {
-      it->second.push_back(name);
+      it->second.insert(name);
     } else {
-      std::vector<std::string> ts;
-      ts.push_back(name);
-      nodes_.insert(std::unordered_map<std::string, std::vector<std::string> >::value_type(ip_port, ts));
+      std::set<std::string> ts;
+      ts.insert(name);
+      nodes_.insert(std::unordered_map<std::string, std::set<std::string> >::value_type(ip_port, ts));
     }
   }
 
@@ -418,6 +405,22 @@ Status ZPMetaServer::Distribute(const std::string name, int num) {
   google::protobuf::TextFormat::PrintToString(table, &text_format);
   LOG(INFO) << "ms_info : [" << text_format << "]";
 
+  return Status::OK();
+}
+
+Status ZPMetaServer::InitVersionIfNeeded() {
+  std::string value;
+  int version = -1;
+  floyd::Status fs = floyd_->DirtyRead(kMetaVersion, value);
+  if (fs.ok()) {
+    version = std::stoi(value);
+  } else {
+    LOG(ERROR) << "InitVersionIfNeeded error when get version key from floyd: " << fs.ToString();
+  }
+
+  if (version != version_) {
+    return InitVersion();
+  }
   return Status::OK();
 }
 
@@ -682,12 +685,16 @@ void ZPMetaServer::GetAllAliveNode(ZPMeta::Nodes &nodes, std::vector<ZPMeta::Nod
 Status ZPMetaServer::GetTableInfo(const std::string &table, ZPMeta::Table &table_info) {
   std::string value;
   floyd::Status fs = floyd_->DirtyRead(table, value);
+  LOG(INFO) << "GetTableInfo, ret: " << fs.ToString();
   if (fs.ok()) {
     table_info.Clear();
     if (!table_info.ParseFromString(value)) {
       LOG(ERROR) << "Deserialization table_info failed, table: " << table << " value: " << value;
       return slash::Status::Corruption("Parse failed");
     }
+    std::string text_format;
+    google::protobuf::TextFormat::PrintToString(table_info, &text_format);
+    LOG(INFO) << "GetTableInfo : [" << text_format << "]";
     return Status::OK();
   } else if (fs.IsNotFound()) {
     return Status::NotFound("table_info not found");
@@ -747,6 +754,10 @@ Status ZPMetaServer::UpdateTableName(const std::string& name) {
       return slash::Status::Corruption("Parse failed");
     }
     table_name.add_name(name);
+    std::string text_format;
+    google::protobuf::TextFormat::PrintToString(table_name, &text_format);
+    LOG(INFO) << "Table : [" << text_format << "]";
+
     if (!table_name.SerializeToString(&value)) {
       LOG(ERROR) << "Serialization table_name failed, value: " <<  value;
       return Status::Corruption("Serialize error");
@@ -795,6 +806,7 @@ Status ZPMetaServer::InitVersion() {
   std::string ip_port;
   while(1) {
     fs = floyd_->Read(kMetaTables, value);
+    LOG(INFO) << "InitVersion read tables, ret: " << fs.ToString();
     if (fs.ok()) {
       if (value != "") {
         if (!tables.ParseFromString(value)) {
@@ -817,29 +829,34 @@ Status ZPMetaServer::InitVersion() {
               ip_port = slash::IpPortString(partition.master().ip(), partition.master().port());
               auto iter = nodes_.find(ip_port);
               if (iter != nodes_.end()) {
-                iter->second.push_back(tables.name(i));
+                iter->second.insert(tables.name(i));
               } else {
-                std::vector<std::string> ts;
-                ts.push_back(tables.name(i));
-                nodes_.insert(std::unordered_map<std::string, std::vector<std::string> >::value_type(ip_port, ts));
+                std::set<std::string> ts;
+                ts.insert(tables.name(i));
+                nodes_.insert(std::unordered_map<std::string, std::set<std::string> >::value_type(ip_port, ts));
               }
             }
 
-            for (int j = 0; j < partition.slaves_size(); j++) {
-              ip_port = slash::IpPortString(partition.slaves(j).ip(), partition.slaves(j).port());
+            for (int k = 0; k < partition.slaves_size(); k++) {
+              ip_port = slash::IpPortString(partition.slaves(k).ip(), partition.slaves(k).port());
               auto iter = nodes_.find(ip_port);
               if (iter != nodes_.end()) {
-                iter->second.push_back(tables.name(i));
+                iter->second.insert(tables.name(i));
               } else {
-                std::vector<std::string> ts;
-                ts.push_back(tables.name(i));
-                nodes_.insert(std::unordered_map<std::string, std::vector<std::string> >::value_type(ip_port, ts));
+                std::set<std::string> ts;
+                ts.insert(tables.name(i));
+                nodes_.insert(std::unordered_map<std::string, std::set<std::string> >::value_type(ip_port, ts));
               }
             }
           }
         }
+        for (auto iter = nodes_.begin(); iter != nodes_.end(); iter++) {
+          for (auto it = iter->second.begin(); it != iter->second.end(); it++) {
+            LOG(INFO) << iter->first << " -- " << *it;
+          }
+        }
       }
-      return Status::OK();
+      break;
     } else {
       LOG(ERROR) << "Read floyd tabls failed in InitVersion: " << fs.ToString() << ", try again";
       sleep(1);
@@ -861,6 +878,7 @@ Status ZPMetaServer::InitVersion() {
       sleep(1);
     }
   }
+  return Status::OK();
 }
 
 Status ZPMetaServer::Set(const std::string &key, const std::string &value) {
