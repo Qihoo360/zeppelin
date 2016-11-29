@@ -777,9 +777,7 @@ bool Partition::CouldPurge(uint32_t index) {
   std::vector<Node>::iterator it;
   for (it = slave_nodes_.begin(); it != slave_nodes_.end(); ++it) {
     int32_t filenum = zp_data_server->GetBinlogSendFilenum(table_name_, partition_id_, *it);
-    if (filenum == -2
-        || (filenum > 0
-          && index > static_cast<uint32_t>(filenum))) { 
+    if (index <= static_cast<uint32_t>(filenum)) { 
       return false;
     }
   }

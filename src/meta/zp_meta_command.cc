@@ -58,10 +58,11 @@ void PingCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
 void PullCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   assert(request->type() == ZPMeta::MetaCmd_Type_PULL);
-  std::vector<std::string> tables;
+  std::set<std::string> tables;
+  zp_meta_server->InitVersionIfNeeded();
   if (request->pull().has_name()) {
     std::string name = request->pull().name();
-    tables.push_back(slash::StringToLower(name));
+    tables.insert(slash::StringToLower(name));
   } else if (request->pull().has_node()) {
     std::string ip_port = request->pull().node().ip() + ":" + std::to_string(request->pull().node().port());
     zp_meta_server->GetTablesFromNode(ip_port, tables);

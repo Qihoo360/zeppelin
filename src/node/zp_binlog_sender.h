@@ -1,6 +1,7 @@
 #ifndef ZP_BINLOG_SENDER
 #define ZP_BINLOG_SENDER
 #include <list>
+#include <map>
 #include <vector>
 #include <string>
 #include <unordered_map>
@@ -39,7 +40,6 @@ public:
   std::string table_name() const {
     return table_name_;
   }
-
   int32_t partition_id() {
     return partition_id_;
   }
@@ -56,13 +56,13 @@ public:
   Status ProcessTask(std::string &item);
 
 private:
-  std::string name_;
-  const std::string table_name_;
+  std::string name_; // Name of the task
+  const std::string table_name_; // Name of its table
   const int32_t partition_id_;
   const Node node_;
   uint32_t filenum_;
   uint64_t offset_;
-  std::string binlog_filename_;
+  std::string binlog_filename_; // Name of the binlog file
   slash::SequentialFile *queue_;
   BinlogReader *reader_;
   Status Init();
@@ -97,7 +97,6 @@ private:
   std::list<ZPBinlogSendTask*> tasks_;
   Status AddTask(ZPBinlogSendTask* task);
 };
-
 
 /**
  * ZPBinlogSendThread

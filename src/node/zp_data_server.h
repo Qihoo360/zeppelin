@@ -166,7 +166,7 @@ class ZPDataServer {
   // Binlog Send related
   slash::Mutex mutex_peers_;
   std::unordered_map<std::string, ZPPbCli*> peers_;
-  ZPBinlogSendTaskPool* binlog_send_pool_;
+  ZPBinlogSendTaskPool binlog_send_pool_;
   std::vector<ZPBinlogSendThread*> binlog_send_workers_;
 
   // Server related

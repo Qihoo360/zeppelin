@@ -59,9 +59,10 @@ class ZPMetaServer {
   void ScheduleUpdate();
   
   // Meta related
-  Status GetMSInfo(std::vector<std::string> &tables, ZPMeta::MetaCmdResponse_Pull &ms_info);
-  Status GetTablesFromNode(const std::string &ip_port, std::vector<std::string> &tables);
+  Status GetMSInfo(std::set<std::string> &tables, ZPMeta::MetaCmdResponse_Pull &ms_info);
+  Status GetTablesFromNode(const std::string &ip_port, std::set<std::string> &tables);
   Status Distribute(const std::string table, int num);
+  Status InitVersionIfNeeded();
 
   // Leader related
   Status RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse &response);
@@ -107,7 +108,7 @@ private:
   Status GetAllNode(ZPMeta::Nodes &nodes);
   Status InitVersion();
 
-  std::unordered_map<std::string, std::vector<std::string> > nodes_;
+  std::unordered_map<std::string, std::set<std::string> > nodes_;
   slash::Mutex node_mutex_;
 
   // Floyd related
