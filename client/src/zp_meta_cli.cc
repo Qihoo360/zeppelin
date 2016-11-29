@@ -15,17 +15,17 @@ Status ZpMetaCli::ResetClusterMap(const ZPMeta::MetaCmdResponse_Pull& pull,
   cluster_map.table_num = pull.info_size();
   cluster_map.table_maps.clear();
   for (int i = 0; i < pull.info_size(); i++) {
-    cluster_map.table_maps.emplace_back(pull.info(i));
+    cluster_map.table_maps.emplace(pull.info(i).name(), pull.info(i));
   }
   return Status::OK();
 }
 
 Status ZpMetaCli::Pull(ClusterMap& cluster_map) {
-  ::ZPMeta::MetaCmd meta_cmd = ::ZPMeta::MetaCmd();
+  ZPMeta::MetaCmd meta_cmd = ZPMeta::MetaCmd();
   meta_cmd.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_PULL);
   pink::Status ret = Send(&meta_cmd);
 
-  ::ZPMeta::MetaCmdResponse meta_res;
+  ZPMeta::MetaCmdResponse meta_res;
   ret = Recv(&meta_res);
 
   if (!ret.ok()) {

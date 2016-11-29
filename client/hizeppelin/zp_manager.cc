@@ -37,6 +37,11 @@ char *hints(const char *buf, int *color, int *bold) {
     *bold = 0;
     return " TABLE KEY VALUE";
   }
+  if (!strcasecmp(buf,"get")) {
+    *color = 35;
+    *bold = 0;
+    return " TABLE KEY VALUE";
+  }
   return NULL;
 }
 void SplitStr(std::string& line, std::vector<std::string>& line_args) {
@@ -62,25 +67,42 @@ void StartRepl(libZp::Cluster& cluster) {
 
   libZp::Status s;
   while((line = linenoise("zp >> ")) != NULL) {
+    linenoiseHistoryAdd(line); /* Add to the history. */
+    linenoiseHistorySave("history.txt"); /* Save the history on disk. */
     /* Do something with the string. */
     std::string info = line;
     std::vector<std::string> line_args;
     SplitStr(info, line_args);
 
     if (!strncmp(line,"create",6)) {
-      linenoiseHistoryAdd(line); /* Add to the history. */
-      linenoiseHistorySave("history.txt"); /* Save the history on disk. */
-
       std::string table_name = line_args[1];
       int partition_num = atoi(line_args[2].c_str());
       s = cluster.CreateTable(table_name, partition_num);
-      if (!s.ok()) {
+      std::cout << s.ToString() << std::endl;
+      std::cout << "repull meta info" << std::endl;
+      s = cluster.Pull();
+    } else if (!strncmp(line,"pull",4)) {
+      s = cluster.Pull();
+      std::cout << s.ToString() << std::endl;
+    } else if (!strncmp(line, "set", 3)) {
+      std::string table_name = line_args[1];
+      std::string key = line_args[2];
+      std::string value = line_args[3];
+      libZp::IoCtx ioctx = cluster.CreateIoCtx(table_name);
+      s = ioctx.Set(key,value);
+      std::cout << s.ToString() << std::endl;
+    } else if (!strncmp(line, "get", 3)) {
+      std::string table_name = line_args[1];
+      std::string key = line_args[2];
+      std::string value;
+      libZp::IoCtx ioctx = cluster.CreateIoCtx(table_name);
+      s = ioctx.Get(key,value);
+      if (s.ok()) {
+        std::cout << value << std::endl;
+      } else {
         std::cout << s.ToString() << std::endl;
       }
-    } else if (!strncmp(line,"pull",4)) {
-      linenoiseHistoryAdd(line); /* Add to the history. */
-      linenoiseHistorySave("history.txt"); /* Save the history on disk. */
-      //s = cluster.Pull();
+
     } else {
       printf("Unreconized command: %s\n", line);
     }
