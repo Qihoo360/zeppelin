@@ -16,9 +16,20 @@ Table* NewTable(const std::string &table_name, const std::string log_path, const
 // Table
 //
 Table::Table(const std::string& table_name, const std::string &log_path, const std::string &data_path)
-  : table_name_(table_name) {
-  log_path_ = log_path + table_name_;
-  data_path_ = data_path + table_name_;
+  : table_name_(table_name),
+  log_path_(log_path),
+  data_path_(data_path) {
+  if (log_path_.back() != '/') {
+    log_path_.push_back('/');
+  }
+  if (data_path_.back() != '/') {
+    data_path_.push_back('/');
+  }
+  log_path_ += table_name_ + "/";
+  data_path_ += table_name_ + "/";
+
+  slash::CreatePath(log_path_);
+  slash::CreatePath(data_path_);
 
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);

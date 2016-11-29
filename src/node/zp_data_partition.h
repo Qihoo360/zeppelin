@@ -60,6 +60,10 @@ class Partition {
   std::string sync_path() {
     return sync_path_;
   }
+  std::string table_name() {
+    return table_name_;
+  }
+
   const std::shared_ptr<nemo::Nemo> db() {
     return db_;
   }
