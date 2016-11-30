@@ -19,8 +19,8 @@ Partition::Partition(const std::string &table_name, const int partition_id, cons
     // Partition related path
     log_path_ = NewPartitionPath(log_path, partition_id_);
     data_path_ = NewPartitionPath(data_path, partition_id_);
-    sync_path_ = NewPartitionPath(zp_data_server->db_sync_path(), partition_id_);
-    bgsave_path_ = NewPartitionPath(zp_data_server->bgsave_path(), partition_id_);
+    sync_path_ = NewPartitionPath(zp_data_server->db_sync_path() + table_name_ + "/", partition_id_);
+    bgsave_path_ = NewPartitionPath(zp_data_server->bgsave_path() + table_name_ + "/", partition_id_);
     
     pthread_rwlock_init(&state_rw_, NULL);
     pthread_rwlockattr_t attr;
@@ -121,25 +121,24 @@ bool Partition::ChangeDb(const std::string& new_path) {
 
 // Prepare engine
 bool Partition::InitBgsaveEnv() {
-  {
-    slash::MutexLock l(&bgsave_protector_);
-    // Prepare for bgsave dir
-    bgsave_info_.start_time = time(NULL);
-    char s_time[32];
-    int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
-    bgsave_info_.s_start_time.assign(s_time, len);
-    bgsave_info_.path = bgsave_path_ + bgsave_prefix() + std::string(s_time, 8);
-    if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
-      LOG(WARNING) << "Remove exist bgsave dir failed, Partition:" << partition_id_;
-      return false;
-    }
-    slash::CreatePath(bgsave_info_.path, 0755);
-    // Prepare for failed dir
-    if (!slash::DeleteDirIfExist(bgsave_info_.path + "_FAILED")) {
-      LOG(WARNING) << "remove exist fail bgsave dir failed, Partition:" << partition_id_;
-      return false;
-    }
+  slash::MutexLock l(&bgsave_protector_);
+  // Prepare for bgsave dir
+  bgsave_info_.start_time = time(NULL);
+  char s_time[32];
+  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
+  bgsave_info_.s_start_time.assign(s_time, len);
+  bgsave_info_.path = bgsave_path_ + bgsave_prefix() + std::string(s_time, 8);
+  if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
+    LOG(WARNING) << "Remove exist bgsave dir failed, Partition:" << partition_id_;
+    return false;
   }
+  slash::CreatePath(bgsave_info_.path, 0755);
+  // Prepare for failed dir
+  if (!slash::DeleteDirIfExist(bgsave_info_.path + "_FAILED")) {
+    LOG(WARNING) << "remove exist fail bgsave dir failed, Partition:" << partition_id_;
+    return false;
+  }
+
   return true;
 }
 
@@ -560,7 +559,7 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
   // Iterate to send files
   int ret = 0;
   std::string target_path;
-  std::string target_dir = NewPartitionPath(".", partition_id_);
+  std::string target_dir = NewPartitionPath(table_name_ + "/.", partition_id_);
   std::string module = kDBSyncModule;
   std::vector<std::string>::iterator it = descendant.begin();
   slash::RsyncRemote remote(ip, port, module, kDBSyncSpeedLimit * 1024);

@@ -75,6 +75,7 @@ Status ZPBinlogSendTask::ProcessTask(std::string &item) {
     if (slash::FileExists(confile)) {
       DLOG(INFO) << "BinlogSender roll to new binlog" << confile;
       delete reader_;
+      reader_ = NULL;
       delete queue_;
       queue_ = NULL;
 
@@ -106,8 +107,8 @@ Status ZPBinlogSendTask::ProcessTask(std::string &item) {
  */
 ZPBinlogSendTaskPool::ZPBinlogSendTaskPool() {
   pthread_rwlock_init(&tasks_rwlock_, NULL);
-  //task_ptrs_.reserve(1000);
-  //LOG(INFO) << "size: " << tasks_.size();
+  task_ptrs_.reserve(1000);
+  LOG(INFO) << "size: " << tasks_.size();
 }
 
 ZPBinlogSendTaskPool::~ZPBinlogSendTaskPool() {
@@ -260,7 +261,7 @@ void* ZPBinlogSendThread::ThreadMain() {
     Status s = pool_->FetchOut(&task);
     if (!s.ok()) {
       // TODO change to condition
-      LOG(INFO) << "No task to be processed";
+      //LOG(INFO) << "No task to be processed";
       sleep(3);
       continue;
     }

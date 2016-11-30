@@ -70,12 +70,13 @@ bool ZPTrySyncThread::Send(Partition* partition, pink::PbCli* cli) {
   uint32_t filenum = 0;
   uint64_t offset = 0;
   partition->GetBinlogOffset(&filenum, &offset);
+  sync->set_table_name(partition->table_name());
   sync->set_filenum(filenum);
   sync->set_offset(offset);
   sync->set_partition_id(partition->partition_id());
 
   pink::Status s = cli->Send(&request);
-  DLOG(INFO) << "TrySync: Partition " << partition->partition_id() << " with SyncPoint ("
+  DLOG(INFO) << "TrySync: Table " << partition->table_name() << " Partition " << partition->partition_id() << " with SyncPoint ("
     << sync->node().ip() << ":" << sync->node().port() << ", " << filenum << ", " << offset << ")";
   if (!s.ok()) {
     LOG(WARNING) << "TrySync send failed, Partition:" << partition->partition_id() << ",caz " << s.ToString();

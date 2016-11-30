@@ -1,4 +1,5 @@
 #include "zp_metacmd_thread.h"
+#include <string.h>
 #include <glog/logging.h>
 #include <google/protobuf/text_format.h>
 
@@ -57,6 +58,11 @@ pink::Status ZPMetacmdThread::Send() {
   node->set_ip(zp_data_server->local_ip());
   node->set_port(zp_data_server->local_port());
 
+  // TODO rm
+  std::string text_format;
+  google::protobuf::TextFormat::PrintToString(request, &text_format);
+  DLOG(INFO) << "MetacmdThread send pull: [" << text_format << "]";
+
   return cli_->Send(&request);
 }
 
@@ -93,11 +99,15 @@ pink::Status ZPMetacmdThread::ParsePullResponse(const ZPMeta::MetaCmdResponse &r
 
   DLOG(INFO) << "receive Pull message, will handle " << pull.info_size() << " Tables.";
   for (int i = 0; i < pull.info_size(); i++) {
-    const ZPMeta::Table& table = pull.info(i);
-    DLOG(INFO) << " - handle Table " << table.name();
-    zp_data_server->SetTablePartitionCount(table.name(), table.partitions_size());
-    for (int j = 0; j < table.partitions_size(); j++) {
-      const ZPMeta::Partitions& partition = table.partitions(j);
+    const ZPMeta::Table& table_info = pull.info(i);
+    DLOG(INFO) << " - handle Table " << table_info.name();
+
+    Table* table = zp_data_server->GetOrAddTable(table_info.name());
+    assert(table != NULL);
+
+    table->SetPartitionCount(table_info.partitions_size());
+    for (int j = 0; j < table_info.partitions_size(); j++) {
+      const ZPMeta::Partitions& partition = table_info.partitions(j);
       DLOG(INFO) << " - - handle Partition " << partition.id() << 
           ": master is " << partition.master().ip() << ":" << partition.master().port();
 
@@ -111,7 +121,8 @@ pink::Status ZPMetacmdThread::ParsePullResponse(const ZPMeta::MetaCmdResponse &r
         slave_nodes.push_back(Node(partition.slaves(j).ip(), partition.slaves(j).port()));
       }
 
-      bool result = zp_data_server->UpdateOrAddTablePartition(table.name(), partition.id(), master_node, slave_nodes);
+      //bool result = zp_data_server->UpdateOrAddTablePartition(table_info.name(), partition.id(), master_node, slave_nodes);
+      bool result = table->UpdateOrAddPartition(partition.id(), master_node, slave_nodes);
       if (!result) {
         LOG(WARNING) << "Failed to AddPartition " << partition.id() <<
             ", partition master is " << partition.master().ip() << ":" << partition.master().port() ;
@@ -134,10 +145,14 @@ bool ZPMetacmdThread::FetchMetaInfo(int64_t &receive_epoch) {
   s = cli_->Connect(meta_ip, meta_port);
   if (s.ok()) {
     DLOG(INFO) << "Metacmd connect (" << meta_ip << ":" << meta_port << ") ok!";
-    cli_->set_send_timeout(1000);
-    cli_->set_recv_timeout(1000);
+
+    // TODO timeout
+    //cli_->set_send_timeout(1000);
+    //cli_->set_recv_timeout(1000);
 
     s = Send();
+    DLOG(INFO) << "Metacmd connect (" << meta_ip << ":" << meta_port << ") ok!";
+    
     if (!s.ok()) {
       LOG(WARNING) << "Metacmd send to (" << meta_ip << ":" << meta_port << ") failed! caz:" << s.ToString();
       cli_->Close();
@@ -148,6 +163,7 @@ bool ZPMetacmdThread::FetchMetaInfo(int64_t &receive_epoch) {
     s = Recv(receive_epoch);
     if (!s.ok()) {
       LOG(WARNING) << "Metacmd recv from (" << meta_ip << ":" << meta_port << ") failed! caz:" << s.ToString();
+      LOG(WARNING) << "Metacmd recv from (" << meta_ip << ":" << meta_port << ") failed! errno:" << errno << " strerr:" << strerror(errno);
       cli_->Close();
       return false;
     }
