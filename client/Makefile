@@ -6,7 +6,6 @@ CXX = g++
 #	CXXFLAGS = -O2 -g -pipe -fPIC -W -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -gdwarf-2 -Wno-redundant-decls -Wno-sign-compare
 	# CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -D__STDC_FORMAT_MACROS -fPIC -std=c++11 -gdwarf-2
 #endif
-PRO_DIR := ./proto/
 THIRD_PATH = ../third
 SRC_DIR := ./src/
 INC_DIR := ./include/
@@ -69,5 +68,3 @@ clean:
 	rm -rf $(SRC_DIR)/*.o
 	rm -rf $(OUTPUT)/*
 	rm -rf $(OUTPUT)
-	rm -rf $(INC_DIR)/*.pb.h
-	rm -rf $(SRC_DIR)/*.pb.cc
