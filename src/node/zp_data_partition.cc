@@ -34,7 +34,10 @@ Partition::Partition(const std::string &table_name, const int partition_id, cons
     assert(db_);
 
     // Binlog
-    logger_ = new Binlog(log_path_, kBinlogSize);
+    Status s = Binlog::Create(log_path_, kBinlogSize, &logger_);
+    if (!s.ok()) {
+      LOG(ERROR) << "Create binlog failed: " << s.ToString();
+    }
   }
 
 Partition::~Partition() {
@@ -334,7 +337,7 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
 
 void Partition::CleanRoleEnv(Role role) {
   // Clean binlog sender if needed
-  for (auto iter = slave_nodes_.begin(); iter != slave_nodes_.end(); ) {
+  for (auto iter = slave_nodes_.begin(); iter != slave_nodes_.end(); iter++) {
     zp_data_server->RemoveBinlogSendTask(table_name_, partition_id_, *iter);
   }
 
