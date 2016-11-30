@@ -400,15 +400,16 @@ Status Binlog::Init() {
 }
 
 Binlog::Binlog(const std::string& binlog_path, const int file_size)
-  : file_size_(file_size),
+  : binlog_path_(binlog_path),
+  file_size_(file_size),
   manifest_(NULL),
   version_(NULL),
   queue_(NULL),
   writer_(NULL) {
-  if (binlog_path_.back() != '/') {
-    binlog_path_.append(1, '/');
-  }
-  filename_ = binlog_path_ + kBinlogPrefix;
+    if (binlog_path_.back() != '/') {
+      binlog_path_.append(1, '/');
+    }
+    filename_ = binlog_path_ + kBinlogPrefix;
 }
 
 Binlog::~Binlog() {
@@ -425,10 +426,11 @@ Status Binlog::Put(const std::string &item) {
   uint64_t filesize = queue_->Filesize();
   if (filesize > file_size_) {
     delete queue_;
-    queue_ = NULL;
+    delete writer_;
 
     uint32_t pro_num = version_->pro_num() + 1;
     std::string profile = NewFileName(filename_, pro_num);
+    writer_ = new BinlogWriter(queue_);
     slash::NewWritableFile(profile, &queue_);
     writer_->Load();
     version_->Save(pro_num, 0);
@@ -454,6 +456,7 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
   }
 
   delete queue_;
+  delete writer_;
 
   std::string init_profile = NewFileName(filename_, 0);
   if (slash::FileExists(init_profile)) {
@@ -466,6 +469,7 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
   }
 
   slash::NewWritableFile(profile, &queue_);
+  writer_ = new BinlogWriter(queue_);
   writer_->AppendBlank(pro_offset);
   writer_->Load();
   version_->Save(pro_num, pro_offset);
