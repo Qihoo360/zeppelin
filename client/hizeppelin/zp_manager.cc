@@ -18,11 +18,15 @@ void usage() {
 //completion example
 void completion(const char *buf, linenoiseCompletions *lc) {
   if (buf[0] == 's') {
+    linenoiseAddCompletion(lc,"s");
     linenoiseAddCompletion(lc,"set");
   } else if (buf[0] == 'c') {
+    linenoiseAddCompletion(lc,"c");
     linenoiseAddCompletion(lc,"create");
+  } else if (buf[0] == 'g') {
+    linenoiseAddCompletion(lc,"g");
+    linenoiseAddCompletion(lc,"get");
   }
-
 }
 
 //hints example
@@ -52,7 +56,7 @@ void SplitStr(std::string& line, std::vector<std::string>& line_args) {
   pos_start = unparse.find_first_not_of(" ");
   while(pos_start != std::string::npos) {
     pos_end = unparse.find_first_of(" ", pos_start);
-    line_args.push_back(unparse.substr(pos_start, pos_end));
+    line_args.push_back(unparse.substr(pos_start, pos_end - pos_start));
     unparse = unparse.substr(pos_end);
     pos_start = unparse.find_first_not_of(" ");
   }
@@ -74,24 +78,24 @@ void StartRepl(libZp::Cluster& cluster) {
     std::vector<std::string> line_args;
     SplitStr(info, line_args);
 
-    if (!strncmp(line,"create",6)) {
+    if (!strncmp(line,"create ",7)) {
       std::string table_name = line_args[1];
       int partition_num = atoi(line_args[2].c_str());
       s = cluster.CreateTable(table_name, partition_num);
       std::cout << s.ToString() << std::endl;
       std::cout << "repull meta info" << std::endl;
       s = cluster.Pull();
-    } else if (!strncmp(line,"pull",4)) {
+    } else if (!strncmp(line,"pull ", 5)) {
       s = cluster.Pull();
       std::cout << s.ToString() << std::endl;
-    } else if (!strncmp(line, "set", 3)) {
+    } else if (!strncmp(line, "set ", 4)) {
       std::string table_name = line_args[1];
       std::string key = line_args[2];
       std::string value = line_args[3];
       libZp::IoCtx ioctx = cluster.CreateIoCtx(table_name);
       s = ioctx.Set(key,value);
       std::cout << s.ToString() << std::endl;
-    } else if (!strncmp(line, "get", 3)) {
+    } else if (!strncmp(line, "get ", 4)) {
       std::string table_name = line_args[1];
       std::string key = line_args[2];
       std::string value;
@@ -102,7 +106,6 @@ void StartRepl(libZp::Cluster& cluster) {
       } else {
         std::cout << s.ToString() << std::endl;
       }
-
     } else {
       printf("Unreconized command: %s\n", line);
     }
