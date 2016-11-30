@@ -15,52 +15,52 @@ void usage() {
             << "      zp_cli host port\n";
 }
 
-//completion example
+// completion example
 void completion(const char *buf, linenoiseCompletions *lc) {
   if (buf[0] == 's') {
-    linenoiseAddCompletion(lc,"s");
-    linenoiseAddCompletion(lc,"set");
+    linenoiseAddCompletion(lc, "s");
+    linenoiseAddCompletion(lc, "set");
   } else if (buf[0] == 'c') {
-    linenoiseAddCompletion(lc,"c");
-    linenoiseAddCompletion(lc,"create");
+    linenoiseAddCompletion(lc, "c");
+    linenoiseAddCompletion(lc, "create");
   } else if (buf[0] == 'g') {
-    linenoiseAddCompletion(lc,"g");
-    linenoiseAddCompletion(lc,"get");
+    linenoiseAddCompletion(lc, "g");
+    linenoiseAddCompletion(lc, "get");
   }
 }
 
-//hints example
+// hints example
 char *hints(const char *buf, int *color, int *bold) {
-  if (!strcasecmp(buf,"create")) {
+  if (!strcasecmp(buf, "create")) {
     *color = 35;
     *bold = 0;
     return " TABLE PARTITION";
   }
-  if (!strcasecmp(buf,"set")) {
+  if (!strcasecmp(buf, "set")) {
     *color = 35;
     *bold = 0;
     return " TABLE KEY VALUE";
   }
-  if (!strcasecmp(buf,"get")) {
+  if (!strcasecmp(buf, "get")) {
     *color = 35;
     *bold = 0;
     return " TABLE KEY VALUE";
   }
   return NULL;
 }
+
 void SplitStr(std::string& line, std::vector<std::string>& line_args) {
   line += " ";
   std::string unparse = line;
   std::string::size_type pos_start;
   std::string::size_type pos_end;
   pos_start = unparse.find_first_not_of(" ");
-  while(pos_start != std::string::npos) {
+  while (pos_start != std::string::npos) {
     pos_end = unparse.find_first_of(" ", pos_start);
     line_args.push_back(unparse.substr(pos_start, pos_end - pos_start));
     unparse = unparse.substr(pos_end);
     pos_start = unparse.find_first_not_of(" ");
   }
-
 }
 void StartRepl(libZp::Cluster& cluster) {
   char *line;
@@ -70,7 +70,7 @@ void StartRepl(libZp::Cluster& cluster) {
   linenoiseHistoryLoad("history.txt"); /* Load the history at startup */
 
   libZp::Status s;
-  while((line = linenoise("zp >> ")) != NULL) {
+  while ((line = linenoise("zp >> ")) != NULL) {
     linenoiseHistoryAdd(line); /* Add to the history. */
     linenoiseHistorySave("history.txt"); /* Save the history on disk. */
     /* Do something with the string. */
@@ -78,29 +78,42 @@ void StartRepl(libZp::Cluster& cluster) {
     std::vector<std::string> line_args;
     SplitStr(info, line_args);
 
-    if (!strncmp(line,"create ",7)) {
+    if (!strncmp(line, "create ", 7)) {
       std::string table_name = line_args[1];
       int partition_num = atoi(line_args[2].c_str());
       s = cluster.CreateTable(table_name, partition_num);
       std::cout << s.ToString() << std::endl;
-      std::cout << "repull meta info" << std::endl;
-      s = cluster.Pull();
-    } else if (!strncmp(line,"pull ", 5)) {
-      s = cluster.Pull();
+      std::cout << "repull table "<< table_name << std::endl;
+      s = cluster.Pull(table_name);
+    } else if (!strncmp(line, "pull ", 5)) {
+      if (line_args.size() != 2) {
+        std::cout << "arg num wrong" << std::endl;
+        continue;
+      }
+      std::string table_name = line_args[1];
+      s = cluster.Pull(table_name);
       std::cout << s.ToString() << std::endl;
+      std::cout << "dump info:" << std::endl;
+      cluster.DumpTable(table_name);
     } else if (!strncmp(line, "set ", 4)) {
+      if (line_args.size() != 4) {
+        std::cout << "arg num wrong" << std::endl;
+        continue;
+      }
       std::string table_name = line_args[1];
       std::string key = line_args[2];
       std::string value = line_args[3];
-      libZp::IoCtx ioctx = cluster.CreateIoCtx(table_name);
-      s = ioctx.Set(key,value);
+      s = cluster.Set(table_name, key, value);
       std::cout << s.ToString() << std::endl;
     } else if (!strncmp(line, "get ", 4)) {
+      if (line_args.size() != 3) {
+        std::cout << "arg num wrong" << std::endl;
+        continue;
+      }
       std::string table_name = line_args[1];
       std::string key = line_args[2];
       std::string value;
-      libZp::IoCtx ioctx = cluster.CreateIoCtx(table_name);
-      s = ioctx.Get(key,value);
+      s = cluster.Get(table_name, key, value);
       if (s.ok()) {
         std::cout << value << std::endl;
       } else {
@@ -111,6 +124,7 @@ void StartRepl(libZp::Cluster& cluster) {
     }
     free(line);
   }
+  std::cout << "out of loop" << std::endl;
 }
 
 int main(int argc, char* argv[]) {

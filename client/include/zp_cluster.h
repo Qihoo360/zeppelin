@@ -16,18 +16,6 @@
 #include "include/zp_data_cli.h"
 
 namespace libZp {
-class Cluster;
-class IoCtx {
- public:
-  IoCtx(Cluster*, const std::string& table);
-  ~IoCtx();
-  Status Set(const std::string& key, const std::string& value);
-  Status Get(const std::string& key, std::string& value);
- private:
-  Cluster* cluster_;
-  std::string table_;
-};
-
 
 class Cluster {
  public :
@@ -36,24 +24,27 @@ class Cluster {
   virtual ~Cluster();
   Status Connect();
   Status CreateTable(const std::string& table_name, int partition_num);
-  IoCtx CreateIoCtx(const std::string &table);
 
-  Status GetDataMaster(IpPort& master, const std::string& table,
-    const std::string& key);
-  std::shared_ptr<ZpDataCli> GetDataCli(const IpPort& ip_port);
-  Status Pull();
+  Status Set(const std::string& table, const std::string& key,
+      const std::string& value);
+  Status Get(const std::string& table, const std::string& key,
+      std::string& value);
+  Status Pull(const std::string& table);
+  Status DumpTable(const std::string& table);
 
+  // Status ListTable(std::vector<IpPort> &node_list);
   // Status ListMetaNode(std::vector<IpPort> &node_list);
-  // Status ListDataNode(std::vector<IpPort> &node_list);
 
  private :
 
   IpPort GetRandomMetaAddr();
   std::shared_ptr<ZpMetaCli> GetMetaCli();
-  Status GetRandomMetaCli();
+  std::shared_ptr<ZpDataCli> GetDataCli(const IpPort& ip_port);
   std::shared_ptr<ZpMetaCli> CreateMetaCli(const IpPort& ip_port);
   std::shared_ptr<ZpDataCli> CreateDataCli(const IpPort& ip_port);
 
+  Status GetDataMaster(IpPort& master, const std::string& table,
+    const std::string& key);
 
   ClusterMap cluster_map_;
   std::map<IpPort, std::shared_ptr<ZpMetaCli>> meta_cli_;

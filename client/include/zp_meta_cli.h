@@ -15,11 +15,11 @@ class ZpMetaCli: public pink::PbCli {
  public:
   ZpMetaCli(const std::string& ip, const int port);
   virtual ~ZpMetaCli();
-  Status Pull(ClusterMap& info);
+  Status Pull(ClusterMap& info, const std::string& table);
   Status CreateTable(const std::string& table_name, const int partition_num);
  private:
   Status ResetClusterMap(const ZPMeta::MetaCmdResponse_Pull& pull,
-      ClusterMap& cluster_map);
+      ClusterMap& cluster_map, const std::string& table);
   std::string meta_ip_;
   int meta_port_;
 };

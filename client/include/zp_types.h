@@ -6,6 +6,8 @@
 #include <map>
 #include <vector>
 #include <memory>
+#include <iostream>
+#include <string>
 
 #include "pb_cli.h"
 
@@ -78,9 +80,10 @@ namespace libZp {
 
       TableMap(const ZPMeta::Table& table_info) {
         table_name = table_info.name();
+        partition_num = table_info.partitions_size();
         partitions.clear();
         ZPMeta::Partitions partition_info;
-        for (int i = 0; i <= table_info.partitions_size(); i++) {
+        for (int i = 0; i < table_info.partitions_size(); i++) {
           partition_info = table_info.partitions(i);
           partitions.emplace(partition_info.id(), partition_info);
         }
@@ -89,7 +92,9 @@ namespace libZp {
 
   class ClusterMap {
     public:
-      ClusterMap() {};
+      ClusterMap() {
+        epoch = 0;
+      };
       ~ClusterMap() {};
       int32_t table_num;
       int64_t epoch;

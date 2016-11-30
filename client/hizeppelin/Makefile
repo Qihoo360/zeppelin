@@ -25,7 +25,7 @@ LIBS = -lzp \
 
 INCLUDE_PATH = -I../output/include/ \
 		   -I../output/  \
-		   -I../third/linenoise  \
+		   -I../third/linenoise/  \
 		   -I$(THIRD_PATH)/pink/output/  \
 		   -I$(THIRD_PATH)/pink/output/include/
 

@@ -1,6 +1,9 @@
 /*
  * "Copyright [2016] <hrxwwd@163.com>"
  */
+#include <google/protobuf/text_format.h>
+#include<iostream>
+#include<string>
 #include "include/zp_data_cli.h"
 namespace libZp {
 ZpDataCli::ZpDataCli(const std::string& ip, const int port)
@@ -45,9 +48,20 @@ Status ZpDataCli::Get(const std::string& table, const std::string& key,
 
   pink::Status ret = Send(&data_cmd);
 
+  if (!ret.ok()) {
+    return Status::IOError("fail to send command");
+  }
+
   client::CmdResponse data_res;
   ret = Recv(&data_res);
 
+  /*
+  std::cout<< "1" << std::endl;
+  std::string text_format;
+  google::protobuf::TextFormat::PrintToString(data_res, &text_format);
+  std::cout<< text_format << std::endl;
+  std::cout<< "2" << std::endl;
+ */
   if (!ret.ok()) {
     return Status::IOError(data_res.msg());
   }
@@ -55,6 +69,8 @@ Status ZpDataCli::Get(const std::string& table, const std::string& key,
     client::CmdResponse_Get info = data_res.get();
     value = info.value();
     return Status::OK();
+  } else if (data_res.code() == client::StatusCode::kNotFound) {
+    return Status::NotFound("key do not exist");
   } else {
     return Status::IOError(data_res.msg());
   }
