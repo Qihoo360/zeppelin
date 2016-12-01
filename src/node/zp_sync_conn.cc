@@ -24,6 +24,22 @@ int ZPSyncConn::DealMessage() {
 
   request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
 
+  // TODO test only
+  switch (request_.type()) {
+    case client::Type::SET: {
+      DLOG(INFO) << "SyncConn Receive Set cmd, table=" << request_.set().table_name() << " key=" << request_.set().key();
+      break;
+    }
+    case client::Type::GET: {
+      DLOG(INFO) << "SyncConn Receive Get cmd, table=" << request_.get().table_name() << " key=" << request_.get().key();
+      break;
+    }
+    case client::Type::SYNC: {
+      DLOG(INFO) << "SyncConn Receive Sync cmd";
+      break;
+    }
+  }
+
   Cmd* cmd = zp_data_server->CmdGet(static_cast<int>(request_.type()));
   if (cmd == NULL) {
     LOG(ERROR) << "unsupported type: " << (int)request_.type();
