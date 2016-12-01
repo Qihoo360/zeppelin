@@ -49,6 +49,7 @@ Table::~Table() {
 
 bool Table::SetPartitionCount(const int count) {
   partition_cnt_ = count;
+  DLOG(INFO) << " Set Table: " << table_name_ << " with " << partition_cnt_ << " partitions.";
   return true;
 }
 
