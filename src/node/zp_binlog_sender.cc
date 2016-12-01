@@ -66,6 +66,23 @@ Status ZPBinlogSendTask::ProcessTask(std::string &item) {
   if (reader_ == NULL || queue_ == NULL) {
     return Status::InvalidArgument("Error Task");
   }
+
+  // Check task position
+  uint32_t curnum = 0;
+  uint64_t curoffset = 0;
+  Partition* partition = zp_data_server->GetTablePartitionById(table_name_,
+      partition_id_);
+  if (partition == NULL) {
+    return Status::InvalidArgument("Error Task with nono exist partition");
+  }
+  partition->GetBinlogOffset(&curnum, &curoffset);
+  if (filenum_ == curnum && offset_ == curoffset) {
+    // No more binlog item in current task, switch to others
+    return Status::EndFile("no more binlog item");
+  }
+  //LOG(INFO) << "Processing a task" << table_name_
+  //  << "parititon: " << partition_id_;
+
   uint64_t consume_len = 0;
   Status s = reader_->Consume(&consume_len, item);
   if (s.IsEndFile()) {
@@ -95,7 +112,7 @@ Status ZPBinlogSendTask::ProcessTask(std::string &item) {
     LOG(WARNING) << "ZPBinlogSendTask failed to Consume: " << s.ToString(); 
     // Return Error
   }
-  
+
   if (s.ok()) {
     offset_ += consume_len;
   }
@@ -120,11 +137,11 @@ ZPBinlogSendTaskPool::~ZPBinlogSendTaskPool() {
 }
 
 bool ZPBinlogSendTaskPool::TaskExist(const std::string& task_name) {
-    slash::RWLock l(&tasks_rwlock_, false);
-    if (task_ptrs_.find(task_name) == task_ptrs_.end()) {
-      return false;
-    }
-    return true;
+  slash::RWLock l(&tasks_rwlock_, false);
+  if (task_ptrs_.find(task_name) == task_ptrs_.end()) {
+    return false;
+  }
+  return true;
 }
 
 Status ZPBinlogSendTaskPool::AddNewTask(const std::string &table_name, int32_t id, const Node& target,
@@ -253,35 +270,34 @@ ZPBinlogSendThread::~ZPBinlogSendThread() {
   }
 
 void* ZPBinlogSendThread::ThreadMain() {
+  struct timeval begin, now;
   std::string scratch;
   scratch.reserve(1024 * 1024);
 
   while (!should_exit_) {
+    sleep(1);
     ZPBinlogSendTask* task = NULL;
     Status s = pool_->FetchOut(&task);
     if (!s.ok()) {
       // TODO change to condition
       //LOG(INFO) << "No task to be processed";
-      sleep(3);
       continue;
     }
 
     // Fetched one task, process it
-    struct timeval begin, now;
     gettimeofday(&begin, NULL);
     while (!should_exit_) {
       if (task->send_next) {
         //Process ProcessTask
         s = task->ProcessTask(scratch);
         if (s.IsEndFile()) {
-          // No more binlog item in current task, switch to others
-          LOG(INFO) << "No more binlog item for table: " << task->table_name()
+          LOG(WARNING) << "No more binlog item for table: " << task->table_name()
             << "parititon: " << task->partition_id();
-          sleep(1);
+          pool_->PutBack(task);
           break;
         } else if (!s.ok()) {
           LOG(WARNING) << "BinlogSender Parse error, " << s.ToString();
-          usleep(10000);
+          sleep(1);
         }
       }
 

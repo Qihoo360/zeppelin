@@ -8,9 +8,8 @@ DIR=`dirname $0`
 echo "DIR is ${DIR}"
 echo "Start Meta ..."
 sh ${DIR}/start_meta.sh ${DIR}
-#sh ${DIR}/start_meta.sh ${PWD}
+sleep 5
 
-sleep 3
 echo "Start Data ..."
 sh ${DIR}/start_data.sh ${DIR}
 

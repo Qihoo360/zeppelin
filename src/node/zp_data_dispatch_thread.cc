@@ -32,7 +32,7 @@ void ZPDataDispatchThread::CronHandle() {
   LOG(INFO) << "ClientNum: " << ClientNum() << " ClientQueryNum: " << server_querynum
       << " SyncCmdNum: " << sync_querynum
       << " ServerCurrentQps: " << server_current_qps;
-  //zp_data_server->DumpPartitions();
+  zp_data_server->DumpTablePartitions();
       //<< " MetaQueryNum: " << meta_querynum;
 }
 
