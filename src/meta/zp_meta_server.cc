@@ -93,84 +93,6 @@ Cmd* ZPMetaServer::GetCmd(const int op) {
   return GetCmdFromTable(op, cmds_);
 }
 
-Status ZPMetaServer::ProcessUpdate(ZPMetaUpdateTaskMap task_map, ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, bool &should_update_version) {
-  bool should_rewrite_table_info = false;
-  bool should_rewrite_nodes = false;
-  std::string ip;
-  int port;
-  Status s;
-
-  for (auto iter = task_map.begin(); iter != task_map.end(); iter++) {
-    LOG(INFO) << "process task in DoUpdate: " << iter->first << ", " << iter->second;
-    if (!slash::ParseIpPortString(iter->first, ip, port)) {
-      return Status::Corruption("ParseIpPortString error");
-    }
-    if (iter->second == ZPMetaUpdateOP::kOpAdd) {
-      s = AddNode(nodes, table_info, ip, port);
-      LOG(INFO) << "AddNode ret:" << s.ToString();
-      if (s.IsNotFound()) {
-        should_rewrite_nodes = true;
-        if (s.ToString() == "NotFound: 2") {
-          should_rewrite_table_info = true;
-          should_update_version = true;
-        }
-      }
-    } else if (iter->second == ZPMetaUpdateOP::kOpRemove) {
-      s = OffNode(nodes, table_info, ip, port);
-      LOG(INFO) << "OffNode ret: " << s.ToString();
-      if (s.IsNotFound()) {
-        should_rewrite_nodes = true;
-        if (s.ToString() == "NotFound: 2") {
-          should_rewrite_table_info = true;
-          should_update_version = true;
-        }
-      }
-    } else if (iter->second == ZPMetaUpdateOP::kOpAddVersion) {
-      s = Set(kMetaVersion, std::to_string(version_+1));
-      if (s.ok()) {
-        version_++; 
-        LOG(INFO) << "Set version in Distribute : " << version_;
-      } else {
-        LOG(ERROR) << "Set version error in Distribute, error: " << s.ToString();
-        return Status::Corruption("add version failed");
-      }
-    }
-  }
-  LOG(INFO) << "should_rewrite_table_info in DoUpdate: " << should_rewrite_table_info;
-  LOG(INFO) << "should_rewrite_nodes in DoUpdate: " << should_rewrite_nodes;
-
-  if (should_rewrite_table_info) {
-
-    std::string text_format;
-    google::protobuf::TextFormat::PrintToString(table_info, &text_format);
-    LOG(INFO) << "table_info : [" << text_format << "]";
-
-    s = SetTable(table_info);
-    if (!s.ok()) {
-      LOG(ERROR) << "SetTable error in DoUpdate, error: " << s.ToString();
-    }
-  }
-
-  if (should_rewrite_nodes) {
-    std::string new_value;
-    if (!nodes.SerializeToString(&new_value)) {
-      LOG(ERROR) << "Serialization new meta failed, new value: " <<  new_value;
-      return Status::Corruption("Serialize error");
-    }
-    std::string text_format;
-    google::protobuf::TextFormat::PrintToString(nodes, &text_format);
-    LOG(INFO) << "nodes : [" << text_format << "]";
-    
-    s = Set(kMetaNodes, new_value);
-    if (!s.ok()) {
-      LOG(ERROR) << "Set error in DoUpdate: " << s.ToString();
-      return Status::Corruption("floyd set error!");
-    }
-  }
-
-  return Status::OK();
-}
-
 void ZPMetaServer::AddMetaUpdateTask(const std::string& ip_port, ZPMetaUpdateOP op) {
   slash::MutexLock l(&task_mutex_);
   task_map_.insert(std::unordered_map<std::string, ZPMetaUpdateOP>::value_type(ip_port, op));
@@ -214,7 +136,6 @@ Status ZPMetaServer::DoUpdate(ZPMetaUpdateTaskMap task_map) {
     return s;
   }
 
-  bool should_update_version = false;
   std::vector<std::string> tables;
   s = GetTable(tables);
   if (!s.ok() && !s.IsNotFound()) {
@@ -222,16 +143,23 @@ Status ZPMetaServer::DoUpdate(ZPMetaUpdateTaskMap task_map) {
     return s;
   }
 
-  table_info.Clear();
-  s = ProcessUpdate(task_map, nodes, table_info, should_update_version);
-  if (!s.ok()) {
-    LOG(ERROR) << "ProcessUpdate(Node) error in DoUpdate, error: " << s.ToString();
-    return s;
-  }
 
   bool sth_wrong = false;
-  for (auto it = tables.begin(); it != tables.end(); it++) {
 
+/*
+ * Step 1. Apply every update task on Nodes
+ */
+  if (!ProcessUpdateNodes(task_map, nodes)) {
+    sth_wrong = true;
+    return Status::Corruption("sth wrong");
+  }
+
+/*
+ * Step 2. Apply every update task on every Table
+ */
+  bool should_update_version = false;
+
+  for (auto it = tables.begin(); it != tables.end(); it++) {
     table_info.Clear();
     s = GetTableInfo(*it, table_info);
     if (!s.ok() && !s.IsNotFound()) {
@@ -239,28 +167,29 @@ Status ZPMetaServer::DoUpdate(ZPMetaUpdateTaskMap task_map) {
       sth_wrong = true;
       continue;
     }
-    s = ProcessUpdate(task_map, nodes, table_info, should_update_version);
-    if (!s.ok()) {
-      LOG(ERROR) << "ProcessUpdate(TableInfo) error in DoUpdate, error: " << s.ToString();
+    if (!ProcessUpdateTableInfo(task_map, nodes, table_info, should_update_version)) {
       sth_wrong = true;
       continue;
     }
   }
+ 
+/*
+ * Step 3. Check whether should we add version after Step [1-2]
+ * or is there kOpAddVersion task in task queue, if true,
+ * add version
+ */
 
-  if (should_update_version) {
-    s = Set(kMetaVersion, std::to_string(version_+1));
-    if (s.ok()) {
-      version_++;
-      LOG(INFO) << "Set version in Distribute : " << version_;
-    } else {
-      LOG(ERROR) << "Set version error in Distribute, error: " << s.ToString();
-      return Status::Corruption("add version failed");
+  if (should_update_version || ShouldRetryAddVersion(task_map)) {
+    s = AddVersion();
+    if (!s.ok()) {
+      return s;
     }
   }
 
   if (sth_wrong) {
     return Status::Corruption("sth wrong");
   }
+
   return Status::OK();
 }
 
@@ -403,24 +332,8 @@ Status ZPMetaServer::Distribute(const std::string name, int num) {
 
   std::string text_format;
   google::protobuf::TextFormat::PrintToString(table, &text_format);
-  LOG(INFO) << "ms_info : [" << text_format << "]";
+  LOG(INFO) << "table_info : [" << text_format << "]";
 
-  return Status::OK();
-}
-
-Status ZPMetaServer::InitVersionIfNeeded() {
-  std::string value;
-  int version = -1;
-  floyd::Status fs = floyd_->DirtyRead(kMetaVersion, value);
-  if (fs.ok()) {
-    version = std::stoi(value);
-  } else {
-    LOG(ERROR) << "InitVersionIfNeeded error when get version key from floyd: " << fs.ToString();
-  }
-
-  if (version != version_) {
-    return InitVersion();
-  }
   return Status::OK();
 }
 
@@ -442,9 +355,6 @@ Status ZPMetaServer::RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdR
     LOG(ERROR) << "Failed to get redirect message response from leader" << s.ToString();
     return Status::Corruption(s.ToString());
   }
-  //std::string text_format;
-  //google::protobuf::TextFormat::PrintToString(response, &text_format);
-  //LOG(INFO) << "recever redirect message response from leader: [" << text_format << "]";
   return Status::OK();
 }
 
@@ -516,16 +426,37 @@ void ZPMetaServer::InitClientCmdTable() {
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::MetaCmd_Type::MetaCmd_Type_INIT), initptr));
 }
 
-Status ZPMetaServer::AddNode(ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, const std::string &ip, int port) {
-  if (FindNode(nodes, ip, port)) {
-    return SetNodeStatus(nodes, table_info, ip, port, ZPNodeStatus::kNodeUp);
-  } else {
-    ZPMeta::NodeStatus *node_status = nodes.add_nodes();
-    node_status->mutable_node()->set_ip(ip);
-    node_status->mutable_node()->set_port(port);
-    node_status->set_status(ZPNodeStatus::kNodeUp);
+bool ZPMetaServer::ProcessUpdateTableInfo(ZPMetaUpdateTaskMap task_map, const ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, bool &should_update_version) {
+
+  bool should_update_table_info = false;
+  should_update_version = false;
+  std::string ip;
+  int port = 0;
+  for (auto iter = task_map.begin(); iter != task_map.end(); iter++) {
+    LOG(INFO) << "process task in ProcessUpdateTableInfo: " << iter->first << ", " << iter->second;
+    if (!slash::ParseIpPortString(iter->first, ip, port)) {
+      return false;
+    }
+    if (iter->second == ZPMetaUpdateOP::kOpAdd) {
+      DoUpNodeForTableInfo(table_info, ip, port, should_update_table_info);
+    } else if (iter->second == ZPMetaUpdateOP::kOpRemove) {
+      DoDownNodeForTableInfo(nodes, table_info, ip, port, should_update_table_info);
+    }
   }
-  return Status::NotFound("1");
+
+  if (should_update_table_info) {
+    Status s = SetTable(table_info);
+    if (!s.ok()) {
+      LOG(ERROR) << "SetTable in ProcessUpdateTableInfo error: " << s.ToString();
+      return false;
+    } else {
+      should_update_version = true;
+    }
+    std::string text_format;
+    google::protobuf::TextFormat::PrintToString(table_info, &text_format);
+    LOG(INFO) << "table_info : [" << text_format << "]";
+  }
+  return true;
 }
 
 static bool IsAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes, const std::string &ip, const int port) {
@@ -537,15 +468,12 @@ static bool IsAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes, const std::str
   return false;
 }
 
-Status ZPMetaServer::OffNode(ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, const std::string &ip, int port) {
+void ZPMetaServer::DoDownNodeForTableInfo(const ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, const std::string ip, int port, bool &should_update_table_info) {
 
   std::vector<ZPMeta::NodeStatus> alive_nodes;
-
-  SetNodeStatus(nodes, table_info, ip, port, ZPNodeStatus::kNodeDown);
   GetAllAliveNode(nodes, alive_nodes);
 
   ZPMeta::Node tmp;
-  bool should_rewrite_table_info = false;
 
   for (int i = 0; i < table_info.partitions_size(); ++i) {
     ZPMeta::Partitions* p = table_info.mutable_partitions(i);
@@ -553,13 +481,13 @@ Status ZPMetaServer::OffNode(ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, co
       continue;
     }
 
-    should_rewrite_table_info = true;
+    should_update_table_info = true;
     tmp.CopyFrom(p->master());
     ZPMeta::Node* master = p->mutable_master();
     int slaves_size = p->slaves_size();
     LOG(INFO) << "slaves_size:" << slaves_size;
     int j = 0;
-    for (j; j < slaves_size; j++) {
+    for (j = 0; j < slaves_size; j++) {
       if (IsAlive(alive_nodes, p->slaves(j).ip(), p->slaves(j).port())) {
         LOG(INFO) << "Use Slave " << j << " " << p->slaves(j).ip() << " " << p->slaves(j).port();
         master->CopyFrom(p->slaves(j));
@@ -578,17 +506,9 @@ Status ZPMetaServer::OffNode(ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, co
     }
     tmp.Clear();
   }
-
-  if (should_rewrite_table_info) {
-    LOG(INFO) << "should rewrite tableinfo in offnode";
-    return Status::NotFound("2");
-  }
-  return Status::NotFound("1");
 }
 
-bool ZPMetaServer::OnNode(ZPMeta::Table &table_info, const std::string &ip, int port) {
-
-  bool should_rewrite = false;
+void ZPMetaServer::DoUpNodeForTableInfo(ZPMeta::Table &table_info, const std::string ip, int port, bool &should_update_table_info) {
   int slaves_size = 0;
   for (int i = 0; i < table_info.partitions_size(); ++i) {
     ZPMeta::Partitions* p = table_info.mutable_partitions(i);
@@ -596,7 +516,7 @@ bool ZPMetaServer::OnNode(ZPMeta::Table &table_info, const std::string &ip, int 
       slaves_size = p->slaves_size();
       for(int j = 0; j < slaves_size; j++) {
         if (p->slaves(j).ip() == ip && p->slaves(j).port() == port) {
-          should_rewrite = true;
+          should_update_table_info = true;
           ZPMeta::Node* master = p->mutable_master();
           master->CopyFrom(p->slaves(j));
           ZPMeta::Node* slave = p->mutable_slaves(j);
@@ -607,36 +527,63 @@ bool ZPMetaServer::OnNode(ZPMeta::Table &table_info, const std::string &ip, int 
       }
     }
   }
-  LOG(INFO) << "should_rewrite in OnNode: " << should_rewrite;
-  return should_rewrite;
 }
 
-Status ZPMetaServer::SetNodeStatus(ZPMeta::Nodes& nodes, ZPMeta::Table &table_info, const std::string &ip, int port,
-    int status /*0-kNodeUp 1-kNodeDown*/) {
-  int update_nodes = false;
-  bool update_table_info = false;
-  for (int i = 0; i < nodes.nodes_size(); ++i) {
+bool ZPMetaServer::ProcessUpdateNodes(ZPMetaUpdateTaskMap task_map, ZPMeta::Nodes &nodes) {
+  bool should_update_nodes = false;
+  std::string ip;
+  int port = 0;
+  for (auto iter = task_map.begin(); iter != task_map.end(); iter++) {
+    LOG(INFO) << "process task in ProcessUpdateNode: " << iter->first << ", " << iter->second;
+    if (!slash::ParseIpPortString(iter->first, ip, port)) {
+      return false;
+    }
+    if (iter->second == ZPMetaUpdateOP::kOpAdd) {
+      if (FindNode(nodes, ip, port)) {
+        SetNodeStatus(nodes, ip, port, kNodeUp, should_update_nodes);
+      } else {
+        ZPMeta::NodeStatus *node_status = nodes.add_nodes();
+        node_status->mutable_node()->set_ip(ip);
+        node_status->mutable_node()->set_port(port);
+        node_status->set_status(ZPNodeStatus::kNodeUp);
+        should_update_nodes = true;
+      }
+    } else if (iter->second == ZPMetaUpdateOP::kOpRemove) {
+      SetNodeStatus(nodes, ip, port, kNodeDown, should_update_nodes);
+    }
+  }
+  if (should_update_nodes) {
+    Status s = SetNodes(nodes);
+    if (!s.ok()) {
+      LOG(ERROR) << "SetNodes in ProcessUpdateNodes error: " << s.ToString();
+      return false;
+    }
+    std::string text_format;
+    google::protobuf::TextFormat::PrintToString(nodes, &text_format);
+    LOG(INFO) << "nodes : [" << text_format << "]";
+  }
+  return true;
+}
+
+bool ZPMetaServer::ShouldRetryAddVersion(ZPMetaUpdateTaskMap task_map) {
+  for (auto iter = task_map.begin(); iter != task_map.end(); iter++) {
+    if (iter->second == ZPMetaUpdateOP::kOpAddVersion) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void ZPMetaServer::SetNodeStatus(ZPMeta::Nodes& nodes, const std::string &ip, int port, int status, bool &should_update_node) {
+  for (int i = 0; i < nodes.nodes_size(); i++) {
     ZPMeta::NodeStatus* node_status = nodes.mutable_nodes(i);
     if (ip == node_status->node().ip() && port == node_status->node().port()) {
       if (node_status->status() == status) {
       } else {
-        update_nodes = true;
+        should_update_node = true;
         node_status->set_status(status);
-        if (status == ZPNodeStatus::kNodeUp) {
-          if(OnNode(table_info, ip, port)) {
-            update_table_info =true;
-          }
-        }
       }
     }
-  }
-
-  if (update_table_info && update_nodes) {
-    return Status::NotFound("2");
-  } else if (!update_table_info && !update_nodes) {
-    return Status::OK();
-  } else {
-    return Status::NotFound("1");
   }
 }
 
@@ -673,7 +620,7 @@ void ZPMetaServer::Reorganize(std::vector<ZPMeta::NodeStatus> &t_alive_nodes, st
   }
 }
 
-void ZPMetaServer::GetAllAliveNode(ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes) {
+void ZPMetaServer::GetAllAliveNode(const ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes) {
   for (int i = 0; i < nodes.nodes_size(); i++) {
     const ZPMeta::NodeStatus node_status = nodes.nodes(i);
     if (node_status.status() == 0) {
@@ -685,16 +632,12 @@ void ZPMetaServer::GetAllAliveNode(ZPMeta::Nodes &nodes, std::vector<ZPMeta::Nod
 Status ZPMetaServer::GetTableInfo(const std::string &table, ZPMeta::Table &table_info) {
   std::string value;
   floyd::Status fs = floyd_->DirtyRead(table, value);
-  LOG(INFO) << "GetTableInfo, ret: " << fs.ToString();
   if (fs.ok()) {
     table_info.Clear();
     if (!table_info.ParseFromString(value)) {
       LOG(ERROR) << "Deserialization table_info failed, table: " << table << " value: " << value;
       return slash::Status::Corruption("Parse failed");
     }
-    std::string text_format;
-    google::protobuf::TextFormat::PrintToString(table_info, &text_format);
-    LOG(INFO) << "GetTableInfo : [" << text_format << "]";
     return Status::OK();
   } else if (fs.IsNotFound()) {
     return Status::NotFound("table_info not found");
@@ -756,7 +699,7 @@ Status ZPMetaServer::UpdateTableName(const std::string& name) {
     table_name.add_name(name);
     std::string text_format;
     google::protobuf::TextFormat::PrintToString(table_name, &text_format);
-    LOG(INFO) << "Table : [" << text_format << "]";
+    LOG(INFO) << "Tables : [" << text_format << "]";
 
     if (!table_name.SerializeToString(&value)) {
       LOG(ERROR) << "Serialization table_name failed, value: " <<  value;
@@ -774,6 +717,16 @@ Status ZPMetaServer::SetTable(const ZPMeta::Table &table) {
     return Status::Corruption("Serialize error");
   }
   return Set(table.name(), new_value);
+}
+
+Status ZPMetaServer::SetNodes(const ZPMeta::Nodes &nodes) {
+  std::string new_value;
+  if (!nodes.SerializeToString(&new_value)) {
+    LOG(ERROR) << "Serialization nodes failed, new value: " <<  new_value;
+    return Status::Corruption("Serialize error");
+  }
+
+  return Set(kMetaNodes, new_value);
 }
 
 Status ZPMetaServer::GetAllNode(ZPMeta::Nodes &nodes) {
@@ -794,6 +747,22 @@ Status ZPMetaServer::GetAllNode(ZPMeta::Nodes &nodes) {
     LOG(ERROR) << "GetAllNode, floyd read failed: " << fs.ToString();
     return Status::Corruption("floyd get error!");
   }
+}
+
+Status ZPMetaServer::InitVersionIfNeeded() {
+  std::string value;
+  int version = -1;
+  floyd::Status fs = floyd_->DirtyRead(kMetaVersion, value);
+  if (fs.ok()) {
+    version = std::stoi(value);
+  } else {
+    LOG(ERROR) << "InitVersionIfNeeded error when get version key from floyd: " << fs.ToString();
+  }
+
+  if (version != version_) {
+    return InitVersion();
+  }
+  return Status::OK();
 }
 
 Status ZPMetaServer::InitVersion() {
@@ -877,6 +846,18 @@ Status ZPMetaServer::InitVersion() {
       LOG(ERROR) << "Read floyd full_meta failed in InitVersion: " << fs.ToString() << ", try again";
       sleep(1);
     }
+  }
+  return Status::OK();
+}
+
+Status ZPMetaServer::AddVersion() {
+  Status s = Set(kMetaVersion, std::to_string(version_+1));
+  if (s.ok()) {
+    version_++;
+    LOG(INFO) << "AddVersion success: " << version_;
+  } else {
+    LOG(INFO) << "AddVersion failed: " << s.ToString();
+    return Status::Corruption("AddVersion Error");
   }
   return Status::OK();
 }
