@@ -122,6 +122,10 @@ Status Cluster::CreateTable(const std::string& table_name,
 }
 
 std::shared_ptr<ZpMetaCli> Cluster::CreateMetaCli(const IpPort& ipPort) {
+  auto it = meta_cli_.find(ipPort);
+  if (it != meta_cli_.end()) {
+    meta_cli_.erase(it);
+  }
   std::shared_ptr<ZpMetaCli> cli =
     std::make_shared<ZpMetaCli>(ipPort.ip, ipPort.port);
   Status s = cli->Connect(ipPort.ip, ipPort.port);
@@ -134,6 +138,10 @@ std::shared_ptr<ZpMetaCli> Cluster::CreateMetaCli(const IpPort& ipPort) {
 }
 
 std::shared_ptr<ZpDataCli> Cluster::CreateDataCli(const IpPort& ipPort) {
+  auto it = data_cli_.find(ipPort);
+  if (it != data_cli_.end()) {
+    data_cli_.erase(it);
+  }
   std::shared_ptr<ZpDataCli> cli =
     std::make_shared<ZpDataCli>(ipPort.ip, ipPort.port);
   Status s = cli->Connect(ipPort.ip, ipPort.port);
