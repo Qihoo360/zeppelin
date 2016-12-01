@@ -19,7 +19,7 @@ void ParseArgsFromFile(int argc, char* argv[]);
 
 static void GlogInit() {
   if (!slash::FileExists(g_zp_conf->log_path())) {
-    slash::CreatePath(g_zp_conf->log_path()); 
+    slash::CreatePath(g_zp_conf->log_path());
   }
 
   FLAGS_alsologtostderr = true;
@@ -45,7 +45,7 @@ static void SignalSetup() {
 
 
 void Usage() {
-  printf ("Usage:\n"
+  printf("Usage:\n"
           "  ./output/bin/zp-meta -c conf\n");
 }
 
@@ -74,7 +74,7 @@ void ZpConfInit(int argc, char* argv[]) {
   }
 
   if (path_opt == false) {
-    fprintf (stderr, "Please specify the conf file path\n" );
+    fprintf(stderr, "Please specify the conf file path\n");
     Usage();
     exit(-1);
   }
@@ -108,11 +108,9 @@ int main(int argc, char** argv) {
   }
 
   zp_meta_server = new ZPMetaServer();
-
   zp_meta_server->Start();
 
-  printf ("Exit\n");
-
+  printf("Exit\n");
   return 0;
 }
 
