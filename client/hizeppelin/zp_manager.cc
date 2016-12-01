@@ -6,7 +6,7 @@
 #include <iostream>
 #include <algorithm>
 
-#include "linenoise.h"
+#include "linenoise/linenoise.h"
 
 #include "include/zp_cluster.h"
 
@@ -49,7 +49,7 @@ char *hints(const char *buf, int *color, int *bold) {
   return NULL;
 }
 
-void SplitStr(std::string& line, std::vector<std::string>& line_args) {
+void SplitByBlank(std::string& line, std::vector<std::string>& line_args) {
   line += " ";
   std::string unparse = line;
   std::string::size_type pos_start;
@@ -62,6 +62,7 @@ void SplitStr(std::string& line, std::vector<std::string>& line_args) {
     pos_start = unparse.find_first_not_of(" ");
   }
 }
+
 void StartRepl(libZp::Cluster& cluster) {
   char *line;
   linenoiseSetMultiLine(1);
@@ -76,7 +77,7 @@ void StartRepl(libZp::Cluster& cluster) {
     /* Do something with the string. */
     std::string info = line;
     std::vector<std::string> line_args;
-    SplitStr(info, line_args);
+    SplitByBlank(info, line_args);
 
     if (!strncmp(line, "create ", 7)) {
       std::string table_name = line_args[1];
@@ -94,7 +95,7 @@ void StartRepl(libZp::Cluster& cluster) {
       s = cluster.Pull(table_name);
       std::cout << s.ToString() << std::endl;
       std::cout << "dump info:" << std::endl;
-      cluster.DumpTable(table_name);
+      cluster.DumpTable();
     } else if (!strncmp(line, "set ", 4)) {
       if (line_args.size() != 4) {
         std::cout << "arg num wrong" << std::endl;
