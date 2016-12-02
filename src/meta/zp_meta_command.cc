@@ -9,25 +9,6 @@
 
 extern ZPMetaServer *zp_meta_server;
 
-//void JoinCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
-//  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
-//  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
-//
-//  ZPMeta::MetaCmdResponse_Status* status_res = response->mutable_status();
-//  response->set_type(ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_JOIN);
-//
-//  Status s = zp_meta_server->AddNodeAlive(slash::IpPortString(request->join().node().ip(), request->join().node().port()));
-//  if (s.ok()) {
-//    status_res->set_code(ZPMeta::StatusCode::kOk);
-//    status_res->set_msg("Join OK!");
-//  } else {
-//    status_res->set_code(ZPMeta::StatusCode::kError);
-//    status_res->set_msg(s.ToString());
-//  }
-//  DLOG(INFO) << "Join node: " << request->join().node().ip() << ":"
-//             << request->join().node().port();
-//}
-
 void PingCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);

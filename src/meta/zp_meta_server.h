@@ -61,6 +61,7 @@ class ZPMetaServer {
   Status GetMSInfo(std::set<std::string> &tables, ZPMeta::MetaCmdResponse_Pull &ms_info);
   Status GetTablesFromNode(const std::string &ip_port, std::set<std::string> &tables);
   Status Distribute(const std::string table, int num);
+  Status InitVersionIfNeeded();
 
   // Leader related
   Status RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse &response);
@@ -107,7 +108,6 @@ private:
   Status SetTable(const ZPMeta::Table &table);
   Status SetNodes(const ZPMeta::Nodes &nodes);
   Status GetAllNode(ZPMeta::Nodes &nodes);
-  Status InitVersionIfNeeded();
   Status InitVersion();
   Status AddVersion();
 

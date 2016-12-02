@@ -49,9 +49,9 @@ ZPMetaServer::~ZPMetaServer() {
 
 void ZPMetaServer::Start() {
   LOG(INFO) << "ZPMetaServer started on port:" << g_zp_conf->local_port() << ", seed is " << g_zp_conf->seed_ip().c_str() << ":" <<g_zp_conf->seed_port();
-  floyd::Status s = floyd_->Start();
-  if (!s.ok()) {
-    LOG(ERROR) << "Start floyd failed: " << s.ToString();
+  floyd::Status fs = floyd_->Start();
+  if (!fs.ok()) {
+    LOG(ERROR) << "Start floyd failed: " << fs.ToString();
     return;
   }
   std::string leader_ip;
@@ -61,9 +61,12 @@ void ZPMetaServer::Start() {
     // Wait leader election
     sleep(1);
   }
+  Status s;
   if (!should_exit_) {
     LOG(INFO) << "Got Leader: " << leader_ip << ":" << leader_port;
-    InitVersion();
+    do {
+      s = InitVersion();
+    } while (!s.ok() && !should_exit_ && sleep(1) == 0);
     zp_meta_dispatch_thread_->StartThread();
 
     server_mutex_.Lock();
@@ -264,14 +267,10 @@ Status ZPMetaServer::Distribute(const std::string name, int num) {
     return s;
   }
 
-  if (num < nodes.nodes_size()) {
-    return Status::Corruption("Too few partition num");
-  }
-
   std::vector<ZPMeta::NodeStatus> t_alive_nodes;
   GetAllAliveNode(nodes, t_alive_nodes);
-  if (t_alive_nodes.empty()) {
-    return Status::Corruption("no nodes");
+  if (t_alive_nodes.size() < 3) {
+    return Status::Corruption("have not enough alive nodes to achieve replicats");
   }
 
   std::vector<ZPMeta::NodeStatus> alive_nodes;
@@ -334,6 +333,22 @@ Status ZPMetaServer::Distribute(const std::string name, int num) {
   google::protobuf::TextFormat::PrintToString(table, &text_format);
   LOG(INFO) << "table_info : [" << text_format << "]";
 
+  return Status::OK();
+}
+
+Status ZPMetaServer::InitVersionIfNeeded() {
+  std::string value;
+  int version = -1;
+  floyd::Status fs = floyd_->DirtyRead(kMetaVersion, value);
+  if (fs.ok()) {
+    version = std::stoi(value);
+  } else {
+    LOG(ERROR) << "InitVersionIfNeeded error when get version key from floyd: " << fs.ToString();
+  }
+
+  if (version != version_) {
+    return InitVersion();
+  }
   return Status::OK();
 }
 
@@ -742,27 +757,11 @@ Status ZPMetaServer::GetAllNode(ZPMeta::Nodes &nodes) {
     }
     return Status::OK();
   } else if (fs.IsNotFound()) {
-    return Status::NotFound("not found from floyd");
+    return Status::NotFound("No node in cluster Now");
   } else {
     LOG(ERROR) << "GetAllNode, floyd read failed: " << fs.ToString();
     return Status::Corruption("floyd get error!");
   }
-}
-
-Status ZPMetaServer::InitVersionIfNeeded() {
-  std::string value;
-  int version = -1;
-  floyd::Status fs = floyd_->DirtyRead(kMetaVersion, value);
-  if (fs.ok()) {
-    version = std::stoi(value);
-  } else {
-    LOG(ERROR) << "InitVersionIfNeeded error when get version key from floyd: " << fs.ToString();
-  }
-
-  if (version != version_) {
-    return InitVersion();
-  }
-  return Status::OK();
 }
 
 Status ZPMetaServer::InitVersion() {
@@ -773,79 +772,77 @@ Status ZPMetaServer::InitVersion() {
   ZPMeta::Node node;
   floyd::Status fs;
   std::string ip_port;
-  while(1) {
-    fs = floyd_->Read(kMetaTables, value);
-    LOG(INFO) << "InitVersion read tables, ret: " << fs.ToString();
-    if (fs.ok()) {
-      if (value != "") {
-        if (!tables.ParseFromString(value)) {
-          LOG(ERROR) << "Deserialization table failed, error: " << value;
-          return slash::Status::Corruption("Parse failed");
+  fs = floyd_->Read(kMetaTables, value);
+  LOG(INFO) << "InitVersion read tables, ret: " << fs.ToString();
+  if (fs.ok()) {
+    if (value != "") {
+      if (!tables.ParseFromString(value)) {
+        LOG(ERROR) << "Deserialization table failed, error: " << value;
+        return Status::Corruption("Parse failed");
+      }
+      slash::MutexLock l(&node_mutex_);
+      nodes_.clear();
+      for (int i = 0; i < tables.name_size(); i++) {
+        fs = floyd_->Read(tables.name(i), value);
+        if (!fs.ok()) {
+          LOG(ERROR) << "Read floyd table_info failed in InitVersion: " << fs.ToString() << ", try again";
+          return Status::Corruption("Read table_info error");
         }
-        slash::MutexLock l(&node_mutex_);
-        nodes_.clear();
-        for (int i = 0; i < tables.name_size(); i++) {
-          fs = floyd_->Read(tables.name(i), value);
-          if (!table_info.ParseFromString(value)) {
-            LOG(ERROR) << "Deserialization table_info failed, table: " << tables.name(i) << " value: " << value;
-            return slash::Status::Corruption("Parse failed");
-          }
+        if (!table_info.ParseFromString(value)) {
+          LOG(ERROR) << "Deserialization table_info failed, table: " << tables.name(i) << " value: " << value;
+          return Status::Corruption("Parse failed");
+        }
 
-          for (int j = 0; j < table_info.partitions_size(); j++) {
-            partition = table_info.partitions(j);
+        for (int j = 0; j < table_info.partitions_size(); j++) {
+          partition = table_info.partitions(j);
 
-            if (partition.master().ip() != "" && partition.master().port() != -1) {
-              ip_port = slash::IpPortString(partition.master().ip(), partition.master().port());
-              auto iter = nodes_.find(ip_port);
-              if (iter != nodes_.end()) {
-                iter->second.insert(tables.name(i));
-              } else {
-                std::set<std::string> ts;
-                ts.insert(tables.name(i));
-                nodes_.insert(std::unordered_map<std::string, std::set<std::string> >::value_type(ip_port, ts));
-              }
-            }
-
-            for (int k = 0; k < partition.slaves_size(); k++) {
-              ip_port = slash::IpPortString(partition.slaves(k).ip(), partition.slaves(k).port());
-              auto iter = nodes_.find(ip_port);
-              if (iter != nodes_.end()) {
-                iter->second.insert(tables.name(i));
-              } else {
-                std::set<std::string> ts;
-                ts.insert(tables.name(i));
-                nodes_.insert(std::unordered_map<std::string, std::set<std::string> >::value_type(ip_port, ts));
-              }
+          if (partition.master().ip() != "" && partition.master().port() != -1) {
+            ip_port = slash::IpPortString(partition.master().ip(), partition.master().port());
+            auto iter = nodes_.find(ip_port);
+            if (iter != nodes_.end()) {
+              iter->second.insert(tables.name(i));
+            } else {
+              std::set<std::string> ts;
+              ts.insert(tables.name(i));
+              nodes_.insert(std::unordered_map<std::string, std::set<std::string> >::value_type(ip_port, ts));
             }
           }
-        }
-        for (auto iter = nodes_.begin(); iter != nodes_.end(); iter++) {
-          for (auto it = iter->second.begin(); it != iter->second.end(); it++) {
-            LOG(INFO) << iter->first << " -- " << *it;
+
+          for (int k = 0; k < partition.slaves_size(); k++) {
+            ip_port = slash::IpPortString(partition.slaves(k).ip(), partition.slaves(k).port());
+            auto iter = nodes_.find(ip_port);
+            if (iter != nodes_.end()) {
+              iter->second.insert(tables.name(i));
+            } else {
+              std::set<std::string> ts;
+              ts.insert(tables.name(i));
+              nodes_.insert(std::unordered_map<std::string, std::set<std::string> >::value_type(ip_port, ts));
+            }
           }
         }
       }
-      break;
-    } else {
-      LOG(ERROR) << "Read floyd tabls failed in InitVersion: " << fs.ToString() << ", try again";
-      sleep(1);
+      for (auto iter = nodes_.begin(); iter != nodes_.end(); iter++) {
+        for (auto it = iter->second.begin(); it != iter->second.end(); it++) {
+          LOG(INFO) << iter->first << " -- " << *it;
+        }
+      }
     }
-  
+  } else {
+    LOG(ERROR) << "Read floyd tables failed in InitVersion: " << fs.ToString() << ", try again";
+    return Status::Corruption("Read tables error");
   }
-  while(1) {
-    fs = floyd_->Read(kMetaVersion, value);
-    if (fs.ok()) {
-      if (value == "") {
-        version_ = -1;
-      } else {
-        version_ = std::stoi(value);
-      }
-      LOG(INFO) << "Got version " << version_;
-      return Status::OK();
+  
+  fs = floyd_->Read(kMetaVersion, value);
+  if (fs.ok()) {
+    if (value == "") {
+      version_ = -1;
     } else {
-      LOG(ERROR) << "Read floyd full_meta failed in InitVersion: " << fs.ToString() << ", try again";
-      sleep(1);
+      version_ = std::stoi(value);
     }
+    LOG(INFO) << "Got version " << version_;
+  } else {
+    LOG(ERROR) << "Read floyd version failed in InitVersion: " << fs.ToString() << ", try again";
+    return Status::Corruption("Read Version error");
   }
   return Status::OK();
 }
@@ -913,8 +910,9 @@ Status ZPMetaServer::BecomeLeader() {
   std::vector<ZPMeta::NodeStatus> alive_nodes;
   GetAllAliveNode(nodes, alive_nodes);
   RestoreNodeAlive(alive_nodes);
-
-  InitVersion();
+  do {
+   s =  InitVersion();
+  } while (!s.ok() && !should_exit_ && sleep(1) == 0);
 
   return s;
 }
