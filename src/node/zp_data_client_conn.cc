@@ -30,11 +30,15 @@ int ZPDataClientConn::DealMessage() {
   // TODO test only
   switch (request_.type()) {
     case client::Type::SET: {
-      DLOG(INFO) << "Receive Set cmd";
+      DLOG(INFO) << "Receive Set cmd, table=" << request_.set().table_name() << " key=" << request_.set().key();
       break;
     }
     case client::Type::GET: {
-      DLOG(INFO) << "Receive Get cmd";
+      DLOG(INFO) << "Receive Get cmd, table=" << request_.get().table_name() << " key=" << request_.get().key();
+      break;
+    }
+    case client::Type::DEL: {
+      DLOG(INFO) << "Receive Del cmd, table=" << request_.del().table_name() << " key=" << request_.del().key();
       break;
     }
     case client::Type::SYNC: {

@@ -341,6 +341,9 @@ void ZPDataServer::InitClientCmdTable() {
   // GetCmd
   Cmd* getptr = new GetCmd(kCmdFlagsKv | kCmdFlagsRead);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::GET), getptr));
+  // DelCmd
+  Cmd* delptr = new DelCmd(kCmdFlagsKv | kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::DEL), delptr));
   // SyncCmd
   Cmd* syncptr = new SyncCmd(kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SYNC), syncptr));

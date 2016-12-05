@@ -34,6 +34,10 @@ int ZPSyncConn::DealMessage() {
       DLOG(INFO) << "SyncConn Receive Get cmd, table=" << request_.get().table_name() << " key=" << request_.get().key();
       break;
     }
+    case client::Type::DEL: {
+      DLOG(INFO) << "SyncConn Receive Del cmd, table=" << request_.del().table_name() << " key=" << request_.del().key();
+      break;
+    }
     case client::Type::SYNC: {
       DLOG(INFO) << "SyncConn Receive Sync cmd";
       break;

@@ -50,6 +50,25 @@ void GetCmd::Do(const google::protobuf::Message *req, google::protobuf::Message 
   }
 }
 
+void DelCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
+  client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+  Partition* ptr = static_cast<Partition*>(partition);
+
+  response->set_type(client::Type::DEL);
+
+  int64_t count;
+  nemo::Status s = ptr->db()->Del(request->del().key(), &count);
+  if (!s.ok()) {
+    response->set_code(client::StatusCode::kError);
+    response->set_msg(s.ToString());
+    LOG(ERROR) << "command failed: Del, caz " << s.ToString();
+  } else {
+    response->set_code(client::StatusCode::kOk);
+    DLOG(INFO) << "Del key(" << request->del().key() << ") at Partition: " << ptr->partition_id() << " ok";
+  }
+}
+
 // Sync between nodes
 void SyncCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
   const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
