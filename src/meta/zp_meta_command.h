@@ -1,14 +1,7 @@
-#ifndef ZP_META_NODE_H
-#define ZP_META_NODE_H
+#ifndef ZP_META_COMMAND_H
+#define ZP_META_COMMAND_H
 
 #include "zp_command.h"
-
-//class JoinCmd : public Cmd {
-// public:
-//  JoinCmd(int flag) : Cmd(flag) {}
-//  virtual void Do(const google::protobuf::Message *req,
-//      google::protobuf::Message *res, void* partition = NULL) const;
-//};
 
 class PingCmd : public Cmd {
  public:

@@ -6,11 +6,6 @@
 #include "zp_meta_server.h"
 #include "zp_meta.pb.h"
 
-enum ZPNodeStatus {
-  kNodeUp,
-  kNodeDown
-};
-
 ZPMetaServer::ZPMetaServer()
   : should_exit_(false), started_(false), version_(-1), worker_num_(6), leader_cli_(NULL), leader_first_time_(true), leader_ip_(""), leader_cmd_port_(0) {
 
@@ -133,16 +128,16 @@ Status ZPMetaServer::DoUpdate(ZPMetaUpdateTaskMap task_map) {
   ZPMeta::Nodes nodes;
 
   slash::MutexLock l(&node_mutex_);
-  Status s = GetAllNode(nodes);
+  Status s = GetAllNodes(nodes);
   if (!s.ok() && !s.IsNotFound()) {
-    LOG(ERROR) << "GetAllNode error in DoUpdate, error: " << s.ToString();
+    LOG(ERROR) << "GetAllNodes error in DoUpdate, error: " << s.ToString();
     return s;
   }
 
   std::vector<std::string> tables;
-  s = GetTable(tables);
+  s = GetTableList(tables);
   if (!s.ok() && !s.IsNotFound()) {
-    LOG(ERROR) << "GetTable error in DoUpdate, error: " << s.ToString();
+    LOG(ERROR) << "GetTableList error in DoUpdate, error: " << s.ToString();
     return s;
   }
 
@@ -242,7 +237,7 @@ Status ZPMetaServer::GetMSInfo(std::set<std::string> &tables, ZPMeta::MetaCmdRes
   return s;
 }
 
-Status ZPMetaServer::GetTablesFromNode(const std::string &ip_port, std::set<std::string> &tables) {
+Status ZPMetaServer::GetTableListForNode(const std::string &ip_port, std::set<std::string> &tables) {
   tables.clear();
   slash::MutexLock l(&node_mutex_);
   auto iter = nodes_.find(ip_port);
@@ -262,7 +257,7 @@ Status ZPMetaServer::Distribute(const std::string name, int num) {
   }
  
   ZPMeta::Nodes nodes;
-  s = GetAllNode(nodes);
+  s = GetAllNodes(nodes);
   if (!s.ok()) {
     return s;
   }
@@ -270,7 +265,7 @@ Status ZPMetaServer::Distribute(const std::string name, int num) {
   std::vector<ZPMeta::NodeStatus> t_alive_nodes;
   GetAllAliveNode(nodes, t_alive_nodes);
   if (t_alive_nodes.size() < 3) {
-    return Status::Corruption("have not enough alive nodes to achieve replicats");
+    return Status::Corruption("have no enough alive nodes to create replicats");
   }
 
   std::vector<ZPMeta::NodeStatus> alive_nodes;
@@ -301,9 +296,9 @@ Status ZPMetaServer::Distribute(const std::string name, int num) {
     return s;
   }
 
-  s = UpdateTableName(name);
+  s = UpdateTableList(name);
   if (!s.ok()) {
-    LOG(ERROR) << "UpdateTableName error: " << s.ToString();
+    LOG(ERROR) << "UpdateTableList error: " << s.ToString();
     return s;
   }
 
@@ -317,7 +312,8 @@ Status ZPMetaServer::Distribute(const std::string name, int num) {
   }
 
   std::string ip_port;
-  for (auto iter = alive_nodes.begin(); iter != alive_nodes.end(); iter++) {
+  int pnum = num;
+  for (auto iter = alive_nodes.begin(); pnum && iter != alive_nodes.end(); iter++) {
     ip_port = slash::IpPortString(iter->node().ip(), iter->node().port());
     auto it = nodes_.find(ip_port);
     if (it != nodes_.end()) {
@@ -327,6 +323,7 @@ Status ZPMetaServer::Distribute(const std::string name, int num) {
       ts.insert(name);
       nodes_.insert(std::unordered_map<std::string, std::set<std::string> >::value_type(ip_port, ts));
     }
+    pnum--;
   }
 
   std::string text_format;
@@ -544,6 +541,11 @@ void ZPMetaServer::DoUpNodeForTableInfo(ZPMeta::Table &table_info, const std::st
   }
 }
 
+enum ZPNodeStatus {
+  kNodeUp,
+  kNodeDown
+};
+
 bool ZPMetaServer::ProcessUpdateNodes(ZPMetaUpdateTaskMap task_map, ZPMeta::Nodes &nodes) {
   bool should_update_nodes = false;
   std::string ip;
@@ -560,7 +562,7 @@ bool ZPMetaServer::ProcessUpdateNodes(ZPMetaUpdateTaskMap task_map, ZPMeta::Node
         ZPMeta::NodeStatus *node_status = nodes.add_nodes();
         node_status->mutable_node()->set_ip(ip);
         node_status->mutable_node()->set_port(port);
-        node_status->set_status(ZPNodeStatus::kNodeUp);
+        node_status->set_status(kNodeUp);
         should_update_nodes = true;
       }
     } else if (iter->second == ZPMetaUpdateOP::kOpRemove) {
@@ -651,7 +653,7 @@ Status ZPMetaServer::GetTableInfo(const std::string &table, ZPMeta::Table &table
     table_info.Clear();
     if (!table_info.ParseFromString(value)) {
       LOG(ERROR) << "Deserialization table_info failed, table: " << table << " value: " << value;
-      return slash::Status::Corruption("Parse failed");
+      return Status::Corruption("Parse failed");
     }
     return Status::OK();
   } else if (fs.IsNotFound()) {
@@ -685,7 +687,7 @@ void ZPMetaServer::RestoreNodeAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes
   }
 }
 
-Status ZPMetaServer::GetTable(std::vector<std::string> &tables) {
+Status ZPMetaServer::GetTableList(std::vector<std::string> &tables) {
   std::string value;
   ZPMeta::TableName table_name;
   Status s = Get(kMetaTables, value);
@@ -702,7 +704,7 @@ Status ZPMetaServer::GetTable(std::vector<std::string> &tables) {
   return s;
 }
 
-Status ZPMetaServer::UpdateTableName(const std::string& name) {
+Status ZPMetaServer::UpdateTableList(const std::string& name) {
   std::string value;
   ZPMeta::TableName table_name;
   Status s = Get(kMetaTables, value);
@@ -744,7 +746,7 @@ Status ZPMetaServer::SetNodes(const ZPMeta::Nodes &nodes) {
   return Set(kMetaNodes, new_value);
 }
 
-Status ZPMetaServer::GetAllNode(ZPMeta::Nodes &nodes) {
+Status ZPMetaServer::GetAllNodes(ZPMeta::Nodes &nodes) {
   // Load from Floyd
   std::string value;
   floyd::Status fs = floyd_->DirtyRead(kMetaNodes, value);
@@ -759,7 +761,7 @@ Status ZPMetaServer::GetAllNode(ZPMeta::Nodes &nodes) {
   } else if (fs.IsNotFound()) {
     return Status::NotFound("No node in cluster Now");
   } else {
-    LOG(ERROR) << "GetAllNode, floyd read failed: " << fs.ToString();
+    LOG(ERROR) << "GetAllNodes, floyd read failed: " << fs.ToString();
     return Status::Corruption("floyd get error!");
   }
 }
@@ -902,9 +904,9 @@ inline bool ZPMetaServer::GetLeader(std::string& ip, int& port) {
 
 Status ZPMetaServer::BecomeLeader() {
   ZPMeta::Nodes nodes;
-  Status s = GetAllNode(nodes);
+  Status s = GetAllNodes(nodes);
   if (!s.ok() && !s.IsNotFound()) {
-    LOG(ERROR) << "GetAllNode error in BecomeLeader, error: " << s.ToString();
+    LOG(ERROR) << "GetAllNodes error in BecomeLeader, error: " << s.ToString();
     return s;
   }
   std::vector<ZPMeta::NodeStatus> alive_nodes;
@@ -917,7 +919,7 @@ Status ZPMetaServer::BecomeLeader() {
   return s;
 }
 
-inline void ZPMetaServer::CleanLeader() {
+void ZPMetaServer::CleanLeader() {
   if (leader_cli_) {
     leader_cli_->Close();
     delete leader_cli_;

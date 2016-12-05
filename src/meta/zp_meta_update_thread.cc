@@ -35,7 +35,7 @@ slash::Status ZPMetaUpdateThread::MetaUpdate(ZPMetaUpdateTaskMap task_map) {
     zp_meta_server->AddMetaUpdateTask("", kOpAddVersion);
   }
   if (!s.ok()) {
-    sleep(2);
+    sleep(1);
     for (auto iter = task_map.begin(); iter != task_map.end(); iter++) {
       zp_meta_server->AddMetaUpdateTask(iter->first, iter->second);
     }

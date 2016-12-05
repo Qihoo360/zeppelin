@@ -48,7 +48,7 @@ void PullCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
     tables.insert(slash::StringToLower(name));
   } else if (request->pull().has_node()) {
     std::string ip_port = request->pull().node().ip() + ":" + std::to_string(request->pull().node().port());
-    zp_meta_server->GetTablesFromNode(ip_port, tables);
+    zp_meta_server->GetTableListForNode(ip_port, tables);
   }
 
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
