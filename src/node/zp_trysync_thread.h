@@ -11,8 +11,8 @@ class ZPTrySyncThread {
  public:
   ZPTrySyncThread();
   virtual ~ZPTrySyncThread();
-  void TrySyncTaskSchedule(const std::string &table_name, int partition_id);
-  void TrySyncTask(const std::string &table_name, int partition_id);
+  void TrySyncTaskSchedule(Partition* partition);
+  void TrySyncTask(Partition* partition);
 
  private:
   bool should_exit_;
@@ -20,10 +20,9 @@ class ZPTrySyncThread {
   // BGThread related
   struct TrySyncTaskArg {
     ZPTrySyncThread* thread;
-    std::string table_name;
-    int partition_id;
-    TrySyncTaskArg(ZPTrySyncThread* t, const std::string& name, int id) :
-      thread(t), table_name(name), partition_id(id) {}
+    Partition* partition;
+    TrySyncTaskArg(ZPTrySyncThread* t, Partition* ptr)
+        : thread(t), partition(ptr){}
   };
   slash::Mutex bg_thread_protector_;
   pink::BGThread* bg_thread_;
