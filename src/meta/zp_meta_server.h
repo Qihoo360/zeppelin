@@ -59,7 +59,7 @@ class ZPMetaServer {
   
   // Meta related
   Status GetMSInfo(std::set<std::string> &tables, ZPMeta::MetaCmdResponse_Pull &ms_info);
-  Status GetTablesFromNode(const std::string &ip_port, std::set<std::string> &tables);
+  Status GetTableListForNode(const std::string &ip_port, std::set<std::string> &tables);
   Status Distribute(const std::string table, int num);
   Status InitVersionIfNeeded();
 
@@ -103,11 +103,11 @@ private:
   Status GetTableInfo(const std::string &table, ZPMeta::Table &table_info);
   bool FindNode(ZPMeta::Nodes &nodes, const std::string &ip, int port);
   void RestoreNodeAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes);
-  Status GetTable(std::vector<std::string>& tables);
-  Status UpdateTableName(const std::string& name);
+  Status GetTableList(std::vector<std::string>& tables);
+  Status UpdateTableList(const std::string& name);
   Status SetTable(const ZPMeta::Table &table);
   Status SetNodes(const ZPMeta::Nodes &nodes);
-  Status GetAllNode(ZPMeta::Nodes &nodes);
+  Status GetAllNodes(ZPMeta::Nodes &nodes);
   Status InitVersion();
   Status AddVersion();
 
