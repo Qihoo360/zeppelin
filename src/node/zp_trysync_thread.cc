@@ -23,20 +23,20 @@ ZPTrySyncThread::~ZPTrySyncThread() {
   LOG(INFO) << " TrySync thread " << pthread_self() << " exit!!!";
 }
 
-void ZPTrySyncThread::TrySyncTaskSchedule(const std::string &table_name, int partition_id) {
+void ZPTrySyncThread::TrySyncTaskSchedule(Partition* partition) {
   slash::MutexLock l(&bg_thread_protector_);
   bg_thread_->StartIfNeed();
-  TrySyncTaskArg *targ = new TrySyncTaskArg(this, table_name, partition_id);
+  TrySyncTaskArg *targ = new TrySyncTaskArg(this, partition);
   bg_thread_->Schedule(&DoTrySyncTask, static_cast<void*>(targ));
 }
 
 void ZPTrySyncThread::DoTrySyncTask(void* arg) {
   TrySyncTaskArg* targ = static_cast<TrySyncTaskArg*>(arg);
-  (targ->thread)->TrySyncTask(targ->table_name, targ->partition_id);
+  (targ->thread)->TrySyncTask(targ->partition);
   delete targ;
 }
 
-void ZPTrySyncThread::TrySyncTask(const std::string& table_name, int partition_id) {
+void ZPTrySyncThread::TrySyncTask(Partition* partition) {
   // Wait until the server is availible
   while (!should_exit_ && !zp_data_server->Availible()) {
     sleep(kTrySyncInterval);
@@ -46,13 +46,13 @@ void ZPTrySyncThread::TrySyncTask(const std::string& table_name, int partition_i
   }
 
   //Get Partiton by id
-  Partition* partition = zp_data_server->GetTablePartitionById(table_name, partition_id);
+  //Partition* partition = zp_data_server->GetTablePartitionById(table_name, partition_id);
   
   // Do try sync
   if (!SendTrySync(partition)) {
     // Need one more trysync, since error happenning or waiting for db sync
     sleep(kTrySyncInterval);
-    zp_data_server->AddSyncTask(table_name, partition_id);
+    zp_data_server->AddSyncTask(partition);
   }
 }
 
@@ -158,9 +158,9 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
   }
 
   Node master_node = partition->master_node();
-  DLOG(INFO) << "TrySync will connect(" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ")";
+  //DLOG(INFO) << "TrySync will connect(" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ")";
   pink::PbCli* cli = GetConnection(master_node);
-  DLOG(INFO) << "TrySync connect(" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ") " << (cli != NULL ? "ok" : "failed");
+  DLOG(INFO) << "TrySync connect(" << partition->table_name() << "_" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ") " << (cli != NULL ? "ok" : "failed");
   if (cli) {
     cli->set_send_timeout(1000);
     cli->set_recv_timeout(1000);
@@ -183,8 +183,8 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
     }
   } else {
     LOG(WARNING) << "TrySyncThread Connect failed(" 
-      << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ")";
-}
+      << partition->table_name() << "_" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ")";
+  }
   return false;
 }
 

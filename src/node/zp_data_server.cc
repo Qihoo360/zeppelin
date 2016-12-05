@@ -130,7 +130,7 @@ Status ZPDataServer::Start() {
 
   while (!should_exit_) {
     DoTimingTask();
-    int sleep_count = 600;
+    int sleep_count = 20;
     while (!should_exit_ && --sleep_count > 0){
       sleep(1);
     }
@@ -309,8 +309,8 @@ int32_t ZPDataServer::GetBinlogSendFilenum(const std::string &table, int partiti
   return binlog_send_pool_.TaskFilenum(task_name);
 }
 
-void ZPDataServer::AddSyncTask(const std::string &table_name, int parititon_id) {
-  zp_trysync_thread_->TrySyncTaskSchedule(table_name, parititon_id);
+void ZPDataServer::AddSyncTask(Partition* partition) {
+  zp_trysync_thread_->TrySyncTaskSchedule(partition);
 }
 
 void ZPDataServer::AddMetacmdTask() {

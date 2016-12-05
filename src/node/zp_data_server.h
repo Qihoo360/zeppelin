@@ -139,7 +139,7 @@ class ZPDataServer {
   // Backgroud thread
   void BGSaveTaskSchedule(void (*function)(void*), void* arg);
   void BGPurgeTaskSchedule(void (*function)(void*), void* arg);
-  void AddSyncTask(const std::string& table_name, int parititon_id);
+  void AddSyncTask(Partition* partition);
   void AddMetacmdTask();
   Status AddBinlogSendTask(const std::string &table, int parititon_id, const Node& node,
       int32_t filenum, int64_t offset);
