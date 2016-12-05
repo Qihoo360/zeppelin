@@ -29,7 +29,7 @@ void ZPDataWorkerThread::CronHandle() {
     while (iter != conns_.end()) {
 
       // TODO simple 3s
-      if (now.tv_sec - static_cast<ZPDataClientConn*>(iter->second)->last_interaction().tv_sec > 3) {
+      if (now.tv_sec - static_cast<ZPDataClientConn*>(iter->second)->last_interaction().tv_sec > 60) {
         LOG(INFO) << "Find Timeout Client: " << static_cast<ZPDataClientConn*>(iter->second)->ip_port();
         AddCronTask(WorkerCronTask{TASK_KILL, static_cast<ZPDataClientConn*>(iter->second)->ip_port()});
       }

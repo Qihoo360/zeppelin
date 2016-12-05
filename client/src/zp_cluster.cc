@@ -10,38 +10,44 @@
 namespace libZp {
 
 
-Status Cluster::Set(const std::string& table, const std::string& key, const std::string& value) {
+Status Cluster::Set(const std::string& table, const std::string& key,
+    const std::string& value) {
   Status s;
   IpPort master;
   s = GetDataMaster(master, table, key);
   std::cout << "data ip:"<< master.ip << " port:" << master.port <<std::endl;
   // @TODO use created conn
-  //std::shared_ptr<ZpDataCli> data_cli = GetDataCli(master);
+  // std::shared_ptr<ZpDataCli> data_cli = GetDataCli(master);
   std::shared_ptr<ZpDataCli> data_cli = CreateDataCli(master);
   if (data_cli) {
     s = data_cli->Set(table, key, value);
+    /*
     if (!s.ok()) {
       CreateDataCli(master);
     }
+    */
   } else {
     s = Status::IOError("no data cli got");
   }
   return s;
 }
 
-Status Cluster::Get(const std::string& table, const std::string& key, std::string& value) {
+Status Cluster::Get(const std::string& table, const std::string& key,
+    std::string& value) {
   Status s;
   IpPort master;
   s = GetDataMaster(master, table, key);
   std::cout << "data ip:"<< master.ip << " port:" << master.port <<std::endl;
-  //@TODO use created conn
-  //std::shared_ptr<ZpDataCli> data_cli = GetDataCli(master);
-  std::shared_ptr<ZpDataCli> data_cli = GetDataCli(master);
+  // @TODO use created conn
+  // std::shared_ptr<ZpDataCli> data_cli = GetDataCli(master);
+  std::shared_ptr<ZpDataCli> data_cli = CreateDataCli(master);
   if (data_cli) {
     s = data_cli->Get(table, key, value);
+    /*
     if (!s.ok() && !s.IsNotFound()) {
       CreateDataCli(master);
     }
+    */
   } else {
     s = Status::IOError("no data cli got");
   }
@@ -89,18 +95,17 @@ Status Cluster::Pull(const std::string& table) {
   return s;
 }
 
-Status Cluster::DumpTable(const std::string& table) {
+Status Cluster::DumpTable() {
   std::cout << "epoch:" << cluster_map_.epoch << std::endl;
   std::cout << "table_num:" << cluster_map_.table_num << std::endl;
   auto it = cluster_map_.table_maps.begin();
-  int table_num = 1;
   while (it != cluster_map_.table_maps.end()) {
     std::cout << "  name: "<< it->first <<std::endl;
     std::cout << "  partition: "<< it->second.partition_num <<std::endl;
     auto par = it->second.partitions.begin();
     while (par != it->second.partitions.end()) {
-      std::cout << "    partition: "<< par->first ;
-      std::cout << "    master: " << par->second.master.ip 
+      std::cout << "    partition: "<< par->first;
+      std::cout << "    master: " << par->second.master.ip
                 << " : " << par->second.master.port << std::endl;
       par++;
     }
@@ -122,6 +127,10 @@ Status Cluster::CreateTable(const std::string& table_name,
 }
 
 std::shared_ptr<ZpMetaCli> Cluster::CreateMetaCli(const IpPort& ipPort) {
+  auto it = meta_cli_.find(ipPort);
+  if (it != meta_cli_.end()) {
+    meta_cli_.erase(it);
+  }
   std::shared_ptr<ZpMetaCli> cli =
     std::make_shared<ZpMetaCli>(ipPort.ip, ipPort.port);
   Status s = cli->Connect(ipPort.ip, ipPort.port);
@@ -134,6 +143,10 @@ std::shared_ptr<ZpMetaCli> Cluster::CreateMetaCli(const IpPort& ipPort) {
 }
 
 std::shared_ptr<ZpDataCli> Cluster::CreateDataCli(const IpPort& ipPort) {
+  auto it = data_cli_.find(ipPort);
+  if (it != data_cli_.end()) {
+    data_cli_.erase(it);
+  }
   std::shared_ptr<ZpDataCli> cli =
     std::make_shared<ZpDataCli>(ipPort.ip, ipPort.port);
   Status s = cli->Connect(ipPort.ip, ipPort.port);

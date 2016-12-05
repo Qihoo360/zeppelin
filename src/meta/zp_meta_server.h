@@ -51,7 +51,6 @@ class ZPMetaServer {
   Cmd* GetCmd(const int op);
   
   // Node & Meta update related
-  Status ProcessUpdate(ZPMetaUpdateTaskMap taks_map, ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, bool &should_update_version);
   void AddMetaUpdateTask(const std::string& ip_port, ZPMetaUpdateOP);
   Status AddNodeAlive(const std::string& ip_port);
   Status DoUpdate(ZPMetaUpdateTaskMap task_map);
@@ -85,9 +84,11 @@ private:
   std::unordered_map<int, Cmd*> cmds_;
 
   // Node & Meta update related
-  Status AddNode(ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, const std::string &ip, int port);
-  Status OffNode(ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, const std::string &ip, int port);
-  bool OnNode(ZPMeta::Table &table_info, const std::string &ip, int port);
+  bool ProcessUpdateTableInfo(ZPMetaUpdateTaskMap task_map, const ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, bool &should_update_version);
+  void DoDownNodeForTableInfo(const ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, const std::string ip, int port, bool &should_update_table_info);
+  void DoUpNodeForTableInfo(ZPMeta::Table &table_info, const std::string ip, int port, bool &should_update_table_info);
+  bool ProcessUpdateNodes(ZPMetaUpdateTaskMap task_map, ZPMeta::Nodes &nodes);
+  bool ShouldRetryAddVersion(ZPMetaUpdateTaskMap task_map);
 
   ZPMetaUpdateThread* update_thread_;
   ZPMetaUpdateTaskMap task_map_;
@@ -96,17 +97,19 @@ private:
   NodeAliveMap node_alive_;
 
   // Meta related
-  Status SetNodeStatus(ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, const std::string &ip, int port, int status /*0-UP 1-DOWN*/);
+  void SetNodeStatus(ZPMeta::Nodes &nodes, const std::string &ip, int port, int status /*0-UP 1-DOWN*/, bool &should_update_node);
   void Reorganize(std::vector<ZPMeta::NodeStatus> &t_alive_nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
-  void GetAllAliveNode(ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
+  void GetAllAliveNode(const ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
   Status GetTableInfo(const std::string &table, ZPMeta::Table &table_info);
   bool FindNode(ZPMeta::Nodes &nodes, const std::string &ip, int port);
   void RestoreNodeAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes);
   Status GetTable(std::vector<std::string>& tables);
   Status UpdateTableName(const std::string& name);
   Status SetTable(const ZPMeta::Table &table);
+  Status SetNodes(const ZPMeta::Nodes &nodes);
   Status GetAllNode(ZPMeta::Nodes &nodes);
   Status InitVersion();
+  Status AddVersion();
 
   std::unordered_map<std::string, std::set<std::string> > nodes_;
   slash::Mutex node_mutex_;

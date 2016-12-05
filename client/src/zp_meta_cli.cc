@@ -2,10 +2,12 @@
  * "Copyright [2016] <hrxwwd@163.com>"
  */
 #include <google/protobuf/text_format.h>
+
 #include<iostream>
 #include<string>
 
 #include "include/zp_meta_cli.h"
+
 namespace libZp {
 ZpMetaCli::ZpMetaCli(const std::string& ip, const int port)
   : meta_ip_(ip), meta_port_(port) {
@@ -15,14 +17,17 @@ ZpMetaCli::~ZpMetaCli() {
 }
 
 Status ZpMetaCli::ResetClusterMap(const ZPMeta::MetaCmdResponse_Pull& pull,
-    ClusterMap& cluster_map, const std::string& table) {
+    ClusterMap& cluster_map) {
   cluster_map.epoch = pull.version();
-  cluster_map.table_num = 0;
   for (int i = 0; i < pull.info_size(); i++) {
-    std::cout<<"reset table:"<<pull.info(i).name()<<std::endl;
+    std::cout << "reset table:" << pull.info(i).name() << std::endl;
+    auto it = cluster_map.table_maps.find(pull.info(i).name());
+    if (it != cluster_map.table_maps.end()) {
+      cluster_map.table_maps.erase(it);
+    }
     cluster_map.table_maps.emplace(pull.info(i).name(), pull.info(i));
-    cluster_map.table_num ++;
   }
+  cluster_map.table_num = cluster_map.table_maps.size();
   std::cout<< "pull done" <<  std::endl;
   return Status::OK();
 }
@@ -45,10 +50,9 @@ Status ZpMetaCli::Pull(ClusterMap& cluster_map, const std::string& table) {
   }
 
   ZPMeta::MetaCmdResponse_Pull info = meta_res.pull();
-  int64_t new_epoch = info.version();
 
   // update clustermap now
-  return ResetClusterMap(info, cluster_map, table);
+  return ResetClusterMap(info, cluster_map);
 }
 
 Status ZpMetaCli::CreateTable(const std::string& table_name,

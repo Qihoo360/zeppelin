@@ -30,7 +30,7 @@ class Cluster {
   Status Get(const std::string& table, const std::string& key,
       std::string& value);
   Status Pull(const std::string& table);
-  Status DumpTable(const std::string& table);
+  Status DumpTable();
 
   // Status ListTable(std::vector<IpPort> &node_list);
   // Status ListMetaNode(std::vector<IpPort> &node_list);

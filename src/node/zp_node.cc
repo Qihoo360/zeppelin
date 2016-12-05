@@ -17,7 +17,7 @@ void Usage();
 
 static void GlogInit() {
   if (!slash::FileExists(g_zp_conf->log_path())) {
-    slash::CreatePath(g_zp_conf->log_path()); 
+    slash::CreatePath(g_zp_conf->log_path());
   }
 
   FLAGS_alsologtostderr = true;
@@ -25,7 +25,7 @@ static void GlogInit() {
   FLAGS_log_dir = g_zp_conf->log_path();
   FLAGS_minloglevel = 0;
   FLAGS_max_log_size = 1800;
-  // TODO rm
+  // @TODO rm
   FLAGS_logbufsecs = 0;
 
   ::google::InitGoogleLogging("zp");
@@ -49,7 +49,7 @@ static void ZPDataSignalSetup() {
 
 
 void Usage() {
-  printf ("Usage:\n"
+  printf("Usage:\n"
           "  ./zp-node -c conf_file\n");
 }
 
@@ -70,7 +70,7 @@ void ZpConfInit(int argc, char* argv[]) {
       case 'h':
         Usage();
         exit(-1);
-        return ;
+        return;
       default:
         Usage();
         exit(-1);
@@ -78,7 +78,7 @@ void ZpConfInit(int argc, char* argv[]) {
   }
 
   if (path_opt == false) {
-    fprintf (stderr, "Please specify the conf file path\n" );
+    fprintf(stderr, "Please specify the conf file path\n" );
     Usage();
     exit(-1);
   }
@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
 
   zp_data_server->Start();
 
-  //printf ("Exit\n");
+  //  printf ("Exit\n");
   delete zp_data_server;
 
   ::google::ShutdownGoogleLogging();
