@@ -1,10 +1,10 @@
-#ifndef ZP_UTIL_H
-#define ZP_UTIL_H
+#ifndef INCLUDE_ZP_UTIL_H_
+#define INCLUDE_ZP_UTIL_H_
 
 #include <string>
 
 #include "zp_conf.h"
-// TODO use Tasktype instead of macro
+// @TODO use Tasktype instead of macro
 enum TaskType {
   kTaskKill = 0,
   kTaskKillAll = 1
@@ -22,16 +22,14 @@ void daemonize();
 void close_std();
 void create_pid_file();
 class FileLocker {
-  public:
+ public:
+  explicit FileLocker(const std::string& file);
+  ~FileLocker();
+  slash::Status Lock();
 
-    FileLocker(const std::string& file);
-    ~FileLocker();
-    slash::Status Lock();
-
-  private:
-
-    slash::FileLock* file_lock_;
-    const std::string file_;
+ private:
+  slash::FileLock* file_lock_;
+  const std::string file_;
 };
 
 #endif
