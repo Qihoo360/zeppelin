@@ -69,9 +69,9 @@ private:
 };
 
 
-/**
- * ZPBinlogSendTaskPool
- */
+//
+// ZPBinlogSendTaskPool
+//
 class ZPBinlogSendTaskPool {
 public:
   ZPBinlogSendTaskPool();

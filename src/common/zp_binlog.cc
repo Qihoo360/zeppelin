@@ -430,8 +430,8 @@ Status Binlog::Put(const std::string &item) {
 
     uint32_t pro_num = version_->pro_num() + 1;
     std::string profile = NewFileName(filename_, pro_num);
-    writer_ = new BinlogWriter(queue_);
     slash::NewWritableFile(profile, &queue_);
+    writer_ = new BinlogWriter(queue_);
     writer_->Load();
     version_->Save(pro_num, 0);
   }

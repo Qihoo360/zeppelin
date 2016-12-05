@@ -292,7 +292,7 @@ void* ZPBinlogSendThread::ThreadMain() {
         s = task->ProcessTask(scratch);
         if (s.IsEndFile()) {
           LOG(WARNING) << "No more binlog item for table: " << task->table_name()
-            << "parititon: " << task->partition_id();
+            << " parititon: " << task->partition_id();
           pool_->PutBack(task);
           break;
         } else if (!s.ok()) {

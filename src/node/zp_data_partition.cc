@@ -15,6 +15,7 @@ Partition::Partition(const std::string &table_name, const int partition_id, cons
   role_(Role::kNodeSingle),
   repl_state_(ReplState::kNoConnect),
   bgsave_engine_(NULL),
+  purging_(false),
   purged_index_(0) {
     // Partition related path
     log_path_ = NewPartitionPath(log_path, partition_id_);
@@ -83,8 +84,8 @@ void Partition::TrySyncDone() {
   slash::RWLock l(&state_rw_, true);
   assert(ReplState::kShouldConnect == repl_state_);
   repl_state_ = ReplState::kConnected;
-  LOG(INFO) << "Partition " << partition_id_ << " TrySyncDone  set repl_state: " << ReplStateMsg[repl_state_] <<
-    "Master Node:" << master_node_.ip << ":" << master_node_.port;
+  LOG(INFO) << " Table " << table_name_ << " Partition " << partition_id_ << " TrySyncDone  set repl_state: " << ReplStateMsg[repl_state_] <<
+    ", Master Node:" << master_node_.ip << ":" << master_node_.port;
 }
 
 bool Partition::ChangeDb(const std::string& new_path) {
@@ -315,7 +316,7 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
 
   // Binlog already be purged
   LOG(INFO) << "Partition:" << partition_id_
-    << ", We " << (purged_index_ >= filenum ? "will" : "won't")
+    << ", We " << (purged_index_ > filenum ? "will" : "won't")
     << " TryDBSync, purged_index_=" << purged_index_ << ", filenum=" << filenum;
   if (purged_index_ > filenum) {
     TryDBSync(node.ip, node.port + kPortShiftRsync, cur_filenum);
@@ -326,10 +327,10 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
   Status s = zp_data_server->AddBinlogSendTask(table_name_, partition_id_,
       Node(node.ip, node.port + kPortShiftSync), filenum, offset);
   if (s.ok()) {
-    LOG(INFO) << "Success AddBinlogSendTask for Partition: " << partition_id_ << " To "
+    LOG(INFO) << "Success AddBinlogSendTask for Table " << table_name_ << " Partition " << partition_id_ << " To "
       << node.ip << ":" << node.port + kPortShiftSync << " at " << filenum << ", " << offset;
   } else {
-    LOG(WARNING) << "Failed AddBinlogSendTask for Partition: " << partition_id_ << " To "
+    LOG(WARNING) << "Failed AddBinlogSendTask for Table " << table_name_ << " Partition " << partition_id_ << " To "
       << node.ip << ":" << node.port + kPortShiftSync << " at " << filenum << ", " << offset;
   }
   return s;
@@ -375,7 +376,7 @@ void Partition::BecomeSlave() {
   role_ = Role::kNodeSlave;
   repl_state_ = ReplState::kShouldConnect;
   readonly_ = true;
-  zp_data_server->AddSyncTask(table_name_, partition_id_);
+  zp_data_server->AddSyncTask(this);
 }
 
 void Partition::Update(const Node &master, const std::vector<Node> &slaves) {
@@ -678,6 +679,9 @@ bool Partition::PurgeFiles(uint32_t to, bool manual)
   struct stat file_stat;
   int remain_expire_num = binlogs.size() - kBinlogRemainMaxCount;
   std::map<uint32_t, std::string>::iterator it;
+
+  DLOG(INFO) << "partition " << table_name_ << "_" << partition_id_ << " PugeFiles remain_expire_num is " << remain_expire_num;
+
   for (it = binlogs.begin(); it != binlogs.end(); ++it) {
     if ((manual && it->first <= to) ||           // Argument bound
         remain_expire_num > 0 ||                 // Expire num trigger
@@ -779,7 +783,7 @@ bool Partition::CouldPurge(uint32_t index) {
   std::vector<Node>::iterator it;
   for (it = slave_nodes_.begin(); it != slave_nodes_.end(); ++it) {
     int32_t filenum = zp_data_server->GetBinlogSendFilenum(table_name_, partition_id_, *it);
-    if (index <= static_cast<uint32_t>(filenum)) { 
+    if (index >= static_cast<uint32_t>(filenum)) { 
       return false;
     }
   }
