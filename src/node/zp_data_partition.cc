@@ -384,7 +384,7 @@ void Partition::Update(const Node &master, const std::vector<Node> &slaves) {
 
   // Update master slave nodes
   slash::RWLock l(&state_rw_, true);
-  bool change_master = false;
+  bool change_master = false, change_slave = false;
   
   if (master_node_ != master) {
     master_node_ = master;
@@ -395,6 +395,7 @@ void Partition::Update(const Node &master, const std::vector<Node> &slaves) {
     for (auto slave : slaves) {
       slave_nodes_.push_back(slave);
     }
+    change_slave = true;
   }
 
   // Update role
@@ -420,6 +421,9 @@ void Partition::Update(const Node &master, const std::vector<Node> &slaves) {
   } else if (change_master && role_ == Role::kNodeSlave) {
     // Change master
     BecomeSlave();
+  } else if (change_slave && role_ == Role::kNodeMaster) {
+    // Change slave
+    BecomeMaster();
   }
 }
 
