@@ -58,13 +58,13 @@ class ZPMetaServer {
   void ScheduleUpdate();
   
   // Meta related
-  Status GetMSInfo(std::set<std::string> &tables, ZPMeta::MetaCmdResponse_Pull &ms_info);
-  Status GetTablesFromNode(const std::string &ip_port, std::set<std::string> &tables);
+  Status GetMSInfo(const std::set<std::string> &tables, ZPMeta::MetaCmdResponse_Pull *ms_info);
+  Status GetTableListForNode(const std::string &ip_port, std::set<std::string> *tables);
   Status Distribute(const std::string table, int num);
   Status InitVersionIfNeeded();
 
   // Leader related
-  Status RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse &response);
+  Status RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse *response);
   bool IsLeader();
 
 private:
@@ -84,11 +84,11 @@ private:
   std::unordered_map<int, Cmd*> cmds_;
 
   // Node & Meta update related
-  bool ProcessUpdateTableInfo(ZPMetaUpdateTaskMap task_map, const ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, bool &should_update_version);
-  void DoDownNodeForTableInfo(const ZPMeta::Nodes &nodes, ZPMeta::Table &table_info, const std::string ip, int port, bool &should_update_table_info);
-  void DoUpNodeForTableInfo(ZPMeta::Table &table_info, const std::string ip, int port, bool &should_update_table_info);
-  bool ProcessUpdateNodes(ZPMetaUpdateTaskMap task_map, ZPMeta::Nodes &nodes);
-  bool ShouldRetryAddVersion(ZPMetaUpdateTaskMap task_map);
+  bool ProcessUpdateTableInfo(const ZPMetaUpdateTaskMap task_map, const ZPMeta::Nodes &nodes, ZPMeta::Table *table_info, bool *should_update_version);
+  void DoDownNodeForTableInfo(const ZPMeta::Nodes &nodes, ZPMeta::Table *table_info, const std::string ip, int port, bool *should_update_table_info);
+  void DoUpNodeForTableInfo(ZPMeta::Table *table_info, const std::string ip, int port, bool *should_update_table_info);
+  bool ProcessUpdateNodes(const ZPMetaUpdateTaskMap task_map, ZPMeta::Nodes *nodes);
+  bool ShouldRetryAddVersion(const ZPMetaUpdateTaskMap task_map);
 
   ZPMetaUpdateThread* update_thread_;
   ZPMetaUpdateTaskMap task_map_;
@@ -97,17 +97,17 @@ private:
   NodeAliveMap node_alive_;
 
   // Meta related
-  void SetNodeStatus(ZPMeta::Nodes &nodes, const std::string &ip, int port, int status /*0-UP 1-DOWN*/, bool &should_update_node);
-  void Reorganize(std::vector<ZPMeta::NodeStatus> &t_alive_nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
-  void GetAllAliveNode(const ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> &alive_nodes);
-  Status GetTableInfo(const std::string &table, ZPMeta::Table &table_info);
-  bool FindNode(ZPMeta::Nodes &nodes, const std::string &ip, int port);
-  void RestoreNodeAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes);
-  Status GetTable(std::vector<std::string>& tables);
-  Status UpdateTableName(const std::string& name);
+  void Reorganize(const std::vector<ZPMeta::NodeStatus> &t_alive_nodes, std::vector<ZPMeta::NodeStatus> *alive_nodes);
+  void SetNodeStatus(ZPMeta::Nodes *nodes, const std::string &ip, int port, int status, bool *should_update_node);
+  void GetAllAliveNode(const ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> *alive_nodes);
+  Status GetTableInfo(const std::string &table, ZPMeta::Table *table_info);
+  bool FindNode(const ZPMeta::Nodes &nodes, const std::string &ip, int port);
+  void RestoreNodeAlive(const std::vector<ZPMeta::NodeStatus> &alive_nodes);
+  Status GetTableList(std::vector<std::string> *tables);
+  Status UpdateTableList(const std::string &name);
   Status SetTable(const ZPMeta::Table &table);
   Status SetNodes(const ZPMeta::Nodes &nodes);
-  Status GetAllNode(ZPMeta::Nodes &nodes);
+  Status GetAllNodes(ZPMeta::Nodes *nodes);
   Status InitVersion();
   Status AddVersion();
 
@@ -122,7 +122,7 @@ private:
   floyd::Floyd* floyd_;
 
   // Leader slave
-  bool GetLeader(std::string& ip, int& port);
+  bool GetLeader(std::string *ip, int *port);
   Status BecomeLeader();
   void CleanLeader();
 
