@@ -50,21 +50,17 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* MetaCmd_Init_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   MetaCmd_Init_reflection_ = NULL;
-const ::google::protobuf::EnumDescriptor* MetaCmd_Type_descriptor_ = NULL;
 const ::google::protobuf::Descriptor* MetaCmdResponse_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   MetaCmdResponse_reflection_ = NULL;
-const ::google::protobuf::Descriptor* MetaCmdResponse_Status_descriptor_ = NULL;
-const ::google::protobuf::internal::GeneratedMessageReflection*
-  MetaCmdResponse_Status_reflection_ = NULL;
 const ::google::protobuf::Descriptor* MetaCmdResponse_Ping_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   MetaCmdResponse_Ping_reflection_ = NULL;
 const ::google::protobuf::Descriptor* MetaCmdResponse_Pull_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   MetaCmdResponse_Pull_reflection_ = NULL;
-const ::google::protobuf::EnumDescriptor* MetaCmdResponse_Type_descriptor_ = NULL;
 const ::google::protobuf::EnumDescriptor* StatusCode_descriptor_ = NULL;
+const ::google::protobuf::EnumDescriptor* Type_descriptor_ = NULL;
 
 }  // namespace
 
@@ -236,11 +232,11 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(MetaCmd_Init));
-  MetaCmd_Type_descriptor_ = MetaCmd_descriptor_->enum_type(0);
   MetaCmdResponse_descriptor_ = file->message_type(7);
-  static const int MetaCmdResponse_offsets_[4] = {
+  static const int MetaCmdResponse_offsets_[5] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse, type_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse, status_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse, code_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse, msg_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse, ping_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse, pull_),
   };
@@ -255,23 +251,7 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(MetaCmdResponse));
-  MetaCmdResponse_Status_descriptor_ = MetaCmdResponse_descriptor_->nested_type(0);
-  static const int MetaCmdResponse_Status_offsets_[2] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_Status, code_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_Status, msg_),
-  };
-  MetaCmdResponse_Status_reflection_ =
-    new ::google::protobuf::internal::GeneratedMessageReflection(
-      MetaCmdResponse_Status_descriptor_,
-      MetaCmdResponse_Status::default_instance_,
-      MetaCmdResponse_Status_offsets_,
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_Status, _has_bits_[0]),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_Status, _unknown_fields_),
-      -1,
-      ::google::protobuf::DescriptorPool::generated_pool(),
-      ::google::protobuf::MessageFactory::generated_factory(),
-      sizeof(MetaCmdResponse_Status));
-  MetaCmdResponse_Ping_descriptor_ = MetaCmdResponse_descriptor_->nested_type(1);
+  MetaCmdResponse_Ping_descriptor_ = MetaCmdResponse_descriptor_->nested_type(0);
   static const int MetaCmdResponse_Ping_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_Ping, version_),
   };
@@ -286,7 +266,7 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(MetaCmdResponse_Ping));
-  MetaCmdResponse_Pull_descriptor_ = MetaCmdResponse_descriptor_->nested_type(2);
+  MetaCmdResponse_Pull_descriptor_ = MetaCmdResponse_descriptor_->nested_type(1);
   static const int MetaCmdResponse_Pull_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_Pull, version_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_Pull, info_),
@@ -302,8 +282,8 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(MetaCmdResponse_Pull));
-  MetaCmdResponse_Type_descriptor_ = MetaCmdResponse_descriptor_->enum_type(0);
   StatusCode_descriptor_ = file->enum_type(0);
+  Type_descriptor_ = file->enum_type(1);
 }
 
 namespace {
@@ -339,8 +319,6 @@ void protobuf_RegisterTypes(const ::std::string&) {
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     MetaCmdResponse_descriptor_, &MetaCmdResponse::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-    MetaCmdResponse_Status_descriptor_, &MetaCmdResponse_Status::default_instance());
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     MetaCmdResponse_Ping_descriptor_, &MetaCmdResponse_Ping::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     MetaCmdResponse_Pull_descriptor_, &MetaCmdResponse_Pull::default_instance());
@@ -371,8 +349,6 @@ void protobuf_ShutdownFile_zp_5fmeta_2eproto() {
   delete MetaCmd_Init_reflection_;
   delete MetaCmdResponse::default_instance_;
   delete MetaCmdResponse_reflection_;
-  delete MetaCmdResponse_Status::default_instance_;
-  delete MetaCmdResponse_Status_reflection_;
   delete MetaCmdResponse_Ping::default_instance_;
   delete MetaCmdResponse_Ping_reflection_;
   delete MetaCmdResponse_Pull::default_instance_;
@@ -387,33 +363,30 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
 
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n\rzp_meta.proto\022\006ZPMeta\" \n\004Node\022\n\n\002ip\030\001 "
-    "\002(\014\022\014\n\004port\030\002 \002(\005\"8\n\nNodeStatus\022\032\n\004node\030"
+    "\002(\t\022\014\n\004port\030\002 \002(\005\"8\n\nNodeStatus\022\032\n\004node\030"
     "\001 \002(\0132\014.ZPMeta.Node\022\016\n\006status\030\002 \002(\005\"*\n\005N"
     "odes\022!\n\005nodes\030\001 \003(\0132\022.ZPMeta.NodeStatus\""
     "T\n\nPartitions\022\n\n\002id\030\001 \002(\005\022\034\n\006master\030\002 \002("
     "\0132\014.ZPMeta.Node\022\034\n\006slaves\030\003 \003(\0132\014.ZPMeta"
     ".Node\"\031\n\tTableName\022\014\n\004name\030\001 \003(\t\"=\n\005Tabl"
     "e\022\014\n\004name\030\001 \002(\t\022&\n\npartitions\030\002 \003(\0132\022.ZP"
-    "Meta.Partitions\"\311\002\n\007MetaCmd\022\"\n\004type\030\001 \002("
-    "\0162\024.ZPMeta.MetaCmd.Type\022\"\n\004ping\030\002 \001(\0132\024."
-    "ZPMeta.MetaCmd.Ping\022\"\n\004pull\030\003 \001(\0132\024.ZPMe"
-    "ta.MetaCmd.Pull\022\"\n\004init\030\004 \001(\0132\024.ZPMeta.M"
-    "etaCmd.Init\0323\n\004Ping\022\017\n\007version\030\001 \002(\005\022\032\n\004"
-    "node\030\002 \002(\0132\014.ZPMeta.Node\0320\n\004Pull\022\032\n\004node"
-    "\030\001 \001(\0132\014.ZPMeta.Node\022\014\n\004name\030\002 \001(\t\032!\n\004In"
-    "it\022\014\n\004name\030\001 \002(\t\022\013\n\003num\030\002 \002(\005\"$\n\004Type\022\010\n"
-    "\004PING\020\001\022\010\n\004PULL\020\002\022\010\n\004INIT\020\003\"\363\002\n\017MetaCmdR"
-    "esponse\022*\n\004type\030\001 \002(\0162\034.ZPMeta.MetaCmdRe"
-    "sponse.Type\022.\n\006status\030\002 \002(\0132\036.ZPMeta.Met"
-    "aCmdResponse.Status\022*\n\004ping\030\003 \001(\0132\034.ZPMe"
-    "ta.MetaCmdResponse.Ping\022*\n\004pull\030\004 \001(\0132\034."
-    "ZPMeta.MetaCmdResponse.Pull\0327\n\006Status\022 \n"
-    "\004code\030\001 \002(\0162\022.ZPMeta.StatusCode\022\013\n\003msg\030\002"
-    " \001(\014\032\027\n\004Ping\022\017\n\007version\030\001 \002(\005\0324\n\004Pull\022\017\n"
+    "Meta.Partitions\"\233\002\n\007MetaCmd\022\032\n\004type\030\001 \002("
+    "\0162\014.ZPMeta.Type\022\"\n\004ping\030\002 \001(\0132\024.ZPMeta.M"
+    "etaCmd.Ping\022\"\n\004pull\030\003 \001(\0132\024.ZPMeta.MetaC"
+    "md.Pull\022\"\n\004init\030\004 \001(\0132\024.ZPMeta.MetaCmd.I"
+    "nit\0323\n\004Ping\022\017\n\007version\030\001 \002(\005\022\032\n\004node\030\002 \002"
+    "(\0132\014.ZPMeta.Node\0320\n\004Pull\022\032\n\004node\030\001 \001(\0132\014"
+    ".ZPMeta.Node\022\014\n\004name\030\002 \001(\t\032!\n\004Init\022\014\n\004na"
+    "me\030\001 \002(\t\022\013\n\003num\030\002 \002(\005\"\203\002\n\017MetaCmdRespons"
+    "e\022\032\n\004type\030\001 \002(\0162\014.ZPMeta.Type\022 \n\004code\030\002 "
+    "\002(\0162\022.ZPMeta.StatusCode\022\013\n\003msg\030\003 \001(\t\022*\n\004"
+    "ping\030\004 \001(\0132\034.ZPMeta.MetaCmdResponse.Ping"
+    "\022*\n\004pull\030\005 \001(\0132\034.ZPMeta.MetaCmdResponse."
+    "Pull\032\027\n\004Ping\022\017\n\007version\030\001 \002(\005\0324\n\004Pull\022\017\n"
     "\007version\030\001 \002(\005\022\033\n\004info\030\002 \003(\0132\r.ZPMeta.Ta"
-    "ble\"$\n\004Type\022\010\n\004PING\020\001\022\010\n\004PULL\020\002\022\010\n\004INIT\020"
-    "\003*0\n\nStatusCode\022\007\n\003kOk\020\000\022\r\n\tkNotFound\020\001\022"
-    "\n\n\006kError\020\002", 1091);
+    "ble*-\n\nStatusCode\022\006\n\002OK\020\000\022\014\n\010NOTFOUND\020\001\022"
+    "\t\n\005ERROR\020\002*$\n\004Type\022\010\n\004PING\020\001\022\010\n\004PULL\020\002\022\010"
+    "\n\004INIT\020\003", 968);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zp_meta.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -427,7 +400,6 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
   MetaCmd_Pull::default_instance_ = new MetaCmd_Pull();
   MetaCmd_Init::default_instance_ = new MetaCmd_Init();
   MetaCmdResponse::default_instance_ = new MetaCmdResponse();
-  MetaCmdResponse_Status::default_instance_ = new MetaCmdResponse_Status();
   MetaCmdResponse_Ping::default_instance_ = new MetaCmdResponse_Ping();
   MetaCmdResponse_Pull::default_instance_ = new MetaCmdResponse_Pull();
   Node::default_instance_->InitAsDefaultInstance();
@@ -441,7 +413,6 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
   MetaCmd_Pull::default_instance_->InitAsDefaultInstance();
   MetaCmd_Init::default_instance_->InitAsDefaultInstance();
   MetaCmdResponse::default_instance_->InitAsDefaultInstance();
-  MetaCmdResponse_Status::default_instance_->InitAsDefaultInstance();
   MetaCmdResponse_Ping::default_instance_->InitAsDefaultInstance();
   MetaCmdResponse_Pull::default_instance_->InitAsDefaultInstance();
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_zp_5fmeta_2eproto);
@@ -462,6 +433,21 @@ bool StatusCode_IsValid(int value) {
     case 0:
     case 1:
     case 2:
+      return true;
+    default:
+      return false;
+  }
+}
+
+const ::google::protobuf::EnumDescriptor* Type_descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return Type_descriptor_;
+}
+bool Type_IsValid(int value) {
+  switch(value) {
+    case 1:
+    case 2:
+    case 3:
       return true;
     default:
       return false;
@@ -549,12 +535,15 @@ bool Node::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required bytes ip = 1;
+      // required string ip = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
                 input, this->mutable_ip()));
+          ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+            this->ip().data(), this->ip().length(),
+            ::google::protobuf::internal::WireFormat::PARSE);
         } else {
           goto handle_uninterpreted;
         }
@@ -596,9 +585,12 @@ bool Node::MergePartialFromCodedStream(
 
 void Node::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required bytes ip = 1;
+  // required string ip = 1;
   if (has_ip()) {
-    ::google::protobuf::internal::WireFormatLite::WriteBytes(
+    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+      this->ip().data(), this->ip().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE);
+    ::google::protobuf::internal::WireFormatLite::WriteString(
       1, this->ip(), output);
   }
 
@@ -615,10 +607,13 @@ void Node::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* Node::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required bytes ip = 1;
+  // required string ip = 1;
   if (has_ip()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+      this->ip().data(), this->ip().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE);
     target =
-      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
         1, this->ip(), target);
   }
 
@@ -638,10 +633,10 @@ int Node::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required bytes ip = 1;
+    // required string ip = 1;
     if (has_ip()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::BytesSize(
+        ::google::protobuf::internal::WireFormatLite::StringSize(
           this->ip());
     }
 
@@ -1971,29 +1966,6 @@ void Table::Swap(Table* other) {
 
 // ===================================================================
 
-const ::google::protobuf::EnumDescriptor* MetaCmd_Type_descriptor() {
-  protobuf_AssignDescriptorsOnce();
-  return MetaCmd_Type_descriptor_;
-}
-bool MetaCmd_Type_IsValid(int value) {
-  switch(value) {
-    case 1:
-    case 2:
-    case 3:
-      return true;
-    default:
-      return false;
-  }
-}
-
-#ifndef _MSC_VER
-const MetaCmd_Type MetaCmd::PING;
-const MetaCmd_Type MetaCmd::PULL;
-const MetaCmd_Type MetaCmd::INIT;
-const MetaCmd_Type MetaCmd::Type_MIN;
-const MetaCmd_Type MetaCmd::Type_MAX;
-const int MetaCmd::Type_ARRAYSIZE;
-#endif  // _MSC_VER
 #ifndef _MSC_VER
 const int MetaCmd_Ping::kVersionFieldNumber;
 const int MetaCmd_Ping::kNodeFieldNumber;
@@ -2879,7 +2851,7 @@ bool MetaCmd::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required .ZPMeta.MetaCmd.Type type = 1;
+      // required .ZPMeta.Type type = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -2887,8 +2859,8 @@ bool MetaCmd::MergePartialFromCodedStream(
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
                  input, &value)));
-          if (::ZPMeta::MetaCmd_Type_IsValid(value)) {
-            set_type(static_cast< ::ZPMeta::MetaCmd_Type >(value));
+          if (::ZPMeta::Type_IsValid(value)) {
+            set_type(static_cast< ::ZPMeta::Type >(value));
           } else {
             mutable_unknown_fields()->AddVarint(1, value);
           }
@@ -2959,7 +2931,7 @@ bool MetaCmd::MergePartialFromCodedStream(
 
 void MetaCmd::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required .ZPMeta.MetaCmd.Type type = 1;
+  // required .ZPMeta.Type type = 1;
   if (has_type()) {
     ::google::protobuf::internal::WireFormatLite::WriteEnum(
       1, this->type(), output);
@@ -2991,7 +2963,7 @@ void MetaCmd::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* MetaCmd::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required .ZPMeta.MetaCmd.Type type = 1;
+  // required .ZPMeta.Type type = 1;
   if (has_type()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
       1, this->type(), target);
@@ -3029,7 +3001,7 @@ int MetaCmd::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .ZPMeta.MetaCmd.Type type = 1;
+    // required .ZPMeta.Type type = 1;
     if (has_type()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::EnumSize(this->type());
@@ -3148,292 +3120,6 @@ void MetaCmd::Swap(MetaCmd* other) {
 
 
 // ===================================================================
-
-const ::google::protobuf::EnumDescriptor* MetaCmdResponse_Type_descriptor() {
-  protobuf_AssignDescriptorsOnce();
-  return MetaCmdResponse_Type_descriptor_;
-}
-bool MetaCmdResponse_Type_IsValid(int value) {
-  switch(value) {
-    case 1:
-    case 2:
-    case 3:
-      return true;
-    default:
-      return false;
-  }
-}
-
-#ifndef _MSC_VER
-const MetaCmdResponse_Type MetaCmdResponse::PING;
-const MetaCmdResponse_Type MetaCmdResponse::PULL;
-const MetaCmdResponse_Type MetaCmdResponse::INIT;
-const MetaCmdResponse_Type MetaCmdResponse::Type_MIN;
-const MetaCmdResponse_Type MetaCmdResponse::Type_MAX;
-const int MetaCmdResponse::Type_ARRAYSIZE;
-#endif  // _MSC_VER
-#ifndef _MSC_VER
-const int MetaCmdResponse_Status::kCodeFieldNumber;
-const int MetaCmdResponse_Status::kMsgFieldNumber;
-#endif  // !_MSC_VER
-
-MetaCmdResponse_Status::MetaCmdResponse_Status()
-  : ::google::protobuf::Message() {
-  SharedCtor();
-}
-
-void MetaCmdResponse_Status::InitAsDefaultInstance() {
-}
-
-MetaCmdResponse_Status::MetaCmdResponse_Status(const MetaCmdResponse_Status& from)
-  : ::google::protobuf::Message() {
-  SharedCtor();
-  MergeFrom(from);
-}
-
-void MetaCmdResponse_Status::SharedCtor() {
-  _cached_size_ = 0;
-  code_ = 0;
-  msg_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  ::memset(_has_bits_, 0, sizeof(_has_bits_));
-}
-
-MetaCmdResponse_Status::~MetaCmdResponse_Status() {
-  SharedDtor();
-}
-
-void MetaCmdResponse_Status::SharedDtor() {
-  if (msg_ != &::google::protobuf::internal::kEmptyString) {
-    delete msg_;
-  }
-  if (this != default_instance_) {
-  }
-}
-
-void MetaCmdResponse_Status::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-}
-const ::google::protobuf::Descriptor* MetaCmdResponse_Status::descriptor() {
-  protobuf_AssignDescriptorsOnce();
-  return MetaCmdResponse_Status_descriptor_;
-}
-
-const MetaCmdResponse_Status& MetaCmdResponse_Status::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_zp_5fmeta_2eproto();
-  return *default_instance_;
-}
-
-MetaCmdResponse_Status* MetaCmdResponse_Status::default_instance_ = NULL;
-
-MetaCmdResponse_Status* MetaCmdResponse_Status::New() const {
-  return new MetaCmdResponse_Status;
-}
-
-void MetaCmdResponse_Status::Clear() {
-  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    code_ = 0;
-    if (has_msg()) {
-      if (msg_ != &::google::protobuf::internal::kEmptyString) {
-        msg_->clear();
-      }
-    }
-  }
-  ::memset(_has_bits_, 0, sizeof(_has_bits_));
-  mutable_unknown_fields()->Clear();
-}
-
-bool MetaCmdResponse_Status::MergePartialFromCodedStream(
-    ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
-  ::google::protobuf::uint32 tag;
-  while ((tag = input->ReadTag()) != 0) {
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required .ZPMeta.StatusCode code = 1;
-      case 1: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-          int value;
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
-                 input, &value)));
-          if (::ZPMeta::StatusCode_IsValid(value)) {
-            set_code(static_cast< ::ZPMeta::StatusCode >(value));
-          } else {
-            mutable_unknown_fields()->AddVarint(1, value);
-          }
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(18)) goto parse_msg;
-        break;
-      }
-
-      // optional bytes msg = 2;
-      case 2: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_msg:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
-                input, this->mutable_msg()));
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectAtEnd()) return true;
-        break;
-      }
-
-      default: {
-      handle_uninterpreted:
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-          return true;
-        }
-        DO_(::google::protobuf::internal::WireFormat::SkipField(
-              input, tag, mutable_unknown_fields()));
-        break;
-      }
-    }
-  }
-  return true;
-#undef DO_
-}
-
-void MetaCmdResponse_Status::SerializeWithCachedSizes(
-    ::google::protobuf::io::CodedOutputStream* output) const {
-  // required .ZPMeta.StatusCode code = 1;
-  if (has_code()) {
-    ::google::protobuf::internal::WireFormatLite::WriteEnum(
-      1, this->code(), output);
-  }
-
-  // optional bytes msg = 2;
-  if (has_msg()) {
-    ::google::protobuf::internal::WireFormatLite::WriteBytes(
-      2, this->msg(), output);
-  }
-
-  if (!unknown_fields().empty()) {
-    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
-        unknown_fields(), output);
-  }
-}
-
-::google::protobuf::uint8* MetaCmdResponse_Status::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
-  // required .ZPMeta.StatusCode code = 1;
-  if (has_code()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
-      1, this->code(), target);
-  }
-
-  // optional bytes msg = 2;
-  if (has_msg()) {
-    target =
-      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
-        2, this->msg(), target);
-  }
-
-  if (!unknown_fields().empty()) {
-    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
-        unknown_fields(), target);
-  }
-  return target;
-}
-
-int MetaCmdResponse_Status::ByteSize() const {
-  int total_size = 0;
-
-  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .ZPMeta.StatusCode code = 1;
-    if (has_code()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::EnumSize(this->code());
-    }
-
-    // optional bytes msg = 2;
-    if (has_msg()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::BytesSize(
-          this->msg());
-    }
-
-  }
-  if (!unknown_fields().empty()) {
-    total_size +=
-      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
-        unknown_fields());
-  }
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-  return total_size;
-}
-
-void MetaCmdResponse_Status::MergeFrom(const ::google::protobuf::Message& from) {
-  GOOGLE_CHECK_NE(&from, this);
-  const MetaCmdResponse_Status* source =
-    ::google::protobuf::internal::dynamic_cast_if_available<const MetaCmdResponse_Status*>(
-      &from);
-  if (source == NULL) {
-    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
-  } else {
-    MergeFrom(*source);
-  }
-}
-
-void MetaCmdResponse_Status::MergeFrom(const MetaCmdResponse_Status& from) {
-  GOOGLE_CHECK_NE(&from, this);
-  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from.has_code()) {
-      set_code(from.code());
-    }
-    if (from.has_msg()) {
-      set_msg(from.msg());
-    }
-  }
-  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
-}
-
-void MetaCmdResponse_Status::CopyFrom(const ::google::protobuf::Message& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-void MetaCmdResponse_Status::CopyFrom(const MetaCmdResponse_Status& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool MetaCmdResponse_Status::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
-
-  return true;
-}
-
-void MetaCmdResponse_Status::Swap(MetaCmdResponse_Status* other) {
-  if (other != this) {
-    std::swap(code_, other->code_);
-    std::swap(msg_, other->msg_);
-    std::swap(_has_bits_[0], other->_has_bits_[0]);
-    _unknown_fields_.Swap(&other->_unknown_fields_);
-    std::swap(_cached_size_, other->_cached_size_);
-  }
-}
-
-::google::protobuf::Metadata MetaCmdResponse_Status::GetMetadata() const {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::Metadata metadata;
-  metadata.descriptor = MetaCmdResponse_Status_descriptor_;
-  metadata.reflection = MetaCmdResponse_Status_reflection_;
-  return metadata;
-}
-
-
-// -------------------------------------------------------------------
 
 #ifndef _MSC_VER
 const int MetaCmdResponse_Ping::kVersionFieldNumber;
@@ -3898,7 +3584,8 @@ void MetaCmdResponse_Pull::Swap(MetaCmdResponse_Pull* other) {
 
 #ifndef _MSC_VER
 const int MetaCmdResponse::kTypeFieldNumber;
-const int MetaCmdResponse::kStatusFieldNumber;
+const int MetaCmdResponse::kCodeFieldNumber;
+const int MetaCmdResponse::kMsgFieldNumber;
 const int MetaCmdResponse::kPingFieldNumber;
 const int MetaCmdResponse::kPullFieldNumber;
 #endif  // !_MSC_VER
@@ -3909,7 +3596,6 @@ MetaCmdResponse::MetaCmdResponse()
 }
 
 void MetaCmdResponse::InitAsDefaultInstance() {
-  status_ = const_cast< ::ZPMeta::MetaCmdResponse_Status*>(&::ZPMeta::MetaCmdResponse_Status::default_instance());
   ping_ = const_cast< ::ZPMeta::MetaCmdResponse_Ping*>(&::ZPMeta::MetaCmdResponse_Ping::default_instance());
   pull_ = const_cast< ::ZPMeta::MetaCmdResponse_Pull*>(&::ZPMeta::MetaCmdResponse_Pull::default_instance());
 }
@@ -3923,7 +3609,8 @@ MetaCmdResponse::MetaCmdResponse(const MetaCmdResponse& from)
 void MetaCmdResponse::SharedCtor() {
   _cached_size_ = 0;
   type_ = 1;
-  status_ = NULL;
+  code_ = 0;
+  msg_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   ping_ = NULL;
   pull_ = NULL;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -3934,8 +3621,10 @@ MetaCmdResponse::~MetaCmdResponse() {
 }
 
 void MetaCmdResponse::SharedDtor() {
+  if (msg_ != &::google::protobuf::internal::kEmptyString) {
+    delete msg_;
+  }
   if (this != default_instance_) {
-    delete status_;
     delete ping_;
     delete pull_;
   }
@@ -3965,8 +3654,11 @@ MetaCmdResponse* MetaCmdResponse::New() const {
 void MetaCmdResponse::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     type_ = 1;
-    if (has_status()) {
-      if (status_ != NULL) status_->::ZPMeta::MetaCmdResponse_Status::Clear();
+    code_ = 0;
+    if (has_msg()) {
+      if (msg_ != &::google::protobuf::internal::kEmptyString) {
+        msg_->clear();
+      }
     }
     if (has_ping()) {
       if (ping_ != NULL) ping_->::ZPMeta::MetaCmdResponse_Ping::Clear();
@@ -3985,7 +3677,7 @@ bool MetaCmdResponse::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required .ZPMeta.MetaCmdResponse.Type type = 1;
+      // required .ZPMeta.Type type = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -3993,34 +3685,58 @@ bool MetaCmdResponse::MergePartialFromCodedStream(
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
                  input, &value)));
-          if (::ZPMeta::MetaCmdResponse_Type_IsValid(value)) {
-            set_type(static_cast< ::ZPMeta::MetaCmdResponse_Type >(value));
+          if (::ZPMeta::Type_IsValid(value)) {
+            set_type(static_cast< ::ZPMeta::Type >(value));
           } else {
             mutable_unknown_fields()->AddVarint(1, value);
           }
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(18)) goto parse_status;
+        if (input->ExpectTag(16)) goto parse_code;
         break;
       }
 
-      // required .ZPMeta.MetaCmdResponse.Status status = 2;
+      // required .ZPMeta.StatusCode code = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_status:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-               input, mutable_status()));
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_code:
+          int value;
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
+                 input, &value)));
+          if (::ZPMeta::StatusCode_IsValid(value)) {
+            set_code(static_cast< ::ZPMeta::StatusCode >(value));
+          } else {
+            mutable_unknown_fields()->AddVarint(2, value);
+          }
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(26)) goto parse_ping;
+        if (input->ExpectTag(26)) goto parse_msg;
         break;
       }
 
-      // optional .ZPMeta.MetaCmdResponse.Ping ping = 3;
+      // optional string msg = 3;
       case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_msg:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_msg()));
+          ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+            this->msg().data(), this->msg().length(),
+            ::google::protobuf::internal::WireFormat::PARSE);
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(34)) goto parse_ping;
+        break;
+      }
+
+      // optional .ZPMeta.MetaCmdResponse.Ping ping = 4;
+      case 4: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
          parse_ping:
@@ -4029,12 +3745,12 @@ bool MetaCmdResponse::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(34)) goto parse_pull;
+        if (input->ExpectTag(42)) goto parse_pull;
         break;
       }
 
-      // optional .ZPMeta.MetaCmdResponse.Pull pull = 4;
-      case 4: {
+      // optional .ZPMeta.MetaCmdResponse.Pull pull = 5;
+      case 5: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
          parse_pull:
@@ -4065,28 +3781,37 @@ bool MetaCmdResponse::MergePartialFromCodedStream(
 
 void MetaCmdResponse::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required .ZPMeta.MetaCmdResponse.Type type = 1;
+  // required .ZPMeta.Type type = 1;
   if (has_type()) {
     ::google::protobuf::internal::WireFormatLite::WriteEnum(
       1, this->type(), output);
   }
 
-  // required .ZPMeta.MetaCmdResponse.Status status = 2;
-  if (has_status()) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      2, this->status(), output);
+  // required .ZPMeta.StatusCode code = 2;
+  if (has_code()) {
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      2, this->code(), output);
   }
 
-  // optional .ZPMeta.MetaCmdResponse.Ping ping = 3;
+  // optional string msg = 3;
+  if (has_msg()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+      this->msg().data(), this->msg().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE);
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      3, this->msg(), output);
+  }
+
+  // optional .ZPMeta.MetaCmdResponse.Ping ping = 4;
   if (has_ping()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      3, this->ping(), output);
+      4, this->ping(), output);
   }
 
-  // optional .ZPMeta.MetaCmdResponse.Pull pull = 4;
+  // optional .ZPMeta.MetaCmdResponse.Pull pull = 5;
   if (has_pull()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      4, this->pull(), output);
+      5, this->pull(), output);
   }
 
   if (!unknown_fields().empty()) {
@@ -4097,31 +3822,40 @@ void MetaCmdResponse::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* MetaCmdResponse::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required .ZPMeta.MetaCmdResponse.Type type = 1;
+  // required .ZPMeta.Type type = 1;
   if (has_type()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
       1, this->type(), target);
   }
 
-  // required .ZPMeta.MetaCmdResponse.Status status = 2;
-  if (has_status()) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        2, this->status(), target);
+  // required .ZPMeta.StatusCode code = 2;
+  if (has_code()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
+      2, this->code(), target);
   }
 
-  // optional .ZPMeta.MetaCmdResponse.Ping ping = 3;
+  // optional string msg = 3;
+  if (has_msg()) {
+    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
+      this->msg().data(), this->msg().length(),
+      ::google::protobuf::internal::WireFormat::SERIALIZE);
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+        3, this->msg(), target);
+  }
+
+  // optional .ZPMeta.MetaCmdResponse.Ping ping = 4;
   if (has_ping()) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
-        3, this->ping(), target);
+        4, this->ping(), target);
   }
 
-  // optional .ZPMeta.MetaCmdResponse.Pull pull = 4;
+  // optional .ZPMeta.MetaCmdResponse.Pull pull = 5;
   if (has_pull()) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
-        4, this->pull(), target);
+        5, this->pull(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -4135,27 +3869,33 @@ int MetaCmdResponse::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .ZPMeta.MetaCmdResponse.Type type = 1;
+    // required .ZPMeta.Type type = 1;
     if (has_type()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::EnumSize(this->type());
     }
 
-    // required .ZPMeta.MetaCmdResponse.Status status = 2;
-    if (has_status()) {
+    // required .ZPMeta.StatusCode code = 2;
+    if (has_code()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-          this->status());
+        ::google::protobuf::internal::WireFormatLite::EnumSize(this->code());
     }
 
-    // optional .ZPMeta.MetaCmdResponse.Ping ping = 3;
+    // optional string msg = 3;
+    if (has_msg()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->msg());
+    }
+
+    // optional .ZPMeta.MetaCmdResponse.Ping ping = 4;
     if (has_ping()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
           this->ping());
     }
 
-    // optional .ZPMeta.MetaCmdResponse.Pull pull = 4;
+    // optional .ZPMeta.MetaCmdResponse.Pull pull = 5;
     if (has_pull()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
@@ -4192,8 +3932,11 @@ void MetaCmdResponse::MergeFrom(const MetaCmdResponse& from) {
     if (from.has_type()) {
       set_type(from.type());
     }
-    if (from.has_status()) {
-      mutable_status()->::ZPMeta::MetaCmdResponse_Status::MergeFrom(from.status());
+    if (from.has_code()) {
+      set_code(from.code());
+    }
+    if (from.has_msg()) {
+      set_msg(from.msg());
     }
     if (from.has_ping()) {
       mutable_ping()->::ZPMeta::MetaCmdResponse_Ping::MergeFrom(from.ping());
@@ -4220,9 +3963,6 @@ void MetaCmdResponse::CopyFrom(const MetaCmdResponse& from) {
 bool MetaCmdResponse::IsInitialized() const {
   if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
 
-  if (has_status()) {
-    if (!this->status().IsInitialized()) return false;
-  }
   if (has_ping()) {
     if (!this->ping().IsInitialized()) return false;
   }
@@ -4235,7 +3975,8 @@ bool MetaCmdResponse::IsInitialized() const {
 void MetaCmdResponse::Swap(MetaCmdResponse* other) {
   if (other != this) {
     std::swap(type_, other->type_);
-    std::swap(status_, other->status_);
+    std::swap(code_, other->code_);
+    std::swap(msg_, other->msg_);
     std::swap(ping_, other->ping_);
     std::swap(pull_, other->pull_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
