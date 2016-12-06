@@ -145,15 +145,18 @@ bool ZPBinlogSendTaskPool::TaskExist(const std::string& task_name) {
 }
 
 Status ZPBinlogSendTaskPool::AddNewTask(const std::string &table_name, int32_t id, const Node& target,
-    uint32_t ifilenum, uint64_t ioffset) {
-  ZPBinlogSendTask* task_prt = NULL;
-  Status s = ZPBinlogSendTask::Create(table_name, id, target, ifilenum, ioffset, &task_prt);
+    uint32_t ifilenum, uint64_t ioffset, bool force) {
+  ZPBinlogSendTask* task_ptr = NULL;
+  Status s = ZPBinlogSendTask::Create(table_name, id, target, ifilenum, ioffset, &task_ptr);
   if (!s.ok()) {
     return s;
   }
-  s = AddTask(task_prt);
+  if (force && TaskExist(task_ptr->name())) {
+    RemoveTask(task_ptr->name());
+  }
+  s = AddTask(task_ptr);
   if (!s.ok()) {
-    delete task_prt;
+    delete task_ptr;
   }
   return s;
 }
@@ -224,7 +227,8 @@ Status ZPBinlogSendTaskPool::FetchOut(ZPBinlogSendTask** task_ptr) {
 Status ZPBinlogSendTaskPool::PutBack(ZPBinlogSendTask* task) {
   slash::RWLock l(&tasks_rwlock_, true);
   ZPBinlogSendTaskIndex::iterator it = task_ptrs_.find(task->name());
-  if (it == task_ptrs_.end()) {
+  if (it == task_ptrs_.end()              // task has been removed
+      || it->second != tasks_.end()) {    // task belong to same partition has beed added
     delete task;
     return Status::NotFound("Task may have been deleted");
   }
@@ -291,8 +295,8 @@ void* ZPBinlogSendThread::ThreadMain() {
         //Process ProcessTask
         s = task->ProcessTask(scratch);
         if (s.IsEndFile()) {
-          LOG(WARNING) << "No more binlog item for table: " << task->table_name()
-            << " parititon: " << task->partition_id();
+          //LOG(INFO) << "No more binlog item for table: " << task->table_name()
+          //  << " parititon: " << task->partition_id();
           pool_->PutBack(task);
           break;
         } else if (!s.ok()) {

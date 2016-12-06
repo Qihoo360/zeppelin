@@ -80,7 +80,7 @@ public:
   bool TaskExist(const std::string& task_name);
 
   Status AddNewTask(const std::string &table, int32_t id, const Node& target,
-    uint32_t ifilenum, uint64_t ioffset);
+    uint32_t ifilenum, uint64_t ioffset, bool force);
   Status RemoveTask(const std::string &name);
   int32_t TaskFilenum(const std::string &name);
 
