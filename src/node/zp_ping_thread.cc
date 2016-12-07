@@ -21,7 +21,7 @@ pink::Status ZPPingThread::Send() {
   ZPMeta::Node* node = ping->mutable_node();
   node->set_ip(zp_data_server->local_ip());
   node->set_port(zp_data_server->local_port());
-  request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_PING);
+  request.set_type(ZPMeta::Type::PING);
 
   DLOG(INFO) << "Ping Meta (" << zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd
     << ") with Epoch: " << meta_epoch;
@@ -37,11 +37,11 @@ pink::Status ZPPingThread::RecvProc() {
   if (!result.ok()) {
     return result;
   }
-  if (response.status().code() != ZPMeta::StatusCode::kOk) {
+  if (response.code() != ZPMeta::StatusCode::OK) {
     return pink::Status::Corruption("Receive reponse with error code");
   }
   // StatusCode OK
-  if (response.type() == ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PING) {
+  if (response.type() == ZPMeta::Type::PING) {
     zp_data_server->TryUpdateEpoch(response.ping().version());
     return pink::Status::OK();
   }

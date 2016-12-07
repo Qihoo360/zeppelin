@@ -52,7 +52,7 @@ pink::Status ZPMetacmdThread::Send() {
     << zp_data_server->meta_port() + kMetaPortShiftCmd
     << ") with local("<< zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
 
-  request.set_type(ZPMeta::MetaCmd_Type::MetaCmd_Type_PULL);
+  request.set_type(ZPMeta::Type::PULL);
   ZPMeta::MetaCmd_Pull* pull = request.mutable_pull();
   ZPMeta::Node* node = pull->mutable_node();
   node->set_ip(zp_data_server->local_ip());
@@ -79,7 +79,7 @@ pink::Status ZPMetacmdThread::Recv(int64_t &receive_epoch) {
     DLOG(INFO) << "Receive from meta(" << meta_ip << ":" << meta_port << "), size: " << response.pull().info().size() << " Response:[" << text_format << "]";
 
     switch (response.type()) {
-      case ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PULL:
+      case ZPMeta::Type::PULL:
         return ParsePullResponse(response, receive_epoch);
         break;
       default:
@@ -90,8 +90,8 @@ pink::Status ZPMetacmdThread::Recv(int64_t &receive_epoch) {
 }
 
 pink::Status ZPMetacmdThread::ParsePullResponse(const ZPMeta::MetaCmdResponse &response, int64_t &receive_epoch) {
-  if (response.status().code() != ZPMeta::StatusCode::kOk) {
-    return pink::Status::IOError(response.status().msg());
+  if (response.code() != ZPMeta::StatusCode::OK) {
+    return pink::Status::IOError(response.msg());
   }
 
   receive_epoch = response.pull().version();
