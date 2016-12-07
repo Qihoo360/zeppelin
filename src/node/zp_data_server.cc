@@ -291,9 +291,10 @@ void ZPDataServer::BGPurgeTaskSchedule(void (*function)(void*), void* arg) {
   bgpurge_thread_.Schedule(function, arg);
 }
 
+// Add Task, remove first if already exist
 Status ZPDataServer::AddBinlogSendTask(const std::string &table, int partition_id, const Node& node,
     int32_t filenum, int64_t offset) {
-  return binlog_send_pool_.AddNewTask(table, partition_id, node, filenum, offset);
+  return binlog_send_pool_.AddNewTask(table, partition_id, node, filenum, offset, true);
 }
 
 Status ZPDataServer::RemoveBinlogSendTask(const std::string &table, int partition_id, const Node& node) {

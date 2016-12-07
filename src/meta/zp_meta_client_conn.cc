@@ -7,7 +7,7 @@
 #include "zp_meta_worker_thread.h"
 #include "zp_meta_server.h"
 
-extern ZPMetaServer* zp_meta_server;
+extern ZPMetaServer* g_meta_server;
 
 ////// ZPDataClientConn //////
 ZPMetaClientConn::ZPMetaClientConn(int fd, std::string ip_port, pink::Thread* thread) :
@@ -24,19 +24,19 @@ int ZPMetaClientConn::DealMessage() {
   bool need_redirect = true;
   request_.ParseFromArray(rbuf_ + 4, header_len_);
   // TODO test only
-  ZPMeta::MetaCmdResponse_Type response_type;
+  ZPMeta::Type response_type;
   switch (request_.type()) {
-    case ZPMeta::MetaCmd_Type::MetaCmd_Type_PING:
-      response_type = ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PING;
+    case ZPMeta::Type::PING:
+      response_type = ZPMeta::Type::PING;
       DLOG(INFO) << "Receive ping cmd";
       break;
-    case ZPMeta::MetaCmd_Type::MetaCmd_Type_PULL:
-      response_type = ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_PULL;
+    case ZPMeta::Type::PULL:
+      response_type = ZPMeta::Type::PULL;
       need_redirect = false;
       DLOG(INFO) << "Receive pull cmd";
       break;
-    case ZPMeta::MetaCmd_Type::MetaCmd_Type_INIT:
-      response_type = ZPMeta::MetaCmdResponse_Type::MetaCmdResponse_Type_INIT;
+    case ZPMeta::Type::INIT:
+      response_type = ZPMeta::Type::INIT;
       DLOG(INFO) << "Receive init cmd";
       break;
     default:
@@ -45,14 +45,13 @@ int ZPMetaClientConn::DealMessage() {
   
   // Redirect to leader if needed
   set_is_reply(true);
-  if (!zp_meta_server->IsLeader() && need_redirect) {
-    Status s = zp_meta_server->RedirectToLeader(request_, response_);
+  if (!g_meta_server->IsLeader() && need_redirect) {
+    Status s = g_meta_server->RedirectToLeader(request_, &response_);
     if (!s.ok()) {
       LOG(ERROR) << "Failed to redirect to leader : " << s.ToString();
       response_.set_type(response_type);
-      ZPMeta::MetaCmdResponse_Status* status_res = response_.mutable_status();
-      status_res->set_code(ZPMeta::StatusCode::kError);
-      status_res->set_msg(s.ToString());
+      response_.set_code(ZPMeta::StatusCode::ERROR);
+      response_.set_msg(s.ToString());
       res_ = &response_;
       return -1;
     }
@@ -61,12 +60,11 @@ int ZPMetaClientConn::DealMessage() {
     return 0;
   }
 
-  Cmd* cmd = zp_meta_server->GetCmd(static_cast<int>(request_.type()));
+  Cmd* cmd = g_meta_server->GetCmd(static_cast<int>(request_.type()));
   if (cmd == NULL) {
     response_.set_type(response_type);
-    ZPMeta::MetaCmdResponse_Status* status_res = response_.mutable_status();
-    status_res->set_code(ZPMeta::StatusCode::kError);
-    status_res->set_msg("Unknown command");
+    response_.set_code(ZPMeta::StatusCode::ERROR);
+    response_.set_msg("Unknown command");
     res_ = &response_;
     return -1;
   }

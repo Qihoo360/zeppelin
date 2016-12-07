@@ -4,7 +4,7 @@
 #include "zp_meta.pb.h"
 #include "zp_meta_server.h"
 
-extern ZPMetaServer* zp_meta_server;
+extern ZPMetaServer* g_meta_server;
 
 ZPMetaUpdateThread::ZPMetaUpdateThread() {
 }
@@ -30,14 +30,14 @@ void ZPMetaUpdateThread::DoMetaUpdate(void *p) {
 
 slash::Status ZPMetaUpdateThread::MetaUpdate(ZPMetaUpdateTaskMap task_map) {
   slash::Status s;
-  s = zp_meta_server->DoUpdate(task_map);
+  s = g_meta_server->DoUpdate(task_map);
   if (s.IsCorruption() && s.ToString() == "Corruption: AddVersion Error") {
-    zp_meta_server->AddMetaUpdateTask("", kOpAddVersion);
+    g_meta_server->AddMetaUpdateTask("", kOpAddVersion);
   }
   if (!s.ok()) {
     sleep(1);
     for (auto iter = task_map.begin(); iter != task_map.end(); iter++) {
-      zp_meta_server->AddMetaUpdateTask(iter->first, iter->second);
+      g_meta_server->AddMetaUpdateTask(iter->first, iter->second);
     }
   }
   return s;

@@ -101,7 +101,7 @@ int ZPTrySyncThread::Recv(int partition_id, pink::PbCli* cli) {
       LOG(INFO) << "TrySync receive kWait, Partition:" << partition_id;
       return -1;
     } else {
-      LOG(WARNING) << "TrySync receive error, Partition:" << partition_id;
+      LOG(WARNING) << "TrySync receive error: " << response.msg() <<" Partition:" << partition_id;
       return -2;
     }
   } else {

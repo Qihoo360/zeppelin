@@ -12,7 +12,7 @@
 
 
 ZpConf *g_zp_conf;
-ZPMetaServer* zp_meta_server;
+ZPMetaServer* g_meta_server;
 
 void Usage();
 void ParseArgsFromFile(int argc, char* argv[]);
@@ -32,7 +32,7 @@ static void GlogInit() {
 
 static void IntSigHandle(const int sig) {
   LOG(INFO) << "Catch Signal " << sig << ", cleanup...";
-  zp_meta_server->Stop();
+  g_meta_server->Stop();
 }
 
 static void SignalSetup() {
@@ -107,8 +107,8 @@ int main(int argc, char** argv) {
     close_std();
   }
 
-  zp_meta_server = new ZPMetaServer();
-  zp_meta_server->Start();
+  g_meta_server = new ZPMetaServer();
+  g_meta_server->Start();
 
   printf("Exit\n");
   return 0;
