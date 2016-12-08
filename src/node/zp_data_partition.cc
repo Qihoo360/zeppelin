@@ -22,6 +22,20 @@ Partition::Partition(const std::string &table_name, const int partition_id, cons
     data_path_ = NewPartitionPath(data_path, partition_id_);
     sync_path_ = NewPartitionPath(zp_data_server->db_sync_path() + table_name_ + "/", partition_id_);
     bgsave_path_ = NewPartitionPath(zp_data_server->bgsave_path() + table_name_ + "/", partition_id_);
+
+    if (log_path_.back() != '/') {
+      log_path_.push_back('/');
+    }
+    if (data_path_.back() != '/') {
+      data_path_.push_back('/');
+    }
+    if (sync_path_.back() != '/') {
+      sync_path_.push_back('/');
+    }
+    if (bgsave_path_.back() != '/') {
+      bgsave_path_.push_back('/');
+    }
+
     
     pthread_rwlock_init(&state_rw_, NULL);
     pthread_rwlockattr_t attr;
@@ -30,7 +44,7 @@ Partition::Partition(const std::string &table_name, const int partition_id, cons
     pthread_rwlock_init(&partition_rw_, &attr);
 
     // Create db handle
-    nemo::Options option; //TODO option args
+    nemo::Options option; //TODO anan  option args
     db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(data_path_, option));
     assert(db_);
 
@@ -47,12 +61,12 @@ Partition::~Partition() {
   delete bgsave_engine_;
   pthread_rwlock_destroy(&partition_rw_);
   pthread_rwlock_destroy(&state_rw_);
-  LOG(INFO) << "Partition " << partition_id_ << " exit!!!";
+  LOG(INFO) << " Partition " << table_name_ << "_" << partition_id_ << " exit!!!";
 }
 
 bool Partition::ShouldWaitDBSync() {
   slash::RWLock l(&state_rw_, false);
-  DLOG(INFO) << "Partition: " << partition_id_ <<" ShouldWaitDBSync " 
+  DLOG(INFO) << " Partition: " << table_name_ << "_" << partition_id_ << " ShouldWaitDBSync " 
       << (repl_state_ == ReplState::kWaitDBSync ? "true" : "false")
       << ", repl_state: " << ReplStateMsg[repl_state_] << " role: " << RoleMsg[role_];
   return repl_state_ == ReplState::kWaitDBSync;
@@ -68,13 +82,13 @@ void Partition::WaitDBSyncDone() {
   slash::RWLock l(&state_rw_, true);
   assert(ReplState::kWaitDBSync == repl_state_);
   repl_state_ = ReplState::kShouldConnect;
-  LOG(INFO) << "Partition " << partition_id_ << " WaitDBSyncDone  set repl_state: " << ReplStateMsg[repl_state_] <<
+  LOG(INFO) << "Partition: " << table_name_ << "_" << partition_id_ << " WaitDBSyncDone  set repl_state: " << ReplStateMsg[repl_state_] <<
     "Master Node:" << master_node_.ip << ":" << master_node_.port;
 }
 
 bool Partition::ShouldTrySync() {
   slash::RWLock l(&state_rw_, false);
-  DLOG(INFO) << "Partition: " << partition_id_ << " ShouldTrySync " 
+  DLOG(INFO) << "Partition: " << table_name_ << "_" << partition_id_ << " ShouldTrySync " 
     << (repl_state_ == ReplState::kShouldConnect ? "true" : "false")
     <<  ", repl_state: " << ReplStateMsg[repl_state_];
   return repl_state_ == ReplState::kShouldConnect;
@@ -84,13 +98,13 @@ void Partition::TrySyncDone() {
   slash::RWLock l(&state_rw_, true);
   assert(ReplState::kShouldConnect == repl_state_);
   repl_state_ = ReplState::kConnected;
-  LOG(INFO) << " Table " << table_name_ << " Partition " << partition_id_ << " TrySyncDone  set repl_state: " << ReplStateMsg[repl_state_] <<
+  LOG(INFO) << " Partition: " << table_name_ << "_" << partition_id_ << " TrySyncDone  set repl_state: " << ReplStateMsg[repl_state_] <<
     ", Master Node:" << master_node_.ip << ":" << master_node_.port;
 }
 
 bool Partition::ChangeDb(const std::string& new_path) {
   nemo::Options option;
-  // TODO set options
+  // TODO anan set options
   //option.write_buffer_size = g_pika_conf->write_buffer_size();
   //option.target_file_size_base = g_pika_conf->target_file_size_base();
 
@@ -116,7 +130,7 @@ bool Partition::ChangeDb(const std::string& new_path) {
   db_.reset(new nemo::Nemo(data_path_, option));
   assert(db_);
   slash::DeleteDirIfExist(tmp_path);
-  LOG(INFO) << "Change Parition " << partition_id_ << " db success";
+  LOG(INFO) << "Change Parition " << table_name_ << "_" << partition_id_ << " db success";
   return true;
 }
 
@@ -173,7 +187,7 @@ bool Partition::InitBgsaveEngine() {
 bool Partition::RunBgsaveEngine(const std::string path) {
   // Backup to tmp dir
   nemo::Status result = bgsave_engine_->CreateNewBackup(path);
-  DLOG(INFO) << "Create new backup finished.";
+  DLOG(INFO) << "Create new backup finished, path is " << path;
   
   if (!result.ok()) {
     LOG(WARNING) << "backup failed :" << result.ToString();
@@ -199,6 +213,8 @@ void Partition::Bgsave() {
     return;
   }
   LOG(INFO) << " BGsave start";
+  DLOG(INFO) << "   bgsave_info: path=" << bgsave_info_.path << ",  filenum=" << bgsave_info_.filenum
+      << ", offset=" << bgsave_info_.offset;
 
   zp_data_server->BGSaveTaskSchedule(&DoBgsave, static_cast<void*>(this));
 }
@@ -245,7 +261,7 @@ bool Partition::Bgsaveoff() {
 
 bool Partition::TryUpdateMasterOffset() {
   // Check dbsync finished
-  std::string info_path = sync_path_ + "/" + kBgsaveInfoFile;
+  std::string info_path = sync_path_ + kBgsaveInfoFile;
   if (!slash::FileExists(info_path)) {
     return false;
   }
@@ -253,7 +269,7 @@ bool Partition::TryUpdateMasterOffset() {
   // Got new binlog offset
   std::ifstream is(info_path);
   if (!is) {
-    LOG(WARNING) << "Failed to open info file after db sync, Partition:" << partition_id_ << " info_path:" << info_path;
+    LOG(WARNING) << "Failed to open info file after db sync, table: " << table_name_ << " Partition:" << partition_id_ << " info_path:" << info_path;
     return false;
   }
   std::string line, master_ip;
@@ -280,8 +296,9 @@ bool Partition::TryUpdateMasterOffset() {
     }
   }
   is.close();
+  DLOG(INFO) << " info_path is " << info_path << ", sync_path_ is " << sync_path_;
   LOG(INFO) << "Information from dbsync info. Paritition: " << partition_id_
-    << "master_ip: " << master_ip
+    << " master_ip: " << master_ip
     << ", master_port: " << master_port
     << ", filenum: " << filenum
     << ", offset: " << offset;
@@ -315,7 +332,7 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
   }
 
   // Binlog already be purged
-  LOG(INFO) << "Partition:" << partition_id_
+  LOG(INFO) << "Partition:" << table_name_ << "_" << partition_id_
     << ", We " << (purged_index_ > filenum ? "will" : "won't")
     << " TryDBSync, purged_index_=" << purged_index_ << ", filenum=" << filenum;
   if (purged_index_ > filenum) {
@@ -501,7 +518,7 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req, client:
 }
 
 void Partition::TryDBSync(const std::string& ip, int port, int32_t top) {
-  DLOG(INFO) << "TryDBSync " << ip << ":" << port << ", top=" << top << "Partition:" << partition_id_;
+  DLOG(INFO) << "TryDBSync " << ip << ":" << port << ", top=" << top << " Partition:" << partition_id_;
 
   std::string bg_path;
   uint32_t bg_filenum = 0;
@@ -527,11 +544,13 @@ void Partition::DBSync(const std::string& ip, int port) {
   {
     slash::MutexLock l(&db_sync_protector_);
     if (db_sync_slaves_.find(ip_port) != db_sync_slaves_.end()) {
+      DLOG(INFO) << " DBSync with (" << ip_port << ") already in schedule";
       return;
     }
     db_sync_slaves_.insert(ip_port);
   }
 
+  DLOG(INFO) << " DBSync add new SyncTask for (" << ip_port << ")";
   // Reuse the bg_thread for Bgsave
   // Since we expect Bgsave and DBSync execute serially
   DBSyncArg *arg = new DBSyncArg(this, ip, port);
@@ -577,6 +596,7 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
     if (target_path == kBgsaveInfoFile) {
       continue;
     }
+    //DLOG(INFO) << "      RsyncSendFile("  << *it << ", " << target_dir << "/" << target_path << ")";
     // We need specify the speed limit for every single file
     ret = slash::RsyncSendFile(*it, target_dir + "/" + target_path, remote);
     if (0 != ret) {
@@ -588,6 +608,9 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
     }
   }
  
+  // TODO anan rm
+  //DLOG(INFO) << "      RsyncSendClearTarget("  << bg_path << "/[kv|hash], " << target_dir << "/[kv|hash])";
+  // TODO clear sync_path if needed
   // Clear target path
   slash::RsyncSendClearTarget(bg_path + "/kv", target_dir + "/kv", remote);
   slash::RsyncSendClearTarget(bg_path + "/hash", target_dir + "/hash", remote);
@@ -713,7 +736,7 @@ bool Partition::PurgeFiles(uint32_t to, bool manual)
     }
   }
   if (delete_num) {
-    LOG(INFO) << "Success purge "<< delete_num;
+    LOG(INFO) << "Success purge "<< delete_num << " for " << table_name_ << "_" << partition_id_;
   }
 
   return true;

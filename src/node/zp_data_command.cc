@@ -82,8 +82,8 @@ void SyncCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
 
   response->set_type(client::Type::SYNC);
 
-  LOG(INFO) << "SyncCmd Table " << ptr->table_name() << " Partition:" << ptr->partition_id()
-    << " a new node(" << node.ip << ":" << node.port << ") filenum " << sync_req.filenum() << ", offset " << sync_req.offset();
+  LOG(INFO) << "SyncCmd with a new node (" << ptr->table_name() << "_"  << ptr->partition_id()
+      << "_" << node.ip << ":" << node.port << ", " << sync_req.filenum() << ", " << sync_req.offset() << ")";
   s = ptr->SlaveAskSync(node, sync_req.filenum(), sync_req.offset());
 
   if (s.ok()) {

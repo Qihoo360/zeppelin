@@ -90,7 +90,7 @@ Status ZPBinlogSendTask::ProcessTask(std::string &item) {
     std::string confile = NewFileName(binlog_filename_, filenum_ + 1);
 
     if (slash::FileExists(confile)) {
-      DLOG(INFO) << "BinlogSender roll to new binlog" << confile;
+      DLOG(INFO) << "BinlogSender (" << node_ << ") roll to new binlog " << confile;
       delete reader_;
       reader_ = NULL;
       delete queue_;

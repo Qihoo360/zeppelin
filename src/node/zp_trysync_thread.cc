@@ -76,10 +76,10 @@ bool ZPTrySyncThread::Send(Partition* partition, pink::PbCli* cli) {
   sync->set_partition_id(partition->partition_id());
 
   pink::Status s = cli->Send(&request);
-  DLOG(INFO) << "TrySync: Table " << partition->table_name() << " Partition " << partition->partition_id() << " with SyncPoint ("
+  DLOG(INFO) << "TrySync: Partition " << partition->table_name() << "_" << partition->partition_id() << " with SyncPoint ("
     << sync->node().ip() << ":" << sync->node().port() << ", " << filenum << ", " << offset << ")";
   if (!s.ok()) {
-    LOG(WARNING) << "TrySync send failed, Partition:" << partition->partition_id() << ",caz " << s.ToString();
+    LOG(WARNING) << "TrySync send failed, Partition " << partition->table_name() << "_" << partition->partition_id() << ", caz " << s.ToString();
     return false;
   }
   return true;
@@ -90,7 +90,7 @@ int ZPTrySyncThread::Recv(int partition_id, pink::PbCli* cli) {
   pink::Status result = cli->Recv(&response); 
 
   if (!result.ok()) {
-    LOG(WARNING) << "TrySync recv failed, Partition:" << partition_id << ",caz " << result.ToString();
+    LOG(WARNING) << "TrySync recv failed, Partition:" << partition_id << ", caz " << result.ToString();
     return -2;
   }
 
@@ -150,7 +150,7 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
     }
     partition->WaitDBSyncDone();
     RsyncUnref();
-    LOG(INFO) << "Success Update Master Offset for Partition " << partition->partition_id();
+    LOG(INFO) << "Success Update Master Offset for Partition " << partition->table_name() << "_" << partition->partition_id();
   }
 
   if (!partition->ShouldTrySync()) {
