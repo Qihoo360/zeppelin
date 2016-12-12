@@ -10,19 +10,23 @@
 #include <vector>
 #include <memory>
 #include <iostream>
+#include <unordered_map>
+#include <utility>
 
 #include "include/pb_cli.h"
 
 #include "include/zp_meta.pb.h"
 
 
-namespace libZp {
+namespace libzp {
 
 typedef pink::Status Status;
 
-class IpPort {
- public:
-  IpPort() {}
+struct IpPort {
+  IpPort() {
+    ip = std::string();
+    port = 0;
+  }
   IpPort(const std::string other_ip, int other_port) {
     ip = other_ip;
     port = other_port;
@@ -58,54 +62,95 @@ class IpPort {
   }
 };
 
-class ReplicaSet {
- public:
-  std::vector<IpPort> slaves;
-  IpPort master;
 
-  ReplicaSet(const ZPMeta::Partitions& partition_info) {
-    master.ip = partition_info.master().ip();
-    master.port = partition_info.master().port();
-    for (int i = 0; i < partition_info.slaves_size(); i++) {
-      slaves.emplace_back(partition_info.slaves(i).ip(),
-          partition_info.slaves(i).port());
+class Table {
+ public:
+  struct Partition {
+    std::vector<IpPort> slaves;
+    IpPort master;
+    int id;
+
+    explicit Partition(const ZPMeta::Partitions& partition_info) {
+      master.ip = partition_info.master().ip();
+      master.port = partition_info.master().port();
+      slaves.clear();
+      for (int i = 0; i < partition_info.slaves_size(); i++) {
+        slaves.push_back(IpPort(partition_info.slaves(i).ip(),
+            partition_info.slaves(i).port()));
+      }
+      id = partition_info.id();
     }
-  }
-  ReplicaSet(const ReplicaSet& other) {
-    master = other.master;
-    slaves = other.slaves;
-  }
-};
 
-class TableMap {
- public:
-  std::string table_name;
-  int partition_num;
-  std::map<int, ReplicaSet> partitions;
+    Partition(const Partition& other) {
+      master = other.master;
+      slaves = other.slaves;
+      id = other.id;
+    }
 
-  TableMap(const ZPMeta::Table& table_info) {
-    table_name = table_info.name();
-    partition_num = table_info.partitions_size();
-    partitions.clear();
+    Partition() {
+      id = -1;
+    }
+  };
+
+  explicit Table(const ZPMeta::Table& table_info) {
+    table_name_ = table_info.name();
+    partition_num_ = table_info.partitions_size();
+    partitions_.clear();
     ZPMeta::Partitions partition_info;
     for (int i = 0; i < table_info.partitions_size(); i++) {
       partition_info = table_info.partitions(i);
-      partitions.emplace(partition_info.id(), partition_info);
+      Partition* par = new Partition(partition_info);
+      partitions_.insert(std::make_pair(partition_info.id(), par));
     }
   }
+
+  virtual ~Table() {
+    std::map<int, Partition*>::iterator iter = partitions_.begin();
+    while (iter != partitions_.end()) {
+      delete iter->second;
+      iter++;
+    }
+  }
+
+  IpPort GetKeyMaster(const std::string& key) {
+    int par_num = std::hash<std::string>()(key) % partitions_.size();
+    std::map<int, Partition*>::iterator iter = partitions_.find(par_num);
+    std::cout << "    partition: "<< par_num;
+    if (iter != partitions_.end()) {
+      return iter->second->master;
+    } else {
+      return IpPort();
+    }
+  }
+
+  Partition GetPartition(const std::string& key) {
+    int par_num = std::hash<std::string>()(key) % partitions_.size();
+    std::map<int, Partition*>::iterator iter = partitions_.find(par_num);
+    if (iter != partitions_.end()) {
+      return *(iter->second);
+    } else {
+      return Partition();
+    }
+  }
+
+  void DebugDump() {
+    std::cout << "  name: "<< table_name_ <<std::endl;
+    std::cout << "  partition: "<< partition_num_ <<std::endl;
+    auto par = partitions_.begin();
+    while (par != partitions_.end()) {
+      std::cout << "    partition: "<< par->second->id;
+      std::cout << "    master: " << par->second->master.ip
+        << " : " << par->second->master.port << std::endl;
+      par++;
+    }
+  }
+
+ private:
+  std::string table_name_;
+  int partition_num_;
+  std::map<int, Partition*> partitions_;
 };
 
-class ClusterMap {
- public:
-  ClusterMap() {
-    epoch = 0;
-  }
-  ~ClusterMap() {
-  }
-  int32_t table_num;
-  int64_t epoch;
-  std::map<std::string, TableMap> table_maps;
-};
 
 class Options {
  public :
@@ -116,6 +161,48 @@ class Options {
   std::vector<IpPort> meta_addr;
 };
 
+template<class Conn>
+class ConnectionPool {
+ public :
+  Conn* GetConnection(const IpPort ip_port) {
+    typename std::map<IpPort, Conn*>::iterator it;
+    it = conn_pool_.find(ip_port);
+    if (it != conn_pool_.end()) {
+      return it->second;
+    } else {
+      Conn* cli = new Conn();
+      Status s = cli->Connect(ip_port.ip, ip_port.port);
+      if (s.ok()) {
+        conn_pool_.insert(std::make_pair(ip_port, cli));
+        return cli;
+      } else {
+        delete cli;
+        return NULL;
+      }
+    }
+  }
 
-}  // namespace libZp
+  void RemoveConnection(const IpPort ip_port) {
+    typename std::map<IpPort, Conn*>::iterator it;
+    it = conn_pool_.find(ip_port);
+    if (it != conn_pool_.end()) {
+      delete(it->second);
+      conn_pool_.erase(it);
+    }
+  }
+
+  Conn* GetExistConnection(IpPort* ip_port) {
+    if (conn_pool_.size() != 0) {
+      *ip_port = conn_pool_.begin()->first;
+      return conn_pool_.begin()->second;
+    } else {
+      return NULL;
+    }
+  }
+
+ private:
+  std::map<IpPort, Conn*> conn_pool_;
+};
+
+}  // namespace libzp
 #endif  // CLIENT_INCLUDE_ZP_TYPES_H_

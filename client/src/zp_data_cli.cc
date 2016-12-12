@@ -9,9 +9,10 @@
 
 #include "include/zp_data_cli.h"
 
-namespace libZp {
-ZpDataCli::ZpDataCli(const std::string& ip, const int port)
-  : data_ip_(ip), data_port_(port) {
+namespace libzp {
+ZpDataCli::ZpDataCli() {
+  data_cmd_ = client::CmdRequest();
+  data_res_ = client::CmdResponse();
 }
 
 ZpDataCli::~ZpDataCli() {
@@ -20,44 +21,49 @@ ZpDataCli::~ZpDataCli() {
 
 Status ZpDataCli::Set(const std::string& table, const std::string& key,
     const std::string& value) {
-  client::CmdRequest data_cmd = client::CmdRequest();
-  data_cmd.set_type(client::Type::SET);
-  client::CmdRequest_Set* set_info = data_cmd.mutable_set();
+  data_cmd_.Clear();
+  data_cmd_.set_type(client::Type::SET);
+  client::CmdRequest_Set* set_info = data_cmd_.mutable_set();
   set_info->set_table_name(table);
   set_info->set_key(key);
   set_info->set_value(value);
 
-  pink::Status ret = Send(&data_cmd);
+  pink::Status ret = Send(&data_cmd_);
 
-  client::CmdResponse data_res;
-  ret = Recv(&data_res);
+  std::cout<< "sent" << std::endl;
+  if (!ret.ok()) {
+    return ret;
+  }
+
+  std::cout<< "recving..." << std::endl;
+  ret = Recv(&data_res_);
+  std::cout<< "recved" << std::endl;
 
   if (!ret.ok()) {
-    return Status::IOError(data_res.msg());
+    return Status::IOError(data_res_.msg());
   }
-  if (data_res.code() == client::StatusCode::kOk) {
+  if (data_res_.code() == client::StatusCode::kOk) {
     return Status::OK();
   } else {
-    return Status::IOError(data_res.msg());
+    return Status::NotSupported(data_res_.msg());
   }
 }
 
 Status ZpDataCli::Get(const std::string& table, const std::string& key,
-    std::string& value) {
-  client::CmdRequest data_cmd = client::CmdRequest();
-  data_cmd.set_type(client::Type::GET);
-  client::CmdRequest_Get* get_cmd = data_cmd.mutable_get();
+    std::string* value) {
+  data_cmd_.Clear();
+  data_cmd_.set_type(client::Type::GET);
+  client::CmdRequest_Get* get_cmd = data_cmd_.mutable_get();
   get_cmd->set_table_name(table);
   get_cmd->set_key(key);
 
-  pink::Status ret = Send(&data_cmd);
+  pink::Status ret = Send(&data_cmd_);
 
   if (!ret.ok()) {
     return Status::IOError("fail to send command");
   }
 
-  client::CmdResponse data_res;
-  ret = Recv(&data_res);
+  ret = Recv(&data_res_);
 
   /*
   std::cout<< "1" << std::endl;
@@ -67,17 +73,17 @@ Status ZpDataCli::Get(const std::string& table, const std::string& key,
   std::cout<< "2" << std::endl;
  */
   if (!ret.ok()) {
-    return Status::IOError(data_res.msg());
+    return Status::IOError(data_res_.msg());
   }
-  if (data_res.code() == client::StatusCode::kOk) {
-    client::CmdResponse_Get info = data_res.get();
-    value = info.value();
+  if (data_res_.code() == client::StatusCode::kOk) {
+    client::CmdResponse_Get info = data_res_.get();
+    value->assign(info.value().data(), info.value().size());
     return Status::OK();
-  } else if (data_res.code() == client::StatusCode::kNotFound) {
+  } else if (data_res_.code() == client::StatusCode::kNotFound) {
     return Status::NotFound("key do not exist");
   } else {
-    return Status::IOError(data_res.msg());
+    return Status::IOError(data_res_.msg());
   }
 }
 
-}  // namespace libZp
+}  // namespace libzp

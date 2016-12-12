@@ -5,25 +5,30 @@
 #define CLIENT_INCLUDE_ZP_META_CLI_H_
 
 #include <string>
+#include <unordered_map>
 
 #include "include/pb_cli.h"
 
 #include "include/zp_meta.pb.h"
 #include "include/zp_types.h"
+#include "include/zp_const.h"
 
-namespace libZp {
+namespace libzp {
 class ZpMetaCli: public pink::PbCli {
  public:
-  ZpMetaCli(const std::string& ip, const int port);
+  ZpMetaCli();
   virtual ~ZpMetaCli();
-  Status Pull(ClusterMap& info, const std::string& table);
+  Status Pull(const std::string& table,
+      std::unordered_map<std::string, Table*>* tables_,
+      int64_t* epoch);
   Status CreateTable(const std::string& table_name, const int partition_num);
  private:
   Status ResetClusterMap(const ZPMeta::MetaCmdResponse_Pull& pull,
-      ClusterMap& cluster_map);
-  std::string meta_ip_;
-  int meta_port_;
+      std::unordered_map<std::string, Table*>* tables_,
+      int64_t* epoch);
+  ZPMeta::MetaCmd meta_cmd_;
+  ZPMeta::MetaCmdResponse meta_res_;
 };
-}  // namespace libZp
+}  // namespace libzp
 
 #endif  // CLIENT_INCLUDE_ZP_META_CLI_H_

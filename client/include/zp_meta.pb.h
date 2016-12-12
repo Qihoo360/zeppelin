@@ -45,58 +45,17 @@ class MetaCmd_Ping;
 class MetaCmd_Pull;
 class MetaCmd_Init;
 class MetaCmdResponse;
-class MetaCmdResponse_Status;
 class MetaCmdResponse_Ping;
 class MetaCmdResponse_Pull;
 
-enum MetaCmd_Type {
-  MetaCmd_Type_PING = 1,
-  MetaCmd_Type_PULL = 2,
-  MetaCmd_Type_INIT = 3
-};
-bool MetaCmd_Type_IsValid(int value);
-const MetaCmd_Type MetaCmd_Type_Type_MIN = MetaCmd_Type_PING;
-const MetaCmd_Type MetaCmd_Type_Type_MAX = MetaCmd_Type_INIT;
-const int MetaCmd_Type_Type_ARRAYSIZE = MetaCmd_Type_Type_MAX + 1;
-
-const ::google::protobuf::EnumDescriptor* MetaCmd_Type_descriptor();
-inline const ::std::string& MetaCmd_Type_Name(MetaCmd_Type value) {
-  return ::google::protobuf::internal::NameOfEnum(
-    MetaCmd_Type_descriptor(), value);
-}
-inline bool MetaCmd_Type_Parse(
-    const ::std::string& name, MetaCmd_Type* value) {
-  return ::google::protobuf::internal::ParseNamedEnum<MetaCmd_Type>(
-    MetaCmd_Type_descriptor(), name, value);
-}
-enum MetaCmdResponse_Type {
-  MetaCmdResponse_Type_PING = 1,
-  MetaCmdResponse_Type_PULL = 2,
-  MetaCmdResponse_Type_INIT = 3
-};
-bool MetaCmdResponse_Type_IsValid(int value);
-const MetaCmdResponse_Type MetaCmdResponse_Type_Type_MIN = MetaCmdResponse_Type_PING;
-const MetaCmdResponse_Type MetaCmdResponse_Type_Type_MAX = MetaCmdResponse_Type_INIT;
-const int MetaCmdResponse_Type_Type_ARRAYSIZE = MetaCmdResponse_Type_Type_MAX + 1;
-
-const ::google::protobuf::EnumDescriptor* MetaCmdResponse_Type_descriptor();
-inline const ::std::string& MetaCmdResponse_Type_Name(MetaCmdResponse_Type value) {
-  return ::google::protobuf::internal::NameOfEnum(
-    MetaCmdResponse_Type_descriptor(), value);
-}
-inline bool MetaCmdResponse_Type_Parse(
-    const ::std::string& name, MetaCmdResponse_Type* value) {
-  return ::google::protobuf::internal::ParseNamedEnum<MetaCmdResponse_Type>(
-    MetaCmdResponse_Type_descriptor(), name, value);
-}
 enum StatusCode {
-  kOk = 0,
-  kNotFound = 1,
-  kError = 2
+  OK = 0,
+  NOTFOUND = 1,
+  ERROR = 2
 };
 bool StatusCode_IsValid(int value);
-const StatusCode StatusCode_MIN = kOk;
-const StatusCode StatusCode_MAX = kError;
+const StatusCode StatusCode_MIN = OK;
+const StatusCode StatusCode_MAX = ERROR;
 const int StatusCode_ARRAYSIZE = StatusCode_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* StatusCode_descriptor();
@@ -108,6 +67,26 @@ inline bool StatusCode_Parse(
     const ::std::string& name, StatusCode* value) {
   return ::google::protobuf::internal::ParseNamedEnum<StatusCode>(
     StatusCode_descriptor(), name, value);
+}
+enum Type {
+  PING = 1,
+  PULL = 2,
+  INIT = 3
+};
+bool Type_IsValid(int value);
+const Type Type_MIN = PING;
+const Type Type_MAX = INIT;
+const int Type_ARRAYSIZE = Type_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* Type_descriptor();
+inline const ::std::string& Type_Name(Type value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    Type_descriptor(), value);
+}
+inline bool Type_Parse(
+    const ::std::string& name, Type* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<Type>(
+    Type_descriptor(), name, value);
 }
 // ===================================================================
 
@@ -165,14 +144,14 @@ class Node : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required bytes ip = 1;
+  // required string ip = 1;
   inline bool has_ip() const;
   inline void clear_ip();
   static const int kIpFieldNumber = 1;
   inline const ::std::string& ip() const;
   inline void set_ip(const ::std::string& value);
   inline void set_ip(const char* value);
-  inline void set_ip(const void* value, size_t size);
+  inline void set_ip(const char* value, size_t size);
   inline ::std::string* mutable_ip();
   inline ::std::string* release_ip();
   inline void set_allocated_ip(::std::string* ip);
@@ -1029,39 +1008,14 @@ class MetaCmd : public ::google::protobuf::Message {
   typedef MetaCmd_Pull Pull;
   typedef MetaCmd_Init Init;
 
-  typedef MetaCmd_Type Type;
-  static const Type PING = MetaCmd_Type_PING;
-  static const Type PULL = MetaCmd_Type_PULL;
-  static const Type INIT = MetaCmd_Type_INIT;
-  static inline bool Type_IsValid(int value) {
-    return MetaCmd_Type_IsValid(value);
-  }
-  static const Type Type_MIN =
-    MetaCmd_Type_Type_MIN;
-  static const Type Type_MAX =
-    MetaCmd_Type_Type_MAX;
-  static const int Type_ARRAYSIZE =
-    MetaCmd_Type_Type_ARRAYSIZE;
-  static inline const ::google::protobuf::EnumDescriptor*
-  Type_descriptor() {
-    return MetaCmd_Type_descriptor();
-  }
-  static inline const ::std::string& Type_Name(Type value) {
-    return MetaCmd_Type_Name(value);
-  }
-  static inline bool Type_Parse(const ::std::string& name,
-      Type* value) {
-    return MetaCmd_Type_Parse(name, value);
-  }
-
   // accessors -------------------------------------------------------
 
-  // required .ZPMeta.MetaCmd.Type type = 1;
+  // required .ZPMeta.Type type = 1;
   inline bool has_type() const;
   inline void clear_type();
   static const int kTypeFieldNumber = 1;
-  inline ::ZPMeta::MetaCmd_Type type() const;
-  inline void set_type(::ZPMeta::MetaCmd_Type value);
+  inline ::ZPMeta::Type type() const;
+  inline void set_type(::ZPMeta::Type value);
 
   // optional .ZPMeta.MetaCmd.Ping ping = 2;
   inline bool has_ping() const;
@@ -1117,103 +1071,6 @@ class MetaCmd : public ::google::protobuf::Message {
 
   void InitAsDefaultInstance();
   static MetaCmd* default_instance_;
-};
-// -------------------------------------------------------------------
-
-class MetaCmdResponse_Status : public ::google::protobuf::Message {
- public:
-  MetaCmdResponse_Status();
-  virtual ~MetaCmdResponse_Status();
-
-  MetaCmdResponse_Status(const MetaCmdResponse_Status& from);
-
-  inline MetaCmdResponse_Status& operator=(const MetaCmdResponse_Status& from) {
-    CopyFrom(from);
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
-    return _unknown_fields_;
-  }
-
-  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
-    return &_unknown_fields_;
-  }
-
-  static const ::google::protobuf::Descriptor* descriptor();
-  static const MetaCmdResponse_Status& default_instance();
-
-  void Swap(MetaCmdResponse_Status* other);
-
-  // implements Message ----------------------------------------------
-
-  MetaCmdResponse_Status* New() const;
-  void CopyFrom(const ::google::protobuf::Message& from);
-  void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const MetaCmdResponse_Status& from);
-  void MergeFrom(const MetaCmdResponse_Status& from);
-  void Clear();
-  bool IsInitialized() const;
-
-  int ByteSize() const;
-  bool MergePartialFromCodedStream(
-      ::google::protobuf::io::CodedInputStream* input);
-  void SerializeWithCachedSizes(
-      ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
-  int GetCachedSize() const { return _cached_size_; }
-  private:
-  void SharedCtor();
-  void SharedDtor();
-  void SetCachedSize(int size) const;
-  public:
-
-  ::google::protobuf::Metadata GetMetadata() const;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // required .ZPMeta.StatusCode code = 1;
-  inline bool has_code() const;
-  inline void clear_code();
-  static const int kCodeFieldNumber = 1;
-  inline ::ZPMeta::StatusCode code() const;
-  inline void set_code(::ZPMeta::StatusCode value);
-
-  // optional bytes msg = 2;
-  inline bool has_msg() const;
-  inline void clear_msg();
-  static const int kMsgFieldNumber = 2;
-  inline const ::std::string& msg() const;
-  inline void set_msg(const ::std::string& value);
-  inline void set_msg(const char* value);
-  inline void set_msg(const void* value, size_t size);
-  inline ::std::string* mutable_msg();
-  inline ::std::string* release_msg();
-  inline void set_allocated_msg(::std::string* msg);
-
-  // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmdResponse.Status)
- private:
-  inline void set_has_code();
-  inline void clear_has_code();
-  inline void set_has_msg();
-  inline void clear_has_msg();
-
-  ::google::protobuf::UnknownFieldSet _unknown_fields_;
-
-  ::std::string* msg_;
-  int code_;
-
-  mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
-
-  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
-  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
-  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
-
-  void InitAsDefaultInstance();
-  static MetaCmdResponse_Status* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -1446,66 +1303,50 @@ class MetaCmdResponse : public ::google::protobuf::Message {
 
   // nested types ----------------------------------------------------
 
-  typedef MetaCmdResponse_Status Status;
   typedef MetaCmdResponse_Ping Ping;
   typedef MetaCmdResponse_Pull Pull;
 
-  typedef MetaCmdResponse_Type Type;
-  static const Type PING = MetaCmdResponse_Type_PING;
-  static const Type PULL = MetaCmdResponse_Type_PULL;
-  static const Type INIT = MetaCmdResponse_Type_INIT;
-  static inline bool Type_IsValid(int value) {
-    return MetaCmdResponse_Type_IsValid(value);
-  }
-  static const Type Type_MIN =
-    MetaCmdResponse_Type_Type_MIN;
-  static const Type Type_MAX =
-    MetaCmdResponse_Type_Type_MAX;
-  static const int Type_ARRAYSIZE =
-    MetaCmdResponse_Type_Type_ARRAYSIZE;
-  static inline const ::google::protobuf::EnumDescriptor*
-  Type_descriptor() {
-    return MetaCmdResponse_Type_descriptor();
-  }
-  static inline const ::std::string& Type_Name(Type value) {
-    return MetaCmdResponse_Type_Name(value);
-  }
-  static inline bool Type_Parse(const ::std::string& name,
-      Type* value) {
-    return MetaCmdResponse_Type_Parse(name, value);
-  }
-
   // accessors -------------------------------------------------------
 
-  // required .ZPMeta.MetaCmdResponse.Type type = 1;
+  // required .ZPMeta.Type type = 1;
   inline bool has_type() const;
   inline void clear_type();
   static const int kTypeFieldNumber = 1;
-  inline ::ZPMeta::MetaCmdResponse_Type type() const;
-  inline void set_type(::ZPMeta::MetaCmdResponse_Type value);
+  inline ::ZPMeta::Type type() const;
+  inline void set_type(::ZPMeta::Type value);
 
-  // required .ZPMeta.MetaCmdResponse.Status status = 2;
-  inline bool has_status() const;
-  inline void clear_status();
-  static const int kStatusFieldNumber = 2;
-  inline const ::ZPMeta::MetaCmdResponse_Status& status() const;
-  inline ::ZPMeta::MetaCmdResponse_Status* mutable_status();
-  inline ::ZPMeta::MetaCmdResponse_Status* release_status();
-  inline void set_allocated_status(::ZPMeta::MetaCmdResponse_Status* status);
+  // required .ZPMeta.StatusCode code = 2;
+  inline bool has_code() const;
+  inline void clear_code();
+  static const int kCodeFieldNumber = 2;
+  inline ::ZPMeta::StatusCode code() const;
+  inline void set_code(::ZPMeta::StatusCode value);
 
-  // optional .ZPMeta.MetaCmdResponse.Ping ping = 3;
+  // optional string msg = 3;
+  inline bool has_msg() const;
+  inline void clear_msg();
+  static const int kMsgFieldNumber = 3;
+  inline const ::std::string& msg() const;
+  inline void set_msg(const ::std::string& value);
+  inline void set_msg(const char* value);
+  inline void set_msg(const char* value, size_t size);
+  inline ::std::string* mutable_msg();
+  inline ::std::string* release_msg();
+  inline void set_allocated_msg(::std::string* msg);
+
+  // optional .ZPMeta.MetaCmdResponse.Ping ping = 4;
   inline bool has_ping() const;
   inline void clear_ping();
-  static const int kPingFieldNumber = 3;
+  static const int kPingFieldNumber = 4;
   inline const ::ZPMeta::MetaCmdResponse_Ping& ping() const;
   inline ::ZPMeta::MetaCmdResponse_Ping* mutable_ping();
   inline ::ZPMeta::MetaCmdResponse_Ping* release_ping();
   inline void set_allocated_ping(::ZPMeta::MetaCmdResponse_Ping* ping);
 
-  // optional .ZPMeta.MetaCmdResponse.Pull pull = 4;
+  // optional .ZPMeta.MetaCmdResponse.Pull pull = 5;
   inline bool has_pull() const;
   inline void clear_pull();
-  static const int kPullFieldNumber = 4;
+  static const int kPullFieldNumber = 5;
   inline const ::ZPMeta::MetaCmdResponse_Pull& pull() const;
   inline ::ZPMeta::MetaCmdResponse_Pull* mutable_pull();
   inline ::ZPMeta::MetaCmdResponse_Pull* release_pull();
@@ -1515,8 +1356,10 @@ class MetaCmdResponse : public ::google::protobuf::Message {
  private:
   inline void set_has_type();
   inline void clear_has_type();
-  inline void set_has_status();
-  inline void clear_has_status();
+  inline void set_has_code();
+  inline void clear_has_code();
+  inline void set_has_msg();
+  inline void clear_has_msg();
   inline void set_has_ping();
   inline void clear_has_ping();
   inline void set_has_pull();
@@ -1524,13 +1367,14 @@ class MetaCmdResponse : public ::google::protobuf::Message {
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
-  ::ZPMeta::MetaCmdResponse_Status* status_;
+  int type_;
+  int code_;
+  ::std::string* msg_;
   ::ZPMeta::MetaCmdResponse_Ping* ping_;
   ::ZPMeta::MetaCmdResponse_Pull* pull_;
-  int type_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -1546,7 +1390,7 @@ class MetaCmdResponse : public ::google::protobuf::Message {
 
 // Node
 
-// required bytes ip = 1;
+// required string ip = 1;
 inline bool Node::has_ip() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -1579,7 +1423,7 @@ inline void Node::set_ip(const char* value) {
   }
   ip_->assign(value);
 }
-inline void Node::set_ip(const void* value, size_t size) {
+inline void Node::set_ip(const char* value, size_t size) {
   set_has_ip();
   if (ip_ == &::google::protobuf::internal::kEmptyString) {
     ip_ = new ::std::string;
@@ -2243,7 +2087,7 @@ inline void MetaCmd_Init::set_num(::google::protobuf::int32 value) {
 
 // MetaCmd
 
-// required .ZPMeta.MetaCmd.Type type = 1;
+// required .ZPMeta.Type type = 1;
 inline bool MetaCmd::has_type() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -2257,11 +2101,11 @@ inline void MetaCmd::clear_type() {
   type_ = 1;
   clear_has_type();
 }
-inline ::ZPMeta::MetaCmd_Type MetaCmd::type() const {
-  return static_cast< ::ZPMeta::MetaCmd_Type >(type_);
+inline ::ZPMeta::Type MetaCmd::type() const {
+  return static_cast< ::ZPMeta::Type >(type_);
 }
-inline void MetaCmd::set_type(::ZPMeta::MetaCmd_Type value) {
-  assert(::ZPMeta::MetaCmd_Type_IsValid(value));
+inline void MetaCmd::set_type(::ZPMeta::Type value) {
+  assert(::ZPMeta::Type_IsValid(value));
   set_has_type();
   type_ = value;
 }
@@ -2382,103 +2226,6 @@ inline void MetaCmd::set_allocated_init(::ZPMeta::MetaCmd_Init* init) {
 
 // -------------------------------------------------------------------
 
-// MetaCmdResponse_Status
-
-// required .ZPMeta.StatusCode code = 1;
-inline bool MetaCmdResponse_Status::has_code() const {
-  return (_has_bits_[0] & 0x00000001u) != 0;
-}
-inline void MetaCmdResponse_Status::set_has_code() {
-  _has_bits_[0] |= 0x00000001u;
-}
-inline void MetaCmdResponse_Status::clear_has_code() {
-  _has_bits_[0] &= ~0x00000001u;
-}
-inline void MetaCmdResponse_Status::clear_code() {
-  code_ = 0;
-  clear_has_code();
-}
-inline ::ZPMeta::StatusCode MetaCmdResponse_Status::code() const {
-  return static_cast< ::ZPMeta::StatusCode >(code_);
-}
-inline void MetaCmdResponse_Status::set_code(::ZPMeta::StatusCode value) {
-  assert(::ZPMeta::StatusCode_IsValid(value));
-  set_has_code();
-  code_ = value;
-}
-
-// optional bytes msg = 2;
-inline bool MetaCmdResponse_Status::has_msg() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
-}
-inline void MetaCmdResponse_Status::set_has_msg() {
-  _has_bits_[0] |= 0x00000002u;
-}
-inline void MetaCmdResponse_Status::clear_has_msg() {
-  _has_bits_[0] &= ~0x00000002u;
-}
-inline void MetaCmdResponse_Status::clear_msg() {
-  if (msg_ != &::google::protobuf::internal::kEmptyString) {
-    msg_->clear();
-  }
-  clear_has_msg();
-}
-inline const ::std::string& MetaCmdResponse_Status::msg() const {
-  return *msg_;
-}
-inline void MetaCmdResponse_Status::set_msg(const ::std::string& value) {
-  set_has_msg();
-  if (msg_ == &::google::protobuf::internal::kEmptyString) {
-    msg_ = new ::std::string;
-  }
-  msg_->assign(value);
-}
-inline void MetaCmdResponse_Status::set_msg(const char* value) {
-  set_has_msg();
-  if (msg_ == &::google::protobuf::internal::kEmptyString) {
-    msg_ = new ::std::string;
-  }
-  msg_->assign(value);
-}
-inline void MetaCmdResponse_Status::set_msg(const void* value, size_t size) {
-  set_has_msg();
-  if (msg_ == &::google::protobuf::internal::kEmptyString) {
-    msg_ = new ::std::string;
-  }
-  msg_->assign(reinterpret_cast<const char*>(value), size);
-}
-inline ::std::string* MetaCmdResponse_Status::mutable_msg() {
-  set_has_msg();
-  if (msg_ == &::google::protobuf::internal::kEmptyString) {
-    msg_ = new ::std::string;
-  }
-  return msg_;
-}
-inline ::std::string* MetaCmdResponse_Status::release_msg() {
-  clear_has_msg();
-  if (msg_ == &::google::protobuf::internal::kEmptyString) {
-    return NULL;
-  } else {
-    ::std::string* temp = msg_;
-    msg_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-    return temp;
-  }
-}
-inline void MetaCmdResponse_Status::set_allocated_msg(::std::string* msg) {
-  if (msg_ != &::google::protobuf::internal::kEmptyString) {
-    delete msg_;
-  }
-  if (msg) {
-    set_has_msg();
-    msg_ = msg;
-  } else {
-    clear_has_msg();
-    msg_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  }
-}
-
-// -------------------------------------------------------------------
-
 // MetaCmdResponse_Ping
 
 // required int32 version = 1;
@@ -2558,7 +2305,7 @@ MetaCmdResponse_Pull::mutable_info() {
 
 // MetaCmdResponse
 
-// required .ZPMeta.MetaCmdResponse.Type type = 1;
+// required .ZPMeta.Type type = 1;
 inline bool MetaCmdResponse::has_type() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -2572,62 +2319,117 @@ inline void MetaCmdResponse::clear_type() {
   type_ = 1;
   clear_has_type();
 }
-inline ::ZPMeta::MetaCmdResponse_Type MetaCmdResponse::type() const {
-  return static_cast< ::ZPMeta::MetaCmdResponse_Type >(type_);
+inline ::ZPMeta::Type MetaCmdResponse::type() const {
+  return static_cast< ::ZPMeta::Type >(type_);
 }
-inline void MetaCmdResponse::set_type(::ZPMeta::MetaCmdResponse_Type value) {
-  assert(::ZPMeta::MetaCmdResponse_Type_IsValid(value));
+inline void MetaCmdResponse::set_type(::ZPMeta::Type value) {
+  assert(::ZPMeta::Type_IsValid(value));
   set_has_type();
   type_ = value;
 }
 
-// required .ZPMeta.MetaCmdResponse.Status status = 2;
-inline bool MetaCmdResponse::has_status() const {
+// required .ZPMeta.StatusCode code = 2;
+inline bool MetaCmdResponse::has_code() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void MetaCmdResponse::set_has_status() {
+inline void MetaCmdResponse::set_has_code() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void MetaCmdResponse::clear_has_status() {
+inline void MetaCmdResponse::clear_has_code() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void MetaCmdResponse::clear_status() {
-  if (status_ != NULL) status_->::ZPMeta::MetaCmdResponse_Status::Clear();
-  clear_has_status();
+inline void MetaCmdResponse::clear_code() {
+  code_ = 0;
+  clear_has_code();
 }
-inline const ::ZPMeta::MetaCmdResponse_Status& MetaCmdResponse::status() const {
-  return status_ != NULL ? *status_ : *default_instance_->status_;
+inline ::ZPMeta::StatusCode MetaCmdResponse::code() const {
+  return static_cast< ::ZPMeta::StatusCode >(code_);
 }
-inline ::ZPMeta::MetaCmdResponse_Status* MetaCmdResponse::mutable_status() {
-  set_has_status();
-  if (status_ == NULL) status_ = new ::ZPMeta::MetaCmdResponse_Status;
-  return status_;
+inline void MetaCmdResponse::set_code(::ZPMeta::StatusCode value) {
+  assert(::ZPMeta::StatusCode_IsValid(value));
+  set_has_code();
+  code_ = value;
 }
-inline ::ZPMeta::MetaCmdResponse_Status* MetaCmdResponse::release_status() {
-  clear_has_status();
-  ::ZPMeta::MetaCmdResponse_Status* temp = status_;
-  status_ = NULL;
-  return temp;
+
+// optional string msg = 3;
+inline bool MetaCmdResponse::has_msg() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
 }
-inline void MetaCmdResponse::set_allocated_status(::ZPMeta::MetaCmdResponse_Status* status) {
-  delete status_;
-  status_ = status;
-  if (status) {
-    set_has_status();
+inline void MetaCmdResponse::set_has_msg() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void MetaCmdResponse::clear_has_msg() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void MetaCmdResponse::clear_msg() {
+  if (msg_ != &::google::protobuf::internal::kEmptyString) {
+    msg_->clear();
+  }
+  clear_has_msg();
+}
+inline const ::std::string& MetaCmdResponse::msg() const {
+  return *msg_;
+}
+inline void MetaCmdResponse::set_msg(const ::std::string& value) {
+  set_has_msg();
+  if (msg_ == &::google::protobuf::internal::kEmptyString) {
+    msg_ = new ::std::string;
+  }
+  msg_->assign(value);
+}
+inline void MetaCmdResponse::set_msg(const char* value) {
+  set_has_msg();
+  if (msg_ == &::google::protobuf::internal::kEmptyString) {
+    msg_ = new ::std::string;
+  }
+  msg_->assign(value);
+}
+inline void MetaCmdResponse::set_msg(const char* value, size_t size) {
+  set_has_msg();
+  if (msg_ == &::google::protobuf::internal::kEmptyString) {
+    msg_ = new ::std::string;
+  }
+  msg_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* MetaCmdResponse::mutable_msg() {
+  set_has_msg();
+  if (msg_ == &::google::protobuf::internal::kEmptyString) {
+    msg_ = new ::std::string;
+  }
+  return msg_;
+}
+inline ::std::string* MetaCmdResponse::release_msg() {
+  clear_has_msg();
+  if (msg_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
   } else {
-    clear_has_status();
+    ::std::string* temp = msg_;
+    msg_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void MetaCmdResponse::set_allocated_msg(::std::string* msg) {
+  if (msg_ != &::google::protobuf::internal::kEmptyString) {
+    delete msg_;
+  }
+  if (msg) {
+    set_has_msg();
+    msg_ = msg;
+  } else {
+    clear_has_msg();
+    msg_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   }
 }
 
-// optional .ZPMeta.MetaCmdResponse.Ping ping = 3;
+// optional .ZPMeta.MetaCmdResponse.Ping ping = 4;
 inline bool MetaCmdResponse::has_ping() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
+  return (_has_bits_[0] & 0x00000008u) != 0;
 }
 inline void MetaCmdResponse::set_has_ping() {
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000008u;
 }
 inline void MetaCmdResponse::clear_has_ping() {
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline void MetaCmdResponse::clear_ping() {
   if (ping_ != NULL) ping_->::ZPMeta::MetaCmdResponse_Ping::Clear();
@@ -2657,15 +2459,15 @@ inline void MetaCmdResponse::set_allocated_ping(::ZPMeta::MetaCmdResponse_Ping* 
   }
 }
 
-// optional .ZPMeta.MetaCmdResponse.Pull pull = 4;
+// optional .ZPMeta.MetaCmdResponse.Pull pull = 5;
 inline bool MetaCmdResponse::has_pull() const {
-  return (_has_bits_[0] & 0x00000008u) != 0;
+  return (_has_bits_[0] & 0x00000010u) != 0;
 }
 inline void MetaCmdResponse::set_has_pull() {
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000010u;
 }
 inline void MetaCmdResponse::clear_has_pull() {
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000010u;
 }
 inline void MetaCmdResponse::clear_pull() {
   if (pull_ != NULL) pull_->::ZPMeta::MetaCmdResponse_Pull::Clear();
@@ -2705,16 +2507,12 @@ namespace google {
 namespace protobuf {
 
 template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::ZPMeta::MetaCmd_Type>() {
-  return ::ZPMeta::MetaCmd_Type_descriptor();
-}
-template <>
-inline const EnumDescriptor* GetEnumDescriptor< ::ZPMeta::MetaCmdResponse_Type>() {
-  return ::ZPMeta::MetaCmdResponse_Type_descriptor();
-}
-template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::ZPMeta::StatusCode>() {
   return ::ZPMeta::StatusCode_descriptor();
+}
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::ZPMeta::Type>() {
+  return ::ZPMeta::Type_descriptor();
 }
 
 }  // namespace google

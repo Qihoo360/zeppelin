@@ -9,13 +9,16 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <unordered_map>
 
 
 #include "include/zp_types.h"
+#include "include/zp_const.h"
 #include "include/zp_meta_cli.h"
 #include "include/zp_data_cli.h"
 
-namespace libZp {
+namespace libzp {
+
 
 class Cluster {
  public :
@@ -28,9 +31,11 @@ class Cluster {
   Status Set(const std::string& table, const std::string& key,
       const std::string& value);
   Status Get(const std::string& table, const std::string& key,
-      std::string& value);
+      std::string* value);
   Status Pull(const std::string& table);
-  Status DumpTable();
+  Status DebugDumpTable(const std::string& table);
+  Table::Partition GetPartition(const std::string& table,
+      const std::string& key);
 
   // Status ListTable(std::vector<IpPort> &node_list);
   // Status ListMetaNode(std::vector<IpPort> &node_list);
@@ -38,21 +43,16 @@ class Cluster {
  private :
 
   IpPort GetRandomMetaAddr();
-  std::shared_ptr<ZpMetaCli> GetMetaCli();
-  std::shared_ptr<ZpDataCli> GetDataCli(const IpPort& ip_port);
-  std::shared_ptr<ZpMetaCli> CreateMetaCli(const IpPort& ip_port);
-  std::shared_ptr<ZpDataCli> CreateDataCli(const IpPort& ip_port);
+  Status GetDataMaster(const std::string& table, const std::string& key,
+      IpPort* master);
 
-  Status GetDataMaster(IpPort& master, const std::string& table,
-    const std::string& key);
-
-  ClusterMap cluster_map_;
-  std::map<IpPort, std::shared_ptr<ZpMetaCli>> meta_cli_;
-  std::map<IpPort, std::shared_ptr<ZpDataCli>> data_cli_;
+  int64_t epoch;
+  std::unordered_map<std::string, Table*> tables_;
+  ConnectionPool<ZpMetaCli> meta_pool_;
+  ConnectionPool<ZpDataCli> data_pool_;
   std::vector<IpPort> meta_addr_;
-  std::vector<IpPort> data_addr_;
 };
 
-};  // namespace libZp
+};  // namespace libzp
 
 #endif  // CLIENT_INCLUDE_ZP_CLUSTER_H_

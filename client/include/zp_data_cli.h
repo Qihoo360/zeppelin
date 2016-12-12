@@ -9,20 +9,21 @@
 
 #include "include/client.pb.h"
 #include "include/zp_types.h"
+#include "include/zp_const.h"
 
-namespace libZp {
+namespace libzp {
 class ZpDataCli: public pink::PbCli {
  public:
-  ZpDataCli(const std::string& ip, const int port);
+  ZpDataCli();
   virtual ~ZpDataCli();
   Status Set(const std::string& table, const std::string& key,
       const std::string& value);
   Status Get(const std::string& table, const std::string& key,
-      std::string& value);
+      std::string* value);
  private:
-  std::string data_ip_;
-  int data_port_;
+  client::CmdRequest data_cmd_;
+  client::CmdResponse data_res_;
 };
-}  // namespace libZp
+}  // namespace libzp
 
 #endif  // CLIENT_INCLUDE_ZP_DATA_CLI_H_

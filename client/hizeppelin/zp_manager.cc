@@ -18,14 +18,17 @@ void usage() {
 // completion example
 void completion(const char *buf, linenoiseCompletions *lc) {
   if (buf[0] == 's') {
-    linenoiseAddCompletion(lc, "s");
     linenoiseAddCompletion(lc, "set");
   } else if (buf[0] == 'c') {
-    linenoiseAddCompletion(lc, "c");
     linenoiseAddCompletion(lc, "create");
   } else if (buf[0] == 'g') {
-    linenoiseAddCompletion(lc, "g");
     linenoiseAddCompletion(lc, "get");
+  } else if (buf[0] == 'p') {
+    linenoiseAddCompletion(lc, "pull");
+  } else if (buf[0] == 'l') {
+    linenoiseAddCompletion(lc, "locate");
+  } else if (buf[0] == 'd') {
+    linenoiseAddCompletion(lc, "dump");
   }
 }
 
@@ -46,6 +49,22 @@ char *hints(const char *buf, int *color, int *bold) {
     *bold = 0;
     return " TABLE KEY VALUE";
   }
+  if (!strcasecmp(buf, "pull")) {
+    *color = 35;
+    *bold = 0;
+    return " TABLE";
+  }
+  if (!strcasecmp(buf, "locate")) {
+    *color = 35;
+    *bold = 0;
+    return " TABLE KEY";
+  }
+  if (!strcasecmp(buf, "dump")) {
+    *color = 35;
+    *bold = 0;
+    return " TABLE TABLE_NAME";
+  }
+
   return NULL;
 }
 
@@ -63,14 +82,14 @@ void SplitByBlank(std::string& line, std::vector<std::string>& line_args) {
   }
 }
 
-void StartRepl(libZp::Cluster& cluster) {
+void StartRepl(libzp::Cluster& cluster) {
   char *line;
   linenoiseSetMultiLine(1);
   linenoiseSetCompletionCallback(completion);
   linenoiseSetHintsCallback(hints);
   linenoiseHistoryLoad("history.txt"); /* Load the history at startup */
 
-  libZp::Status s;
+  libzp::Status s;
   while ((line = linenoise("zp >> ")) != NULL) {
     linenoiseHistoryAdd(line); /* Add to the history. */
     linenoiseHistorySave("history.txt"); /* Save the history on disk. */
@@ -94,8 +113,32 @@ void StartRepl(libZp::Cluster& cluster) {
       std::string table_name = line_args[1];
       s = cluster.Pull(table_name);
       std::cout << s.ToString() << std::endl;
-      std::cout << "dump info:" << std::endl;
-      cluster.DumpTable();
+      std::cout << "current table info:" << std::endl;
+      cluster.DebugDumpTable(table_name);
+    } else if (!strncmp(line, "dump table ", 11)) {
+      if (line_args.size() != 3) {
+        std::cout << "arg num wrong" << std::endl;
+        continue;
+      }
+      std::string table_name = line_args[2];
+      cluster.DebugDumpTable(table_name);
+    } else if (!strncmp(line, "locate ", 5)) {
+      if (line_args.size() != 3) {
+        std::cout << "arg num wrong" << std::endl;
+        continue;
+      }
+      std::string table_name = line_args[1];
+      std::string key = line_args[2];
+      libzp::Table::Partition partition = cluster.GetPartition(table_name, key);
+      std::cout << "partition_id: " << partition.id << std::endl;
+      std::cout << "master: " << partition.master.ip << ":"
+        << partition.master.port << std::endl;
+      auto iter = partition.slaves.begin();
+      while (iter != partition.slaves.end()) {
+        std::cout << "slave: "<< iter->ip << ":"
+          << iter->port << std::endl;
+        iter++;
+      }
     } else if (!strncmp(line, "set ", 4)) {
       if (line_args.size() != 4) {
         std::cout << "arg num wrong" << std::endl;
@@ -114,7 +157,7 @@ void StartRepl(libZp::Cluster& cluster) {
       std::string table_name = line_args[1];
       std::string key = line_args[2];
       std::string value;
-      s = cluster.Get(table_name, key, value);
+      s = cluster.Get(table_name, key, &value);
       if (s.ok()) {
         std::cout << value << std::endl;
       } else {
@@ -134,16 +177,16 @@ int main(int argc, char* argv[]) {
     return -1;
   }
   std::cout << "start" << std::endl;
-  libZp::Options option;
-  libZp::IpPort ipPort = libZp::IpPort(argv[1], atoi(argv[2]));
-  option.meta_addr.push_back(ipPort);
+  libzp::Options option;
+  libzp::IpPort ip_port = libzp::IpPort(argv[1], atoi(argv[2]));
+  option.meta_addr.push_back(ip_port);
 
   // cluster handle cluster operation
   std::cout << "create cluster" << std::endl;
-  libZp::Cluster cluster = libZp::Cluster(option);
+  libzp::Cluster cluster = libzp::Cluster(option);
   std::cout << "connect cluster" << std::endl;
   // needs connect to cluster first
-  libZp::Status s = cluster.Connect();
+  libzp::Status s = cluster.Connect();
   if (!s.ok()) {
     std::cout << s.ToString() << std::endl;
     exit(-1);
@@ -154,11 +197,5 @@ int main(int argc, char* argv[]) {
   Status s = cluster.ListMetaNode(node_list);
   node_list.clear();
   s = cluster.ListDataNode(node_list);
-  // ioctx handle table operation and set/get
-  libZp::Ioctx ioctx = cluster.CreateIoctx("test_pool");
-  std::vector<std::pair<std::string, std::int>> node_list;
-  s = ioctx.set("key","value");
-  std::string val;
-  s = ioctx.get("key",val);
   */
 }
