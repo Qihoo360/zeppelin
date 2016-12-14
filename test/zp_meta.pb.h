@@ -44,6 +44,7 @@ class MetaCmd;
 class MetaCmd_Ping;
 class MetaCmd_Pull;
 class MetaCmd_Init;
+class MetaCmd_SetMaster;
 class MetaCmdResponse;
 class MetaCmdResponse_Ping;
 class MetaCmdResponse_Pull;
@@ -87,6 +88,25 @@ inline bool Type_Parse(
     const ::std::string& name, Type* value) {
   return ::google::protobuf::internal::ParseNamedEnum<Type>(
     Type_descriptor(), name, value);
+}
+enum PState {
+  ACTIVE = 1,
+  STUCK = 2
+};
+bool PState_IsValid(int value);
+const PState PState_MIN = ACTIVE;
+const PState PState_MAX = STUCK;
+const int PState_ARRAYSIZE = PState_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* PState_descriptor();
+inline const ::std::string& PState_Name(PState value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    PState_descriptor(), value);
+}
+inline bool PState_Parse(
+    const ::std::string& name, PState* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<PState>(
+    PState_descriptor(), name, value);
 }
 // ===================================================================
 
@@ -427,19 +447,26 @@ class Partitions : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 id() const;
   inline void set_id(::google::protobuf::int32 value);
 
-  // required .ZPMeta.Node master = 2;
+  // required .ZPMeta.PState state = 2;
+  inline bool has_state() const;
+  inline void clear_state();
+  static const int kStateFieldNumber = 2;
+  inline ::ZPMeta::PState state() const;
+  inline void set_state(::ZPMeta::PState value);
+
+  // required .ZPMeta.Node master = 3;
   inline bool has_master() const;
   inline void clear_master();
-  static const int kMasterFieldNumber = 2;
+  static const int kMasterFieldNumber = 3;
   inline const ::ZPMeta::Node& master() const;
   inline ::ZPMeta::Node* mutable_master();
   inline ::ZPMeta::Node* release_master();
   inline void set_allocated_master(::ZPMeta::Node* master);
 
-  // repeated .ZPMeta.Node slaves = 3;
+  // repeated .ZPMeta.Node slaves = 4;
   inline int slaves_size() const;
   inline void clear_slaves();
-  static const int kSlavesFieldNumber = 3;
+  static const int kSlavesFieldNumber = 4;
   inline const ::ZPMeta::Node& slaves(int index) const;
   inline ::ZPMeta::Node* mutable_slaves(int index);
   inline ::ZPMeta::Node* add_slaves();
@@ -452,17 +479,20 @@ class Partitions : public ::google::protobuf::Message {
  private:
   inline void set_has_id();
   inline void clear_has_id();
+  inline void set_has_state();
+  inline void clear_has_state();
   inline void set_has_master();
   inline void clear_has_master();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
+  ::google::protobuf::int32 id_;
+  int state_;
   ::ZPMeta::Node* master_;
   ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node > slaves_;
-  ::google::protobuf::int32 id_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -952,6 +982,115 @@ class MetaCmd_Init : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class MetaCmd_SetMaster : public ::google::protobuf::Message {
+ public:
+  MetaCmd_SetMaster();
+  virtual ~MetaCmd_SetMaster();
+
+  MetaCmd_SetMaster(const MetaCmd_SetMaster& from);
+
+  inline MetaCmd_SetMaster& operator=(const MetaCmd_SetMaster& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const MetaCmd_SetMaster& default_instance();
+
+  void Swap(MetaCmd_SetMaster* other);
+
+  // implements Message ----------------------------------------------
+
+  MetaCmd_SetMaster* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const MetaCmd_SetMaster& from);
+  void MergeFrom(const MetaCmd_SetMaster& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string name = 1;
+  inline bool has_name() const;
+  inline void clear_name();
+  static const int kNameFieldNumber = 1;
+  inline const ::std::string& name() const;
+  inline void set_name(const ::std::string& value);
+  inline void set_name(const char* value);
+  inline void set_name(const char* value, size_t size);
+  inline ::std::string* mutable_name();
+  inline ::std::string* release_name();
+  inline void set_allocated_name(::std::string* name);
+
+  // required int32 partition = 2;
+  inline bool has_partition() const;
+  inline void clear_partition();
+  static const int kPartitionFieldNumber = 2;
+  inline ::google::protobuf::int32 partition() const;
+  inline void set_partition(::google::protobuf::int32 value);
+
+  // required .ZPMeta.Node node = 3;
+  inline bool has_node() const;
+  inline void clear_node();
+  static const int kNodeFieldNumber = 3;
+  inline const ::ZPMeta::Node& node() const;
+  inline ::ZPMeta::Node* mutable_node();
+  inline ::ZPMeta::Node* release_node();
+  inline void set_allocated_node(::ZPMeta::Node* node);
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd.SetMaster)
+ private:
+  inline void set_has_name();
+  inline void clear_has_name();
+  inline void set_has_partition();
+  inline void clear_has_partition();
+  inline void set_has_node();
+  inline void clear_has_node();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* name_;
+  ::ZPMeta::Node* node_;
+  ::google::protobuf::int32 partition_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static MetaCmd_SetMaster* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class MetaCmd : public ::google::protobuf::Message {
  public:
   MetaCmd();
@@ -1007,6 +1146,7 @@ class MetaCmd : public ::google::protobuf::Message {
   typedef MetaCmd_Ping Ping;
   typedef MetaCmd_Pull Pull;
   typedef MetaCmd_Init Init;
+  typedef MetaCmd_SetMaster SetMaster;
 
   // accessors -------------------------------------------------------
 
@@ -1044,6 +1184,15 @@ class MetaCmd : public ::google::protobuf::Message {
   inline ::ZPMeta::MetaCmd_Init* release_init();
   inline void set_allocated_init(::ZPMeta::MetaCmd_Init* init);
 
+  // optional .ZPMeta.MetaCmd.SetMaster set_master = 5;
+  inline bool has_set_master() const;
+  inline void clear_set_master();
+  static const int kSetMasterFieldNumber = 5;
+  inline const ::ZPMeta::MetaCmd_SetMaster& set_master() const;
+  inline ::ZPMeta::MetaCmd_SetMaster* mutable_set_master();
+  inline ::ZPMeta::MetaCmd_SetMaster* release_set_master();
+  inline void set_allocated_set_master(::ZPMeta::MetaCmd_SetMaster* set_master);
+
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd)
  private:
   inline void set_has_type();
@@ -1054,16 +1203,19 @@ class MetaCmd : public ::google::protobuf::Message {
   inline void clear_has_pull();
   inline void set_has_init();
   inline void clear_has_init();
+  inline void set_has_set_master();
+  inline void clear_has_set_master();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::ZPMeta::MetaCmd_Ping* ping_;
   ::ZPMeta::MetaCmd_Pull* pull_;
   ::ZPMeta::MetaCmd_Init* init_;
+  ::ZPMeta::MetaCmd_SetMaster* set_master_;
   int type_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -1601,15 +1753,38 @@ inline void Partitions::set_id(::google::protobuf::int32 value) {
   id_ = value;
 }
 
-// required .ZPMeta.Node master = 2;
-inline bool Partitions::has_master() const {
+// required .ZPMeta.PState state = 2;
+inline bool Partitions::has_state() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void Partitions::set_has_master() {
+inline void Partitions::set_has_state() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void Partitions::clear_has_master() {
+inline void Partitions::clear_has_state() {
   _has_bits_[0] &= ~0x00000002u;
+}
+inline void Partitions::clear_state() {
+  state_ = 1;
+  clear_has_state();
+}
+inline ::ZPMeta::PState Partitions::state() const {
+  return static_cast< ::ZPMeta::PState >(state_);
+}
+inline void Partitions::set_state(::ZPMeta::PState value) {
+  assert(::ZPMeta::PState_IsValid(value));
+  set_has_state();
+  state_ = value;
+}
+
+// required .ZPMeta.Node master = 3;
+inline bool Partitions::has_master() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void Partitions::set_has_master() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void Partitions::clear_has_master() {
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline void Partitions::clear_master() {
   if (master_ != NULL) master_->::ZPMeta::Node::Clear();
@@ -1639,7 +1814,7 @@ inline void Partitions::set_allocated_master(::ZPMeta::Node* master) {
   }
 }
 
-// repeated .ZPMeta.Node slaves = 3;
+// repeated .ZPMeta.Node slaves = 4;
 inline int Partitions::slaves_size() const {
   return slaves_.size();
 }
@@ -2085,6 +2260,140 @@ inline void MetaCmd_Init::set_num(::google::protobuf::int32 value) {
 
 // -------------------------------------------------------------------
 
+// MetaCmd_SetMaster
+
+// required string name = 1;
+inline bool MetaCmd_SetMaster::has_name() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void MetaCmd_SetMaster::set_has_name() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void MetaCmd_SetMaster::clear_has_name() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void MetaCmd_SetMaster::clear_name() {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    name_->clear();
+  }
+  clear_has_name();
+}
+inline const ::std::string& MetaCmd_SetMaster::name() const {
+  return *name_;
+}
+inline void MetaCmd_SetMaster::set_name(const ::std::string& value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
+}
+inline void MetaCmd_SetMaster::set_name(const char* value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
+}
+inline void MetaCmd_SetMaster::set_name(const char* value, size_t size) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* MetaCmd_SetMaster::mutable_name() {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  return name_;
+}
+inline ::std::string* MetaCmd_SetMaster::release_name() {
+  clear_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = name_;
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void MetaCmd_SetMaster::set_allocated_name(::std::string* name) {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    delete name_;
+  }
+  if (name) {
+    set_has_name();
+    name_ = name;
+  } else {
+    clear_has_name();
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required int32 partition = 2;
+inline bool MetaCmd_SetMaster::has_partition() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void MetaCmd_SetMaster::set_has_partition() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void MetaCmd_SetMaster::clear_has_partition() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void MetaCmd_SetMaster::clear_partition() {
+  partition_ = 0;
+  clear_has_partition();
+}
+inline ::google::protobuf::int32 MetaCmd_SetMaster::partition() const {
+  return partition_;
+}
+inline void MetaCmd_SetMaster::set_partition(::google::protobuf::int32 value) {
+  set_has_partition();
+  partition_ = value;
+}
+
+// required .ZPMeta.Node node = 3;
+inline bool MetaCmd_SetMaster::has_node() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void MetaCmd_SetMaster::set_has_node() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void MetaCmd_SetMaster::clear_has_node() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void MetaCmd_SetMaster::clear_node() {
+  if (node_ != NULL) node_->::ZPMeta::Node::Clear();
+  clear_has_node();
+}
+inline const ::ZPMeta::Node& MetaCmd_SetMaster::node() const {
+  return node_ != NULL ? *node_ : *default_instance_->node_;
+}
+inline ::ZPMeta::Node* MetaCmd_SetMaster::mutable_node() {
+  set_has_node();
+  if (node_ == NULL) node_ = new ::ZPMeta::Node;
+  return node_;
+}
+inline ::ZPMeta::Node* MetaCmd_SetMaster::release_node() {
+  clear_has_node();
+  ::ZPMeta::Node* temp = node_;
+  node_ = NULL;
+  return temp;
+}
+inline void MetaCmd_SetMaster::set_allocated_node(::ZPMeta::Node* node) {
+  delete node_;
+  node_ = node;
+  if (node) {
+    set_has_node();
+  } else {
+    clear_has_node();
+  }
+}
+
+// -------------------------------------------------------------------
+
 // MetaCmd
 
 // required .ZPMeta.Type type = 1;
@@ -2221,6 +2530,44 @@ inline void MetaCmd::set_allocated_init(::ZPMeta::MetaCmd_Init* init) {
     set_has_init();
   } else {
     clear_has_init();
+  }
+}
+
+// optional .ZPMeta.MetaCmd.SetMaster set_master = 5;
+inline bool MetaCmd::has_set_master() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void MetaCmd::set_has_set_master() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void MetaCmd::clear_has_set_master() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void MetaCmd::clear_set_master() {
+  if (set_master_ != NULL) set_master_->::ZPMeta::MetaCmd_SetMaster::Clear();
+  clear_has_set_master();
+}
+inline const ::ZPMeta::MetaCmd_SetMaster& MetaCmd::set_master() const {
+  return set_master_ != NULL ? *set_master_ : *default_instance_->set_master_;
+}
+inline ::ZPMeta::MetaCmd_SetMaster* MetaCmd::mutable_set_master() {
+  set_has_set_master();
+  if (set_master_ == NULL) set_master_ = new ::ZPMeta::MetaCmd_SetMaster;
+  return set_master_;
+}
+inline ::ZPMeta::MetaCmd_SetMaster* MetaCmd::release_set_master() {
+  clear_has_set_master();
+  ::ZPMeta::MetaCmd_SetMaster* temp = set_master_;
+  set_master_ = NULL;
+  return temp;
+}
+inline void MetaCmd::set_allocated_set_master(::ZPMeta::MetaCmd_SetMaster* set_master) {
+  delete set_master_;
+  set_master_ = set_master;
+  if (set_master) {
+    set_has_set_master();
+  } else {
+    clear_has_set_master();
   }
 }
 
@@ -2513,6 +2860,10 @@ inline const EnumDescriptor* GetEnumDescriptor< ::ZPMeta::StatusCode>() {
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::ZPMeta::Type>() {
   return ::ZPMeta::Type_descriptor();
+}
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::ZPMeta::PState>() {
+  return ::ZPMeta::PState_descriptor();
 }
 
 }  // namespace google

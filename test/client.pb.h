@@ -42,6 +42,7 @@ class CmdRequest_Get;
 class CmdRequest_Del;
 class CmdResponse;
 class CmdResponse_Get;
+class CmdResponse_Redirect;
 
 enum Type {
   SYNC = 0,
@@ -141,14 +142,14 @@ class Node : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required bytes ip = 1;
+  // required string ip = 1;
   inline bool has_ip() const;
   inline void clear_ip();
   static const int kIpFieldNumber = 1;
   inline const ::std::string& ip() const;
   inline void set_ip(const ::std::string& value);
   inline void set_ip(const char* value);
-  inline void set_ip(const void* value, size_t size);
+  inline void set_ip(const char* value, size_t size);
   inline ::std::string* mutable_ip();
   inline ::std::string* release_ip();
   inline void set_allocated_ip(::std::string* ip);
@@ -247,14 +248,14 @@ class CmdRequest_Sync : public ::google::protobuf::Message {
   inline ::client::Node* release_node();
   inline void set_allocated_node(::client::Node* node);
 
-  // required bytes table_name = 2;
+  // required string table_name = 2;
   inline bool has_table_name() const;
   inline void clear_table_name();
   static const int kTableNameFieldNumber = 2;
   inline const ::std::string& table_name() const;
   inline void set_table_name(const ::std::string& value);
   inline void set_table_name(const char* value);
-  inline void set_table_name(const void* value, size_t size);
+  inline void set_table_name(const char* value, size_t size);
   inline ::std::string* mutable_table_name();
   inline ::std::string* release_table_name();
   inline void set_allocated_table_name(::std::string* table_name);
@@ -367,50 +368,50 @@ class CmdRequest_Set : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required bytes table_name = 1;
+  // required string table_name = 1;
   inline bool has_table_name() const;
   inline void clear_table_name();
   static const int kTableNameFieldNumber = 1;
   inline const ::std::string& table_name() const;
   inline void set_table_name(const ::std::string& value);
   inline void set_table_name(const char* value);
-  inline void set_table_name(const void* value, size_t size);
+  inline void set_table_name(const char* value, size_t size);
   inline ::std::string* mutable_table_name();
   inline ::std::string* release_table_name();
   inline void set_allocated_table_name(::std::string* table_name);
 
-  // required bytes key = 2;
+  // required string key = 2;
   inline bool has_key() const;
   inline void clear_key();
   static const int kKeyFieldNumber = 2;
   inline const ::std::string& key() const;
   inline void set_key(const ::std::string& value);
   inline void set_key(const char* value);
-  inline void set_key(const void* value, size_t size);
+  inline void set_key(const char* value, size_t size);
   inline ::std::string* mutable_key();
   inline ::std::string* release_key();
   inline void set_allocated_key(::std::string* key);
 
-  // required bytes value = 3;
+  // required string value = 3;
   inline bool has_value() const;
   inline void clear_value();
   static const int kValueFieldNumber = 3;
   inline const ::std::string& value() const;
   inline void set_value(const ::std::string& value);
   inline void set_value(const char* value);
-  inline void set_value(const void* value, size_t size);
+  inline void set_value(const char* value, size_t size);
   inline ::std::string* mutable_value();
   inline ::std::string* release_value();
   inline void set_allocated_value(::std::string* value);
 
-  // optional bytes uuid = 4;
+  // optional string uuid = 4;
   inline bool has_uuid() const;
   inline void clear_uuid();
   static const int kUuidFieldNumber = 4;
   inline const ::std::string& uuid() const;
   inline void set_uuid(const ::std::string& value);
   inline void set_uuid(const char* value);
-  inline void set_uuid(const void* value, size_t size);
+  inline void set_uuid(const char* value, size_t size);
   inline ::std::string* mutable_uuid();
   inline ::std::string* release_uuid();
   inline void set_allocated_uuid(::std::string* uuid);
@@ -499,38 +500,38 @@ class CmdRequest_Get : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required bytes table_name = 1;
+  // required string table_name = 1;
   inline bool has_table_name() const;
   inline void clear_table_name();
   static const int kTableNameFieldNumber = 1;
   inline const ::std::string& table_name() const;
   inline void set_table_name(const ::std::string& value);
   inline void set_table_name(const char* value);
-  inline void set_table_name(const void* value, size_t size);
+  inline void set_table_name(const char* value, size_t size);
   inline ::std::string* mutable_table_name();
   inline ::std::string* release_table_name();
   inline void set_allocated_table_name(::std::string* table_name);
 
-  // required bytes key = 2;
+  // required string key = 2;
   inline bool has_key() const;
   inline void clear_key();
   static const int kKeyFieldNumber = 2;
   inline const ::std::string& key() const;
   inline void set_key(const ::std::string& value);
   inline void set_key(const char* value);
-  inline void set_key(const void* value, size_t size);
+  inline void set_key(const char* value, size_t size);
   inline ::std::string* mutable_key();
   inline ::std::string* release_key();
   inline void set_allocated_key(::std::string* key);
 
-  // optional bytes uuid = 3;
+  // optional string uuid = 3;
   inline bool has_uuid() const;
   inline void clear_uuid();
   static const int kUuidFieldNumber = 3;
   inline const ::std::string& uuid() const;
   inline void set_uuid(const ::std::string& value);
   inline void set_uuid(const char* value);
-  inline void set_uuid(const void* value, size_t size);
+  inline void set_uuid(const char* value, size_t size);
   inline ::std::string* mutable_uuid();
   inline ::std::string* release_uuid();
   inline void set_allocated_uuid(::std::string* uuid);
@@ -616,38 +617,38 @@ class CmdRequest_Del : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required bytes table_name = 1;
+  // required string table_name = 1;
   inline bool has_table_name() const;
   inline void clear_table_name();
   static const int kTableNameFieldNumber = 1;
   inline const ::std::string& table_name() const;
   inline void set_table_name(const ::std::string& value);
   inline void set_table_name(const char* value);
-  inline void set_table_name(const void* value, size_t size);
+  inline void set_table_name(const char* value, size_t size);
   inline ::std::string* mutable_table_name();
   inline ::std::string* release_table_name();
   inline void set_allocated_table_name(::std::string* table_name);
 
-  // required bytes key = 2;
+  // required string key = 2;
   inline bool has_key() const;
   inline void clear_key();
   static const int kKeyFieldNumber = 2;
   inline const ::std::string& key() const;
   inline void set_key(const ::std::string& value);
   inline void set_key(const char* value);
-  inline void set_key(const void* value, size_t size);
+  inline void set_key(const char* value, size_t size);
   inline ::std::string* mutable_key();
   inline ::std::string* release_key();
   inline void set_allocated_key(::std::string* key);
 
-  // optional bytes uuid = 3;
+  // optional string uuid = 3;
   inline bool has_uuid() const;
   inline void clear_uuid();
   static const int kUuidFieldNumber = 3;
   inline const ::std::string& uuid() const;
   inline void set_uuid(const ::std::string& value);
   inline void set_uuid(const char* value);
-  inline void set_uuid(const void* value, size_t size);
+  inline void set_uuid(const char* value, size_t size);
   inline ::std::string* mutable_uuid();
   inline ::std::string* release_uuid();
   inline void set_allocated_uuid(::std::string* uuid);
@@ -868,14 +869,14 @@ class CmdResponse_Get : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // optional bytes value = 1;
+  // optional string value = 1;
   inline bool has_value() const;
   inline void clear_value();
   static const int kValueFieldNumber = 1;
   inline const ::std::string& value() const;
   inline void set_value(const ::std::string& value);
   inline void set_value(const char* value);
-  inline void set_value(const void* value, size_t size);
+  inline void set_value(const char* value, size_t size);
   inline ::std::string* mutable_value();
   inline ::std::string* release_value();
   inline void set_allocated_value(::std::string* value);
@@ -898,6 +899,90 @@ class CmdResponse_Get : public ::google::protobuf::Message {
 
   void InitAsDefaultInstance();
   static CmdResponse_Get* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class CmdResponse_Redirect : public ::google::protobuf::Message {
+ public:
+  CmdResponse_Redirect();
+  virtual ~CmdResponse_Redirect();
+
+  CmdResponse_Redirect(const CmdResponse_Redirect& from);
+
+  inline CmdResponse_Redirect& operator=(const CmdResponse_Redirect& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const CmdResponse_Redirect& default_instance();
+
+  void Swap(CmdResponse_Redirect* other);
+
+  // implements Message ----------------------------------------------
+
+  CmdResponse_Redirect* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const CmdResponse_Redirect& from);
+  void MergeFrom(const CmdResponse_Redirect& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required .client.Node node = 1;
+  inline bool has_node() const;
+  inline void clear_node();
+  static const int kNodeFieldNumber = 1;
+  inline const ::client::Node& node() const;
+  inline ::client::Node* mutable_node();
+  inline ::client::Node* release_node();
+  inline void set_allocated_node(::client::Node* node);
+
+  // @@protoc_insertion_point(class_scope:client.CmdResponse.Redirect)
+ private:
+  inline void set_has_node();
+  inline void clear_has_node();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::client::Node* node_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static CmdResponse_Redirect* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -954,6 +1039,7 @@ class CmdResponse : public ::google::protobuf::Message {
   // nested types ----------------------------------------------------
 
   typedef CmdResponse_Get Get;
+  typedef CmdResponse_Redirect Redirect;
 
   // accessors -------------------------------------------------------
 
@@ -971,14 +1057,14 @@ class CmdResponse : public ::google::protobuf::Message {
   inline ::client::StatusCode code() const;
   inline void set_code(::client::StatusCode value);
 
-  // optional bytes msg = 3;
+  // optional string msg = 3;
   inline bool has_msg() const;
   inline void clear_msg();
   static const int kMsgFieldNumber = 3;
   inline const ::std::string& msg() const;
   inline void set_msg(const ::std::string& value);
   inline void set_msg(const char* value);
-  inline void set_msg(const void* value, size_t size);
+  inline void set_msg(const char* value, size_t size);
   inline ::std::string* mutable_msg();
   inline ::std::string* release_msg();
   inline void set_allocated_msg(::std::string* msg);
@@ -992,6 +1078,15 @@ class CmdResponse : public ::google::protobuf::Message {
   inline ::client::CmdResponse_Get* release_get();
   inline void set_allocated_get(::client::CmdResponse_Get* get);
 
+  // optional .client.CmdResponse.Redirect redirect = 5;
+  inline bool has_redirect() const;
+  inline void clear_redirect();
+  static const int kRedirectFieldNumber = 5;
+  inline const ::client::CmdResponse_Redirect& redirect() const;
+  inline ::client::CmdResponse_Redirect* mutable_redirect();
+  inline ::client::CmdResponse_Redirect* release_redirect();
+  inline void set_allocated_redirect(::client::CmdResponse_Redirect* redirect);
+
   // @@protoc_insertion_point(class_scope:client.CmdResponse)
  private:
   inline void set_has_type();
@@ -1002,6 +1097,8 @@ class CmdResponse : public ::google::protobuf::Message {
   inline void clear_has_msg();
   inline void set_has_get();
   inline void clear_has_get();
+  inline void set_has_redirect();
+  inline void clear_has_redirect();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -1009,9 +1106,10 @@ class CmdResponse : public ::google::protobuf::Message {
   int code_;
   ::std::string* msg_;
   ::client::CmdResponse_Get* get_;
+  ::client::CmdResponse_Redirect* redirect_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -1027,7 +1125,7 @@ class CmdResponse : public ::google::protobuf::Message {
 
 // Node
 
-// required bytes ip = 1;
+// required string ip = 1;
 inline bool Node::has_ip() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -1060,7 +1158,7 @@ inline void Node::set_ip(const char* value) {
   }
   ip_->assign(value);
 }
-inline void Node::set_ip(const void* value, size_t size) {
+inline void Node::set_ip(const char* value, size_t size) {
   set_has_ip();
   if (ip_ == &::google::protobuf::internal::kEmptyString) {
     ip_ = new ::std::string;
@@ -1161,7 +1259,7 @@ inline void CmdRequest_Sync::set_allocated_node(::client::Node* node) {
   }
 }
 
-// required bytes table_name = 2;
+// required string table_name = 2;
 inline bool CmdRequest_Sync::has_table_name() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
@@ -1194,7 +1292,7 @@ inline void CmdRequest_Sync::set_table_name(const char* value) {
   }
   table_name_->assign(value);
 }
-inline void CmdRequest_Sync::set_table_name(const void* value, size_t size) {
+inline void CmdRequest_Sync::set_table_name(const char* value, size_t size) {
   set_has_table_name();
   if (table_name_ == &::google::protobuf::internal::kEmptyString) {
     table_name_ = new ::std::string;
@@ -1301,7 +1399,7 @@ inline void CmdRequest_Sync::set_offset(::google::protobuf::int32 value) {
 
 // CmdRequest_Set
 
-// required bytes table_name = 1;
+// required string table_name = 1;
 inline bool CmdRequest_Set::has_table_name() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -1334,7 +1432,7 @@ inline void CmdRequest_Set::set_table_name(const char* value) {
   }
   table_name_->assign(value);
 }
-inline void CmdRequest_Set::set_table_name(const void* value, size_t size) {
+inline void CmdRequest_Set::set_table_name(const char* value, size_t size) {
   set_has_table_name();
   if (table_name_ == &::google::protobuf::internal::kEmptyString) {
     table_name_ = new ::std::string;
@@ -1371,7 +1469,7 @@ inline void CmdRequest_Set::set_allocated_table_name(::std::string* table_name) 
   }
 }
 
-// required bytes key = 2;
+// required string key = 2;
 inline bool CmdRequest_Set::has_key() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
@@ -1404,7 +1502,7 @@ inline void CmdRequest_Set::set_key(const char* value) {
   }
   key_->assign(value);
 }
-inline void CmdRequest_Set::set_key(const void* value, size_t size) {
+inline void CmdRequest_Set::set_key(const char* value, size_t size) {
   set_has_key();
   if (key_ == &::google::protobuf::internal::kEmptyString) {
     key_ = new ::std::string;
@@ -1441,7 +1539,7 @@ inline void CmdRequest_Set::set_allocated_key(::std::string* key) {
   }
 }
 
-// required bytes value = 3;
+// required string value = 3;
 inline bool CmdRequest_Set::has_value() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
@@ -1474,7 +1572,7 @@ inline void CmdRequest_Set::set_value(const char* value) {
   }
   value_->assign(value);
 }
-inline void CmdRequest_Set::set_value(const void* value, size_t size) {
+inline void CmdRequest_Set::set_value(const char* value, size_t size) {
   set_has_value();
   if (value_ == &::google::protobuf::internal::kEmptyString) {
     value_ = new ::std::string;
@@ -1511,7 +1609,7 @@ inline void CmdRequest_Set::set_allocated_value(::std::string* value) {
   }
 }
 
-// optional bytes uuid = 4;
+// optional string uuid = 4;
 inline bool CmdRequest_Set::has_uuid() const {
   return (_has_bits_[0] & 0x00000008u) != 0;
 }
@@ -1544,7 +1642,7 @@ inline void CmdRequest_Set::set_uuid(const char* value) {
   }
   uuid_->assign(value);
 }
-inline void CmdRequest_Set::set_uuid(const void* value, size_t size) {
+inline void CmdRequest_Set::set_uuid(const char* value, size_t size) {
   set_has_uuid();
   if (uuid_ == &::google::protobuf::internal::kEmptyString) {
     uuid_ = new ::std::string;
@@ -1585,7 +1683,7 @@ inline void CmdRequest_Set::set_allocated_uuid(::std::string* uuid) {
 
 // CmdRequest_Get
 
-// required bytes table_name = 1;
+// required string table_name = 1;
 inline bool CmdRequest_Get::has_table_name() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -1618,7 +1716,7 @@ inline void CmdRequest_Get::set_table_name(const char* value) {
   }
   table_name_->assign(value);
 }
-inline void CmdRequest_Get::set_table_name(const void* value, size_t size) {
+inline void CmdRequest_Get::set_table_name(const char* value, size_t size) {
   set_has_table_name();
   if (table_name_ == &::google::protobuf::internal::kEmptyString) {
     table_name_ = new ::std::string;
@@ -1655,7 +1753,7 @@ inline void CmdRequest_Get::set_allocated_table_name(::std::string* table_name) 
   }
 }
 
-// required bytes key = 2;
+// required string key = 2;
 inline bool CmdRequest_Get::has_key() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
@@ -1688,7 +1786,7 @@ inline void CmdRequest_Get::set_key(const char* value) {
   }
   key_->assign(value);
 }
-inline void CmdRequest_Get::set_key(const void* value, size_t size) {
+inline void CmdRequest_Get::set_key(const char* value, size_t size) {
   set_has_key();
   if (key_ == &::google::protobuf::internal::kEmptyString) {
     key_ = new ::std::string;
@@ -1725,7 +1823,7 @@ inline void CmdRequest_Get::set_allocated_key(::std::string* key) {
   }
 }
 
-// optional bytes uuid = 3;
+// optional string uuid = 3;
 inline bool CmdRequest_Get::has_uuid() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
@@ -1758,7 +1856,7 @@ inline void CmdRequest_Get::set_uuid(const char* value) {
   }
   uuid_->assign(value);
 }
-inline void CmdRequest_Get::set_uuid(const void* value, size_t size) {
+inline void CmdRequest_Get::set_uuid(const char* value, size_t size) {
   set_has_uuid();
   if (uuid_ == &::google::protobuf::internal::kEmptyString) {
     uuid_ = new ::std::string;
@@ -1799,7 +1897,7 @@ inline void CmdRequest_Get::set_allocated_uuid(::std::string* uuid) {
 
 // CmdRequest_Del
 
-// required bytes table_name = 1;
+// required string table_name = 1;
 inline bool CmdRequest_Del::has_table_name() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -1832,7 +1930,7 @@ inline void CmdRequest_Del::set_table_name(const char* value) {
   }
   table_name_->assign(value);
 }
-inline void CmdRequest_Del::set_table_name(const void* value, size_t size) {
+inline void CmdRequest_Del::set_table_name(const char* value, size_t size) {
   set_has_table_name();
   if (table_name_ == &::google::protobuf::internal::kEmptyString) {
     table_name_ = new ::std::string;
@@ -1869,7 +1967,7 @@ inline void CmdRequest_Del::set_allocated_table_name(::std::string* table_name) 
   }
 }
 
-// required bytes key = 2;
+// required string key = 2;
 inline bool CmdRequest_Del::has_key() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
@@ -1902,7 +2000,7 @@ inline void CmdRequest_Del::set_key(const char* value) {
   }
   key_->assign(value);
 }
-inline void CmdRequest_Del::set_key(const void* value, size_t size) {
+inline void CmdRequest_Del::set_key(const char* value, size_t size) {
   set_has_key();
   if (key_ == &::google::protobuf::internal::kEmptyString) {
     key_ = new ::std::string;
@@ -1939,7 +2037,7 @@ inline void CmdRequest_Del::set_allocated_key(::std::string* key) {
   }
 }
 
-// optional bytes uuid = 3;
+// optional string uuid = 3;
 inline bool CmdRequest_Del::has_uuid() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
@@ -1972,7 +2070,7 @@ inline void CmdRequest_Del::set_uuid(const char* value) {
   }
   uuid_->assign(value);
 }
-inline void CmdRequest_Del::set_uuid(const void* value, size_t size) {
+inline void CmdRequest_Del::set_uuid(const char* value, size_t size) {
   set_has_uuid();
   if (uuid_ == &::google::protobuf::internal::kEmptyString) {
     uuid_ = new ::std::string;
@@ -2192,7 +2290,7 @@ inline void CmdRequest::set_allocated_del(::client::CmdRequest_Del* del) {
 
 // CmdResponse_Get
 
-// optional bytes value = 1;
+// optional string value = 1;
 inline bool CmdResponse_Get::has_value() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -2225,7 +2323,7 @@ inline void CmdResponse_Get::set_value(const char* value) {
   }
   value_->assign(value);
 }
-inline void CmdResponse_Get::set_value(const void* value, size_t size) {
+inline void CmdResponse_Get::set_value(const char* value, size_t size) {
   set_has_value();
   if (value_ == &::google::protobuf::internal::kEmptyString) {
     value_ = new ::std::string;
@@ -2259,6 +2357,48 @@ inline void CmdResponse_Get::set_allocated_value(::std::string* value) {
   } else {
     clear_has_value();
     value_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// -------------------------------------------------------------------
+
+// CmdResponse_Redirect
+
+// required .client.Node node = 1;
+inline bool CmdResponse_Redirect::has_node() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void CmdResponse_Redirect::set_has_node() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void CmdResponse_Redirect::clear_has_node() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void CmdResponse_Redirect::clear_node() {
+  if (node_ != NULL) node_->::client::Node::Clear();
+  clear_has_node();
+}
+inline const ::client::Node& CmdResponse_Redirect::node() const {
+  return node_ != NULL ? *node_ : *default_instance_->node_;
+}
+inline ::client::Node* CmdResponse_Redirect::mutable_node() {
+  set_has_node();
+  if (node_ == NULL) node_ = new ::client::Node;
+  return node_;
+}
+inline ::client::Node* CmdResponse_Redirect::release_node() {
+  clear_has_node();
+  ::client::Node* temp = node_;
+  node_ = NULL;
+  return temp;
+}
+inline void CmdResponse_Redirect::set_allocated_node(::client::Node* node) {
+  delete node_;
+  node_ = node;
+  if (node) {
+    set_has_node();
+  } else {
+    clear_has_node();
   }
 }
 
@@ -2312,7 +2452,7 @@ inline void CmdResponse::set_code(::client::StatusCode value) {
   code_ = value;
 }
 
-// optional bytes msg = 3;
+// optional string msg = 3;
 inline bool CmdResponse::has_msg() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
@@ -2345,7 +2485,7 @@ inline void CmdResponse::set_msg(const char* value) {
   }
   msg_->assign(value);
 }
-inline void CmdResponse::set_msg(const void* value, size_t size) {
+inline void CmdResponse::set_msg(const char* value, size_t size) {
   set_has_msg();
   if (msg_ == &::google::protobuf::internal::kEmptyString) {
     msg_ = new ::std::string;
@@ -2417,6 +2557,44 @@ inline void CmdResponse::set_allocated_get(::client::CmdResponse_Get* get) {
     set_has_get();
   } else {
     clear_has_get();
+  }
+}
+
+// optional .client.CmdResponse.Redirect redirect = 5;
+inline bool CmdResponse::has_redirect() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void CmdResponse::set_has_redirect() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void CmdResponse::clear_has_redirect() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void CmdResponse::clear_redirect() {
+  if (redirect_ != NULL) redirect_->::client::CmdResponse_Redirect::Clear();
+  clear_has_redirect();
+}
+inline const ::client::CmdResponse_Redirect& CmdResponse::redirect() const {
+  return redirect_ != NULL ? *redirect_ : *default_instance_->redirect_;
+}
+inline ::client::CmdResponse_Redirect* CmdResponse::mutable_redirect() {
+  set_has_redirect();
+  if (redirect_ == NULL) redirect_ = new ::client::CmdResponse_Redirect;
+  return redirect_;
+}
+inline ::client::CmdResponse_Redirect* CmdResponse::release_redirect() {
+  clear_has_redirect();
+  ::client::CmdResponse_Redirect* temp = redirect_;
+  redirect_ = NULL;
+  return temp;
+}
+inline void CmdResponse::set_allocated_redirect(::client::CmdResponse_Redirect* redirect) {
+  delete redirect_;
+  redirect_ = redirect;
+  if (redirect) {
+    set_has_redirect();
+  } else {
+    clear_has_redirect();
   }
 }
 

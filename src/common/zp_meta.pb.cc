@@ -240,8 +240,8 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       sizeof(MetaCmd_Init));
   MetaCmd_SetMaster_descriptor_ = MetaCmd_descriptor_->nested_type(3);
   static const int MetaCmd_SetMaster_offsets_[3] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmd_SetMaster, table_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmd_SetMaster, paritition_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmd_SetMaster, name_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmd_SetMaster, partition_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmd_SetMaster, node_),
   };
   MetaCmd_SetMaster_reflection_ =
@@ -399,7 +399,7 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "a.Node\022\034\n\006slaves\030\004 \003(\0132\014.ZPMeta.Node\"\031\n\t"
     "TableName\022\014\n\004name\030\001 \003(\t\"=\n\005Table\022\014\n\004name"
     "\030\001 \002(\t\022&\n\npartitions\030\002 \003(\0132\022.ZPMeta.Part"
-    "itions\"\226\003\n\007MetaCmd\022\032\n\004type\030\001 \002(\0162\014.ZPMet"
+    "itions\"\224\003\n\007MetaCmd\022\032\n\004type\030\001 \002(\0162\014.ZPMet"
     "a.Type\022\"\n\004ping\030\002 \001(\0132\024.ZPMeta.MetaCmd.Pi"
     "ng\022\"\n\004pull\030\003 \001(\0132\024.ZPMeta.MetaCmd.Pull\022\""
     "\n\004init\030\004 \001(\0132\024.ZPMeta.MetaCmd.Init\022-\n\nse"
@@ -407,18 +407,18 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "r\0323\n\004Ping\022\017\n\007version\030\001 \002(\005\022\032\n\004node\030\002 \002(\013"
     "2\014.ZPMeta.Node\0320\n\004Pull\022\032\n\004node\030\001 \001(\0132\014.Z"
     "PMeta.Node\022\014\n\004name\030\002 \001(\t\032!\n\004Init\022\014\n\004name"
-    "\030\001 \002(\t\022\013\n\003num\030\002 \002(\005\032J\n\tSetMaster\022\r\n\005tabl"
-    "e\030\001 \002(\t\022\022\n\nparitition\030\002 \002(\005\022\032\n\004node\030\003 \002("
-    "\0132\014.ZPMeta.Node\"\203\002\n\017MetaCmdResponse\022\032\n\004t"
-    "ype\030\001 \002(\0162\014.ZPMeta.Type\022 \n\004code\030\002 \002(\0162\022."
-    "ZPMeta.StatusCode\022\013\n\003msg\030\003 \001(\t\022*\n\004ping\030\004"
-    " \001(\0132\034.ZPMeta.MetaCmdResponse.Ping\022*\n\004pu"
-    "ll\030\005 \001(\0132\034.ZPMeta.MetaCmdResponse.Pull\032\027"
-    "\n\004Ping\022\017\n\007version\030\001 \002(\005\0324\n\004Pull\022\017\n\007versi"
-    "on\030\001 \002(\005\022\033\n\004info\030\002 \003(\0132\r.ZPMeta.Table*-\n"
-    "\nStatusCode\022\006\n\002OK\020\000\022\014\n\010NOTFOUND\020\001\022\t\n\005ERR"
-    "OR\020\002*$\n\004Type\022\010\n\004PING\020\001\022\010\n\004PULL\020\002\022\010\n\004INIT"
-    "\020\003*\037\n\006PState\022\n\n\006ACTIVE\020\001\022\t\n\005STUCK\020\002", 1155);
+    "\030\001 \002(\t\022\013\n\003num\030\002 \002(\005\032H\n\tSetMaster\022\014\n\004name"
+    "\030\001 \002(\t\022\021\n\tpartition\030\002 \002(\005\022\032\n\004node\030\003 \002(\0132"
+    "\014.ZPMeta.Node\"\203\002\n\017MetaCmdResponse\022\032\n\004typ"
+    "e\030\001 \002(\0162\014.ZPMeta.Type\022 \n\004code\030\002 \002(\0162\022.ZP"
+    "Meta.StatusCode\022\013\n\003msg\030\003 \001(\t\022*\n\004ping\030\004 \001"
+    "(\0132\034.ZPMeta.MetaCmdResponse.Ping\022*\n\004pull"
+    "\030\005 \001(\0132\034.ZPMeta.MetaCmdResponse.Pull\032\027\n\004"
+    "Ping\022\017\n\007version\030\001 \002(\005\0324\n\004Pull\022\017\n\007version"
+    "\030\001 \002(\005\022\033\n\004info\030\002 \003(\0132\r.ZPMeta.Table*-\n\nS"
+    "tatusCode\022\006\n\002OK\020\000\022\014\n\010NOTFOUND\020\001\022\t\n\005ERROR"
+    "\020\002*$\n\004Type\022\010\n\004PING\020\001\022\010\n\004PULL\020\002\022\010\n\004INIT\020\003"
+    "*\037\n\006PState\022\n\n\006ACTIVE\020\001\022\t\n\005STUCK\020\002", 1153);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zp_meta.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -2857,8 +2857,8 @@ void MetaCmd_Init::Swap(MetaCmd_Init* other) {
 // -------------------------------------------------------------------
 
 #ifndef _MSC_VER
-const int MetaCmd_SetMaster::kTableFieldNumber;
-const int MetaCmd_SetMaster::kParititionFieldNumber;
+const int MetaCmd_SetMaster::kNameFieldNumber;
+const int MetaCmd_SetMaster::kPartitionFieldNumber;
 const int MetaCmd_SetMaster::kNodeFieldNumber;
 #endif  // !_MSC_VER
 
@@ -2879,8 +2879,8 @@ MetaCmd_SetMaster::MetaCmd_SetMaster(const MetaCmd_SetMaster& from)
 
 void MetaCmd_SetMaster::SharedCtor() {
   _cached_size_ = 0;
-  table_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  paritition_ = 0;
+  name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  partition_ = 0;
   node_ = NULL;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -2890,8 +2890,8 @@ MetaCmd_SetMaster::~MetaCmd_SetMaster() {
 }
 
 void MetaCmd_SetMaster::SharedDtor() {
-  if (table_ != &::google::protobuf::internal::kEmptyString) {
-    delete table_;
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    delete name_;
   }
   if (this != default_instance_) {
     delete node_;
@@ -2921,12 +2921,12 @@ MetaCmd_SetMaster* MetaCmd_SetMaster::New() const {
 
 void MetaCmd_SetMaster::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (has_table()) {
-      if (table_ != &::google::protobuf::internal::kEmptyString) {
-        table_->clear();
+    if (has_name()) {
+      if (name_ != &::google::protobuf::internal::kEmptyString) {
+        name_->clear();
       }
     }
-    paritition_ = 0;
+    partition_ = 0;
     if (has_node()) {
       if (node_ != NULL) node_->::ZPMeta::Node::Clear();
     }
@@ -2941,31 +2941,31 @@ bool MetaCmd_SetMaster::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required string table = 1;
+      // required string name = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_table()));
+                input, this->mutable_name()));
           ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-            this->table().data(), this->table().length(),
+            this->name().data(), this->name().length(),
             ::google::protobuf::internal::WireFormat::PARSE);
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(16)) goto parse_paritition;
+        if (input->ExpectTag(16)) goto parse_partition;
         break;
       }
 
-      // required int32 paritition = 2;
+      // required int32 partition = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_paritition:
+         parse_partition:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 input, &paritition_)));
-          set_has_paritition();
+                 input, &partition_)));
+          set_has_partition();
         } else {
           goto handle_uninterpreted;
         }
@@ -3005,18 +3005,18 @@ bool MetaCmd_SetMaster::MergePartialFromCodedStream(
 
 void MetaCmd_SetMaster::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required string table = 1;
-  if (has_table()) {
+  // required string name = 1;
+  if (has_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->table().data(), this->table().length(),
+      this->name().data(), this->name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
     ::google::protobuf::internal::WireFormatLite::WriteString(
-      1, this->table(), output);
+      1, this->name(), output);
   }
 
-  // required int32 paritition = 2;
-  if (has_paritition()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->paritition(), output);
+  // required int32 partition = 2;
+  if (has_partition()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->partition(), output);
   }
 
   // required .ZPMeta.Node node = 3;
@@ -3033,19 +3033,19 @@ void MetaCmd_SetMaster::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* MetaCmd_SetMaster::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required string table = 1;
-  if (has_table()) {
+  // required string name = 1;
+  if (has_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->table().data(), this->table().length(),
+      this->name().data(), this->name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        1, this->table(), target);
+        1, this->name(), target);
   }
 
-  // required int32 paritition = 2;
-  if (has_paritition()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->paritition(), target);
+  // required int32 partition = 2;
+  if (has_partition()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->partition(), target);
   }
 
   // required .ZPMeta.Node node = 3;
@@ -3066,18 +3066,18 @@ int MetaCmd_SetMaster::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required string table = 1;
-    if (has_table()) {
+    // required string name = 1;
+    if (has_name()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->table());
+          this->name());
     }
 
-    // required int32 paritition = 2;
-    if (has_paritition()) {
+    // required int32 partition = 2;
+    if (has_partition()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::Int32Size(
-          this->paritition());
+          this->partition());
     }
 
     // required .ZPMeta.Node node = 3;
@@ -3114,11 +3114,11 @@ void MetaCmd_SetMaster::MergeFrom(const ::google::protobuf::Message& from) {
 void MetaCmd_SetMaster::MergeFrom(const MetaCmd_SetMaster& from) {
   GOOGLE_CHECK_NE(&from, this);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from.has_table()) {
-      set_table(from.table());
+    if (from.has_name()) {
+      set_name(from.name());
     }
-    if (from.has_paritition()) {
-      set_paritition(from.paritition());
+    if (from.has_partition()) {
+      set_partition(from.partition());
     }
     if (from.has_node()) {
       mutable_node()->::ZPMeta::Node::MergeFrom(from.node());
@@ -3150,8 +3150,8 @@ bool MetaCmd_SetMaster::IsInitialized() const {
 
 void MetaCmd_SetMaster::Swap(MetaCmd_SetMaster* other) {
   if (other != this) {
-    std::swap(table_, other->table_);
-    std::swap(paritition_, other->paritition_);
+    std::swap(name_, other->name_);
+    std::swap(partition_, other->partition_);
     std::swap(node_, other->node_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);

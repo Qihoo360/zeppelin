@@ -72,8 +72,8 @@ message MetaCmd {
   optional Init init = 4;
 
   message SetMaster{
-    required string table = 1;
-    required int32 paritition = 2;
+    required string name = 1;
+    required int32 partition = 2;
     required Node node = 3;
   }
   optional SetMaster set_master = 5;
