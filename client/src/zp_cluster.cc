@@ -136,7 +136,7 @@ Status Cluster::Pull(const std::string& table) {
 }
 
 
-Status Cluster::DebugDumpTable(const std::string& table) {
+void Cluster::DebugDumpTable(const std::string& table) {
   std::cout << "epoch:" << epoch << std::endl;
   auto it = tables_.begin();
   while (it != tables_.end()) {
@@ -145,9 +145,9 @@ Status Cluster::DebugDumpTable(const std::string& table) {
     }
     it++;
   }
-  return Status::OK();
 }
 
+// TODO(wenduo): 这里接口定义的不好, GetPartition 返回一个空
 Table::Partition Cluster::GetPartition(const std::string& table,
     const std::string& key) {
   std::cout << "epoch:" << epoch << std::endl;

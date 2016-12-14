@@ -33,12 +33,10 @@ class Cluster {
   Status Get(const std::string& table, const std::string& key,
       std::string* value);
   Status Pull(const std::string& table);
-  Status DebugDumpTable(const std::string& table);
+  void DebugDumpTable(const std::string& table);
+  // TODO(wenduo): 这里接口定义的不好, GetPartition 返回一个空
   Table::Partition GetPartition(const std::string& table,
       const std::string& key);
-
-  // Status ListTable(std::vector<IpPort> &node_list);
-  // Status ListMetaNode(std::vector<IpPort> &node_list);
 
  private :
 
