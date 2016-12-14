@@ -12,6 +12,11 @@ enum Type {
   INIT = 3;
 }
 
+enum PState {
+  ACTIVE = 1;
+  STUCK = 2;
+}
+
 message Node {
   required string ip = 1;
   required int32 port = 2;
@@ -27,8 +32,9 @@ message Nodes {
 
 message Partitions {
   required int32 id = 1;
-  required Node master = 2;
-  repeated Node slaves = 3;
+  required PState state = 2;
+  required Node master = 3;
+  repeated Node slaves = 4;
 }
 
 message TableName {
@@ -64,6 +70,13 @@ message MetaCmd {
     required int32 num = 2;
   }
   optional Init init = 4;
+
+  message SetMaster{
+    required string table = 1;
+    required int32 paritition = 2;
+    required Node node = 3;
+  }
+  optional SetMaster set_master = 5;
 }
 
 message MetaCmdResponse {
