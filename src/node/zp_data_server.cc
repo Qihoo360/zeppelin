@@ -185,22 +185,6 @@ void ZPDataServer::DumpTablePartitions() {
   DLOG(INFO) << "--------------------------";
 }
 
-bool ZPDataServer::UpdateOrAddTablePartition(const std::string &table_name, const int partition_id, const Node& master, const std::vector<Node>& slaves) {
-  Table* table = NULL;
-  {
-    slash::RWLock l(&table_rw_, true);
-    auto it = tables_.find(table_name);
-
-    if (it == tables_.end()) {
-      table = NewTable(table_name, g_zp_conf->log_path(), g_zp_conf->data_path());
-      tables_[table_name] = table;
-    }
-  }
-  assert(table != NULL);
-
-  return table->UpdateOrAddPartition(partition_id, master, slaves);
-}
-
 Status ZPDataServer::SendToPeer(const Node &node, const std::string &data) {
   pink::Status res;
   std::string ip_port = slash::IpPortString(node.ip, node.port);

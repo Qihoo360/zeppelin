@@ -121,10 +121,10 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(const ZPMeta::MetaCmdResponse 
       }
 
       //bool result = zp_data_server->UpdateOrAddTablePartition(table_info.name(), partition.id(), master_node, slave_nodes);
-      bool result = table->UpdateOrAddPartition(partition.id(), master_node, slave_nodes);
+      bool result = table->UpdateOrAddPartition(partition.id(), partition.state(), master_node, slave_nodes);
       if (!result) {
-        LOG(WARNING) << "Failed to AddPartition " << partition.id() <<
-            ", partition master is " << partition.master().ip() << ":" << partition.master().port() ;
+        LOG(WARNING) << "Failed to AddPartition " << partition.id() << ", State: " << partition.state()
+          << ", partition master is " << partition.master().ip() << ":" << partition.master().port() ;
       }
     }
   }

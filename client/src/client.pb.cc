@@ -44,9 +44,6 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* CmdResponse_Get_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   CmdResponse_Get_reflection_ = NULL;
-const ::google::protobuf::Descriptor* CmdResponse_Redirect_descriptor_ = NULL;
-const ::google::protobuf::internal::GeneratedMessageReflection*
-  CmdResponse_Redirect_reflection_ = NULL;
 const ::google::protobuf::EnumDescriptor* Type_descriptor_ = NULL;
 const ::google::protobuf::EnumDescriptor* StatusCode_descriptor_ = NULL;
 
@@ -199,21 +196,6 @@ void protobuf_AssignDesc_client_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(CmdResponse_Get));
-  CmdResponse_Redirect_descriptor_ = CmdResponse_descriptor_->nested_type(1);
-  static const int CmdResponse_Redirect_offsets_[1] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdResponse_Redirect, node_),
-  };
-  CmdResponse_Redirect_reflection_ =
-    new ::google::protobuf::internal::GeneratedMessageReflection(
-      CmdResponse_Redirect_descriptor_,
-      CmdResponse_Redirect::default_instance_,
-      CmdResponse_Redirect_offsets_,
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdResponse_Redirect, _has_bits_[0]),
-      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdResponse_Redirect, _unknown_fields_),
-      -1,
-      ::google::protobuf::DescriptorPool::generated_pool(),
-      ::google::protobuf::MessageFactory::generated_factory(),
-      sizeof(CmdResponse_Redirect));
   Type_descriptor_ = file->enum_type(0);
   StatusCode_descriptor_ = file->enum_type(1);
 }
@@ -244,8 +226,6 @@ void protobuf_RegisterTypes(const ::std::string&) {
     CmdResponse_descriptor_, &CmdResponse::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     CmdResponse_Get_descriptor_, &CmdResponse_Get::default_instance());
-  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
-    CmdResponse_Redirect_descriptor_, &CmdResponse_Redirect::default_instance());
 }
 
 }  // namespace
@@ -267,8 +247,6 @@ void protobuf_ShutdownFile_client_2eproto() {
   delete CmdResponse_reflection_;
   delete CmdResponse_Get::default_instance_;
   delete CmdResponse_Get_reflection_;
-  delete CmdResponse_Redirect::default_instance_;
-  delete CmdResponse_Redirect_reflection_;
 }
 
 void protobuf_AddDesc_client_2eproto() {
@@ -291,16 +269,14 @@ void protobuf_AddDesc_client_2eproto() {
     "\030\002 \002(\t\022\r\n\005value\030\003 \002(\t\022\014\n\004uuid\030\004 \001(\t\0324\n\003G"
     "et\022\022\n\ntable_name\030\001 \002(\t\022\013\n\003key\030\002 \002(\t\022\014\n\004u"
     "uid\030\003 \001(\t\0324\n\003Del\022\022\n\ntable_name\030\001 \002(\t\022\013\n\003"
-    "key\030\002 \002(\t\022\014\n\004uuid\030\003 \001(\t\"\354\001\n\013CmdResponse\022"
+    "key\030\002 \002(\t\022\014\n\004uuid\030\003 \001(\t\"\264\001\n\013CmdResponse\022"
     "\032\n\004type\030\001 \002(\0162\014.client.Type\022 \n\004code\030\002 \002("
     "\0162\022.client.StatusCode\022\013\n\003msg\030\003 \001(\t\022$\n\003ge"
-    "t\030\004 \001(\0132\027.client.CmdResponse.Get\022.\n\010redi"
-    "rect\030\005 \001(\0132\034.client.CmdResponse.Redirect"
-    "\032\024\n\003Get\022\r\n\005value\030\001 \001(\t\032&\n\010Redirect\022\032\n\004no"
-    "de\030\001 \002(\0132\014.client.Node*+\n\004Type\022\010\n\004SYNC\020\000"
-    "\022\007\n\003SET\020\001\022\007\n\003GET\020\002\022\007\n\003DEL\020\003*;\n\nStatusCod"
-    "e\022\007\n\003kOk\020\000\022\r\n\tkNotFound\020\001\022\t\n\005kWait\020\002\022\n\n\006"
-    "kError\020\003", 888);
+    "t\030\004 \001(\0132\027.client.CmdResponse.Get\022\036\n\010redi"
+    "rect\030\005 \001(\0132\014.client.Node\032\024\n\003Get\022\r\n\005value"
+    "\030\001 \001(\t*+\n\004Type\022\010\n\004SYNC\020\000\022\007\n\003SET\020\001\022\007\n\003GET"
+    "\020\002\022\007\n\003DEL\020\003*;\n\nStatusCode\022\007\n\003kOk\020\000\022\r\n\tkN"
+    "otFound\020\001\022\t\n\005kWait\020\002\022\n\n\006kError\020\003", 832);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "client.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -311,7 +287,6 @@ void protobuf_AddDesc_client_2eproto() {
   CmdRequest_Del::default_instance_ = new CmdRequest_Del();
   CmdResponse::default_instance_ = new CmdResponse();
   CmdResponse_Get::default_instance_ = new CmdResponse_Get();
-  CmdResponse_Redirect::default_instance_ = new CmdResponse_Redirect();
   Node::default_instance_->InitAsDefaultInstance();
   CmdRequest::default_instance_->InitAsDefaultInstance();
   CmdRequest_Sync::default_instance_->InitAsDefaultInstance();
@@ -320,7 +295,6 @@ void protobuf_AddDesc_client_2eproto() {
   CmdRequest_Del::default_instance_->InitAsDefaultInstance();
   CmdResponse::default_instance_->InitAsDefaultInstance();
   CmdResponse_Get::default_instance_->InitAsDefaultInstance();
-  CmdResponse_Redirect::default_instance_->InitAsDefaultInstance();
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_client_2eproto);
 }
 
@@ -2735,223 +2709,6 @@ void CmdResponse_Get::Swap(CmdResponse_Get* other) {
 // -------------------------------------------------------------------
 
 #ifndef _MSC_VER
-const int CmdResponse_Redirect::kNodeFieldNumber;
-#endif  // !_MSC_VER
-
-CmdResponse_Redirect::CmdResponse_Redirect()
-  : ::google::protobuf::Message() {
-  SharedCtor();
-}
-
-void CmdResponse_Redirect::InitAsDefaultInstance() {
-  node_ = const_cast< ::client::Node*>(&::client::Node::default_instance());
-}
-
-CmdResponse_Redirect::CmdResponse_Redirect(const CmdResponse_Redirect& from)
-  : ::google::protobuf::Message() {
-  SharedCtor();
-  MergeFrom(from);
-}
-
-void CmdResponse_Redirect::SharedCtor() {
-  _cached_size_ = 0;
-  node_ = NULL;
-  ::memset(_has_bits_, 0, sizeof(_has_bits_));
-}
-
-CmdResponse_Redirect::~CmdResponse_Redirect() {
-  SharedDtor();
-}
-
-void CmdResponse_Redirect::SharedDtor() {
-  if (this != default_instance_) {
-    delete node_;
-  }
-}
-
-void CmdResponse_Redirect::SetCachedSize(int size) const {
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-}
-const ::google::protobuf::Descriptor* CmdResponse_Redirect::descriptor() {
-  protobuf_AssignDescriptorsOnce();
-  return CmdResponse_Redirect_descriptor_;
-}
-
-const CmdResponse_Redirect& CmdResponse_Redirect::default_instance() {
-  if (default_instance_ == NULL) protobuf_AddDesc_client_2eproto();
-  return *default_instance_;
-}
-
-CmdResponse_Redirect* CmdResponse_Redirect::default_instance_ = NULL;
-
-CmdResponse_Redirect* CmdResponse_Redirect::New() const {
-  return new CmdResponse_Redirect;
-}
-
-void CmdResponse_Redirect::Clear() {
-  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (has_node()) {
-      if (node_ != NULL) node_->::client::Node::Clear();
-    }
-  }
-  ::memset(_has_bits_, 0, sizeof(_has_bits_));
-  mutable_unknown_fields()->Clear();
-}
-
-bool CmdResponse_Redirect::MergePartialFromCodedStream(
-    ::google::protobuf::io::CodedInputStream* input) {
-#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
-  ::google::protobuf::uint32 tag;
-  while ((tag = input->ReadTag()) != 0) {
-    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required .client.Node node = 1;
-      case 1: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-               input, mutable_node()));
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectAtEnd()) return true;
-        break;
-      }
-
-      default: {
-      handle_uninterpreted:
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
-          return true;
-        }
-        DO_(::google::protobuf::internal::WireFormat::SkipField(
-              input, tag, mutable_unknown_fields()));
-        break;
-      }
-    }
-  }
-  return true;
-#undef DO_
-}
-
-void CmdResponse_Redirect::SerializeWithCachedSizes(
-    ::google::protobuf::io::CodedOutputStream* output) const {
-  // required .client.Node node = 1;
-  if (has_node()) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      1, this->node(), output);
-  }
-
-  if (!unknown_fields().empty()) {
-    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
-        unknown_fields(), output);
-  }
-}
-
-::google::protobuf::uint8* CmdResponse_Redirect::SerializeWithCachedSizesToArray(
-    ::google::protobuf::uint8* target) const {
-  // required .client.Node node = 1;
-  if (has_node()) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        1, this->node(), target);
-  }
-
-  if (!unknown_fields().empty()) {
-    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
-        unknown_fields(), target);
-  }
-  return target;
-}
-
-int CmdResponse_Redirect::ByteSize() const {
-  int total_size = 0;
-
-  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .client.Node node = 1;
-    if (has_node()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-          this->node());
-    }
-
-  }
-  if (!unknown_fields().empty()) {
-    total_size +=
-      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
-        unknown_fields());
-  }
-  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
-  _cached_size_ = total_size;
-  GOOGLE_SAFE_CONCURRENT_WRITES_END();
-  return total_size;
-}
-
-void CmdResponse_Redirect::MergeFrom(const ::google::protobuf::Message& from) {
-  GOOGLE_CHECK_NE(&from, this);
-  const CmdResponse_Redirect* source =
-    ::google::protobuf::internal::dynamic_cast_if_available<const CmdResponse_Redirect*>(
-      &from);
-  if (source == NULL) {
-    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
-  } else {
-    MergeFrom(*source);
-  }
-}
-
-void CmdResponse_Redirect::MergeFrom(const CmdResponse_Redirect& from) {
-  GOOGLE_CHECK_NE(&from, this);
-  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from.has_node()) {
-      mutable_node()->::client::Node::MergeFrom(from.node());
-    }
-  }
-  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
-}
-
-void CmdResponse_Redirect::CopyFrom(const ::google::protobuf::Message& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-void CmdResponse_Redirect::CopyFrom(const CmdResponse_Redirect& from) {
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool CmdResponse_Redirect::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
-
-  if (has_node()) {
-    if (!this->node().IsInitialized()) return false;
-  }
-  return true;
-}
-
-void CmdResponse_Redirect::Swap(CmdResponse_Redirect* other) {
-  if (other != this) {
-    std::swap(node_, other->node_);
-    std::swap(_has_bits_[0], other->_has_bits_[0]);
-    _unknown_fields_.Swap(&other->_unknown_fields_);
-    std::swap(_cached_size_, other->_cached_size_);
-  }
-}
-
-::google::protobuf::Metadata CmdResponse_Redirect::GetMetadata() const {
-  protobuf_AssignDescriptorsOnce();
-  ::google::protobuf::Metadata metadata;
-  metadata.descriptor = CmdResponse_Redirect_descriptor_;
-  metadata.reflection = CmdResponse_Redirect_reflection_;
-  return metadata;
-}
-
-
-// -------------------------------------------------------------------
-
-#ifndef _MSC_VER
 const int CmdResponse::kTypeFieldNumber;
 const int CmdResponse::kCodeFieldNumber;
 const int CmdResponse::kMsgFieldNumber;
@@ -2966,7 +2723,7 @@ CmdResponse::CmdResponse()
 
 void CmdResponse::InitAsDefaultInstance() {
   get_ = const_cast< ::client::CmdResponse_Get*>(&::client::CmdResponse_Get::default_instance());
-  redirect_ = const_cast< ::client::CmdResponse_Redirect*>(&::client::CmdResponse_Redirect::default_instance());
+  redirect_ = const_cast< ::client::Node*>(&::client::Node::default_instance());
 }
 
 CmdResponse::CmdResponse(const CmdResponse& from)
@@ -3033,7 +2790,7 @@ void CmdResponse::Clear() {
       if (get_ != NULL) get_->::client::CmdResponse_Get::Clear();
     }
     if (has_redirect()) {
-      if (redirect_ != NULL) redirect_->::client::CmdResponse_Redirect::Clear();
+      if (redirect_ != NULL) redirect_->::client::Node::Clear();
     }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -3118,7 +2875,7 @@ bool CmdResponse::MergePartialFromCodedStream(
         break;
       }
 
-      // optional .client.CmdResponse.Redirect redirect = 5;
+      // optional .client.Node redirect = 5;
       case 5: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -3177,7 +2934,7 @@ void CmdResponse::SerializeWithCachedSizes(
       4, this->get(), output);
   }
 
-  // optional .client.CmdResponse.Redirect redirect = 5;
+  // optional .client.Node redirect = 5;
   if (has_redirect()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
       5, this->redirect(), output);
@@ -3220,7 +2977,7 @@ void CmdResponse::SerializeWithCachedSizes(
         4, this->get(), target);
   }
 
-  // optional .client.CmdResponse.Redirect redirect = 5;
+  // optional .client.Node redirect = 5;
   if (has_redirect()) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -3264,7 +3021,7 @@ int CmdResponse::ByteSize() const {
           this->get());
     }
 
-    // optional .client.CmdResponse.Redirect redirect = 5;
+    // optional .client.Node redirect = 5;
     if (has_redirect()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
@@ -3311,7 +3068,7 @@ void CmdResponse::MergeFrom(const CmdResponse& from) {
       mutable_get()->::client::CmdResponse_Get::MergeFrom(from.get());
     }
     if (from.has_redirect()) {
-      mutable_redirect()->::client::CmdResponse_Redirect::MergeFrom(from.redirect());
+      mutable_redirect()->::client::Node::MergeFrom(from.redirect());
     }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());

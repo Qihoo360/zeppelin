@@ -68,9 +68,6 @@ message CmdResponse {
   }
   optional Get get = 4;
   
-  message Redirect {
-    required Node node = 1;
-  }
-  optional Redirect redirect = 5;
+  optional Node redirect = 5;
 
 }
