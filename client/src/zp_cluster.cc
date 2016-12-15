@@ -64,14 +64,16 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
   Status s;
   IpPort master;
 
+  std::cout << "submit" << std::endl;
   s = GetDataMaster(table, key, &master);
   if (!s.ok()) {
     if (has_pull) {
       return Status::IOError("can't find data node after pull");
     }
     s = Pull(table);
+    has_pull = true;
     if (s.ok()) {
-      return SubmitDataCmd(table, key, attempt, true);
+      return SubmitDataCmd(table, key, attempt, has_pull);
     } else {
       return Status::IOError("can't find data node, can't pull either");
     }
@@ -100,7 +102,7 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
   } else if (!has_pull) {
     s = Pull(table);
     if (s.ok()) {
-      return SubmitDataCmd(table, key, true);
+      return SubmitDataCmd(table, key, attempt+1, true);
     } else {
       return Status::IOError("can't find data node, can't pull either");
     }
