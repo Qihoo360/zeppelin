@@ -91,7 +91,7 @@ class Partition {
   void WaitDBSyncDone();
 
   // Partition node related
-  void Update(const Node& master, const std::vector<Node> &slaves);
+  void Update(ZPMeta::PState state, const Node& master, const std::vector<Node> &slaves);
 
   // Binlog related
   Status SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset);
@@ -168,12 +168,14 @@ class Partition {
   
   // State related
   pthread_rwlock_t state_rw_;
+  ZPMeta::PState pstate_;
   Role role_;
   int repl_state_;
   void CleanRoleEnv(Role role);
   void BecomeSingle();
   void BecomeMaster();
   void BecomeSlave();
+  ZPMeta::PState UpdateState(ZPMeta::PState state);
 
   // DB related
   std::shared_ptr<nemo::Nemo> db_;

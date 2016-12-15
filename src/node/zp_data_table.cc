@@ -72,17 +72,24 @@ Partition* Table::GetPartitionById(const int partition_id) {
   return NULL;
 }
 
-bool Table::UpdateOrAddPartition(const int partition_id, const Node& master, const std::vector<Node>& slaves) {
+bool Table::UpdateOrAddPartition(const int partition_id,
+    ZPMeta::PState state, const Node& master, const std::vector<Node>& slaves) {
   slash::RWLock l(&partition_rw_, true);
   auto iter = partitions_.find(partition_id);
   if (iter != partitions_.end()) {
     //Exist partition: update it
-    (iter->second)->Update(master, slaves);
+    (iter->second)->Update(state, master, slaves);
     return true;
   }
 
+  if (state != ZPMeta::PState::ACTIVE) {
+    DLOG(WARNING) << "New Partition with no active state";
+    return false;
+  }
+
   // New Partition
-  Partition* partition = NewPartition(table_name_, log_path_, data_path_, partition_id, master, slaves);
+  Partition* partition = NewPartition(table_name_,
+      log_path_, data_path_, partition_id, master, slaves);
   assert(partition != NULL);
   partitions_[partition_id] = partition;
 

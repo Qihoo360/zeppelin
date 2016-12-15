@@ -25,7 +25,7 @@ ZPDataServer::ZPDataServer()
     InitClientCmdTable();
 
     // Create thread
-    zp_metacmd_thread_ = new ZPMetacmdThread();
+    zp_metacmd_bgworker_= new ZPMetacmdBGWorker();
     zp_trysync_thread_ = new ZPTrySyncThread();
 
     // Binlog related
@@ -89,7 +89,7 @@ ZPDataServer::~ZPDataServer() {
   }
 
   delete zp_trysync_thread_;
-  delete zp_metacmd_thread_;
+  delete zp_metacmd_bgworker_;
 
   {
     slash::RWLock l(&table_rw_, true);
@@ -183,22 +183,6 @@ void ZPDataServer::DumpTablePartitions() {
     iter->second->Dump();
   }
   DLOG(INFO) << "--------------------------";
-}
-
-bool ZPDataServer::UpdateOrAddTablePartition(const std::string &table_name, const int partition_id, const Node& master, const std::vector<Node>& slaves) {
-  Table* table = NULL;
-  {
-    slash::RWLock l(&table_rw_, true);
-    auto it = tables_.find(table_name);
-
-    if (it == tables_.end()) {
-      table = NewTable(table_name, g_zp_conf->log_path(), g_zp_conf->data_path());
-      tables_[table_name] = table;
-    }
-  }
-  assert(table != NULL);
-
-  return table->UpdateOrAddPartition(partition_id, master, slaves);
 }
 
 Status ZPDataServer::SendToPeer(const Node &node, const std::string &data) {
@@ -315,23 +299,21 @@ void ZPDataServer::AddSyncTask(Partition* partition) {
 }
 
 void ZPDataServer::AddMetacmdTask() {
-  zp_metacmd_thread_->MetacmdTaskSchedule();
+  zp_metacmd_bgworker_->AddTask();
 }
 
 // Here, we dispatch task base on its partition id
 // So that the task within same partition will be located on same thread
 // So there could be no lock in DoBinlogReceiveTask to keep binlogs order
-void ZPDataServer::DispatchBinlogBGWorker(const std::string &table_name, const std::string& key, ZPBinlogReceiveArg *arg) {
+void ZPDataServer::DispatchBinlogBGWorker(const std::string &table_name, const std::string& key, ZPBinlogReceiveTask *task) {
   Table* table = GetTable(table_name);
   assert(table != NULL);
 
   if (table != NULL) {
     uint32_t id = table->KeyToPartition(key);
-    arg->partition_id = id;
+    task->partition_id = id;
     size_t index = id % zp_binlog_receive_bgworkers_.size();
-    zp_binlog_receive_bgworkers_[index]->StartIfNeed();
-    zp_binlog_receive_bgworkers_[index]->Schedule(
-      &ZPBinlogReceiveBgWorker::DoBinlogReceiveTask, static_cast<void*>(arg));
+    zp_binlog_receive_bgworkers_[index]->AddTask(task);
   }
 }
 

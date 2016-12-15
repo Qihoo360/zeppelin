@@ -12,6 +12,7 @@ Partition::Partition(const std::string &table_name, const int partition_id, cons
   : table_name_(table_name),
   partition_id_(partition_id),
   readonly_(false),
+  pstate_(ZPMeta::PState::ACTIVE),
   role_(Role::kNodeSingle),
   repl_state_(ReplState::kNoConnect),
   bgsave_engine_(NULL),
@@ -396,8 +397,27 @@ void Partition::BecomeSlave() {
   zp_data_server->AddSyncTask(this);
 }
 
-void Partition::Update(const Node &master, const std::vector<Node> &slaves) {
+// Update partition state
+// and return current state
+ZPMeta::PState Partition::UpdateState(ZPMeta::PState state) {
+  // Notice: could not become ACTIVE from STUCK
+  // without master changed
+  if (state == ZPMeta::PState::STUCK) {
+    readonly_ == true;
+  }
+  pstate_ = state;
+  return pstate_;
+}
+
+void Partition::Update(ZPMeta::PState state, const Node &master, const std::vector<Node> &slaves) {
   assert(slaves.size() == kReplicaNum - 1);
+
+  // Check Status first
+  if (ZPMeta::PState::ACTIVE != UpdateState(state)) {
+    // Do not update master and slaves for stuck partition,
+    // which will be updated when it become active
+    return;
+  }
 
   // Update master slave nodes
   slash::RWLock l(&state_rw_, true);
@@ -450,7 +470,9 @@ std::string NewPartitionPath(const std::string& name, const uint32_t current) {
   return std::string(buf);
 }
 
-Partition* NewPartition(const std::string &table_name, const std::string& log_path, const std::string& data_path, const int partition_id, const Node& master, const std::vector<Node> &slaves) {
+Partition* NewPartition(const std::string &table_name,
+    const std::string& log_path, const std::string& data_path,
+    const int partition_id, const Node& master, const std::vector<Node> &slaves) {
   Partition* partition = new Partition(table_name, partition_id, log_path, data_path);
 
   // Check and update purged_index_
@@ -459,7 +481,7 @@ Partition* NewPartition(const std::string &table_name, const std::string& log_pa
     delete partition;
     return NULL;
   }
-  partition->Update(master, slaves);
+  partition->Update(ZPMeta::PState::ACTIVE, master, slaves);
 
   return partition;
 }
@@ -487,8 +509,14 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req, client:
   if (cmd->is_write() && readonly_) {
     res.set_code(client::StatusCode::kError);
     res.set_msg("readonly mode");
+    if (role_ == Role::kNodeSlave) {
+      // Slave send client redirect msg
+      client::Node* node = res.mutable_redirect();
+      node->set_ip(master_node_.ip);
+      node->set_port(master_node_.port);
+    }
     LOG(WARNING) << "Readonly mode, failed to DoCommand  at Partition: " << partition_id_
-      << " Role:" << RoleMsg[role_];
+      << " Role:" << RoleMsg[role_] << " ParititionState:" << pstate_;
     return;
   }
 
@@ -839,6 +867,7 @@ void Partition::Dump() {
     default:
       LOG(INFO) << "  +I'm single";
   }
+  LOG(INFO) << "     -*State " << pstate_;
   LOG(INFO) << "     -*Master node " << master_node_;
 
   for (size_t i = 0; i < slave_nodes_.size(); i++) {

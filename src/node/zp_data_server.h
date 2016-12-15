@@ -23,7 +23,7 @@
 #include "zp_binlog.h"
 #include "zp_meta_utils.h"
 #include "zp_const.h"
-#include "zp_metacmd_thread.h"
+#include "zp_metacmd_bgworker.h"
 #include "zp_ping_thread.h"
 #include "zp_trysync_thread.h"
 #include "zp_binlog_sender.h"
@@ -120,7 +120,6 @@ class ZPDataServer {
 
   Table* GetTable(const std::string &table_name);
   bool SetTablePartitionCount(const std::string &table_name, int count);
-  bool UpdateOrAddTablePartition(const std::string &table_name, const int partition_id, const Node& master, const std::vector<Node>& slaves);
   Partition* GetTablePartition(const std::string &table_name, const std::string &key);
   Partition* GetTablePartitionById(const std::string &table_name, const int partition_id);
 
@@ -146,7 +145,7 @@ class ZPDataServer {
   Status RemoveBinlogSendTask(const std::string &table, int parititon_id, const Node& node);
   int32_t GetBinlogSendFilenum(const std::string &table, int partition_id, const Node& node);
   //void DispatchBinlogBGWorker(const Cmd* cmd, const client::CmdRequest &req);
-  void DispatchBinlogBGWorker(const std::string& table_name, const std::string& key, ZPBinlogReceiveArg *arg);
+  void DispatchBinlogBGWorker(const std::string& table_name, const std::string& key, ZPBinlogReceiveTask *task);
 
   // Command related
   Cmd* CmdGet(const int op) {
@@ -177,7 +176,7 @@ class ZPDataServer {
   ZPDataWorkerThread* zp_worker_thread_[kMaxWorkerThread];
   ZPDataDispatchThread* zp_dispatch_thread_;
   ZPPingThread* zp_ping_thread_;
-  ZPMetacmdThread* zp_metacmd_thread_;
+  ZPMetacmdBGWorker* zp_metacmd_bgworker_;
   ZPTrySyncThread* zp_trysync_thread_;
   ZPBinlogReceiverThread* zp_binlog_receiver_thread_;
   std::vector<ZPBinlogReceiveBgWorker*> zp_binlog_receive_bgworkers_;

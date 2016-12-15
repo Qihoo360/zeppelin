@@ -42,7 +42,6 @@ class CmdRequest_Get;
 class CmdRequest_Del;
 class CmdResponse;
 class CmdResponse_Get;
-class CmdResponse_Redirect;
 
 enum Type {
   SYNC = 0,
@@ -902,90 +901,6 @@ class CmdResponse_Get : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
-class CmdResponse_Redirect : public ::google::protobuf::Message {
- public:
-  CmdResponse_Redirect();
-  virtual ~CmdResponse_Redirect();
-
-  CmdResponse_Redirect(const CmdResponse_Redirect& from);
-
-  inline CmdResponse_Redirect& operator=(const CmdResponse_Redirect& from) {
-    CopyFrom(from);
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
-    return _unknown_fields_;
-  }
-
-  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
-    return &_unknown_fields_;
-  }
-
-  static const ::google::protobuf::Descriptor* descriptor();
-  static const CmdResponse_Redirect& default_instance();
-
-  void Swap(CmdResponse_Redirect* other);
-
-  // implements Message ----------------------------------------------
-
-  CmdResponse_Redirect* New() const;
-  void CopyFrom(const ::google::protobuf::Message& from);
-  void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const CmdResponse_Redirect& from);
-  void MergeFrom(const CmdResponse_Redirect& from);
-  void Clear();
-  bool IsInitialized() const;
-
-  int ByteSize() const;
-  bool MergePartialFromCodedStream(
-      ::google::protobuf::io::CodedInputStream* input);
-  void SerializeWithCachedSizes(
-      ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
-  int GetCachedSize() const { return _cached_size_; }
-  private:
-  void SharedCtor();
-  void SharedDtor();
-  void SetCachedSize(int size) const;
-  public:
-
-  ::google::protobuf::Metadata GetMetadata() const;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // required .client.Node node = 1;
-  inline bool has_node() const;
-  inline void clear_node();
-  static const int kNodeFieldNumber = 1;
-  inline const ::client::Node& node() const;
-  inline ::client::Node* mutable_node();
-  inline ::client::Node* release_node();
-  inline void set_allocated_node(::client::Node* node);
-
-  // @@protoc_insertion_point(class_scope:client.CmdResponse.Redirect)
- private:
-  inline void set_has_node();
-  inline void clear_has_node();
-
-  ::google::protobuf::UnknownFieldSet _unknown_fields_;
-
-  ::client::Node* node_;
-
-  mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
-
-  friend void  protobuf_AddDesc_client_2eproto();
-  friend void protobuf_AssignDesc_client_2eproto();
-  friend void protobuf_ShutdownFile_client_2eproto();
-
-  void InitAsDefaultInstance();
-  static CmdResponse_Redirect* default_instance_;
-};
-// -------------------------------------------------------------------
-
 class CmdResponse : public ::google::protobuf::Message {
  public:
   CmdResponse();
@@ -1039,7 +954,6 @@ class CmdResponse : public ::google::protobuf::Message {
   // nested types ----------------------------------------------------
 
   typedef CmdResponse_Get Get;
-  typedef CmdResponse_Redirect Redirect;
 
   // accessors -------------------------------------------------------
 
@@ -1078,14 +992,14 @@ class CmdResponse : public ::google::protobuf::Message {
   inline ::client::CmdResponse_Get* release_get();
   inline void set_allocated_get(::client::CmdResponse_Get* get);
 
-  // optional .client.CmdResponse.Redirect redirect = 5;
+  // optional .client.Node redirect = 5;
   inline bool has_redirect() const;
   inline void clear_redirect();
   static const int kRedirectFieldNumber = 5;
-  inline const ::client::CmdResponse_Redirect& redirect() const;
-  inline ::client::CmdResponse_Redirect* mutable_redirect();
-  inline ::client::CmdResponse_Redirect* release_redirect();
-  inline void set_allocated_redirect(::client::CmdResponse_Redirect* redirect);
+  inline const ::client::Node& redirect() const;
+  inline ::client::Node* mutable_redirect();
+  inline ::client::Node* release_redirect();
+  inline void set_allocated_redirect(::client::Node* redirect);
 
   // @@protoc_insertion_point(class_scope:client.CmdResponse)
  private:
@@ -1106,7 +1020,7 @@ class CmdResponse : public ::google::protobuf::Message {
   int code_;
   ::std::string* msg_;
   ::client::CmdResponse_Get* get_;
-  ::client::CmdResponse_Redirect* redirect_;
+  ::client::Node* redirect_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
@@ -2362,48 +2276,6 @@ inline void CmdResponse_Get::set_allocated_value(::std::string* value) {
 
 // -------------------------------------------------------------------
 
-// CmdResponse_Redirect
-
-// required .client.Node node = 1;
-inline bool CmdResponse_Redirect::has_node() const {
-  return (_has_bits_[0] & 0x00000001u) != 0;
-}
-inline void CmdResponse_Redirect::set_has_node() {
-  _has_bits_[0] |= 0x00000001u;
-}
-inline void CmdResponse_Redirect::clear_has_node() {
-  _has_bits_[0] &= ~0x00000001u;
-}
-inline void CmdResponse_Redirect::clear_node() {
-  if (node_ != NULL) node_->::client::Node::Clear();
-  clear_has_node();
-}
-inline const ::client::Node& CmdResponse_Redirect::node() const {
-  return node_ != NULL ? *node_ : *default_instance_->node_;
-}
-inline ::client::Node* CmdResponse_Redirect::mutable_node() {
-  set_has_node();
-  if (node_ == NULL) node_ = new ::client::Node;
-  return node_;
-}
-inline ::client::Node* CmdResponse_Redirect::release_node() {
-  clear_has_node();
-  ::client::Node* temp = node_;
-  node_ = NULL;
-  return temp;
-}
-inline void CmdResponse_Redirect::set_allocated_node(::client::Node* node) {
-  delete node_;
-  node_ = node;
-  if (node) {
-    set_has_node();
-  } else {
-    clear_has_node();
-  }
-}
-
-// -------------------------------------------------------------------
-
 // CmdResponse
 
 // required .client.Type type = 1;
@@ -2560,7 +2432,7 @@ inline void CmdResponse::set_allocated_get(::client::CmdResponse_Get* get) {
   }
 }
 
-// optional .client.CmdResponse.Redirect redirect = 5;
+// optional .client.Node redirect = 5;
 inline bool CmdResponse::has_redirect() const {
   return (_has_bits_[0] & 0x00000010u) != 0;
 }
@@ -2571,24 +2443,24 @@ inline void CmdResponse::clear_has_redirect() {
   _has_bits_[0] &= ~0x00000010u;
 }
 inline void CmdResponse::clear_redirect() {
-  if (redirect_ != NULL) redirect_->::client::CmdResponse_Redirect::Clear();
+  if (redirect_ != NULL) redirect_->::client::Node::Clear();
   clear_has_redirect();
 }
-inline const ::client::CmdResponse_Redirect& CmdResponse::redirect() const {
+inline const ::client::Node& CmdResponse::redirect() const {
   return redirect_ != NULL ? *redirect_ : *default_instance_->redirect_;
 }
-inline ::client::CmdResponse_Redirect* CmdResponse::mutable_redirect() {
+inline ::client::Node* CmdResponse::mutable_redirect() {
   set_has_redirect();
-  if (redirect_ == NULL) redirect_ = new ::client::CmdResponse_Redirect;
+  if (redirect_ == NULL) redirect_ = new ::client::Node;
   return redirect_;
 }
-inline ::client::CmdResponse_Redirect* CmdResponse::release_redirect() {
+inline ::client::Node* CmdResponse::release_redirect() {
   clear_has_redirect();
-  ::client::CmdResponse_Redirect* temp = redirect_;
+  ::client::Node* temp = redirect_;
   redirect_ = NULL;
   return temp;
 }
-inline void CmdResponse::set_allocated_redirect(::client::CmdResponse_Redirect* redirect) {
+inline void CmdResponse::set_allocated_redirect(::client::Node* redirect) {
   delete redirect_;
   redirect_ = redirect;
   if (redirect) {
