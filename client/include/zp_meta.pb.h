@@ -72,11 +72,12 @@ inline bool StatusCode_Parse(
 enum Type {
   PING = 1,
   PULL = 2,
-  INIT = 3
+  INIT = 3,
+  SETMASTER = 4
 };
 bool Type_IsValid(int value);
 const Type Type_MIN = PING;
-const Type Type_MAX = INIT;
+const Type Type_MAX = SETMASTER;
 const int Type_ARRAYSIZE = Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Type_descriptor();
@@ -1036,24 +1037,24 @@ class MetaCmd_SetMaster : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required string table = 1;
-  inline bool has_table() const;
-  inline void clear_table();
-  static const int kTableFieldNumber = 1;
-  inline const ::std::string& table() const;
-  inline void set_table(const ::std::string& value);
-  inline void set_table(const char* value);
-  inline void set_table(const char* value, size_t size);
-  inline ::std::string* mutable_table();
-  inline ::std::string* release_table();
-  inline void set_allocated_table(::std::string* table);
+  // required string name = 1;
+  inline bool has_name() const;
+  inline void clear_name();
+  static const int kNameFieldNumber = 1;
+  inline const ::std::string& name() const;
+  inline void set_name(const ::std::string& value);
+  inline void set_name(const char* value);
+  inline void set_name(const char* value, size_t size);
+  inline ::std::string* mutable_name();
+  inline ::std::string* release_name();
+  inline void set_allocated_name(::std::string* name);
 
-  // required int32 paritition = 2;
-  inline bool has_paritition() const;
-  inline void clear_paritition();
-  static const int kParititionFieldNumber = 2;
-  inline ::google::protobuf::int32 paritition() const;
-  inline void set_paritition(::google::protobuf::int32 value);
+  // required int32 partition = 2;
+  inline bool has_partition() const;
+  inline void clear_partition();
+  static const int kPartitionFieldNumber = 2;
+  inline ::google::protobuf::int32 partition() const;
+  inline void set_partition(::google::protobuf::int32 value);
 
   // required .ZPMeta.Node node = 3;
   inline bool has_node() const;
@@ -1066,18 +1067,18 @@ class MetaCmd_SetMaster : public ::google::protobuf::Message {
 
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd.SetMaster)
  private:
-  inline void set_has_table();
-  inline void clear_has_table();
-  inline void set_has_paritition();
-  inline void clear_has_paritition();
+  inline void set_has_name();
+  inline void clear_has_name();
+  inline void set_has_partition();
+  inline void clear_has_partition();
   inline void set_has_node();
   inline void clear_has_node();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
-  ::std::string* table_;
+  ::std::string* name_;
   ::ZPMeta::Node* node_;
-  ::google::protobuf::int32 paritition_;
+  ::google::protobuf::int32 partition_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
@@ -2262,96 +2263,96 @@ inline void MetaCmd_Init::set_num(::google::protobuf::int32 value) {
 
 // MetaCmd_SetMaster
 
-// required string table = 1;
-inline bool MetaCmd_SetMaster::has_table() const {
+// required string name = 1;
+inline bool MetaCmd_SetMaster::has_name() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void MetaCmd_SetMaster::set_has_table() {
+inline void MetaCmd_SetMaster::set_has_name() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void MetaCmd_SetMaster::clear_has_table() {
+inline void MetaCmd_SetMaster::clear_has_name() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void MetaCmd_SetMaster::clear_table() {
-  if (table_ != &::google::protobuf::internal::kEmptyString) {
-    table_->clear();
+inline void MetaCmd_SetMaster::clear_name() {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    name_->clear();
   }
-  clear_has_table();
+  clear_has_name();
 }
-inline const ::std::string& MetaCmd_SetMaster::table() const {
-  return *table_;
+inline const ::std::string& MetaCmd_SetMaster::name() const {
+  return *name_;
 }
-inline void MetaCmd_SetMaster::set_table(const ::std::string& value) {
-  set_has_table();
-  if (table_ == &::google::protobuf::internal::kEmptyString) {
-    table_ = new ::std::string;
+inline void MetaCmd_SetMaster::set_name(const ::std::string& value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
   }
-  table_->assign(value);
+  name_->assign(value);
 }
-inline void MetaCmd_SetMaster::set_table(const char* value) {
-  set_has_table();
-  if (table_ == &::google::protobuf::internal::kEmptyString) {
-    table_ = new ::std::string;
+inline void MetaCmd_SetMaster::set_name(const char* value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
   }
-  table_->assign(value);
+  name_->assign(value);
 }
-inline void MetaCmd_SetMaster::set_table(const char* value, size_t size) {
-  set_has_table();
-  if (table_ == &::google::protobuf::internal::kEmptyString) {
-    table_ = new ::std::string;
+inline void MetaCmd_SetMaster::set_name(const char* value, size_t size) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
   }
-  table_->assign(reinterpret_cast<const char*>(value), size);
+  name_->assign(reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* MetaCmd_SetMaster::mutable_table() {
-  set_has_table();
-  if (table_ == &::google::protobuf::internal::kEmptyString) {
-    table_ = new ::std::string;
+inline ::std::string* MetaCmd_SetMaster::mutable_name() {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
   }
-  return table_;
+  return name_;
 }
-inline ::std::string* MetaCmd_SetMaster::release_table() {
-  clear_has_table();
-  if (table_ == &::google::protobuf::internal::kEmptyString) {
+inline ::std::string* MetaCmd_SetMaster::release_name() {
+  clear_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
     return NULL;
   } else {
-    ::std::string* temp = table_;
-    table_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    ::std::string* temp = name_;
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
     return temp;
   }
 }
-inline void MetaCmd_SetMaster::set_allocated_table(::std::string* table) {
-  if (table_ != &::google::protobuf::internal::kEmptyString) {
-    delete table_;
+inline void MetaCmd_SetMaster::set_allocated_name(::std::string* name) {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    delete name_;
   }
-  if (table) {
-    set_has_table();
-    table_ = table;
+  if (name) {
+    set_has_name();
+    name_ = name;
   } else {
-    clear_has_table();
-    table_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    clear_has_name();
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   }
 }
 
-// required int32 paritition = 2;
-inline bool MetaCmd_SetMaster::has_paritition() const {
+// required int32 partition = 2;
+inline bool MetaCmd_SetMaster::has_partition() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void MetaCmd_SetMaster::set_has_paritition() {
+inline void MetaCmd_SetMaster::set_has_partition() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void MetaCmd_SetMaster::clear_has_paritition() {
+inline void MetaCmd_SetMaster::clear_has_partition() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void MetaCmd_SetMaster::clear_paritition() {
-  paritition_ = 0;
-  clear_has_paritition();
+inline void MetaCmd_SetMaster::clear_partition() {
+  partition_ = 0;
+  clear_has_partition();
 }
-inline ::google::protobuf::int32 MetaCmd_SetMaster::paritition() const {
-  return paritition_;
+inline ::google::protobuf::int32 MetaCmd_SetMaster::partition() const {
+  return partition_;
 }
-inline void MetaCmd_SetMaster::set_paritition(::google::protobuf::int32 value) {
-  set_has_paritition();
-  paritition_ = value;
+inline void MetaCmd_SetMaster::set_partition(::google::protobuf::int32 value) {
+  set_has_partition();
+  partition_ = value;
 }
 
 // required .ZPMeta.Node node = 3;
