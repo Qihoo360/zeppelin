@@ -11,6 +11,9 @@ enum Type {
   PULL = 2;
   INIT = 3;
   SETMASTER = 4;
+  LISTTABLE = 5;
+  LISTDATA = 6;
+  LISTMETA = 7;
 }
 
 enum PState {
@@ -98,4 +101,7 @@ message MetaCmdResponse {
     repeated Table info = 2;
   }
   optional Pull pull = 5;
+  optional Nodes data_node = 6;
+  optional Nodes meta_node = 7;
+  optional TableName pull = 8;
 }

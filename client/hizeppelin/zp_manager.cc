@@ -160,7 +160,7 @@ void StartRepl(libzp::Cluster* cluster) {
       std::cout << s.ToString() << std::endl;
 
     } else if (!strncmp(line, "setmaster ", 10)) {
-      if (line_args.size() != 4) {
+      if (line_args.size() != 5) {
         std::cout << "arg num wrong" << std::endl;
         continue;
       }
