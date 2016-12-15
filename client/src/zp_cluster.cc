@@ -269,6 +269,7 @@ Status Cluster::DebugDumpTable(const std::string& table) {
   }
 }
 
+
 Table::Partition* Cluster::GetPartition(const std::string& table,
     const std::string& key) {
   std::cout << "epoch:" << epoch_ << std::endl;
