@@ -270,6 +270,7 @@ Status ZPMetaServer::GetTableListForNode(const std::string &ip_port, std::set<st
 Status ZPMetaServer::SetMaster(const std::string &table, int partition, const ZPMeta::Node &node) {
   bool valid = false;
   std::string ip_port = slash::IpPortString(node.ip(), node.port());
+  LOG(INFO) << "SetMaster " << table << " " << partition << " " << ip_port;
 
   {
   slash::MutexLock l(&node_mutex_);
@@ -288,10 +289,14 @@ Status ZPMetaServer::SetMaster(const std::string &table, int partition, const ZP
     return s;
   }
   
-  // Validity check of the parameter(partition) must have been done by client
-  ZPMeta::Partitions p = table_info.partitions(partition-1);
+  if (partition < 0 || partition >= table_info.partitions_size()) {
+    return Status::Corruption("invalid partition");
+  }
 
-  if (p.master().ip() == node.ip() || p.master().port() == node.port()) {
+  ZPMeta::Partitions p = table_info.partitions(partition);
+
+  if (p.master().ip() == node.ip() && p.master().port() == node.port()) {
+    LOG(INFO) << "SetMaster: Already master";
     return Status::OK();
   }
 
@@ -304,6 +309,7 @@ Status ZPMetaServer::SetMaster(const std::string &table, int partition, const ZP
 
   if (valid) {
     UpdateTask task = {ZPMetaUpdateOP::kOpSetMaster, ip_port, table, partition};
+    LOG(INFO) << "SetMaster PushTask" << task.op << " " << ip_port << " " << table << " " << partition;
     AddMetaUpdateTask(task);
     return Status::OK();
   } else {
@@ -502,6 +508,10 @@ void ZPMetaServer::InitClientCmdTable() {
   //Init Command
   Cmd* initptr = new InitCmd(kCmdFlagsWrite);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::INIT), initptr));
+
+  //SetMaster Command
+  Cmd* setmasterptr = new SetMasterCmd(kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::SETMASTER), setmasterptr));
 }
 
 bool ZPMetaServer::ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque, const ZPMeta::Nodes &nodes, ZPMeta::Table *table_info, bool *should_update_version) {
@@ -594,12 +604,12 @@ void ZPMetaServer::DoSetMasterForTableInfo(ZPMeta::Table *table_info, int partit
   
   // zp-client garantee the validity of parameter partition
 
-  if (partition < 1 || partition > table_info->partitions_size()) {
+  if (partition < 0 || partition >= table_info->partitions_size()) {
     LOG(ERROR) << "invalid partition num in DoSetMasterForTableInfo for " << table_info->name() << " : " << partition;
     return;
   }
 
-  ZPMeta::Partitions* p = table_info->mutable_partitions(partition-1);
+  ZPMeta::Partitions* p = table_info->mutable_partitions(partition);
   if (p->master().ip() == ip && p->master().port() == port) {
     return;
   }
@@ -643,7 +653,7 @@ void ZPMetaServer::DoUpNodeForTableInfo(ZPMeta::Table *table_info, const std::st
 }
 
 void ZPMetaServer::DoClearStuckForTableInfo(ZPMeta::Table *table_info, int partition, bool *should_update_table_info) {
-  ZPMeta::Partitions* p = table_info->mutable_partitions(partition-1);
+  ZPMeta::Partitions* p = table_info->mutable_partitions(partition);
   if (p->state() == ZPMeta::PState::STUCK) {
     p->set_state(ZPMeta::PState::ACTIVE);
     *should_update_table_info = true;
