@@ -1,5 +1,6 @@
 /*
- * "Copyright [2016] <hrxwwd@163.com>"
+ * "Copyright [2016] qihoo"
+ * "Author <hrxwwd@163.com>"
  */
 #ifndef CLIENT_INCLUDE_ZP_TYPES_H_
 #define CLIENT_INCLUDE_ZP_TYPES_H_
@@ -24,16 +25,15 @@ typedef pink::Status Status;
 
 struct IpPort {
   IpPort() {
-    ip = std::string();
-    port = 0;
   }
-  IpPort(const std::string other_ip, int other_port) {
-    ip = other_ip;
-    port = other_port;
+  IpPort(const std::string& other_ip, int other_port) :
+    ip(other_ip),
+    port(other_port) {
   }
-  IpPort(const IpPort& other) {
-    ip = other.ip;
-    port = other.port;
+
+  IpPort(const IpPort& other) :
+    ip(other.ip),
+    port(other.port) {
   }
 
   ~IpPort() {
@@ -42,9 +42,10 @@ struct IpPort {
   std::string ip;
   int port;
 
-  void operator = (const IpPort& other) {
+  IpPort& operator = (const IpPort& other) {
     ip = other.ip;
     port = other.port;
+    return *this;
   }
 
   bool operator < (const IpPort& other) const {
@@ -73,7 +74,6 @@ class Table {
     explicit Partition(const ZPMeta::Partitions& partition_info) {
       master.ip = partition_info.master().ip();
       master.port = partition_info.master().port();
-      slaves.clear();
       for (int i = 0; i < partition_info.slaves_size(); i++) {
         slaves.push_back(IpPort(partition_info.slaves(i).ip(),
             partition_info.slaves(i).port()));
@@ -95,7 +95,6 @@ class Table {
   explicit Table(const ZPMeta::Table& table_info) {
     table_name_ = table_info.name();
     partition_num_ = table_info.partitions_size();
-    partitions_.clear();
     ZPMeta::Partitions partition_info;
     for (int i = 0; i < table_info.partitions_size(); i++) {
       partition_info = table_info.partitions(i);
@@ -115,7 +114,6 @@ class Table {
   IpPort GetKeyMaster(const std::string& key) {
     int par_num = std::hash<std::string>()(key) % partitions_.size();
     std::map<int, Partition*>::iterator iter = partitions_.find(par_num);
-    std::cout << "    partition: "<< par_num;
     if (iter != partitions_.end()) {
       return iter->second->master;
     } else {
@@ -123,13 +121,13 @@ class Table {
     }
   }
 
-  Partition GetPartition(const std::string& key) {
+  Partition* GetPartition(const std::string& key) {
     int par_num = std::hash<std::string>()(key) % partitions_.size();
     std::map<int, Partition*>::iterator iter = partitions_.find(par_num);
     if (iter != partitions_.end()) {
-      return *(iter->second);
+      return iter->second;
     } else {
-      return Partition();
+      return NULL;
     }
   }
 
@@ -161,16 +159,15 @@ class Options {
   std::vector<IpPort> meta_addr;
 };
 
-template<class Conn>
 class ConnectionPool {
  public :
-  Conn* GetConnection(const IpPort ip_port) {
-    typename std::map<IpPort, Conn*>::iterator it;
+  pink::PbCli* GetConnection(const IpPort ip_port) {
+    std::map<IpPort, pink::PbCli*>::iterator it;
     it = conn_pool_.find(ip_port);
     if (it != conn_pool_.end()) {
       return it->second;
     } else {
-      Conn* cli = new Conn();
+      pink::PbCli* cli = new pink::PbCli();
       Status s = cli->Connect(ip_port.ip, ip_port.port);
       if (s.ok()) {
         conn_pool_.insert(std::make_pair(ip_port, cli));
@@ -183,7 +180,7 @@ class ConnectionPool {
   }
 
   void RemoveConnection(const IpPort ip_port) {
-    typename std::map<IpPort, Conn*>::iterator it;
+    std::map<IpPort, pink::PbCli*>::iterator it;
     it = conn_pool_.find(ip_port);
     if (it != conn_pool_.end()) {
       delete(it->second);
@@ -191,7 +188,7 @@ class ConnectionPool {
     }
   }
 
-  Conn* GetExistConnection(IpPort* ip_port) {
+  pink::PbCli* GetExistConnection(IpPort* ip_port) {
     if (conn_pool_.size() != 0) {
       *ip_port = conn_pool_.begin()->first;
       return conn_pool_.begin()->second;
@@ -201,7 +198,7 @@ class ConnectionPool {
   }
 
  private:
-  std::map<IpPort, Conn*> conn_pool_;
+  std::map<IpPort, pink::PbCli*> conn_pool_;
 };
 
 }  // namespace libzp

@@ -72,11 +72,12 @@ inline bool StatusCode_Parse(
 enum Type {
   PING = 1,
   PULL = 2,
-  INIT = 3
+  INIT = 3,
+  SETMASTER = 4
 };
 bool Type_IsValid(int value);
 const Type Type_MIN = PING;
-const Type Type_MAX = INIT;
+const Type Type_MAX = SETMASTER;
 const int Type_ARRAYSIZE = Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Type_descriptor();

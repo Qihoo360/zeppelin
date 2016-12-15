@@ -24,4 +24,11 @@ class InitCmd : public Cmd {
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
+class SetMasterCmd : public Cmd {
+ public:
+  SetMasterCmd(int flag) : Cmd(flag) {}
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition = NULL) const;
+};
+
 #endif

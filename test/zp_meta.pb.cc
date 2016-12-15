@@ -417,8 +417,9 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "Ping\022\017\n\007version\030\001 \002(\005\0324\n\004Pull\022\017\n\007version"
     "\030\001 \002(\005\022\033\n\004info\030\002 \003(\0132\r.ZPMeta.Table*-\n\nS"
     "tatusCode\022\006\n\002OK\020\000\022\014\n\010NOTFOUND\020\001\022\t\n\005ERROR"
-    "\020\002*$\n\004Type\022\010\n\004PING\020\001\022\010\n\004PULL\020\002\022\010\n\004INIT\020\003"
-    "*\037\n\006PState\022\n\n\006ACTIVE\020\001\022\t\n\005STUCK\020\002", 1153);
+    "\020\002*3\n\004Type\022\010\n\004PING\020\001\022\010\n\004PULL\020\002\022\010\n\004INIT\020\003"
+    "\022\r\n\tSETMASTER\020\004*\037\n\006PState\022\n\n\006ACTIVE\020\001\022\t\n"
+    "\005STUCK\020\002", 1168);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zp_meta.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -482,6 +483,7 @@ bool Type_IsValid(int value) {
     case 1:
     case 2:
     case 3:
+    case 4:
       return true;
     default:
       return false;

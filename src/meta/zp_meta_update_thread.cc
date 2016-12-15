@@ -13,32 +13,31 @@ ZPMetaUpdateThread::~ZPMetaUpdateThread() {
   worker_.Stop();
 }
 
-void ZPMetaUpdateThread::ScheduleUpdate(ZPMetaUpdateTaskMap task_map) {
-  ZPMetaUpdateArgs* arg = new ZPMetaUpdateArgs(this, task_map);
+void ZPMetaUpdateThread::ScheduleUpdate(ZPMetaUpdateTaskDeque task_deque) {
+  ZPMetaUpdateArgs* arg = new ZPMetaUpdateArgs(this, task_deque);
   worker_.StartIfNeed();
-  LOG(INFO) << "Schedule to update thread worker, task num: " << task_map.size();
+  LOG(INFO) << "Schedule to update thread worker, task num: " << task_deque.size();
   worker_.Schedule(&DoMetaUpdate, static_cast<void*>(arg));
 }
 
 void ZPMetaUpdateThread::DoMetaUpdate(void *p) {
   ZPMetaUpdateThread::ZPMetaUpdateArgs *args = static_cast<ZPMetaUpdateThread::ZPMetaUpdateArgs*>(p);
   ZPMetaUpdateThread *thread = args->thread;
-  thread->MetaUpdate(args->task_map);
+  thread->MetaUpdate(args->task_deque);
 
   delete args;
 }
 
-slash::Status ZPMetaUpdateThread::MetaUpdate(ZPMetaUpdateTaskMap task_map) {
+slash::Status ZPMetaUpdateThread::MetaUpdate(ZPMetaUpdateTaskDeque task_deque) {
   slash::Status s;
-  s = g_meta_server->DoUpdate(task_map);
+  s = g_meta_server->DoUpdate(task_deque);
   if (s.IsCorruption() && s.ToString() == "Corruption: AddVersion Error") {
-    g_meta_server->AddMetaUpdateTask("", kOpAddVersion);
+    UpdateTask task = {kOpAddVersion, "pad_ip:6666", "", -1};
+    g_meta_server->AddMetaUpdateTask(task);
   }
   if (!s.ok()) {
     sleep(1);
-    for (auto iter = task_map.begin(); iter != task_map.end(); iter++) {
-      g_meta_server->AddMetaUpdateTask(iter->first, iter->second);
-    }
+    g_meta_server->AddMetaUpdateTaskDequeFromFront(task_deque);
   }
   return s;
 }

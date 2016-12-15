@@ -82,7 +82,7 @@ void SplitByBlank(std::string& line, std::vector<std::string>& line_args) {
   }
 }
 
-void StartRepl(libzp::Cluster& cluster) {
+void StartRepl(libzp::Cluster* cluster) {
   char *line;
   linenoiseSetMultiLine(1);
   linenoiseSetCompletionCallback(completion);
@@ -101,27 +101,30 @@ void StartRepl(libzp::Cluster& cluster) {
     if (!strncmp(line, "create ", 7)) {
       std::string table_name = line_args[1];
       int partition_num = atoi(line_args[2].c_str());
-      s = cluster.CreateTable(table_name, partition_num);
+      s = cluster->CreateTable(table_name, partition_num);
       std::cout << s.ToString() << std::endl;
       std::cout << "repull table "<< table_name << std::endl;
-      s = cluster.Pull(table_name);
+      s = cluster->Pull(table_name);
+
     } else if (!strncmp(line, "pull ", 5)) {
       if (line_args.size() != 2) {
         std::cout << "arg num wrong" << std::endl;
         continue;
       }
       std::string table_name = line_args[1];
-      s = cluster.Pull(table_name);
+      s = cluster->Pull(table_name);
       std::cout << s.ToString() << std::endl;
       std::cout << "current table info:" << std::endl;
-      cluster.DebugDumpTable(table_name);
+      cluster->DebugDumpTable(table_name);
+
     } else if (!strncmp(line, "dump table ", 11)) {
       if (line_args.size() != 3) {
         std::cout << "arg num wrong" << std::endl;
         continue;
       }
       std::string table_name = line_args[2];
-      cluster.DebugDumpTable(table_name);
+      cluster->DebugDumpTable(table_name);
+
     } else if (!strncmp(line, "locate ", 5)) {
       if (line_args.size() != 3) {
         std::cout << "arg num wrong" << std::endl;
@@ -129,16 +132,22 @@ void StartRepl(libzp::Cluster& cluster) {
       }
       std::string table_name = line_args[1];
       std::string key = line_args[2];
-      libzp::Table::Partition partition = cluster.GetPartition(table_name, key);
-      std::cout << "partition_id: " << partition.id << std::endl;
-      std::cout << "master: " << partition.master.ip << ":"
-        << partition.master.port << std::endl;
-      auto iter = partition.slaves.begin();
-      while (iter != partition.slaves.end()) {
-        std::cout << "slave: "<< iter->ip << ":"
-          << iter->port << std::endl;
-        iter++;
+      libzp::Table::Partition* partition =
+        cluster->GetPartition(table_name, key);
+      if (partition) {
+        std::cout << "partition_id: " << partition->id << std::endl;
+        std::cout << "master: " << partition->master.ip << ":"
+          << partition->master.port << std::endl;
+        auto iter = partition->slaves.begin();
+        while (iter != partition->slaves.end()) {
+          std::cout << "slave: "<< iter->ip << ":"
+            << iter->port << std::endl;
+          iter++;
+        }
+      } else {
+        std::cout << "doe not exist in local table" << std::endl;
       }
+
     } else if (!strncmp(line, "set ", 4)) {
       if (line_args.size() != 4) {
         std::cout << "arg num wrong" << std::endl;
@@ -147,8 +156,20 @@ void StartRepl(libzp::Cluster& cluster) {
       std::string table_name = line_args[1];
       std::string key = line_args[2];
       std::string value = line_args[3];
-      s = cluster.Set(table_name, key, value);
+      s = cluster->Set(table_name, key, value);
       std::cout << s.ToString() << std::endl;
+
+    } else if (!strncmp(line, "setmaster ", 10)) {
+      if (line_args.size() != 5) {
+        std::cout << "arg num wrong" << std::endl;
+        continue;
+      }
+      std::string table_name = line_args[1];
+      int partition = atoi(line_args[2].c_str());
+      libzp::IpPort ip_port(line_args[3], atoi(line_args[4].c_str()));
+      s = cluster->SetMaster(table_name, partition, ip_port);
+      std::cout << s.ToString() << std::endl;
+
     } else if (!strncmp(line, "get ", 4)) {
       if (line_args.size() != 3) {
         std::cout << "arg num wrong" << std::endl;
@@ -157,12 +178,13 @@ void StartRepl(libzp::Cluster& cluster) {
       std::string table_name = line_args[1];
       std::string key = line_args[2];
       std::string value;
-      s = cluster.Get(table_name, key, &value);
+      s = cluster->Get(table_name, key, &value);
       if (s.ok()) {
         std::cout << value << std::endl;
       } else {
         std::cout << s.ToString() << std::endl;
       }
+
     } else {
       printf("Unreconized command: %s\n", line);
     }
@@ -178,15 +200,15 @@ int main(int argc, char* argv[]) {
   }
   std::cout << "start" << std::endl;
   libzp::Options option;
-  libzp::IpPort ip_port = libzp::IpPort(argv[1], atoi(argv[2]));
+  libzp::IpPort ip_port(argv[1], atoi(argv[2]));
   option.meta_addr.push_back(ip_port);
 
   // cluster handle cluster operation
   std::cout << "create cluster" << std::endl;
-  libzp::Cluster cluster = libzp::Cluster(option);
+  libzp::Cluster* cluster = new libzp::Cluster(option);
   std::cout << "connect cluster" << std::endl;
   // needs connect to cluster first
-  libzp::Status s = cluster.Connect();
+  libzp::Status s = cluster->Connect();
   if (!s.ok()) {
     std::cout << s.ToString() << std::endl;
     exit(-1);
