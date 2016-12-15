@@ -10,6 +10,7 @@ enum Type {
   PING = 1;
   PULL = 2;
   INIT = 3;
+  SETMASTER = 4;
 }
 
 enum PState {

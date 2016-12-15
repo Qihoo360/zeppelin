@@ -13,28 +13,37 @@
 enum ZPMetaUpdateOP {
   kOpAdd,
   kOpRemove,
-  kOpAddVersion
+  kOpAddVersion,
+  kOpSetMaster,
+  kOpClearStuck
 };
 
-typedef std::unordered_map<std::string, ZPMetaUpdateOP> ZPMetaUpdateTaskMap;
+struct UpdateTask {
+  ZPMetaUpdateOP op;
+  std::string ip_port;
+  std::string table;
+  int partition;
+};
+
+typedef std::deque<UpdateTask> ZPMetaUpdateTaskDeque;
 
 class ZPMetaUpdateThread {
 public:
   ZPMetaUpdateThread();
   ~ZPMetaUpdateThread();
 
-  void ScheduleUpdate(ZPMetaUpdateTaskMap task_map);
+  void ScheduleUpdate(ZPMetaUpdateTaskDeque task_deque);
   static void DoMetaUpdate(void *p);
 
 private:
   pink::BGThread worker_;
-  slash::Status MetaUpdate(ZPMetaUpdateTaskMap task_map);
+  slash::Status MetaUpdate(ZPMetaUpdateTaskDeque task_deque);
 
   struct ZPMetaUpdateArgs {
     ZPMetaUpdateThread * thread;
-    ZPMetaUpdateTaskMap task_map;
-    ZPMetaUpdateArgs(ZPMetaUpdateThread *_thread, ZPMetaUpdateTaskMap _task_map) :
-      thread(_thread), task_map(_task_map) {}
+    ZPMetaUpdateTaskDeque task_deque;
+    ZPMetaUpdateArgs(ZPMetaUpdateThread *_thread, ZPMetaUpdateTaskDeque _task_deque) :
+      thread(_thread), task_deque(_task_deque) {}
   };
 
 };

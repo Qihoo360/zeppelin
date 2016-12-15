@@ -95,3 +95,24 @@ void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
     response->set_msg(s.ToString());
   }
 }
+
+void SetMasterCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+  std::string name = request->set_master().name();
+  std::string table = slash::StringToLower(name);
+  int p = request->set_master().partition();
+  ZPMeta::Node node = request->set_master().node();
+  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+
+  response->set_type(ZPMeta::Type::SETMASTER);
+
+  Status s = g_meta_server->SetMaster(table, p, node);
+
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("SetMaster OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
+}
