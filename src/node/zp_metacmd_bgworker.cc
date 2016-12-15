@@ -1,4 +1,4 @@
-#include "zp_metacmd_thread.h"
+#include "zp_metacmd_bgworker.h"
 #include <string.h>
 #include <glog/logging.h>
 #include <google/protobuf/text_format.h>
@@ -8,36 +8,35 @@
 
 extern ZPDataServer* zp_data_server;
 
-ZPMetacmdThread::ZPMetacmdThread()
-  :is_working_(false) {
+ZPMetacmdBGWorker::ZPMetacmdBGWorker() {
     cli_ = new pink::PbCli();
     cli_->set_connect_timeout(1500);
+    bg_thread_ = new pink::BGThread();
   }
 
-void ZPMetacmdThread::MetacmdTaskSchedule() {
-  if (is_working_)
-    return;
-  is_working_ = true;
-  StartIfNeed();
-  Schedule(&DoMetaUpdateTask, static_cast<void*>(this));
-}
-
-ZPMetacmdThread::~ZPMetacmdThread() {
-  Stop();
+ZPMetacmdBGWorker::~ZPMetacmdBGWorker() {
+  bg_thread_->Stop();
+  delete bg_thread_;
   delete cli_;
-  LOG(INFO) << "ZPMetacmd thread " << thread_id() << " exit!!!";
+  LOG(INFO) << "ZPMetacmd thread " << bg_thread_->thread_id() << " exit!!!";
 }
 
-void ZPMetacmdThread::MetaUpdateTask() {
+void ZPMetacmdBGWorker::AddTask() {
+  bg_thread_->StartIfNeed();
+  bg_thread_->Schedule(&MetaUpdateTask, static_cast<void*>(this));
+}
+
+void ZPMetacmdBGWorker::MetaUpdateTask(void* task) {
+  ZPMetacmdBGWorker* worker =  static_cast<ZPMetacmdBGWorker*>(task);
   int64_t receive_epoch = 0;
   if (!zp_data_server->ShouldPullMeta()) {
+    // Avoid multiple invalid Pull
     return;
   }
 
-  if (FetchMetaInfo(receive_epoch)) {
+  if (worker->FetchMetaInfo(receive_epoch)) {
     // When we fetch OK, we will FinishPullMeta
     zp_data_server->FinishPullMeta(receive_epoch);
-    is_working_ = false;
   } else {
     // Sleep and try again
     sleep(kMetacmdInterval);
@@ -45,7 +44,7 @@ void ZPMetacmdThread::MetaUpdateTask() {
   }
 }
 
-pink::Status ZPMetacmdThread::Send() {
+pink::Status ZPMetacmdBGWorker::Send() {
   ZPMeta::MetaCmd request;
 
   DLOG(INFO) << "MetacmdThread send pull to MetaServer(" << zp_data_server->meta_ip() << ":"
@@ -66,7 +65,7 @@ pink::Status ZPMetacmdThread::Send() {
   return cli_->Send(&request);
 }
 
-pink::Status ZPMetacmdThread::Recv(int64_t &receive_epoch) {
+pink::Status ZPMetacmdBGWorker::Recv(int64_t &receive_epoch) {
   pink::Status result;
   ZPMeta::MetaCmdResponse response;
   std::string meta_ip = zp_data_server->meta_ip();
@@ -89,7 +88,7 @@ pink::Status ZPMetacmdThread::Recv(int64_t &receive_epoch) {
   return result;
 }
 
-pink::Status ZPMetacmdThread::ParsePullResponse(const ZPMeta::MetaCmdResponse &response, int64_t &receive_epoch) {
+pink::Status ZPMetacmdBGWorker::ParsePullResponse(const ZPMeta::MetaCmdResponse &response, int64_t &receive_epoch) {
   if (response.code() != ZPMeta::StatusCode::OK) {
     return pink::Status::IOError(response.msg());
   }
@@ -135,7 +134,7 @@ pink::Status ZPMetacmdThread::ParsePullResponse(const ZPMeta::MetaCmdResponse &r
 
 }
 
-bool ZPMetacmdThread::FetchMetaInfo(int64_t &receive_epoch) {
+bool ZPMetacmdBGWorker::FetchMetaInfo(int64_t &receive_epoch) {
   pink::Status s;
   std::string meta_ip = zp_data_server->meta_ip();
   int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;

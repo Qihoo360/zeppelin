@@ -56,7 +56,7 @@ int ZPSyncConn::DealMessage() {
   // We need to malloc for args need by binglog_bgworker
   // So that it will not be free after the executing of current function
   // Remeber to free these space by the binlog_bgworker at the end of its task
-  ZPBinlogReceiveArg *arg = new ZPBinlogReceiveArg(
+  ZPBinlogReceiveTask *arg = new ZPBinlogReceiveTask(
       0, // Will be filled by zp_data_server
       cmd,
       request_,
