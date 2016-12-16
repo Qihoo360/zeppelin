@@ -40,11 +40,14 @@ class Nodes;
 class Partitions;
 class TableName;
 class Table;
+class BasicCmdUnit;
 class MetaCmd;
 class MetaCmd_Ping;
 class MetaCmd_Pull;
 class MetaCmd_Init;
 class MetaCmd_SetMaster;
+class MetaCmd_AddSlave;
+class MetaCmd_RemoveSlave;
 class MetaCmdResponse;
 class MetaCmdResponse_Ping;
 class MetaCmdResponse_Pull;
@@ -73,11 +76,16 @@ enum Type {
   PING = 1,
   PULL = 2,
   INIT = 3,
-  SETMASTER = 4
+  SETMASTER = 4,
+  ADDSLAVE = 5,
+  REMOVESLAVE = 6,
+  LISTTABLE = 7,
+  LISTDATA = 8,
+  LISTMETA = 9
 };
 bool Type_IsValid(int value);
 const Type Type_MIN = PING;
-const Type Type_MAX = SETMASTER;
+const Type Type_MAX = LISTMETA;
 const int Type_ARRAYSIZE = Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Type_descriptor();
@@ -693,6 +701,115 @@ class Table : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class BasicCmdUnit : public ::google::protobuf::Message {
+ public:
+  BasicCmdUnit();
+  virtual ~BasicCmdUnit();
+
+  BasicCmdUnit(const BasicCmdUnit& from);
+
+  inline BasicCmdUnit& operator=(const BasicCmdUnit& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const BasicCmdUnit& default_instance();
+
+  void Swap(BasicCmdUnit* other);
+
+  // implements Message ----------------------------------------------
+
+  BasicCmdUnit* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const BasicCmdUnit& from);
+  void MergeFrom(const BasicCmdUnit& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string name = 1;
+  inline bool has_name() const;
+  inline void clear_name();
+  static const int kNameFieldNumber = 1;
+  inline const ::std::string& name() const;
+  inline void set_name(const ::std::string& value);
+  inline void set_name(const char* value);
+  inline void set_name(const char* value, size_t size);
+  inline ::std::string* mutable_name();
+  inline ::std::string* release_name();
+  inline void set_allocated_name(::std::string* name);
+
+  // required int32 partition = 2;
+  inline bool has_partition() const;
+  inline void clear_partition();
+  static const int kPartitionFieldNumber = 2;
+  inline ::google::protobuf::int32 partition() const;
+  inline void set_partition(::google::protobuf::int32 value);
+
+  // required .ZPMeta.Node node = 3;
+  inline bool has_node() const;
+  inline void clear_node();
+  static const int kNodeFieldNumber = 3;
+  inline const ::ZPMeta::Node& node() const;
+  inline ::ZPMeta::Node* mutable_node();
+  inline ::ZPMeta::Node* release_node();
+  inline void set_allocated_node(::ZPMeta::Node* node);
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.BasicCmdUnit)
+ private:
+  inline void set_has_name();
+  inline void clear_has_name();
+  inline void set_has_partition();
+  inline void clear_has_partition();
+  inline void set_has_node();
+  inline void clear_has_node();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* name_;
+  ::ZPMeta::Node* node_;
+  ::google::protobuf::int32 partition_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static BasicCmdUnit* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class MetaCmd_Ping : public ::google::protobuf::Message {
  public:
   MetaCmd_Ping();
@@ -1037,51 +1154,26 @@ class MetaCmd_SetMaster : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required string name = 1;
-  inline bool has_name() const;
-  inline void clear_name();
-  static const int kNameFieldNumber = 1;
-  inline const ::std::string& name() const;
-  inline void set_name(const ::std::string& value);
-  inline void set_name(const char* value);
-  inline void set_name(const char* value, size_t size);
-  inline ::std::string* mutable_name();
-  inline ::std::string* release_name();
-  inline void set_allocated_name(::std::string* name);
-
-  // required int32 partition = 2;
-  inline bool has_partition() const;
-  inline void clear_partition();
-  static const int kPartitionFieldNumber = 2;
-  inline ::google::protobuf::int32 partition() const;
-  inline void set_partition(::google::protobuf::int32 value);
-
-  // required .ZPMeta.Node node = 3;
-  inline bool has_node() const;
-  inline void clear_node();
-  static const int kNodeFieldNumber = 3;
-  inline const ::ZPMeta::Node& node() const;
-  inline ::ZPMeta::Node* mutable_node();
-  inline ::ZPMeta::Node* release_node();
-  inline void set_allocated_node(::ZPMeta::Node* node);
+  // required .ZPMeta.BasicCmdUnit basic = 1;
+  inline bool has_basic() const;
+  inline void clear_basic();
+  static const int kBasicFieldNumber = 1;
+  inline const ::ZPMeta::BasicCmdUnit& basic() const;
+  inline ::ZPMeta::BasicCmdUnit* mutable_basic();
+  inline ::ZPMeta::BasicCmdUnit* release_basic();
+  inline void set_allocated_basic(::ZPMeta::BasicCmdUnit* basic);
 
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd.SetMaster)
  private:
-  inline void set_has_name();
-  inline void clear_has_name();
-  inline void set_has_partition();
-  inline void clear_has_partition();
-  inline void set_has_node();
-  inline void clear_has_node();
+  inline void set_has_basic();
+  inline void clear_has_basic();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
-  ::std::string* name_;
-  ::ZPMeta::Node* node_;
-  ::google::protobuf::int32 partition_;
+  ::ZPMeta::BasicCmdUnit* basic_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -1089,6 +1181,174 @@ class MetaCmd_SetMaster : public ::google::protobuf::Message {
 
   void InitAsDefaultInstance();
   static MetaCmd_SetMaster* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class MetaCmd_AddSlave : public ::google::protobuf::Message {
+ public:
+  MetaCmd_AddSlave();
+  virtual ~MetaCmd_AddSlave();
+
+  MetaCmd_AddSlave(const MetaCmd_AddSlave& from);
+
+  inline MetaCmd_AddSlave& operator=(const MetaCmd_AddSlave& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const MetaCmd_AddSlave& default_instance();
+
+  void Swap(MetaCmd_AddSlave* other);
+
+  // implements Message ----------------------------------------------
+
+  MetaCmd_AddSlave* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const MetaCmd_AddSlave& from);
+  void MergeFrom(const MetaCmd_AddSlave& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required .ZPMeta.BasicCmdUnit basic = 1;
+  inline bool has_basic() const;
+  inline void clear_basic();
+  static const int kBasicFieldNumber = 1;
+  inline const ::ZPMeta::BasicCmdUnit& basic() const;
+  inline ::ZPMeta::BasicCmdUnit* mutable_basic();
+  inline ::ZPMeta::BasicCmdUnit* release_basic();
+  inline void set_allocated_basic(::ZPMeta::BasicCmdUnit* basic);
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd.AddSlave)
+ private:
+  inline void set_has_basic();
+  inline void clear_has_basic();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::ZPMeta::BasicCmdUnit* basic_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static MetaCmd_AddSlave* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class MetaCmd_RemoveSlave : public ::google::protobuf::Message {
+ public:
+  MetaCmd_RemoveSlave();
+  virtual ~MetaCmd_RemoveSlave();
+
+  MetaCmd_RemoveSlave(const MetaCmd_RemoveSlave& from);
+
+  inline MetaCmd_RemoveSlave& operator=(const MetaCmd_RemoveSlave& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const MetaCmd_RemoveSlave& default_instance();
+
+  void Swap(MetaCmd_RemoveSlave* other);
+
+  // implements Message ----------------------------------------------
+
+  MetaCmd_RemoveSlave* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const MetaCmd_RemoveSlave& from);
+  void MergeFrom(const MetaCmd_RemoveSlave& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required .ZPMeta.BasicCmdUnit basic = 1;
+  inline bool has_basic() const;
+  inline void clear_basic();
+  static const int kBasicFieldNumber = 1;
+  inline const ::ZPMeta::BasicCmdUnit& basic() const;
+  inline ::ZPMeta::BasicCmdUnit* mutable_basic();
+  inline ::ZPMeta::BasicCmdUnit* release_basic();
+  inline void set_allocated_basic(::ZPMeta::BasicCmdUnit* basic);
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd.RemoveSlave)
+ private:
+  inline void set_has_basic();
+  inline void clear_has_basic();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::ZPMeta::BasicCmdUnit* basic_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static MetaCmd_RemoveSlave* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -1148,6 +1408,8 @@ class MetaCmd : public ::google::protobuf::Message {
   typedef MetaCmd_Pull Pull;
   typedef MetaCmd_Init Init;
   typedef MetaCmd_SetMaster SetMaster;
+  typedef MetaCmd_AddSlave AddSlave;
+  typedef MetaCmd_RemoveSlave RemoveSlave;
 
   // accessors -------------------------------------------------------
 
@@ -1194,6 +1456,24 @@ class MetaCmd : public ::google::protobuf::Message {
   inline ::ZPMeta::MetaCmd_SetMaster* release_set_master();
   inline void set_allocated_set_master(::ZPMeta::MetaCmd_SetMaster* set_master);
 
+  // optional .ZPMeta.MetaCmd.AddSlave add_slave = 6;
+  inline bool has_add_slave() const;
+  inline void clear_add_slave();
+  static const int kAddSlaveFieldNumber = 6;
+  inline const ::ZPMeta::MetaCmd_AddSlave& add_slave() const;
+  inline ::ZPMeta::MetaCmd_AddSlave* mutable_add_slave();
+  inline ::ZPMeta::MetaCmd_AddSlave* release_add_slave();
+  inline void set_allocated_add_slave(::ZPMeta::MetaCmd_AddSlave* add_slave);
+
+  // optional .ZPMeta.MetaCmd.RemoveSlave remove_slave = 7;
+  inline bool has_remove_slave() const;
+  inline void clear_remove_slave();
+  static const int kRemoveSlaveFieldNumber = 7;
+  inline const ::ZPMeta::MetaCmd_RemoveSlave& remove_slave() const;
+  inline ::ZPMeta::MetaCmd_RemoveSlave* mutable_remove_slave();
+  inline ::ZPMeta::MetaCmd_RemoveSlave* release_remove_slave();
+  inline void set_allocated_remove_slave(::ZPMeta::MetaCmd_RemoveSlave* remove_slave);
+
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd)
  private:
   inline void set_has_type();
@@ -1206,6 +1486,10 @@ class MetaCmd : public ::google::protobuf::Message {
   inline void clear_has_init();
   inline void set_has_set_master();
   inline void clear_has_set_master();
+  inline void set_has_add_slave();
+  inline void clear_has_add_slave();
+  inline void set_has_remove_slave();
+  inline void clear_has_remove_slave();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -1213,10 +1497,12 @@ class MetaCmd : public ::google::protobuf::Message {
   ::ZPMeta::MetaCmd_Pull* pull_;
   ::ZPMeta::MetaCmd_Init* init_;
   ::ZPMeta::MetaCmd_SetMaster* set_master_;
+  ::ZPMeta::MetaCmd_AddSlave* add_slave_;
+  ::ZPMeta::MetaCmd_RemoveSlave* remove_slave_;
   int type_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -1989,6 +2275,140 @@ Table::mutable_partitions() {
 
 // -------------------------------------------------------------------
 
+// BasicCmdUnit
+
+// required string name = 1;
+inline bool BasicCmdUnit::has_name() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void BasicCmdUnit::set_has_name() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void BasicCmdUnit::clear_has_name() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void BasicCmdUnit::clear_name() {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    name_->clear();
+  }
+  clear_has_name();
+}
+inline const ::std::string& BasicCmdUnit::name() const {
+  return *name_;
+}
+inline void BasicCmdUnit::set_name(const ::std::string& value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
+}
+inline void BasicCmdUnit::set_name(const char* value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
+}
+inline void BasicCmdUnit::set_name(const char* value, size_t size) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* BasicCmdUnit::mutable_name() {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  return name_;
+}
+inline ::std::string* BasicCmdUnit::release_name() {
+  clear_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = name_;
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void BasicCmdUnit::set_allocated_name(::std::string* name) {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    delete name_;
+  }
+  if (name) {
+    set_has_name();
+    name_ = name;
+  } else {
+    clear_has_name();
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required int32 partition = 2;
+inline bool BasicCmdUnit::has_partition() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void BasicCmdUnit::set_has_partition() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void BasicCmdUnit::clear_has_partition() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void BasicCmdUnit::clear_partition() {
+  partition_ = 0;
+  clear_has_partition();
+}
+inline ::google::protobuf::int32 BasicCmdUnit::partition() const {
+  return partition_;
+}
+inline void BasicCmdUnit::set_partition(::google::protobuf::int32 value) {
+  set_has_partition();
+  partition_ = value;
+}
+
+// required .ZPMeta.Node node = 3;
+inline bool BasicCmdUnit::has_node() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void BasicCmdUnit::set_has_node() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void BasicCmdUnit::clear_has_node() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void BasicCmdUnit::clear_node() {
+  if (node_ != NULL) node_->::ZPMeta::Node::Clear();
+  clear_has_node();
+}
+inline const ::ZPMeta::Node& BasicCmdUnit::node() const {
+  return node_ != NULL ? *node_ : *default_instance_->node_;
+}
+inline ::ZPMeta::Node* BasicCmdUnit::mutable_node() {
+  set_has_node();
+  if (node_ == NULL) node_ = new ::ZPMeta::Node;
+  return node_;
+}
+inline ::ZPMeta::Node* BasicCmdUnit::release_node() {
+  clear_has_node();
+  ::ZPMeta::Node* temp = node_;
+  node_ = NULL;
+  return temp;
+}
+inline void BasicCmdUnit::set_allocated_node(::ZPMeta::Node* node) {
+  delete node_;
+  node_ = node;
+  if (node) {
+    set_has_node();
+  } else {
+    clear_has_node();
+  }
+}
+
+// -------------------------------------------------------------------
+
 // MetaCmd_Ping
 
 // required int32 version = 1;
@@ -2263,133 +2683,125 @@ inline void MetaCmd_Init::set_num(::google::protobuf::int32 value) {
 
 // MetaCmd_SetMaster
 
-// required string name = 1;
-inline bool MetaCmd_SetMaster::has_name() const {
+// required .ZPMeta.BasicCmdUnit basic = 1;
+inline bool MetaCmd_SetMaster::has_basic() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void MetaCmd_SetMaster::set_has_name() {
+inline void MetaCmd_SetMaster::set_has_basic() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void MetaCmd_SetMaster::clear_has_name() {
+inline void MetaCmd_SetMaster::clear_has_basic() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void MetaCmd_SetMaster::clear_name() {
-  if (name_ != &::google::protobuf::internal::kEmptyString) {
-    name_->clear();
-  }
-  clear_has_name();
+inline void MetaCmd_SetMaster::clear_basic() {
+  if (basic_ != NULL) basic_->::ZPMeta::BasicCmdUnit::Clear();
+  clear_has_basic();
 }
-inline const ::std::string& MetaCmd_SetMaster::name() const {
-  return *name_;
+inline const ::ZPMeta::BasicCmdUnit& MetaCmd_SetMaster::basic() const {
+  return basic_ != NULL ? *basic_ : *default_instance_->basic_;
 }
-inline void MetaCmd_SetMaster::set_name(const ::std::string& value) {
-  set_has_name();
-  if (name_ == &::google::protobuf::internal::kEmptyString) {
-    name_ = new ::std::string;
-  }
-  name_->assign(value);
+inline ::ZPMeta::BasicCmdUnit* MetaCmd_SetMaster::mutable_basic() {
+  set_has_basic();
+  if (basic_ == NULL) basic_ = new ::ZPMeta::BasicCmdUnit;
+  return basic_;
 }
-inline void MetaCmd_SetMaster::set_name(const char* value) {
-  set_has_name();
-  if (name_ == &::google::protobuf::internal::kEmptyString) {
-    name_ = new ::std::string;
-  }
-  name_->assign(value);
-}
-inline void MetaCmd_SetMaster::set_name(const char* value, size_t size) {
-  set_has_name();
-  if (name_ == &::google::protobuf::internal::kEmptyString) {
-    name_ = new ::std::string;
-  }
-  name_->assign(reinterpret_cast<const char*>(value), size);
-}
-inline ::std::string* MetaCmd_SetMaster::mutable_name() {
-  set_has_name();
-  if (name_ == &::google::protobuf::internal::kEmptyString) {
-    name_ = new ::std::string;
-  }
-  return name_;
-}
-inline ::std::string* MetaCmd_SetMaster::release_name() {
-  clear_has_name();
-  if (name_ == &::google::protobuf::internal::kEmptyString) {
-    return NULL;
-  } else {
-    ::std::string* temp = name_;
-    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-    return temp;
-  }
-}
-inline void MetaCmd_SetMaster::set_allocated_name(::std::string* name) {
-  if (name_ != &::google::protobuf::internal::kEmptyString) {
-    delete name_;
-  }
-  if (name) {
-    set_has_name();
-    name_ = name;
-  } else {
-    clear_has_name();
-    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  }
-}
-
-// required int32 partition = 2;
-inline bool MetaCmd_SetMaster::has_partition() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
-}
-inline void MetaCmd_SetMaster::set_has_partition() {
-  _has_bits_[0] |= 0x00000002u;
-}
-inline void MetaCmd_SetMaster::clear_has_partition() {
-  _has_bits_[0] &= ~0x00000002u;
-}
-inline void MetaCmd_SetMaster::clear_partition() {
-  partition_ = 0;
-  clear_has_partition();
-}
-inline ::google::protobuf::int32 MetaCmd_SetMaster::partition() const {
-  return partition_;
-}
-inline void MetaCmd_SetMaster::set_partition(::google::protobuf::int32 value) {
-  set_has_partition();
-  partition_ = value;
-}
-
-// required .ZPMeta.Node node = 3;
-inline bool MetaCmd_SetMaster::has_node() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
-}
-inline void MetaCmd_SetMaster::set_has_node() {
-  _has_bits_[0] |= 0x00000004u;
-}
-inline void MetaCmd_SetMaster::clear_has_node() {
-  _has_bits_[0] &= ~0x00000004u;
-}
-inline void MetaCmd_SetMaster::clear_node() {
-  if (node_ != NULL) node_->::ZPMeta::Node::Clear();
-  clear_has_node();
-}
-inline const ::ZPMeta::Node& MetaCmd_SetMaster::node() const {
-  return node_ != NULL ? *node_ : *default_instance_->node_;
-}
-inline ::ZPMeta::Node* MetaCmd_SetMaster::mutable_node() {
-  set_has_node();
-  if (node_ == NULL) node_ = new ::ZPMeta::Node;
-  return node_;
-}
-inline ::ZPMeta::Node* MetaCmd_SetMaster::release_node() {
-  clear_has_node();
-  ::ZPMeta::Node* temp = node_;
-  node_ = NULL;
+inline ::ZPMeta::BasicCmdUnit* MetaCmd_SetMaster::release_basic() {
+  clear_has_basic();
+  ::ZPMeta::BasicCmdUnit* temp = basic_;
+  basic_ = NULL;
   return temp;
 }
-inline void MetaCmd_SetMaster::set_allocated_node(::ZPMeta::Node* node) {
-  delete node_;
-  node_ = node;
-  if (node) {
-    set_has_node();
+inline void MetaCmd_SetMaster::set_allocated_basic(::ZPMeta::BasicCmdUnit* basic) {
+  delete basic_;
+  basic_ = basic;
+  if (basic) {
+    set_has_basic();
   } else {
-    clear_has_node();
+    clear_has_basic();
+  }
+}
+
+// -------------------------------------------------------------------
+
+// MetaCmd_AddSlave
+
+// required .ZPMeta.BasicCmdUnit basic = 1;
+inline bool MetaCmd_AddSlave::has_basic() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void MetaCmd_AddSlave::set_has_basic() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void MetaCmd_AddSlave::clear_has_basic() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void MetaCmd_AddSlave::clear_basic() {
+  if (basic_ != NULL) basic_->::ZPMeta::BasicCmdUnit::Clear();
+  clear_has_basic();
+}
+inline const ::ZPMeta::BasicCmdUnit& MetaCmd_AddSlave::basic() const {
+  return basic_ != NULL ? *basic_ : *default_instance_->basic_;
+}
+inline ::ZPMeta::BasicCmdUnit* MetaCmd_AddSlave::mutable_basic() {
+  set_has_basic();
+  if (basic_ == NULL) basic_ = new ::ZPMeta::BasicCmdUnit;
+  return basic_;
+}
+inline ::ZPMeta::BasicCmdUnit* MetaCmd_AddSlave::release_basic() {
+  clear_has_basic();
+  ::ZPMeta::BasicCmdUnit* temp = basic_;
+  basic_ = NULL;
+  return temp;
+}
+inline void MetaCmd_AddSlave::set_allocated_basic(::ZPMeta::BasicCmdUnit* basic) {
+  delete basic_;
+  basic_ = basic;
+  if (basic) {
+    set_has_basic();
+  } else {
+    clear_has_basic();
+  }
+}
+
+// -------------------------------------------------------------------
+
+// MetaCmd_RemoveSlave
+
+// required .ZPMeta.BasicCmdUnit basic = 1;
+inline bool MetaCmd_RemoveSlave::has_basic() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void MetaCmd_RemoveSlave::set_has_basic() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void MetaCmd_RemoveSlave::clear_has_basic() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void MetaCmd_RemoveSlave::clear_basic() {
+  if (basic_ != NULL) basic_->::ZPMeta::BasicCmdUnit::Clear();
+  clear_has_basic();
+}
+inline const ::ZPMeta::BasicCmdUnit& MetaCmd_RemoveSlave::basic() const {
+  return basic_ != NULL ? *basic_ : *default_instance_->basic_;
+}
+inline ::ZPMeta::BasicCmdUnit* MetaCmd_RemoveSlave::mutable_basic() {
+  set_has_basic();
+  if (basic_ == NULL) basic_ = new ::ZPMeta::BasicCmdUnit;
+  return basic_;
+}
+inline ::ZPMeta::BasicCmdUnit* MetaCmd_RemoveSlave::release_basic() {
+  clear_has_basic();
+  ::ZPMeta::BasicCmdUnit* temp = basic_;
+  basic_ = NULL;
+  return temp;
+}
+inline void MetaCmd_RemoveSlave::set_allocated_basic(::ZPMeta::BasicCmdUnit* basic) {
+  delete basic_;
+  basic_ = basic;
+  if (basic) {
+    set_has_basic();
+  } else {
+    clear_has_basic();
   }
 }
 
@@ -2569,6 +2981,82 @@ inline void MetaCmd::set_allocated_set_master(::ZPMeta::MetaCmd_SetMaster* set_m
     set_has_set_master();
   } else {
     clear_has_set_master();
+  }
+}
+
+// optional .ZPMeta.MetaCmd.AddSlave add_slave = 6;
+inline bool MetaCmd::has_add_slave() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+inline void MetaCmd::set_has_add_slave() {
+  _has_bits_[0] |= 0x00000020u;
+}
+inline void MetaCmd::clear_has_add_slave() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline void MetaCmd::clear_add_slave() {
+  if (add_slave_ != NULL) add_slave_->::ZPMeta::MetaCmd_AddSlave::Clear();
+  clear_has_add_slave();
+}
+inline const ::ZPMeta::MetaCmd_AddSlave& MetaCmd::add_slave() const {
+  return add_slave_ != NULL ? *add_slave_ : *default_instance_->add_slave_;
+}
+inline ::ZPMeta::MetaCmd_AddSlave* MetaCmd::mutable_add_slave() {
+  set_has_add_slave();
+  if (add_slave_ == NULL) add_slave_ = new ::ZPMeta::MetaCmd_AddSlave;
+  return add_slave_;
+}
+inline ::ZPMeta::MetaCmd_AddSlave* MetaCmd::release_add_slave() {
+  clear_has_add_slave();
+  ::ZPMeta::MetaCmd_AddSlave* temp = add_slave_;
+  add_slave_ = NULL;
+  return temp;
+}
+inline void MetaCmd::set_allocated_add_slave(::ZPMeta::MetaCmd_AddSlave* add_slave) {
+  delete add_slave_;
+  add_slave_ = add_slave;
+  if (add_slave) {
+    set_has_add_slave();
+  } else {
+    clear_has_add_slave();
+  }
+}
+
+// optional .ZPMeta.MetaCmd.RemoveSlave remove_slave = 7;
+inline bool MetaCmd::has_remove_slave() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+inline void MetaCmd::set_has_remove_slave() {
+  _has_bits_[0] |= 0x00000040u;
+}
+inline void MetaCmd::clear_has_remove_slave() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline void MetaCmd::clear_remove_slave() {
+  if (remove_slave_ != NULL) remove_slave_->::ZPMeta::MetaCmd_RemoveSlave::Clear();
+  clear_has_remove_slave();
+}
+inline const ::ZPMeta::MetaCmd_RemoveSlave& MetaCmd::remove_slave() const {
+  return remove_slave_ != NULL ? *remove_slave_ : *default_instance_->remove_slave_;
+}
+inline ::ZPMeta::MetaCmd_RemoveSlave* MetaCmd::mutable_remove_slave() {
+  set_has_remove_slave();
+  if (remove_slave_ == NULL) remove_slave_ = new ::ZPMeta::MetaCmd_RemoveSlave;
+  return remove_slave_;
+}
+inline ::ZPMeta::MetaCmd_RemoveSlave* MetaCmd::release_remove_slave() {
+  clear_has_remove_slave();
+  ::ZPMeta::MetaCmd_RemoveSlave* temp = remove_slave_;
+  remove_slave_ = NULL;
+  return temp;
+}
+inline void MetaCmd::set_allocated_remove_slave(::ZPMeta::MetaCmd_RemoveSlave* remove_slave) {
+  delete remove_slave_;
+  remove_slave_ = remove_slave;
+  if (remove_slave) {
+    set_has_remove_slave();
+  } else {
+    clear_has_remove_slave();
   }
 }
 

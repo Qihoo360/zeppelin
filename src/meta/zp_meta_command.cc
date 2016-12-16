@@ -98,10 +98,10 @@ void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
 
 void SetMasterCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
-  std::string name = request->set_master().name();
+  std::string name = request->set_master().basic().name();
   std::string table = slash::StringToLower(name);
-  int p = request->set_master().partition();
-  ZPMeta::Node node = request->set_master().node();
+  int p = request->set_master().basic().partition();
+  ZPMeta::Node node = request->set_master().basic().node();
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::SETMASTER);

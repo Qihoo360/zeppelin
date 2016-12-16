@@ -11,9 +11,11 @@ enum Type {
   PULL = 2;
   INIT = 3;
   SETMASTER = 4;
-  LISTTABLE = 5;
-  LISTDATA = 6;
-  LISTMETA = 7;
+  ADDSLAVE = 5;
+  REMOVESLAVE = 6;
+  LISTTABLE = 7;
+  LISTDATA = 8;
+  LISTMETA = 9;
 }
 
 enum PState {
@@ -50,6 +52,12 @@ message Table {
   repeated Partitions partitions = 2;
 }
 
+message BasicCmdUnit {
+  required string name = 1;
+  required int32 partition = 2;
+  required Node node = 3;
+}
+
 message MetaCmd {
 
   required Type type = 1;
@@ -76,11 +84,19 @@ message MetaCmd {
   optional Init init = 4;
 
   message SetMaster{
-    required string name = 1;
-    required int32 partition = 2;
-    required Node node = 3;
+    required BasicCmdUnit basic = 1;
   }
   optional SetMaster set_master = 5;
+
+  message AddSlave {
+    required BasicCmdUnit basic = 1;
+  }
+  optional AddSlave add_slave = 6;
+
+  message RemoveSlave {
+    required BasicCmdUnit basic = 1;
+  }
+  optional RemoveSlave remove_slave = 7;
 }
 
 message MetaCmdResponse {
@@ -101,7 +117,4 @@ message MetaCmdResponse {
     repeated Table info = 2;
   }
   optional Pull pull = 5;
-  optional Nodes data_node = 6;
-  optional Nodes meta_node = 7;
-  optional TableName pull = 8;
 }
