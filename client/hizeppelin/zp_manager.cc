@@ -1,5 +1,6 @@
 /*
- * "Copyright [2016] <hrxwwd@163.com>"
+ * "Copyright [2016] qihoo"
+ * "Author <hrxwwd@163.com>"
  */
 #include <string>
 #include <vector>
@@ -168,6 +169,28 @@ void StartRepl(libzp::Cluster* cluster) {
       int partition = atoi(line_args[2].c_str());
       libzp::IpPort ip_port(line_args[3], atoi(line_args[4].c_str()));
       s = cluster->SetMaster(table_name, partition, ip_port);
+      std::cout << s.ToString() << std::endl;
+
+    } else if (!strncmp(line, "addslave ", 9)) {
+      if (line_args.size() != 5) {
+        std::cout << "arg num wrong" << std::endl;
+        continue;
+      }
+      std::string table_name = line_args[1];
+      int partition = atoi(line_args[2].c_str());
+      libzp::IpPort ip_port(line_args[3], atoi(line_args[4].c_str()));
+      s = cluster->AddSlave(table_name, partition, ip_port);
+      std::cout << s.ToString() << std::endl;
+
+    } else if (!strncmp(line, "removeslave ", 12)) {
+      if (line_args.size() != 5) {
+        std::cout << "arg num wrong" << std::endl;
+        continue;
+      }
+      std::string table_name = line_args[1];
+      int partition = atoi(line_args[2].c_str());
+      libzp::IpPort ip_port(line_args[3], atoi(line_args[4].c_str()));
+      s = cluster->RemoveSlave(table_name, partition, ip_port);
       std::cout << s.ToString() << std::endl;
 
     } else if (!strncmp(line, "get ", 4)) {

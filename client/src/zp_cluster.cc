@@ -186,9 +186,56 @@ Status Cluster::SetMaster(const std::string& table_name,
   meta_cmd_.Clear();
   meta_cmd_.set_type(ZPMeta::Type::SETMASTER);
   ZPMeta::MetaCmd_SetMaster* set_master_cmd = meta_cmd_.mutable_set_master();
-  set_master_cmd->set_name(table_name);
-  set_master_cmd->set_partition(partition_num);
-  ZPMeta::Node* node = set_master_cmd->mutable_node();
+  ZPMeta::BasicCmdUnit* set_master_entity = set_master_cmd->mutable_basic();
+  set_master_entity->set_name(table_name);
+  set_master_entity->set_partition(partition_num);
+  ZPMeta::Node* node = set_master_entity->mutable_node();
+  node->set_ip(ip_port.ip);
+  node->set_port(ip_port.port);
+
+  pink::Status ret = SubmitMetaCmd();
+
+  if (!ret.ok()) {
+    return pink::Status::IOError(meta_res_.msg());
+  }
+  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
+    return Status::NotSupported(meta_res_.msg());
+  } else {
+    return Status::OK();
+  }
+}
+Status Cluster::AddSlave(const std::string& table_name,
+    const int partition_num, const IpPort& ip_port) {
+  meta_cmd_.Clear();
+  meta_cmd_.set_type(ZPMeta::Type::ADDSLAVE);
+  ZPMeta::MetaCmd_AddSlave* add_slave_cmd = meta_cmd_.mutable_add_slave();
+  ZPMeta::BasicCmdUnit* add_slave_entity = add_slave_cmd->mutable_basic();
+  add_slave_entity->set_name(table_name);
+  add_slave_entity->set_partition(partition_num);
+  ZPMeta::Node* node = add_slave_entity->mutable_node();
+  node->set_ip(ip_port.ip);
+  node->set_port(ip_port.port);
+
+  pink::Status ret = SubmitMetaCmd();
+
+  if (!ret.ok()) {
+    return pink::Status::IOError(meta_res_.msg());
+  }
+  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
+    return Status::NotSupported(meta_res_.msg());
+  } else {
+    return Status::OK();
+  }
+}
+Status Cluster::RemoveSlave(const std::string& table_name,
+    const int partition_num, const IpPort& ip_port) {
+  meta_cmd_.Clear();
+  meta_cmd_.set_type(ZPMeta::Type::REMOVESLAVE);
+  ZPMeta::MetaCmd_RemoveSlave* remove_slave_cmd = meta_cmd_.mutable_remove_slave();
+  ZPMeta::BasicCmdUnit* remove_slave_entity = remove_slave_cmd->mutable_basic();
+  remove_slave_entity->set_name(table_name);
+  remove_slave_entity->set_partition(partition_num);
+  ZPMeta::Node* node = remove_slave_entity->mutable_node();
   node->set_ip(ip_port.ip);
   node->set_port(ip_port.port);
 

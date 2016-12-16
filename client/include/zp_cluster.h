@@ -7,7 +7,6 @@
 
 #include <string>
 #include <vector>
-#include <list>
 #include <map>
 #include <memory>
 #include <unordered_map>
@@ -42,6 +41,10 @@ class Cluster {
   Status Pull(const std::string& table);
   Status SetMaster(const std::string& table, const int partition,
       const IpPort& ip_port);
+  Status AddSlave(const std::string& table, const int partition,
+      const IpPort& ip_port);
+  Status RemoveSlave(const std::string& table, const int partition,
+      const IpPort& ip_port);
 
   // local cmd
   Status DebugDumpTable(const std::string& table);
@@ -59,11 +62,16 @@ class Cluster {
   Status SubmitMetaCmd(int attempt = 0);
   Status ResetClusterMap(const ZPMeta::MetaCmdResponse_Pull& pull);
 
+  // meta info
   int64_t epoch_;
+  std::vector<IpPort> meta_addr_;
   std::unordered_map<std::string, Table*>* tables_;
+
+  // connection pool
   ConnectionPool* meta_pool_;
   ConnectionPool* data_pool_;
-  std::vector<IpPort> meta_addr_;
+
+  // Pb command for communication
   ZPMeta::MetaCmd meta_cmd_;
   ZPMeta::MetaCmdResponse meta_res_;
   client::CmdRequest data_cmd_;

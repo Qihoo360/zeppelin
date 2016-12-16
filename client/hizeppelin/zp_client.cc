@@ -1,5 +1,6 @@
 /*
- * "Copyright [2016] <hrxwwd@163.com>"
+ * "Copyright [2016] qihoo"
+ * "Author <hrxwwd@163.com>"
  */
 #include <string>
 #include <vector>
