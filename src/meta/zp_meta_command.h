@@ -31,4 +31,18 @@ class SetMasterCmd : public Cmd {
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
+class AddSlaveCmd : public Cmd {
+ public:
+  AddSlaveCmd(int flag) : Cmd(flag) {}
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition = NULL) const;
+};
+
+class RemoveSlaveCmd : public Cmd {
+ public:
+  RemoveSlaveCmd(int flag) : Cmd(flag) {}
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition = NULL) const;
+};
+
 #endif

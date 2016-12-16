@@ -116,3 +116,45 @@ void SetMasterCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
     response->set_msg(s.ToString());
   }
 }
+
+void AddSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+  std::string name = request->add_slave().basic().name();
+  std::string table = slash::StringToLower(name);
+  int p = request->add_slave().basic().partition();
+  ZPMeta::Node node = request->add_slave().basic().node();
+  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+
+  response->set_type(ZPMeta::Type::ADDSLAVE);
+
+  Status s = g_meta_server->AddSlave(table, p, node);
+
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("AddSlave OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
+}
+
+void RemoveSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+  std::string name = request->remove_slave().basic().name();
+  std::string table = slash::StringToLower(name);
+  int p = request->remove_slave().basic().partition();
+  ZPMeta::Node node = request->remove_slave().basic().node();
+  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+
+  response->set_type(ZPMeta::Type::REMOVESLAVE);
+
+  Status s = g_meta_server->RemoveSlave(table, p, node);
+
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("RemoveSlave OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
+}

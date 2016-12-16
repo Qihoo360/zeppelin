@@ -60,7 +60,9 @@ class ZPMetaServer {
   // Meta related
   Status GetMSInfo(const std::set<std::string> &tables, ZPMeta::MetaCmdResponse_Pull *ms_info);
   Status GetTableListForNode(const std::string &ip_port, std::set<std::string> *tables);
+  Status RemoveSlave(const std::string &table, int partition, const ZPMeta::Node &node);
   Status SetMaster(const std::string &table, int partition, const ZPMeta::Node &node);
+  Status AddSlave(const std::string &table, int partition, const ZPMeta::Node &node);
   Status Distribute(const std::string &table, int num);
   Status InitVersionIfNeeded();
 
@@ -69,6 +71,9 @@ class ZPMetaServer {
   bool IsLeader();
 
 private:
+
+  // Debug
+  void DebugNodes();
 
   // Server related
   ZPMetaWorkerThread* zp_meta_worker_thread_[kMaxMetaWorkerThread];
@@ -87,7 +92,10 @@ private:
   // Node & Meta update related
   bool ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque, const ZPMeta::Nodes &nodes, ZPMeta::Table *table_info, bool *should_update_version);
   void DoDownNodeForTableInfo(const ZPMeta::Nodes &nodes, ZPMeta::Table *table_info, const std::string ip, int port, bool *should_update_table_info);
+  void DoRemoveSlaveForTableInfo(ZPMeta::Table *table_info, int partition, const std::string &ip, int port, bool *should_update_table_info);
   void DoSetMasterForTableInfo(ZPMeta::Table *table_info, int partition, const std::string &ip, int port, bool *should_update_table_info);
+  void DoAddSlaveForTableInfo(ZPMeta::Table *table_info, int partition, const std::string &ip, int port, bool *should_update_table_info);
+
   void DoUpNodeForTableInfo(ZPMeta::Table *table_info, const std::string ip, int port, bool *should_update_table_info);
   void DoClearStuckForTableInfo(ZPMeta::Table *table_info, int partition, bool *should_update_table_info);
   bool ProcessUpdateNodes(const ZPMetaUpdateTaskDeque task_deque, ZPMeta::Nodes *nodes);
@@ -114,6 +122,7 @@ private:
   Status GetAllNodes(ZPMeta::Nodes *nodes);
   Status InitVersion();
   Status AddVersion();
+
 
   std::unordered_map<std::string, std::set<std::string> > nodes_;
   slash::Mutex node_mutex_;

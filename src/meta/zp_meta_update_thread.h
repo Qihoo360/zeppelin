@@ -15,7 +15,9 @@ enum ZPMetaUpdateOP {
   kOpRemove,
   kOpAddVersion,
   kOpSetMaster,
-  kOpClearStuck
+  kOpClearStuck,
+  kOpAddSlave,
+  kOpRemoveSlave
 };
 
 struct UpdateTask {

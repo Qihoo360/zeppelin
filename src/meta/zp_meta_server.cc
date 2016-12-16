@@ -136,6 +136,7 @@ Status ZPMetaServer::DoUpdate(ZPMetaUpdateTaskDeque task_deque) {
  * Step 2. Apply every update task on every Table
  */
   bool should_update_version = false;
+  bool should_update_table_set = false;
 
   for (auto it = tables.begin(); it != tables.end(); it++) {
     table_info.Clear();
@@ -156,7 +157,7 @@ Status ZPMetaServer::DoUpdate(ZPMetaUpdateTaskDeque task_deque) {
  */
 
   AddClearStuckTaskIfNeeded(task_deque);
- 
+
 /*
  * Step 4. Check whether should we add version after Step [1-2]
  * or is there kOpAddVersion task in task deque, if true,
@@ -267,6 +268,58 @@ Status ZPMetaServer::GetTableListForNode(const std::string &ip_port, std::set<st
   return Status::OK();
 }
 
+Status ZPMetaServer::RemoveSlave(const std::string &table, int partition, const ZPMeta::Node &node) {
+  bool valid = false;
+  std::string ip_port = slash::IpPortString(node.ip(), node.port());
+  LOG(INFO) << "RemoveSlave " << table << " " << partition << " " << ip_port;
+
+  ZPMeta::Nodes nodes;
+  Status s = GetAllNodes(&nodes);
+  if (!s.ok() && !s.IsNotFound()) {
+    LOG(ERROR) << "GetAllNodes error in RemoveSlave, error: " << s.ToString();
+    return s;
+  }
+
+  if (!FindNode(nodes, node.ip(), node.port())) {
+    return Status::NotFound("not found");
+  }
+
+  ZPMeta::Table table_info;
+  s = GetTableInfo(table, &table_info);
+  if (!s.ok()) {
+    return s;
+  }
+  
+  if (partition < 0 || partition >= table_info.partitions_size()) {
+    return Status::Corruption("invalid partition");
+  }
+
+  ZPMeta::Partitions p = table_info.partitions(partition);
+
+  if (p.master().ip() == node.ip() && p.master().port() == node.port()) {
+    LOG(INFO) << "RemoveSlave: can not remove master";
+    return Status::Corruption("can not remove master");
+  }
+
+  int i = 0;
+  for (i = 0; i < p.slaves_size(); i++) {
+    if (p.slaves(i).ip() == node.ip() && p.slaves(i).port() == node.port()) {
+      valid = true;
+      break;
+    }
+  }
+
+  if (valid) {
+    UpdateTask task = {ZPMetaUpdateOP::kOpRemoveSlave, ip_port, table, partition};
+    LOG(INFO) << "RemoveSlave PushTask" << task.op << " " << ip_port << " " << table << " " << partition;
+    AddMetaUpdateTask(task);
+    return Status::OK();
+  } else {
+    return Status::Corruption("RemoveSlave: node & partition dismatch");
+  }
+
+}
+
 Status ZPMetaServer::SetMaster(const std::string &table, int partition, const ZPMeta::Node &node) {
   bool valid = false;
   std::string ip_port = slash::IpPortString(node.ip(), node.port());
@@ -276,11 +329,12 @@ Status ZPMetaServer::SetMaster(const std::string &table, int partition, const ZP
   slash::MutexLock l(&node_mutex_);
   auto iter = nodes_.find(ip_port);
   if (iter == nodes_.end()) {
-    return Status::Corruption("nodes NotFound");
+    return Status::Corruption("this node doesn't hold any table");
   }
   auto it = iter->second.find(table);
   if (it == iter->second.end()) {
     return Status::Corruption("table & node Dismatch");
+  }
   }
 
   ZPMeta::Table table_info;
@@ -297,14 +351,13 @@ Status ZPMetaServer::SetMaster(const std::string &table, int partition, const ZP
 
   if (p.master().ip() == node.ip() && p.master().port() == node.port()) {
     LOG(INFO) << "SetMaster: Already master";
-    return Status::OK();
+    return Status::Corruption("already master");
   }
 
   for (int i = 0; i < p.slaves_size(); i++) {
     if (p.slaves(i).ip() == node.ip() && p.slaves(i).port() == node.port()) {
       valid = true;
     }
-  }
   }
 
   if (valid) {
@@ -314,6 +367,60 @@ Status ZPMetaServer::SetMaster(const std::string &table, int partition, const ZP
     return Status::OK();
   } else {
     return Status::Corruption("partition & node Dismatch");
+  }
+
+}
+
+Status ZPMetaServer::AddSlave(const std::string &table, int partition, const ZPMeta::Node &node) {
+  bool valid = false;
+  std::string ip_port = slash::IpPortString(node.ip(), node.port());
+  LOG(INFO) << "AddSlave " << table << " " << partition << " " << ip_port;
+
+  ZPMeta::Nodes nodes;
+  Status s = GetAllNodes(&nodes);
+  if (!s.ok() && !s.IsNotFound()) {
+    LOG(ERROR) << "GetAllNodes error in AddSlave, error: " << s.ToString();
+    return s;
+  }
+
+  if (!FindNode(nodes, node.ip(), node.port())) {
+    return Status::NotFound("not found");
+  }
+
+  ZPMeta::Table table_info;
+  s = GetTableInfo(table, &table_info);
+  if (!s.ok()) {
+    return s;
+  }
+  
+  if (partition < 0 || partition >= table_info.partitions_size()) {
+    return Status::Corruption("invalid partition");
+  }
+
+  ZPMeta::Partitions p = table_info.partitions(partition);
+
+  if (p.master().ip() == node.ip() && p.master().port() == node.port()) {
+    LOG(INFO) << "AddSlave: Already master";
+    return Status::OK();
+  }
+
+  int i = 0;
+  for (i = 0; i < p.slaves_size(); i++) {
+    if (p.slaves(i).ip() == node.ip() && p.slaves(i).port() == node.port()) {
+      break;
+    }
+  }
+  if (i == p.slaves_size()) {
+    valid = true;
+  }
+
+  if (valid) {
+    UpdateTask task = {ZPMetaUpdateOP::kOpAddSlave, ip_port, table, partition};
+    LOG(INFO) << "AddSlave PushTask" << task.op << " " << ip_port << " " << table << " " << partition;
+    AddMetaUpdateTask(task);
+    return Status::OK();
+  } else {
+    return Status::Corruption("AddSlave: Already slave");
   }
 
 }
@@ -359,7 +466,6 @@ Status ZPMetaServer::Distribute(const std::string &name, int num) {
 
     slave = p->add_slaves();
     slave->CopyFrom(alive_nodes[(i + 2) % an_num].node());
-
   }
 
   s = SetTable(table);
@@ -384,7 +490,7 @@ Status ZPMetaServer::Distribute(const std::string &name, int num) {
   }
 
   std::string ip_port;
-  int pnum = num;
+  int pnum = 3+num-1 ;
   for (auto iter = alive_nodes.begin(); pnum && iter != alive_nodes.end(); iter++) {
     ip_port = slash::IpPortString(iter->node().ip(), iter->node().port());
     auto it = nodes_.find(ip_port);
@@ -398,6 +504,7 @@ Status ZPMetaServer::Distribute(const std::string &name, int num) {
     pnum--;
   }
 
+  DebugNodes();
   std::string text_format;
   google::protobuf::TextFormat::PrintToString(table, &text_format);
   LOG(INFO) << "table_info : [" << text_format << "]";
@@ -495,6 +602,16 @@ bool ZPMetaServer::IsLeader() {
   return false;
 }
 
+void ZPMetaServer::DebugNodes() {
+  for (auto iter = nodes_.begin(); iter != nodes_.end(); iter++) {
+    std::string str = iter->first + " :";
+    for (auto it = iter->second.begin(); it != iter->second.end(); it++) {
+      str += (" " + *it);
+    }
+    LOG(INFO) << str;
+  }
+}
+
 void ZPMetaServer::InitClientCmdTable() {
 
   // Ping Command
@@ -512,6 +629,14 @@ void ZPMetaServer::InitClientCmdTable() {
   //SetMaster Command
   Cmd* setmasterptr = new SetMasterCmd(kCmdFlagsWrite);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::SETMASTER), setmasterptr));
+
+  //AddSlave Command
+  Cmd* addslaveptr = new AddSlaveCmd(kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::ADDSLAVE), addslaveptr));
+
+  //RemoveSlave Command
+  Cmd* removeslaveptr = new RemoveSlaveCmd(kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::REMOVESLAVE), removeslaveptr));
 }
 
 bool ZPMetaServer::ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque, const ZPMeta::Nodes &nodes, ZPMeta::Table *table_info, bool *should_update_version) {
@@ -533,6 +658,10 @@ bool ZPMetaServer::ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque
       DoSetMasterForTableInfo(table_info, iter->partition, ip, port, &should_update_table_info);
     } else if (iter->op == ZPMetaUpdateOP::kOpClearStuck) {
       DoClearStuckForTableInfo(table_info, iter->partition, &should_update_table_info);
+    } else if (iter->op == ZPMetaUpdateOP::kOpAddSlave) {
+      DoAddSlaveForTableInfo(table_info, iter->partition, ip, port, &should_update_table_info);
+    } else if (iter->op == ZPMetaUpdateOP::kOpRemoveSlave) {
+      DoRemoveSlaveForTableInfo(table_info, iter->partition, ip, port, &should_update_table_info);
     }
   }
 
@@ -600,9 +729,68 @@ void ZPMetaServer::DoDownNodeForTableInfo(const ZPMeta::Nodes &nodes, ZPMeta::Ta
   }
 }
 
+void ZPMetaServer::DoRemoveSlaveForTableInfo(ZPMeta::Table *table_info, int partition, const std::string &ip, int port, bool *should_update_table_info) {
+
+  if (partition < 0 || partition >= table_info->partitions_size()) {
+    LOG(ERROR) << "invalid partition num in DoRemoveSlaveForTableInfo for " << table_info->name() << " : " << partition;
+    return;
+  }
+
+  ZPMeta::Partitions* p = table_info->mutable_partitions(partition);
+
+  if (p->master().ip() == ip && p->master().port() == port) {
+    return;
+  }
+
+  int slaves_size = p->slaves_size();
+  for (int j = 0; j < slaves_size; j++) {
+    if (p->slaves(j).ip() == ip && p->slaves(j).port() == port) {
+      *should_update_table_info = true;
+      ZPMeta::Node* slave = p->mutable_slaves(j);
+      slave->CopyFrom(p->slaves(slaves_size-1));
+      p->mutable_slaves()->RemoveLast();
+    }
+  }
+
+  bool should_update_nodes = true;
+
+  ZPMeta::Partitions part;
+  for (int i = 0; i < table_info->partitions_size(); i++) {
+    part = table_info->partitions(i);
+    if (part.master().ip() == ip && part.master().port() == port) {
+        should_update_nodes = false;
+    }
+    for (int j = 0; j < part.slaves_size(); j++) {
+      if (part.slaves(j).ip() == ip && part.slaves(j).port() == port) {
+        should_update_nodes = false;
+        break;
+      }
+    }
+    if (!should_update_nodes) {
+      break;
+    }
+  }
+
+  if (should_update_nodes) {
+    auto iter = nodes_.find(slash::IpPortString(ip, port));
+    if (iter != nodes_.end()) {
+      auto it = iter->second.find(table_info->name());
+      if (it != iter->second.end()) {
+        LOG(INFO) << "DoRemoveSlaveForTableInfo: erase " << table_info->name() << " from nodes_[" << slash::IpPortString(ip, port) << "]";
+        iter->second.erase(table_info->name());
+        if (iter->second.empty()) {
+          LOG(INFO) << "DoRemoveSlaveForTableInfo: erase " << slash::IpPortString(ip, port) << " from nodes_";
+          nodes_.erase(slash::IpPortString(ip, port));
+        }
+      }
+    }
+  }
+  DebugNodes();
+
+}
+
 void ZPMetaServer::DoSetMasterForTableInfo(ZPMeta::Table *table_info, int partition, const std::string &ip, int port, bool *should_update_table_info) {
   
-  // zp-client garantee the validity of parameter partition
 
   if (partition < 0 || partition >= table_info->partitions_size()) {
     LOG(ERROR) << "invalid partition num in DoSetMasterForTableInfo for " << table_info->name() << " : " << partition;
@@ -631,6 +819,48 @@ void ZPMetaServer::DoSetMasterForTableInfo(ZPMeta::Table *table_info, int partit
     }
   }
 }
+
+void ZPMetaServer::DoAddSlaveForTableInfo(ZPMeta::Table *table_info, int partition, const std::string &ip, int port, bool *should_update_table_info) {
+
+  if (partition < 0 || partition >= table_info->partitions_size()) {
+    LOG(ERROR) << "invalid partition num in DoAddSlaveForTableInfo for " << table_info->name() << " : " << partition;
+    return;
+  }
+
+  ZPMeta::Partitions* p = table_info->mutable_partitions(partition);
+
+  if (p->master().ip() == ip && p->master().port() == port) {
+    return;
+  }
+
+  int slaves_size = p->slaves_size();
+  for (int j = 0; j < slaves_size; j++) {
+    if (p->slaves(j).ip() == ip && p->slaves(j).port() == port) {
+      return;
+    }
+  }
+
+  *should_update_table_info = true;
+  ZPMeta::Node *slave = p->add_slaves();
+  slave->set_ip(ip);
+  slave->set_port(port);
+
+  auto iter = nodes_.find(slash::IpPortString(ip, port));
+  if (iter != nodes_.end()) {
+    auto it = iter->second.find(table_info->name());
+    if (it == iter->second.end()) {
+      LOG(INFO) << "DoAddSlaveForTableInfo: insert " << table_info->name() << " into nodes_[" << slash::IpPortString(ip, port) << "]";
+      iter->second.insert(table_info->name());
+    }
+  } else {
+    LOG(INFO) << "DoAddSlaveForTableInfo: insert " << table_info->name() << " into nodes_[" << slash::IpPortString(ip, port) << "]";
+    std::set<std::string> ts;
+    ts.insert(table_info->name());
+    nodes_.insert(std::unordered_map<std::string, std::set<std::string> >::value_type(slash::IpPortString(ip, port), ts));
+  }
+  DebugNodes();
+}
+
 void ZPMetaServer::DoUpNodeForTableInfo(ZPMeta::Table *table_info, const std::string ip, int port, bool *should_update_table_info) {
   int slaves_size = 0;
   for (int i = 0; i < table_info->partitions_size(); ++i) {
@@ -969,11 +1199,7 @@ Status ZPMetaServer::InitVersion() {
           }
         }
       }
-      for (auto iter = nodes_.begin(); iter != nodes_.end(); iter++) {
-        for (auto it = iter->second.begin(); it != iter->second.end(); it++) {
-          LOG(INFO) << iter->first << " -- " << *it;
-        }
-      }
+      DebugNodes();
     }
   } else {
     LOG(ERROR) << "Read floyd tables failed in InitVersion: " << fs.ToString() << ", try again";
