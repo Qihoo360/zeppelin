@@ -1830,14 +1830,14 @@ class MetaCmdResponse_ListNode : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required .ZPMeta.NodeStatus nodes = 1;
+  // required .ZPMeta.Nodes nodes = 1;
   inline bool has_nodes() const;
   inline void clear_nodes();
   static const int kNodesFieldNumber = 1;
-  inline const ::ZPMeta::NodeStatus& nodes() const;
-  inline ::ZPMeta::NodeStatus* mutable_nodes();
-  inline ::ZPMeta::NodeStatus* release_nodes();
-  inline void set_allocated_nodes(::ZPMeta::NodeStatus* nodes);
+  inline const ::ZPMeta::Nodes& nodes() const;
+  inline ::ZPMeta::Nodes* mutable_nodes();
+  inline ::ZPMeta::Nodes* release_nodes();
+  inline void set_allocated_nodes(::ZPMeta::Nodes* nodes);
 
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmdResponse.ListNode)
  private:
@@ -1846,7 +1846,7 @@ class MetaCmdResponse_ListNode : public ::google::protobuf::Message {
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
-  ::ZPMeta::NodeStatus* nodes_;
+  ::ZPMeta::Nodes* nodes_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
@@ -3379,7 +3379,7 @@ inline void MetaCmdResponse_ListTable::set_allocated_tables(::ZPMeta::TableName*
 
 // MetaCmdResponse_ListNode
 
-// required .ZPMeta.NodeStatus nodes = 1;
+// required .ZPMeta.Nodes nodes = 1;
 inline bool MetaCmdResponse_ListNode::has_nodes() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -3390,24 +3390,24 @@ inline void MetaCmdResponse_ListNode::clear_has_nodes() {
   _has_bits_[0] &= ~0x00000001u;
 }
 inline void MetaCmdResponse_ListNode::clear_nodes() {
-  if (nodes_ != NULL) nodes_->::ZPMeta::NodeStatus::Clear();
+  if (nodes_ != NULL) nodes_->::ZPMeta::Nodes::Clear();
   clear_has_nodes();
 }
-inline const ::ZPMeta::NodeStatus& MetaCmdResponse_ListNode::nodes() const {
+inline const ::ZPMeta::Nodes& MetaCmdResponse_ListNode::nodes() const {
   return nodes_ != NULL ? *nodes_ : *default_instance_->nodes_;
 }
-inline ::ZPMeta::NodeStatus* MetaCmdResponse_ListNode::mutable_nodes() {
+inline ::ZPMeta::Nodes* MetaCmdResponse_ListNode::mutable_nodes() {
   set_has_nodes();
-  if (nodes_ == NULL) nodes_ = new ::ZPMeta::NodeStatus;
+  if (nodes_ == NULL) nodes_ = new ::ZPMeta::Nodes;
   return nodes_;
 }
-inline ::ZPMeta::NodeStatus* MetaCmdResponse_ListNode::release_nodes() {
+inline ::ZPMeta::Nodes* MetaCmdResponse_ListNode::release_nodes() {
   clear_has_nodes();
-  ::ZPMeta::NodeStatus* temp = nodes_;
+  ::ZPMeta::Nodes* temp = nodes_;
   nodes_ = NULL;
   return temp;
 }
-inline void MetaCmdResponse_ListNode::set_allocated_nodes(::ZPMeta::NodeStatus* nodes) {
+inline void MetaCmdResponse_ListNode::set_allocated_nodes(::ZPMeta::Nodes* nodes) {
   delete nodes_;
   nodes_ = nodes;
   if (nodes) {

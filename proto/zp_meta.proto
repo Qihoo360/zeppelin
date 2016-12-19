@@ -126,7 +126,7 @@ message MetaCmdResponse {
 
   // ListNode
   message ListNode {
-    required NodeStatus nodes = 1;  
+    required Nodes nodes = 1;  
   }
   optional ListNode list_node = 7;
 }

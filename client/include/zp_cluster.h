@@ -35,6 +35,7 @@ class Cluster {
       const std::string& value);
   Status Get(const std::string& table, const std::string& key,
       std::string* value);
+  Status Delete(const std::string& table, const std::string& key);
 
   // meta cmd
   Status CreateTable(const std::string& table_name, int partition_num);
@@ -45,6 +46,12 @@ class Cluster {
       const IpPort& ip_port);
   Status RemoveSlave(const std::string& table, const int partition,
       const IpPort& ip_port);
+
+  // statistical cmd
+  Status ListTable(std::vector<std::string>& tables);
+  Status ListMeta(std::vector<IpPort>& nodes);
+  Status ListNode(std::vector<IpPort>& nodes);
+
 
   // local cmd
   Status DebugDumpTable(const std::string& table);

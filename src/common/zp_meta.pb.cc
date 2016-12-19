@@ -529,7 +529,7 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "aster\022#\n\005basic\030\001 \002(\0132\024.ZPMeta.BasicCmdUn"
     "it\032/\n\010AddSlave\022#\n\005basic\030\001 \002(\0132\024.ZPMeta.B"
     "asicCmdUnit\0322\n\013RemoveSlave\022#\n\005basic\030\001 \002("
-    "\0132\024.ZPMeta.BasicCmdUnit\"\316\003\n\017MetaCmdRespo"
+    "\0132\024.ZPMeta.BasicCmdUnit\"\311\003\n\017MetaCmdRespo"
     "nse\022\032\n\004type\030\001 \002(\0162\014.ZPMeta.Type\022 \n\004code\030"
     "\002 \002(\0162\022.ZPMeta.StatusCode\022\013\n\003msg\030\003 \001(\t\022*"
     "\n\004ping\030\004 \001(\0132\034.ZPMeta.MetaCmdResponse.Pi"
@@ -540,13 +540,13 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "ng\022\017\n\007version\030\001 \002(\005\0324\n\004Pull\022\017\n\007version\030\001"
     " \002(\005\022\033\n\004info\030\002 \003(\0132\r.ZPMeta.Table\032.\n\tLis"
     "tTable\022!\n\006tables\030\001 \002(\0132\021.ZPMeta.TableNam"
-    "e\032-\n\010ListNode\022!\n\005nodes\030\001 \002(\0132\022.ZPMeta.No"
-    "deStatus*-\n\nStatusCode\022\006\n\002OK\020\000\022\014\n\010NOTFOU"
-    "ND\020\001\022\t\n\005ERROR\020\002*}\n\004Type\022\010\n\004PING\020\001\022\010\n\004PUL"
-    "L\020\002\022\010\n\004INIT\020\003\022\r\n\tSETMASTER\020\004\022\014\n\010ADDSLAVE"
-    "\020\005\022\017\n\013REMOVESLAVE\020\006\022\r\n\tLISTTABLE\020\007\022\014\n\010LI"
-    "STNODE\020\010\022\014\n\010LISTMETA\020\t*\037\n\006PState\022\n\n\006ACTI"
-    "VE\020\001\022\t\n\005STUCK\020\002", 1695);
+    "e\032(\n\010ListNode\022\034\n\005nodes\030\001 \002(\0132\r.ZPMeta.No"
+    "des*-\n\nStatusCode\022\006\n\002OK\020\000\022\014\n\010NOTFOUND\020\001\022"
+    "\t\n\005ERROR\020\002*}\n\004Type\022\010\n\004PING\020\001\022\010\n\004PULL\020\002\022\010"
+    "\n\004INIT\020\003\022\r\n\tSETMASTER\020\004\022\014\n\010ADDSLAVE\020\005\022\017\n"
+    "\013REMOVESLAVE\020\006\022\r\n\tLISTTABLE\020\007\022\014\n\010LISTNOD"
+    "E\020\010\022\014\n\010LISTMETA\020\t*\037\n\006PState\022\n\n\006ACTIVE\020\001\022"
+    "\t\n\005STUCK\020\002", 1690);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zp_meta.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -5153,7 +5153,7 @@ MetaCmdResponse_ListNode::MetaCmdResponse_ListNode()
 }
 
 void MetaCmdResponse_ListNode::InitAsDefaultInstance() {
-  nodes_ = const_cast< ::ZPMeta::NodeStatus*>(&::ZPMeta::NodeStatus::default_instance());
+  nodes_ = const_cast< ::ZPMeta::Nodes*>(&::ZPMeta::Nodes::default_instance());
 }
 
 MetaCmdResponse_ListNode::MetaCmdResponse_ListNode(const MetaCmdResponse_ListNode& from)
@@ -5202,7 +5202,7 @@ MetaCmdResponse_ListNode* MetaCmdResponse_ListNode::New() const {
 void MetaCmdResponse_ListNode::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (has_nodes()) {
-      if (nodes_ != NULL) nodes_->::ZPMeta::NodeStatus::Clear();
+      if (nodes_ != NULL) nodes_->::ZPMeta::Nodes::Clear();
     }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -5215,7 +5215,7 @@ bool MetaCmdResponse_ListNode::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required .ZPMeta.NodeStatus nodes = 1;
+      // required .ZPMeta.Nodes nodes = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -5246,7 +5246,7 @@ bool MetaCmdResponse_ListNode::MergePartialFromCodedStream(
 
 void MetaCmdResponse_ListNode::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required .ZPMeta.NodeStatus nodes = 1;
+  // required .ZPMeta.Nodes nodes = 1;
   if (has_nodes()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
       1, this->nodes(), output);
@@ -5260,7 +5260,7 @@ void MetaCmdResponse_ListNode::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* MetaCmdResponse_ListNode::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required .ZPMeta.NodeStatus nodes = 1;
+  // required .ZPMeta.Nodes nodes = 1;
   if (has_nodes()) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -5278,7 +5278,7 @@ int MetaCmdResponse_ListNode::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .ZPMeta.NodeStatus nodes = 1;
+    // required .ZPMeta.Nodes nodes = 1;
     if (has_nodes()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
@@ -5313,7 +5313,7 @@ void MetaCmdResponse_ListNode::MergeFrom(const MetaCmdResponse_ListNode& from) {
   GOOGLE_CHECK_NE(&from, this);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_nodes()) {
-      mutable_nodes()->::ZPMeta::NodeStatus::MergeFrom(from.nodes());
+      mutable_nodes()->::ZPMeta::Nodes::MergeFrom(from.nodes());
     }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());

@@ -4,6 +4,7 @@
  */
 #include "include/zp_cluster.h"
 
+#include <google/protobuf/text_format.h>
 #include<iostream>
 #include<string>
 
@@ -57,6 +58,253 @@ Status Cluster::Set(const std::string& table, const std::string& key,
   } else {
     return Status::NotSupported(data_res_.msg());
   }
+}
+
+Status Cluster::Delete(const std::string& table, const std::string& key) {
+  Status s;
+  data_cmd_.Clear();
+  data_cmd_.set_type(client::Type::DEL);
+  client::CmdRequest_Del* del_info = data_cmd_.mutable_del();
+  del_info->set_table_name(table);
+  del_info->set_key(key);
+  s = SubmitDataCmd(table, key);
+  if (s.IsIOError()) {
+    return s;
+  }
+  if (data_res_.code() == client::StatusCode::kOk) {
+    return Status::OK();
+  } else {
+    return Status::NotSupported(data_res_.msg());
+  }
+}
+
+
+
+Status Cluster::Get(const std::string& table, const std::string& key,
+    std::string* value) {
+  Status s;
+  data_cmd_.Clear();
+  data_cmd_.set_type(client::Type::GET);
+  client::CmdRequest_Get* get_cmd = data_cmd_.mutable_get();
+  get_cmd->set_table_name(table);
+  get_cmd->set_key(key);
+
+  s = SubmitDataCmd(table, key);
+
+  if (s.IsIOError()) {
+    return s;
+  }
+  if (data_res_.code() == client::StatusCode::kOk) {
+    client::CmdResponse_Get info = data_res_.get();
+    value->assign(info.value().data(), info.value().size());
+    return Status::OK();
+  } else if (data_res_.code() == client::StatusCode::kNotFound) {
+    return Status::NotFound("key do not exist");
+  } else {
+    return Status::IOError(data_res_.msg());
+  }
+}
+
+Status Cluster::CreateTable(const std::string& table_name,
+    const int partition_num) {
+  meta_cmd_.Clear();
+  meta_cmd_.set_type(ZPMeta::Type::INIT);
+  ZPMeta::MetaCmd_Init* init = meta_cmd_.mutable_init();
+  init->set_name(table_name);
+  init->set_num(partition_num);
+
+  pink::Status ret = SubmitMetaCmd();
+
+  if (!ret.ok()) {
+    return pink::Status::IOError(meta_res_.msg());
+  }
+  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
+    return Status::NotSupported(meta_res_.msg());
+  } else {
+    return Status::OK();
+  }
+}
+
+
+// TODO(all) pull meta_info from data
+Status Cluster::Connect() {
+  Status s;
+  int attempt_count = 0;
+  IpPort meta;
+  pink::PbCli* meta_cli = meta_pool_->GetExistConnection(&meta);
+  if (meta_cli != NULL) {
+    return Status::OK();
+  }
+  while (attempt_count++ < kMetaAttempt) {
+    meta = GetRandomMetaAddr();
+    meta_cli = meta_pool_->GetConnection(meta);
+    if (meta_cli) {
+      return Status::OK();
+    }
+  }
+  return Status::IOError("can't connect meta after attempts");
+}
+
+Status Cluster::Pull(const std::string& table) {
+  meta_cmd_.Clear();
+  meta_cmd_.set_type(ZPMeta::Type::PULL);
+  ZPMeta::MetaCmd_Pull* pull = meta_cmd_.mutable_pull();
+  pull->set_name(table);
+  pink::Status ret = SubmitMetaCmd();
+
+  if (!ret.ok()) {
+    return ret;
+  }
+
+  if (!ret.ok()) {
+    return Status::IOError(meta_res_.msg());
+  }
+  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
+    return Status::NotFound(meta_res_.msg());
+  }
+
+  ZPMeta::MetaCmdResponse_Pull info = meta_res_.pull();
+
+  // update clustermap now
+  if (info.info_size() == 0) {
+    return Status::NotFound("table does not exist in meta");
+  }
+  return ResetClusterMap(info);
+}
+
+Status Cluster::SetMaster(const std::string& table_name,
+    const int partition_num, const IpPort& ip_port) {
+  meta_cmd_.Clear();
+  meta_cmd_.set_type(ZPMeta::Type::SETMASTER);
+  ZPMeta::MetaCmd_SetMaster* set_master_cmd = meta_cmd_.mutable_set_master();
+  ZPMeta::BasicCmdUnit* set_master_entity = set_master_cmd->mutable_basic();
+  set_master_entity->set_name(table_name);
+  set_master_entity->set_partition(partition_num);
+  ZPMeta::Node* node = set_master_entity->mutable_node();
+  node->set_ip(ip_port.ip);
+  node->set_port(ip_port.port);
+
+  pink::Status ret = SubmitMetaCmd();
+
+  if (!ret.ok()) {
+    return pink::Status::IOError(meta_res_.msg());
+  }
+  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
+    return Status::NotSupported(meta_res_.msg());
+  } else {
+    return Status::OK();
+  }
+}
+Status Cluster::AddSlave(const std::string& table_name,
+    const int partition_num, const IpPort& ip_port) {
+  meta_cmd_.Clear();
+  meta_cmd_.set_type(ZPMeta::Type::ADDSLAVE);
+  ZPMeta::MetaCmd_AddSlave* add_slave_cmd = meta_cmd_.mutable_add_slave();
+  ZPMeta::BasicCmdUnit* add_slave_entity = add_slave_cmd->mutable_basic();
+  add_slave_entity->set_name(table_name);
+  add_slave_entity->set_partition(partition_num);
+  ZPMeta::Node* node = add_slave_entity->mutable_node();
+  node->set_ip(ip_port.ip);
+  node->set_port(ip_port.port);
+
+  pink::Status ret = SubmitMetaCmd();
+
+  if (!ret.ok()) {
+    return pink::Status::IOError(meta_res_.msg());
+  }
+  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
+    return Status::NotSupported(meta_res_.msg());
+  } else {
+    return Status::OK();
+  }
+}
+
+Status Cluster::RemoveSlave(const std::string& table_name,
+    const int partition_num, const IpPort& ip_port) {
+  meta_cmd_.Clear();
+  meta_cmd_.set_type(ZPMeta::Type::REMOVESLAVE);
+  ZPMeta::MetaCmd_RemoveSlave* remove_slave_cmd =
+    meta_cmd_.mutable_remove_slave();
+  ZPMeta::BasicCmdUnit* remove_slave_entity = remove_slave_cmd->mutable_basic();
+  remove_slave_entity->set_name(table_name);
+  remove_slave_entity->set_partition(partition_num);
+  ZPMeta::Node* node = remove_slave_entity->mutable_node();
+  node->set_ip(ip_port.ip);
+  node->set_port(ip_port.port);
+
+  pink::Status ret = SubmitMetaCmd();
+
+  if (!ret.ok()) {
+    return pink::Status::IOError(meta_res_.msg());
+  }
+  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
+    return Status::NotSupported(meta_res_.msg());
+  } else {
+    return Status::OK();
+  }
+}
+
+Status Cluster::ListMeta(std::vector<IpPort>& nodes) {
+  meta_cmd_.Clear();
+  meta_cmd_.set_type(ZPMeta::Type::LISTMETA);
+
+  pink::Status ret = SubmitMetaCmd();
+
+  if (!ret.ok()) {
+    return pink::Status::IOError(meta_res_.msg());
+  }
+  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
+    return Status::NotSupported(meta_res_.msg());
+  }
+  ZPMeta::Nodes info = meta_res_.list_node().nodes();
+  for (int i = 0; i < info.nodes_size(); i++) {
+    IpPort meta_node;
+    meta_node.ip = info.nodes(i).node().ip();
+    meta_node.port = info.nodes(i).node().port();
+    nodes.push_back(meta_node);
+  }
+  return Status::OK();
+}
+
+Status Cluster::ListNode(std::vector<IpPort>& nodes) {
+  meta_cmd_.Clear();
+  meta_cmd_.set_type(ZPMeta::Type::LISTNODE);
+
+  pink::Status ret = SubmitMetaCmd();
+
+  if (!ret.ok()) {
+    return pink::Status::IOError(meta_res_.msg());
+  }
+  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
+    return Status::NotSupported(meta_res_.msg());
+  }
+  ZPMeta::Nodes info = meta_res_.list_node().nodes();
+  for (int i = 0; i < info.nodes_size(); i++) {
+    IpPort data_node;
+    data_node.ip = info.nodes(i).node().ip();
+    data_node.port = info.nodes(i).node().port();
+    nodes.push_back(data_node);
+  }
+  return Status::OK();
+}
+
+Status Cluster::ListTable(std::vector<std::string>& tables) {
+  meta_cmd_.Clear();
+  meta_cmd_.set_type(ZPMeta::Type::LISTTABLE);
+
+  pink::Status ret = SubmitMetaCmd();
+
+  if (!ret.ok()) {
+    return pink::Status::IOError(meta_res_.msg());
+  }
+  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
+    return Status::NotSupported(meta_res_.msg());
+  }
+  ZPMeta::TableName info = meta_res_.list_table().tables();
+  for (int i = 0; i < info.name_size(); i++) {
+    tables.push_back(info.name(i));
+  }
+  return Status::OK();
 }
 
 Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
@@ -134,170 +382,6 @@ Status Cluster::SubmitMetaCmd(int attempt) {
   }
   return Status::Corruption("should never reach here");
 }
-
-
-Status Cluster::Get(const std::string& table, const std::string& key,
-    std::string* value) {
-  Status s;
-  data_cmd_.Clear();
-  data_cmd_.set_type(client::Type::GET);
-  client::CmdRequest_Get* get_cmd = data_cmd_.mutable_get();
-  get_cmd->set_table_name(table);
-  get_cmd->set_key(key);
-
-  s = SubmitDataCmd(table, key);
-
-  if (s.IsIOError()) {
-    return s;
-  }
-  if (data_res_.code() == client::StatusCode::kOk) {
-    client::CmdResponse_Get info = data_res_.get();
-    value->assign(info.value().data(), info.value().size());
-    return Status::OK();
-  } else if (data_res_.code() == client::StatusCode::kNotFound) {
-    return Status::NotFound("key do not exist");
-  } else {
-    return Status::IOError(data_res_.msg());
-  }
-}
-
-Status Cluster::CreateTable(const std::string& table_name,
-    const int partition_num) {
-  meta_cmd_.Clear();
-  meta_cmd_.set_type(ZPMeta::Type::INIT);
-  ZPMeta::MetaCmd_Init* init = meta_cmd_.mutable_init();
-  init->set_name(table_name);
-  init->set_num(partition_num);
-
-  pink::Status ret = SubmitMetaCmd();
-
-  if (!ret.ok()) {
-    return pink::Status::IOError(meta_res_.msg());
-  }
-  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
-    return Status::NotSupported(meta_res_.msg());
-  } else {
-    return Status::OK();
-  }
-}
-
-Status Cluster::SetMaster(const std::string& table_name,
-    const int partition_num, const IpPort& ip_port) {
-  meta_cmd_.Clear();
-  meta_cmd_.set_type(ZPMeta::Type::SETMASTER);
-  ZPMeta::MetaCmd_SetMaster* set_master_cmd = meta_cmd_.mutable_set_master();
-  ZPMeta::BasicCmdUnit* set_master_entity = set_master_cmd->mutable_basic();
-  set_master_entity->set_name(table_name);
-  set_master_entity->set_partition(partition_num);
-  ZPMeta::Node* node = set_master_entity->mutable_node();
-  node->set_ip(ip_port.ip);
-  node->set_port(ip_port.port);
-
-  pink::Status ret = SubmitMetaCmd();
-
-  if (!ret.ok()) {
-    return pink::Status::IOError(meta_res_.msg());
-  }
-  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
-    return Status::NotSupported(meta_res_.msg());
-  } else {
-    return Status::OK();
-  }
-}
-Status Cluster::AddSlave(const std::string& table_name,
-    const int partition_num, const IpPort& ip_port) {
-  meta_cmd_.Clear();
-  meta_cmd_.set_type(ZPMeta::Type::ADDSLAVE);
-  ZPMeta::MetaCmd_AddSlave* add_slave_cmd = meta_cmd_.mutable_add_slave();
-  ZPMeta::BasicCmdUnit* add_slave_entity = add_slave_cmd->mutable_basic();
-  add_slave_entity->set_name(table_name);
-  add_slave_entity->set_partition(partition_num);
-  ZPMeta::Node* node = add_slave_entity->mutable_node();
-  node->set_ip(ip_port.ip);
-  node->set_port(ip_port.port);
-
-  pink::Status ret = SubmitMetaCmd();
-
-  if (!ret.ok()) {
-    return pink::Status::IOError(meta_res_.msg());
-  }
-  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
-    return Status::NotSupported(meta_res_.msg());
-  } else {
-    return Status::OK();
-  }
-}
-Status Cluster::RemoveSlave(const std::string& table_name,
-    const int partition_num, const IpPort& ip_port) {
-  meta_cmd_.Clear();
-  meta_cmd_.set_type(ZPMeta::Type::REMOVESLAVE);
-  ZPMeta::MetaCmd_RemoveSlave* remove_slave_cmd = meta_cmd_.mutable_remove_slave();
-  ZPMeta::BasicCmdUnit* remove_slave_entity = remove_slave_cmd->mutable_basic();
-  remove_slave_entity->set_name(table_name);
-  remove_slave_entity->set_partition(partition_num);
-  ZPMeta::Node* node = remove_slave_entity->mutable_node();
-  node->set_ip(ip_port.ip);
-  node->set_port(ip_port.port);
-
-  pink::Status ret = SubmitMetaCmd();
-
-  if (!ret.ok()) {
-    return pink::Status::IOError(meta_res_.msg());
-  }
-  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
-    return Status::NotSupported(meta_res_.msg());
-  } else {
-    return Status::OK();
-  }
-}
-
-Status Cluster::Pull(const std::string& table) {
-  meta_cmd_.Clear();
-  meta_cmd_.set_type(ZPMeta::Type::PULL);
-  ZPMeta::MetaCmd_Pull* pull = meta_cmd_.mutable_pull();
-  pull->set_name(table);
-  pink::Status ret = SubmitMetaCmd();
-
-  if (!ret.ok()) {
-    return ret;
-  }
-
-  if (!ret.ok()) {
-    return Status::IOError(meta_res_.msg());
-  }
-  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
-    return Status::NotFound(meta_res_.msg());
-  }
-
-  ZPMeta::MetaCmdResponse_Pull info = meta_res_.pull();
-
-  // update clustermap now
-  if (info.info_size() == 0) {
-    return Status::NotFound("table does not exist in meta");
-  }
-  return ResetClusterMap(info);
-}
-
-
-// TODO(all) pull meta_info from data
-Status Cluster::Connect() {
-  Status s;
-  int attempt_count = 0;
-  IpPort meta;
-  pink::PbCli* meta_cli = meta_pool_->GetExistConnection(&meta);
-  if (meta_cli != NULL) {
-    return Status::OK();
-  }
-  while (attempt_count++ < kMetaAttempt) {
-    meta = GetRandomMetaAddr();
-    meta_cli = meta_pool_->GetConnection(meta);
-    if (meta_cli) {
-      return Status::OK();
-    }
-  }
-  return Status::IOError("can't connect meta after attempts");
-}
-
 
 
 Status Cluster::DebugDumpTable(const std::string& table) {

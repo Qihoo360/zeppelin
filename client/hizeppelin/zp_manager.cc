@@ -65,7 +65,16 @@ char *hints(const char *buf, int *color, int *bold) {
     *bold = 0;
     return " TABLE TABLE_NAME";
   }
-
+  if (!strcasecmp(buf, "addslave")) {
+    *color = 35;
+    *bold = 0;
+    return " TABLE PARTITON IP PORT";
+  }
+  if (!strcasecmp(buf, "removeslave")) {
+    *color = 35;
+    *bold = 0;
+    return " TABLE PARTITON IP PORT";
+  }
   return NULL;
 }
 
@@ -207,9 +216,50 @@ void StartRepl(libzp::Cluster* cluster) {
       } else {
         std::cout << s.ToString() << std::endl;
       }
+    } else if (!strncmp(line, "listmeta", 8)) {
+        if (line_args.size() != 1) {
+          std::cout << "arg num wrong" << std::endl;
+          continue;
+        }
+        std::vector<libzp::IpPort> nodes;
+        s = cluster->ListMeta(nodes);
+        std::vector<libzp::IpPort>::iterator iter = nodes.begin();
+        while (iter != nodes.end()) {
+          std::cout << iter->ip << ":" << iter->port << std::endl;
+          iter++;
+        }
+        std::cout << s.ToString() << std::endl;
+
+    } else if (!strncmp(line, "listnode", 8)) {
+        if (line_args.size() != 1) {
+          std::cout << "arg num wrong" << std::endl;
+          continue;
+        }
+        std::vector<libzp::IpPort> nodes;
+        s = cluster->ListNode(nodes);
+        std::vector<libzp::IpPort>::iterator iter = nodes.begin();
+        while (iter != nodes.end()) {
+          std::cout << iter->ip << ":" << iter->port << std::endl;
+          iter++;
+        }
+        std::cout << s.ToString() << std::endl;
+
+    } else if (!strncmp(line, "listtable", 9)) {
+        if (line_args.size() != 1) {
+          std::cout << "arg num wrong" << std::endl;
+          continue;
+        }
+        std::vector<std::string> tables;
+        s = cluster->ListTable(tables);
+        std::vector<std::string>::iterator iter = tables.begin();
+        while (iter != tables.end()) {
+          std::cout << *iter << std::endl;
+          iter++;
+        }
+        std::cout << s.ToString() << std::endl;
 
     } else {
-      printf("Unreconized command: %s\n", line);
+      printf("Unrecognized command: %s\n", line);
     }
     free(line);
   }
