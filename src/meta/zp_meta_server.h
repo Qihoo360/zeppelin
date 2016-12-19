@@ -30,17 +30,17 @@ class ZPMetaServer {
   void Start();
   void Stop();
   void CleanUp();
-  std::string seed_ip() {
-    return g_zp_conf->seed_ip();
-  }
-  int seed_port() {
-    return g_zp_conf->seed_port();
-  }
   std::string local_ip() {
-    return g_zp_conf->local_ip();
+    return local_ip_;
+  }
+  std::string seed_ip() {
+    return seed_ip_;
   }
   int local_port() {
-    return g_zp_conf->local_port();
+    return local_port_;
+  }
+  int seed_port() {
+    return seed_port_;
   }
   int version() {
     return version_;
@@ -63,6 +63,8 @@ class ZPMetaServer {
   Status RemoveSlave(const std::string &table, int partition, const ZPMeta::Node &node);
   Status SetMaster(const std::string &table, int partition, const ZPMeta::Node &node);
   Status AddSlave(const std::string &table, int partition, const ZPMeta::Node &node);
+  Status GetTableList(ZPMeta::MetaCmdResponse_ListTable *tables);
+  Status GetAllNodes(ZPMeta::MetaCmdResponse_ListNode *nodes);
   Status Distribute(const std::string &table, int num);
   Status InitVersionIfNeeded();
 
@@ -74,6 +76,11 @@ private:
 
   // Debug
   void DebugNodes();
+
+  std::string local_ip_;
+  std::string seed_ip_;
+  int local_port_;
+  int seed_port_;
 
   // Server related
   ZPMetaWorkerThread* zp_meta_worker_thread_[kMaxMetaWorkerThread];

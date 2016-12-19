@@ -10,10 +10,10 @@ ZPMetaServer::ZPMetaServer()
   : should_exit_(false), started_(false), version_(-1), worker_num_(6), leader_cli_(NULL), leader_first_time_(true), leader_ip_(""), leader_cmd_port_(0) {
 
   floyd::Options fy_options;
-  fy_options.seed_ip = g_zp_conf->seed_ip();
-  fy_options.seed_port = g_zp_conf->seed_port() + kMetaPortShiftFY;
-  fy_options.local_ip = g_zp_conf->local_ip();
-  fy_options.local_port = g_zp_conf->local_port() + kMetaPortShiftFY;
+  local_ip_ = fy_options.local_ip = g_zp_conf->local_ip();
+  seed_ip_ = fy_options.seed_ip = g_zp_conf->seed_ip();
+  local_port_ = fy_options.local_port = g_zp_conf->local_port() + kMetaPortShiftFY;
+  seed_port_ = fy_options.seed_port = g_zp_conf->seed_port() + kMetaPortShiftFY;
   fy_options.data_path = g_zp_conf->data_path();
   fy_options.log_path = g_zp_conf->log_path();
   fy_options.log_type = "FileLog";
@@ -425,6 +425,36 @@ Status ZPMetaServer::AddSlave(const std::string &table, int partition, const ZPM
 
 }
 
+Status ZPMetaServer::GetTableList(ZPMeta::MetaCmdResponse_ListTable *tables) {
+  std::string value;
+  ZPMeta::TableName table_name;
+  Status s = Get(kMetaTables, value);
+  if (s.ok()) {
+    if (!table_name.ParseFromString(value)) {
+      LOG(ERROR) << "Deserialization table failed, error: " << value;
+      return slash::Status::Corruption("Parse failed");
+    }
+    ZPMeta::TableName *p = tables->mutable_tables();
+    p->CopyFrom(table_name);
+  }
+  return s;
+}
+
+Status ZPMetaServer::GetAllNodes(ZPMeta::MetaCmdResponse_ListNode *nodes) {
+  std::string value;
+  ZPMeta::NodeStatus allnodes;
+  Status s = Get(kMetaNodes, value);
+  if (s.ok()) {
+    if (!allnodes.ParseFromString(value)) {
+      LOG(ERROR) << "Deserialization nodes failed, error: " << value;
+      return slash::Status::Corruption("Parse failed");
+    }
+    ZPMeta::NodeStatus *p = nodes->mutable_nodes();
+    p->CopyFrom(allnodes);
+  }
+  return s;
+}
+
 Status ZPMetaServer::Distribute(const std::string &name, int num) {
   slash::MutexLock l(&node_mutex_);
   std::string value;
@@ -637,6 +667,14 @@ void ZPMetaServer::InitClientCmdTable() {
   //RemoveSlave Command
   Cmd* removeslaveptr = new RemoveSlaveCmd(kCmdFlagsWrite);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::REMOVESLAVE), removeslaveptr));
+
+  //ListTable Command
+  Cmd* listtableptr = new ListTableCmd(kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTTABLE), listtableptr));
+
+  //ListNode Command
+  Cmd* listnodeptr = new ListNodeCmd(kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTNODE), listnodeptr));
 }
 
 bool ZPMetaServer::ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque, const ZPMeta::Nodes &nodes, ZPMeta::Table *table_info, bool *should_update_version) {
