@@ -45,4 +45,18 @@ class RemoveSlaveCmd : public Cmd {
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
+class ListTableCmd : public Cmd {
+ public:
+  ListTableCmd(int flag) : Cmd(flag) {}
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition = NULL) const;
+};
+
+class ListNodeCmd : public Cmd {
+ public:
+  ListNodeCmd(int flag) : Cmd(flag) {}
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition = NULL) const;
+};
+
 #endif

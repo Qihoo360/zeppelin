@@ -158,3 +158,39 @@ void RemoveSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::
     response->set_msg(s.ToString());
   }
 }
+
+void ListTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  ZPMeta::MetaCmdResponse_ListTable *table_name = response->mutable_list_table();
+
+  response->set_type(ZPMeta::Type::LISTTABLE);
+
+  Status s = g_meta_server->GetTableList(table_name);
+
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("ListTable OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
+}
+
+void ListNodeCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  ZPMeta::MetaCmdResponse_ListNode *nodes = response->mutable_list_node();
+
+  response->set_type(ZPMeta::Type::LISTNODE);
+
+  Status s = g_meta_server->GetAllNodes(nodes);
+
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("ListNode OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
+}
