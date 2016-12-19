@@ -442,14 +442,14 @@ Status ZPMetaServer::GetTableList(ZPMeta::MetaCmdResponse_ListTable *tables) {
 
 Status ZPMetaServer::GetAllNodes(ZPMeta::MetaCmdResponse_ListNode *nodes) {
   std::string value;
-  ZPMeta::NodeStatus allnodes;
+  ZPMeta::Nodes allnodes;
   Status s = Get(kMetaNodes, value);
   if (s.ok()) {
     if (!allnodes.ParseFromString(value)) {
       LOG(ERROR) << "Deserialization nodes failed, error: " << value;
       return slash::Status::Corruption("Parse failed");
     }
-    ZPMeta::NodeStatus *p = nodes->mutable_nodes();
+    ZPMeta::Nodes *p = nodes->mutable_nodes();
     p->CopyFrom(allnodes);
   }
   return s;
