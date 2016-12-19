@@ -312,7 +312,7 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
   Status s;
   IpPort master;
 
-  std::cout << "submit" << std::endl;
+//  std::cout << "submit" << std::endl;
   s = GetDataMaster(table, key, &master);
   if (!s.ok()) {
     if (has_pull) {
@@ -327,7 +327,7 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
     }
   }
 
-  std::cout << "data ip:" << master.ip << " port:" << master.port << std::endl;
+//  std::cout << "data ip:" << master.ip << " port:" << master.port << std::endl;
   pink::PbCli* data_cli = data_pool_->GetConnection(master);
 
   if (data_cli) {
