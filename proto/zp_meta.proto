@@ -14,7 +14,7 @@ enum Type {
   ADDSLAVE = 5;
   REMOVESLAVE = 6;
   LISTTABLE = 7;
-  LISTDATA = 8;
+  LISTNODE = 8;
   LISTMETA = 9;
 }
 
@@ -117,4 +117,16 @@ message MetaCmdResponse {
     repeated Table info = 2;
   }
   optional Pull pull = 5;
+
+  // ListTable 
+  message ListTable {
+    required TableName tables = 1;
+  }
+  optional ListTable list_table = 6;
+
+  // ListNode
+  message ListNode {
+    required NodeStatus nodes = 1;  
+  }
+  optional ListNode list_node = 7;
 }

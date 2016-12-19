@@ -51,6 +51,8 @@ class MetaCmd_RemoveSlave;
 class MetaCmdResponse;
 class MetaCmdResponse_Ping;
 class MetaCmdResponse_Pull;
+class MetaCmdResponse_ListTable;
+class MetaCmdResponse_ListNode;
 
 enum StatusCode {
   OK = 0,
@@ -80,7 +82,7 @@ enum Type {
   ADDSLAVE = 5,
   REMOVESLAVE = 6,
   LISTTABLE = 7,
-  LISTDATA = 8,
+  LISTNODE = 8,
   LISTMETA = 9
 };
 bool Type_IsValid(int value);
@@ -1690,6 +1692,174 @@ class MetaCmdResponse_Pull : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class MetaCmdResponse_ListTable : public ::google::protobuf::Message {
+ public:
+  MetaCmdResponse_ListTable();
+  virtual ~MetaCmdResponse_ListTable();
+
+  MetaCmdResponse_ListTable(const MetaCmdResponse_ListTable& from);
+
+  inline MetaCmdResponse_ListTable& operator=(const MetaCmdResponse_ListTable& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const MetaCmdResponse_ListTable& default_instance();
+
+  void Swap(MetaCmdResponse_ListTable* other);
+
+  // implements Message ----------------------------------------------
+
+  MetaCmdResponse_ListTable* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const MetaCmdResponse_ListTable& from);
+  void MergeFrom(const MetaCmdResponse_ListTable& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required .ZPMeta.TableName tables = 1;
+  inline bool has_tables() const;
+  inline void clear_tables();
+  static const int kTablesFieldNumber = 1;
+  inline const ::ZPMeta::TableName& tables() const;
+  inline ::ZPMeta::TableName* mutable_tables();
+  inline ::ZPMeta::TableName* release_tables();
+  inline void set_allocated_tables(::ZPMeta::TableName* tables);
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmdResponse.ListTable)
+ private:
+  inline void set_has_tables();
+  inline void clear_has_tables();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::ZPMeta::TableName* tables_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static MetaCmdResponse_ListTable* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class MetaCmdResponse_ListNode : public ::google::protobuf::Message {
+ public:
+  MetaCmdResponse_ListNode();
+  virtual ~MetaCmdResponse_ListNode();
+
+  MetaCmdResponse_ListNode(const MetaCmdResponse_ListNode& from);
+
+  inline MetaCmdResponse_ListNode& operator=(const MetaCmdResponse_ListNode& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const MetaCmdResponse_ListNode& default_instance();
+
+  void Swap(MetaCmdResponse_ListNode* other);
+
+  // implements Message ----------------------------------------------
+
+  MetaCmdResponse_ListNode* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const MetaCmdResponse_ListNode& from);
+  void MergeFrom(const MetaCmdResponse_ListNode& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required .ZPMeta.NodeStatus nodes = 1;
+  inline bool has_nodes() const;
+  inline void clear_nodes();
+  static const int kNodesFieldNumber = 1;
+  inline const ::ZPMeta::NodeStatus& nodes() const;
+  inline ::ZPMeta::NodeStatus* mutable_nodes();
+  inline ::ZPMeta::NodeStatus* release_nodes();
+  inline void set_allocated_nodes(::ZPMeta::NodeStatus* nodes);
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmdResponse.ListNode)
+ private:
+  inline void set_has_nodes();
+  inline void clear_has_nodes();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::ZPMeta::NodeStatus* nodes_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static MetaCmdResponse_ListNode* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class MetaCmdResponse : public ::google::protobuf::Message {
  public:
   MetaCmdResponse();
@@ -1744,6 +1914,8 @@ class MetaCmdResponse : public ::google::protobuf::Message {
 
   typedef MetaCmdResponse_Ping Ping;
   typedef MetaCmdResponse_Pull Pull;
+  typedef MetaCmdResponse_ListTable ListTable;
+  typedef MetaCmdResponse_ListNode ListNode;
 
   // accessors -------------------------------------------------------
 
@@ -1791,6 +1963,24 @@ class MetaCmdResponse : public ::google::protobuf::Message {
   inline ::ZPMeta::MetaCmdResponse_Pull* release_pull();
   inline void set_allocated_pull(::ZPMeta::MetaCmdResponse_Pull* pull);
 
+  // optional .ZPMeta.MetaCmdResponse.ListTable list_table = 6;
+  inline bool has_list_table() const;
+  inline void clear_list_table();
+  static const int kListTableFieldNumber = 6;
+  inline const ::ZPMeta::MetaCmdResponse_ListTable& list_table() const;
+  inline ::ZPMeta::MetaCmdResponse_ListTable* mutable_list_table();
+  inline ::ZPMeta::MetaCmdResponse_ListTable* release_list_table();
+  inline void set_allocated_list_table(::ZPMeta::MetaCmdResponse_ListTable* list_table);
+
+  // optional .ZPMeta.MetaCmdResponse.ListNode list_node = 7;
+  inline bool has_list_node() const;
+  inline void clear_list_node();
+  static const int kListNodeFieldNumber = 7;
+  inline const ::ZPMeta::MetaCmdResponse_ListNode& list_node() const;
+  inline ::ZPMeta::MetaCmdResponse_ListNode* mutable_list_node();
+  inline ::ZPMeta::MetaCmdResponse_ListNode* release_list_node();
+  inline void set_allocated_list_node(::ZPMeta::MetaCmdResponse_ListNode* list_node);
+
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmdResponse)
  private:
   inline void set_has_type();
@@ -1803,6 +1993,10 @@ class MetaCmdResponse : public ::google::protobuf::Message {
   inline void clear_has_ping();
   inline void set_has_pull();
   inline void clear_has_pull();
+  inline void set_has_list_table();
+  inline void clear_has_list_table();
+  inline void set_has_list_node();
+  inline void clear_has_list_node();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -1811,9 +2005,11 @@ class MetaCmdResponse : public ::google::protobuf::Message {
   ::std::string* msg_;
   ::ZPMeta::MetaCmdResponse_Ping* ping_;
   ::ZPMeta::MetaCmdResponse_Pull* pull_;
+  ::ZPMeta::MetaCmdResponse_ListTable* list_table_;
+  ::ZPMeta::MetaCmdResponse_ListNode* list_node_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -3139,6 +3335,90 @@ MetaCmdResponse_Pull::mutable_info() {
 
 // -------------------------------------------------------------------
 
+// MetaCmdResponse_ListTable
+
+// required .ZPMeta.TableName tables = 1;
+inline bool MetaCmdResponse_ListTable::has_tables() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void MetaCmdResponse_ListTable::set_has_tables() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void MetaCmdResponse_ListTable::clear_has_tables() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void MetaCmdResponse_ListTable::clear_tables() {
+  if (tables_ != NULL) tables_->::ZPMeta::TableName::Clear();
+  clear_has_tables();
+}
+inline const ::ZPMeta::TableName& MetaCmdResponse_ListTable::tables() const {
+  return tables_ != NULL ? *tables_ : *default_instance_->tables_;
+}
+inline ::ZPMeta::TableName* MetaCmdResponse_ListTable::mutable_tables() {
+  set_has_tables();
+  if (tables_ == NULL) tables_ = new ::ZPMeta::TableName;
+  return tables_;
+}
+inline ::ZPMeta::TableName* MetaCmdResponse_ListTable::release_tables() {
+  clear_has_tables();
+  ::ZPMeta::TableName* temp = tables_;
+  tables_ = NULL;
+  return temp;
+}
+inline void MetaCmdResponse_ListTable::set_allocated_tables(::ZPMeta::TableName* tables) {
+  delete tables_;
+  tables_ = tables;
+  if (tables) {
+    set_has_tables();
+  } else {
+    clear_has_tables();
+  }
+}
+
+// -------------------------------------------------------------------
+
+// MetaCmdResponse_ListNode
+
+// required .ZPMeta.NodeStatus nodes = 1;
+inline bool MetaCmdResponse_ListNode::has_nodes() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void MetaCmdResponse_ListNode::set_has_nodes() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void MetaCmdResponse_ListNode::clear_has_nodes() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void MetaCmdResponse_ListNode::clear_nodes() {
+  if (nodes_ != NULL) nodes_->::ZPMeta::NodeStatus::Clear();
+  clear_has_nodes();
+}
+inline const ::ZPMeta::NodeStatus& MetaCmdResponse_ListNode::nodes() const {
+  return nodes_ != NULL ? *nodes_ : *default_instance_->nodes_;
+}
+inline ::ZPMeta::NodeStatus* MetaCmdResponse_ListNode::mutable_nodes() {
+  set_has_nodes();
+  if (nodes_ == NULL) nodes_ = new ::ZPMeta::NodeStatus;
+  return nodes_;
+}
+inline ::ZPMeta::NodeStatus* MetaCmdResponse_ListNode::release_nodes() {
+  clear_has_nodes();
+  ::ZPMeta::NodeStatus* temp = nodes_;
+  nodes_ = NULL;
+  return temp;
+}
+inline void MetaCmdResponse_ListNode::set_allocated_nodes(::ZPMeta::NodeStatus* nodes) {
+  delete nodes_;
+  nodes_ = nodes;
+  if (nodes) {
+    set_has_nodes();
+  } else {
+    clear_has_nodes();
+  }
+}
+
+// -------------------------------------------------------------------
+
 // MetaCmdResponse
 
 // required .ZPMeta.Type type = 1;
@@ -3330,6 +3610,82 @@ inline void MetaCmdResponse::set_allocated_pull(::ZPMeta::MetaCmdResponse_Pull* 
     set_has_pull();
   } else {
     clear_has_pull();
+  }
+}
+
+// optional .ZPMeta.MetaCmdResponse.ListTable list_table = 6;
+inline bool MetaCmdResponse::has_list_table() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+inline void MetaCmdResponse::set_has_list_table() {
+  _has_bits_[0] |= 0x00000020u;
+}
+inline void MetaCmdResponse::clear_has_list_table() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline void MetaCmdResponse::clear_list_table() {
+  if (list_table_ != NULL) list_table_->::ZPMeta::MetaCmdResponse_ListTable::Clear();
+  clear_has_list_table();
+}
+inline const ::ZPMeta::MetaCmdResponse_ListTable& MetaCmdResponse::list_table() const {
+  return list_table_ != NULL ? *list_table_ : *default_instance_->list_table_;
+}
+inline ::ZPMeta::MetaCmdResponse_ListTable* MetaCmdResponse::mutable_list_table() {
+  set_has_list_table();
+  if (list_table_ == NULL) list_table_ = new ::ZPMeta::MetaCmdResponse_ListTable;
+  return list_table_;
+}
+inline ::ZPMeta::MetaCmdResponse_ListTable* MetaCmdResponse::release_list_table() {
+  clear_has_list_table();
+  ::ZPMeta::MetaCmdResponse_ListTable* temp = list_table_;
+  list_table_ = NULL;
+  return temp;
+}
+inline void MetaCmdResponse::set_allocated_list_table(::ZPMeta::MetaCmdResponse_ListTable* list_table) {
+  delete list_table_;
+  list_table_ = list_table;
+  if (list_table) {
+    set_has_list_table();
+  } else {
+    clear_has_list_table();
+  }
+}
+
+// optional .ZPMeta.MetaCmdResponse.ListNode list_node = 7;
+inline bool MetaCmdResponse::has_list_node() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+inline void MetaCmdResponse::set_has_list_node() {
+  _has_bits_[0] |= 0x00000040u;
+}
+inline void MetaCmdResponse::clear_has_list_node() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline void MetaCmdResponse::clear_list_node() {
+  if (list_node_ != NULL) list_node_->::ZPMeta::MetaCmdResponse_ListNode::Clear();
+  clear_has_list_node();
+}
+inline const ::ZPMeta::MetaCmdResponse_ListNode& MetaCmdResponse::list_node() const {
+  return list_node_ != NULL ? *list_node_ : *default_instance_->list_node_;
+}
+inline ::ZPMeta::MetaCmdResponse_ListNode* MetaCmdResponse::mutable_list_node() {
+  set_has_list_node();
+  if (list_node_ == NULL) list_node_ = new ::ZPMeta::MetaCmdResponse_ListNode;
+  return list_node_;
+}
+inline ::ZPMeta::MetaCmdResponse_ListNode* MetaCmdResponse::release_list_node() {
+  clear_has_list_node();
+  ::ZPMeta::MetaCmdResponse_ListNode* temp = list_node_;
+  list_node_ = NULL;
+  return temp;
+}
+inline void MetaCmdResponse::set_allocated_list_node(::ZPMeta::MetaCmdResponse_ListNode* list_node) {
+  delete list_node_;
+  list_node_ = list_node;
+  if (list_node) {
+    set_has_list_node();
+  } else {
+    clear_has_list_node();
   }
 }
 
