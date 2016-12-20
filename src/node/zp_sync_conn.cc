@@ -17,25 +17,33 @@ ZPSyncConn::~ZPSyncConn() {
 
 int ZPSyncConn::DealMessage() {
   if (!zp_data_server->Availible()) {
-    LOG(WARNING) << "Receive Client command, but the server is not availible yet";
+    LOG(WARNING) << "Receive Binlog command, but the server is not availible yet";
     return -1;
   }
   self_thread_->PlusQueryNum();
 
   request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
-
-  // TODO test only
-  switch (request_.type()) {
+  
+  // Check requst
+  if (request_.epoch() < zp_data_server->meta_epoch()) {
+    LOG(WARNING) << "Receive Binlog command with expired epoch:" << request_.epoch()
+      << " , my current epoch" << zp_data_server->meta_epoch();
+    return -1;
+  }
+  
+  client::CmdRequest crequest = request_.request();
+  // Debug info
+  switch (crequest.type()) {
     case client::Type::SET: {
-      DLOG(INFO) << "SyncConn Receive Set cmd, table=" << request_.set().table_name() << " key=" << request_.set().key();
+      DLOG(INFO) << "SyncConn Receive Set cmd, table=" << crequest.set().table_name() << " key=" << crequest.set().key();
       break;
     }
     case client::Type::GET: {
-      DLOG(INFO) << "SyncConn Receive Get cmd, table=" << request_.get().table_name() << " key=" << request_.get().key();
+      DLOG(INFO) << "SyncConn Receive Get cmd, table=" << crequest.get().table_name() << " key=" << crequest.get().key();
       break;
     }
     case client::Type::DEL: {
-      DLOG(INFO) << "SyncConn Receive Del cmd, table=" << request_.del().table_name() << " key=" << request_.del().key();
+      DLOG(INFO) << "SyncConn Receive Del cmd, table=" << crequest.del().table_name() << " key=" << crequest.del().key();
       break;
     }
     case client::Type::SYNC: {
@@ -44,9 +52,9 @@ int ZPSyncConn::DealMessage() {
     }
   }
 
-  Cmd* cmd = zp_data_server->CmdGet(static_cast<int>(request_.type()));
+  Cmd* cmd = zp_data_server->CmdGet(static_cast<int>(crequest.type()));
   if (cmd == NULL) {
-    LOG(ERROR) << "unsupported type: " << (int)request_.type();
+    LOG(ERROR) << "unsupported type: " << (int)crequest.type();
     return -1;
   }
 
@@ -59,10 +67,11 @@ int ZPSyncConn::DealMessage() {
   ZPBinlogReceiveTask *arg = new ZPBinlogReceiveTask(
       0, // Will be filled by zp_data_server
       cmd,
-      request_,
-      std::string(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4));
+      crequest,
+      std::string(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4),
+      slash::IpPortString(request_.from().ip(), request_.from().port()));
 
-  zp_data_server->DispatchBinlogBGWorker(cmd->ExtractTable(&request_), cmd->ExtractKey(&request_), arg);
+  zp_data_server->DispatchBinlogBGWorker(cmd->ExtractTable(&crequest), cmd->ExtractKey(&crequest), arg);
 
   return 0;
 }

@@ -42,6 +42,7 @@ class CmdRequest_Get;
 class CmdRequest_Del;
 class CmdResponse;
 class CmdResponse_Get;
+class SyncRequest;
 
 enum Type {
   SYNC = 0,
@@ -273,12 +274,12 @@ class CmdRequest_Sync : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 filenum() const;
   inline void set_filenum(::google::protobuf::int32 value);
 
-  // required int32 offset = 5 [default = 0];
+  // required int64 offset = 5 [default = 0];
   inline bool has_offset() const;
   inline void clear_offset();
   static const int kOffsetFieldNumber = 5;
-  inline ::google::protobuf::int32 offset() const;
-  inline void set_offset(::google::protobuf::int32 value);
+  inline ::google::protobuf::int64 offset() const;
+  inline void set_offset(::google::protobuf::int64 value);
 
   // @@protoc_insertion_point(class_scope:client.CmdRequest.Sync)
  private:
@@ -299,7 +300,7 @@ class CmdRequest_Sync : public ::google::protobuf::Message {
   ::std::string* table_name_;
   ::google::protobuf::int32 partition_id_;
   ::google::protobuf::int32 filenum_;
-  ::google::protobuf::int32 offset_;
+  ::google::protobuf::int64 offset_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
@@ -1032,6 +1033,112 @@ class CmdResponse : public ::google::protobuf::Message {
   void InitAsDefaultInstance();
   static CmdResponse* default_instance_;
 };
+// -------------------------------------------------------------------
+
+class SyncRequest : public ::google::protobuf::Message {
+ public:
+  SyncRequest();
+  virtual ~SyncRequest();
+
+  SyncRequest(const SyncRequest& from);
+
+  inline SyncRequest& operator=(const SyncRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SyncRequest& default_instance();
+
+  void Swap(SyncRequest* other);
+
+  // implements Message ----------------------------------------------
+
+  SyncRequest* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const SyncRequest& from);
+  void MergeFrom(const SyncRequest& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required int64 epoch = 1;
+  inline bool has_epoch() const;
+  inline void clear_epoch();
+  static const int kEpochFieldNumber = 1;
+  inline ::google::protobuf::int64 epoch() const;
+  inline void set_epoch(::google::protobuf::int64 value);
+
+  // required .client.Node from = 2;
+  inline bool has_from() const;
+  inline void clear_from();
+  static const int kFromFieldNumber = 2;
+  inline const ::client::Node& from() const;
+  inline ::client::Node* mutable_from();
+  inline ::client::Node* release_from();
+  inline void set_allocated_from(::client::Node* from);
+
+  // required .client.CmdRequest request = 3;
+  inline bool has_request() const;
+  inline void clear_request();
+  static const int kRequestFieldNumber = 3;
+  inline const ::client::CmdRequest& request() const;
+  inline ::client::CmdRequest* mutable_request();
+  inline ::client::CmdRequest* release_request();
+  inline void set_allocated_request(::client::CmdRequest* request);
+
+  // @@protoc_insertion_point(class_scope:client.SyncRequest)
+ private:
+  inline void set_has_epoch();
+  inline void clear_has_epoch();
+  inline void set_has_from();
+  inline void clear_has_from();
+  inline void set_has_request();
+  inline void clear_has_request();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::int64 epoch_;
+  ::client::Node* from_;
+  ::client::CmdRequest* request_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static SyncRequest* default_instance_;
+};
 // ===================================================================
 
 
@@ -1287,7 +1394,7 @@ inline void CmdRequest_Sync::set_filenum(::google::protobuf::int32 value) {
   filenum_ = value;
 }
 
-// required int32 offset = 5 [default = 0];
+// required int64 offset = 5 [default = 0];
 inline bool CmdRequest_Sync::has_offset() const {
   return (_has_bits_[0] & 0x00000010u) != 0;
 }
@@ -1298,13 +1405,13 @@ inline void CmdRequest_Sync::clear_has_offset() {
   _has_bits_[0] &= ~0x00000010u;
 }
 inline void CmdRequest_Sync::clear_offset() {
-  offset_ = 0;
+  offset_ = GOOGLE_LONGLONG(0);
   clear_has_offset();
 }
-inline ::google::protobuf::int32 CmdRequest_Sync::offset() const {
+inline ::google::protobuf::int64 CmdRequest_Sync::offset() const {
   return offset_;
 }
-inline void CmdRequest_Sync::set_offset(::google::protobuf::int32 value) {
+inline void CmdRequest_Sync::set_offset(::google::protobuf::int64 value) {
   set_has_offset();
   offset_ = value;
 }
@@ -2467,6 +2574,108 @@ inline void CmdResponse::set_allocated_redirect(::client::Node* redirect) {
     set_has_redirect();
   } else {
     clear_has_redirect();
+  }
+}
+
+// -------------------------------------------------------------------
+
+// SyncRequest
+
+// required int64 epoch = 1;
+inline bool SyncRequest::has_epoch() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void SyncRequest::set_has_epoch() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void SyncRequest::clear_has_epoch() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void SyncRequest::clear_epoch() {
+  epoch_ = GOOGLE_LONGLONG(0);
+  clear_has_epoch();
+}
+inline ::google::protobuf::int64 SyncRequest::epoch() const {
+  return epoch_;
+}
+inline void SyncRequest::set_epoch(::google::protobuf::int64 value) {
+  set_has_epoch();
+  epoch_ = value;
+}
+
+// required .client.Node from = 2;
+inline bool SyncRequest::has_from() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void SyncRequest::set_has_from() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void SyncRequest::clear_has_from() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void SyncRequest::clear_from() {
+  if (from_ != NULL) from_->::client::Node::Clear();
+  clear_has_from();
+}
+inline const ::client::Node& SyncRequest::from() const {
+  return from_ != NULL ? *from_ : *default_instance_->from_;
+}
+inline ::client::Node* SyncRequest::mutable_from() {
+  set_has_from();
+  if (from_ == NULL) from_ = new ::client::Node;
+  return from_;
+}
+inline ::client::Node* SyncRequest::release_from() {
+  clear_has_from();
+  ::client::Node* temp = from_;
+  from_ = NULL;
+  return temp;
+}
+inline void SyncRequest::set_allocated_from(::client::Node* from) {
+  delete from_;
+  from_ = from;
+  if (from) {
+    set_has_from();
+  } else {
+    clear_has_from();
+  }
+}
+
+// required .client.CmdRequest request = 3;
+inline bool SyncRequest::has_request() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void SyncRequest::set_has_request() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void SyncRequest::clear_has_request() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void SyncRequest::clear_request() {
+  if (request_ != NULL) request_->::client::CmdRequest::Clear();
+  clear_has_request();
+}
+inline const ::client::CmdRequest& SyncRequest::request() const {
+  return request_ != NULL ? *request_ : *default_instance_->request_;
+}
+inline ::client::CmdRequest* SyncRequest::mutable_request() {
+  set_has_request();
+  if (request_ == NULL) request_ = new ::client::CmdRequest;
+  return request_;
+}
+inline ::client::CmdRequest* SyncRequest::release_request() {
+  clear_has_request();
+  ::client::CmdRequest* temp = request_;
+  request_ = NULL;
+  return temp;
+}
+inline void SyncRequest::set_allocated_request(::client::CmdRequest* request) {
+  delete request_;
+  request_ = request;
+  if (request) {
+    set_has_request();
+  } else {
+    clear_has_request();
   }
 }
 

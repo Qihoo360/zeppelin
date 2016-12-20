@@ -51,9 +51,6 @@ class Partition {
   Partition(const std::string &table_name, const int partition_id, const std::string &log_path, const std::string &data_path);
   ~Partition();
 
-  bool readonly() {
-    return readonly_;
-  }
   int partition_id() {
     return partition_id_;
   }
@@ -78,9 +75,9 @@ class Partition {
 
   // Command related
   void DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
-      const std::string &raw_msg);
+      const std::string &raw_msg, const std::string &from_ip_port);
   void DoCommand(const Cmd* cmd, const client::CmdRequest &req,
-      client::CmdResponse &res, const std::string &raw_msg);
+      client::CmdResponse &res);
 
   // Status related
   bool ShouldTrySync();
@@ -162,16 +159,16 @@ class Partition {
   std::string data_path_;
   std::string sync_path_;
   std::string bgsave_path_;
+  
+  // State related
+  pthread_rwlock_t state_rw_; //protect partition status below
   Node master_node_;
   std::vector<Node> slave_nodes_;
   std::atomic<bool> readonly_;
-  
-  // State related
-  pthread_rwlock_t state_rw_;
   ZPMeta::PState pstate_;
   Role role_;
   int repl_state_;
-  void CleanRoleEnv(Role role);
+  void CleanRoleEnv();
   void BecomeSingle();
   void BecomeMaster();
   void BecomeSlave();
@@ -183,13 +180,10 @@ class Partition {
 
   // Binlog related
   Binlog* logger_;
-  slash::Mutex slave_mutex_;
-  bool FindSlave(const Node& node);
-  void DeleteSlave(const Node& node);
 
   // DoCommand related
   slash::RecordMutex mutex_record_;
-  pthread_rwlock_t partition_rw_;
+  pthread_rwlock_t partition_rw_; // Some command use partition_rw to suspend others
 
   // BGSave related
   slash::Mutex bgsave_protector_;

@@ -8,6 +8,20 @@
 
 extern ZPDataServer* zp_data_server;
 
+static std::string BuildBinlogContent(const client::CmdRequest &req,
+    const std::string ip, int port, int64_t epoch) {
+  client::SyncRequest sreq;
+  sreq.set_epoch(epoch);
+  client::Node *node = sreq.mutable_from();
+  node->set_ip(ip);
+  node->set_port(port);
+  client::CmdRequest *req_ptr = sreq.mutable_request();
+  req_ptr->CopyFrom(req);
+  std::string raw_msg;
+  assert(sreq.SerializeToString(&raw_msg));
+  return raw_msg;
+}
+
 Partition::Partition(const std::string &table_name, const int partition_id, const std::string &log_path, const std::string &data_path)
   : table_name_(table_name),
   partition_id_(partition_id),
@@ -349,24 +363,17 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
       << node.ip << ":" << node.port + kPortShiftSync << " at " << filenum << ", " << offset;
   } else {
     LOG(WARNING) << "Failed AddBinlogSendTask for Table " << table_name_ << " Partition " << partition_id_ << " To "
-      << node.ip << ":" << node.port + kPortShiftSync << " at " << filenum << ", " << offset;
+      << node.ip << ":" << node.port + kPortShiftSync << " at " << filenum << ", " << offset << ", Error:" << s.ToString()
+      << ", cur filenum:" << cur_filenum << ", cur offset" << cur_offset;
   }
   return s;
 }
 
-void Partition::CleanRoleEnv(Role role) {
+// Should hold write lock of state_rw_
+void Partition::CleanRoleEnv() {
   // Clean binlog sender if needed
   for (auto iter = slave_nodes_.begin(); iter != slave_nodes_.end(); iter++) {
     zp_data_server->RemoveBinlogSendTask(table_name_, partition_id_, *iter);
-  }
-
-  // Clean binlog if needed
-  if (role == Role::kNodeSlave) {
-    //if (!PurgeLogs(0, true)) {
-    //  DLOG(WARNING) << "Purge logs before become slave failed";
-    //  return;
-    //}
-    logger_->SetProducerStatus(0, 0);
   }
 
   // Clean binlog receiver
@@ -375,25 +382,33 @@ void Partition::CleanRoleEnv(Role role) {
 
 // Should hold write lock of state_rw_
 void Partition::BecomeSingle() {
-  CleanRoleEnv(Role::kNodeSingle);
+  CleanRoleEnv();
   LOG(INFO) << " Partition " << partition_id_ << " BecomeSingle";
   role_ = Role::kNodeSingle;
   repl_state_ = ReplState::kNoConnect;
   readonly_ = true;
 }
+
+// Should hold write lock of state_rw_
 void Partition::BecomeMaster() {
-  CleanRoleEnv(Role::kNodeMaster);
+  CleanRoleEnv();
   LOG(INFO) << " Partition " << partition_id_ << " BecomeMaster";
   role_ = Role::kNodeMaster;
   repl_state_ = ReplState::kNoConnect;
   readonly_ = false;
 }
+
+// Should hold write lock of state_rw_
 void Partition::BecomeSlave() {
-  CleanRoleEnv(Role::kNodeSlave);
+  CleanRoleEnv();
   LOG(INFO) << " Partition " << partition_id_ << " BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
   role_ = Role::kNodeSlave;
   repl_state_ = ReplState::kShouldConnect;
   readonly_ = true;
+
+  // Clean binlog
+  logger_->SetProducerStatus(0, 0);
+
   zp_data_server->AddSyncTask(this);
 }
 
@@ -411,6 +426,7 @@ ZPMeta::PState Partition::UpdateState(ZPMeta::PState state) {
 
 void Partition::Update(ZPMeta::PState state, const Node &master, const std::vector<Node> &slaves) {
   assert(slaves.size() == kReplicaNum - 1);
+  slash::RWLock l(&state_rw_, true);
 
   // Check Status first
   if (ZPMeta::PState::ACTIVE != UpdateState(state)) {
@@ -420,9 +436,7 @@ void Partition::Update(ZPMeta::PState state, const Node &master, const std::vect
   }
 
   // Update master slave nodes
-  slash::RWLock l(&state_rw_, true);
   bool change_master = false, change_slave = false;
-  
   if (master_node_ != master) {
     master_node_ = master;
     change_master = true;
@@ -487,7 +501,14 @@ Partition* NewPartition(const std::string &table_name,
 }
 
 // Keep binlog order outside
-void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req, const std::string &raw_msg) {
+void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
+    const std::string &raw_msg, const std::string &from_ip_port) {
+  slash::RWLock l(&state_rw_, false);
+  if (from_ip_port != slash::IpPortString(master_node_.ip, master_node_.port)) {
+    LOG(WARNING) << "Discard binlog item from " << from_ip_port;
+    return;
+  }
+
   // Add read lock for no suspend command
   if (!cmd->is_suspend()) {
     pthread_rwlock_rdlock(&partition_rw_);
@@ -502,13 +523,15 @@ void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req, c
   }
 }
 
-void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req, client::CmdResponse &res,
-    const std::string &raw_msg) {
+void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
+    client::CmdResponse &res) {
   std::string key = cmd->ExtractKey(&req);
 
+  slash::RWLock l(&state_rw_, false);
   if (cmd->is_write() && readonly_) {
     res.set_code(client::StatusCode::kError);
     res.set_msg("readonly mode");
+
     if (role_ == Role::kNodeSlave) {
       // Slave send client redirect msg
       client::Node* node = res.mutable_redirect();
@@ -516,7 +539,7 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req, client:
       node->set_port(master_node_.port);
     }
     LOG(WARNING) << "Readonly mode, failed to DoCommand  at Partition: " << partition_id_
-      << " Role:" << RoleMsg[role_] << " ParititionState:" << pstate_;
+      << " Role:" << RoleMsg[role_] << " ParititionState:" << static_cast<int>(pstate_);
     return;
   }
 
@@ -525,7 +548,7 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req, client:
     pthread_rwlock_rdlock(&partition_rw_);
   }
 
-  // Add RecordLock for write cmd
+
   if (cmd->is_write()) {
     mutex_record_.Lock(key);
   }
@@ -535,7 +558,10 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req, client:
   if (cmd->is_write()) {
     if (res.code() == client::StatusCode::kOk  && req.type() != client::Type::SYNC) {
       // Restore Message
-      logger_->Put(raw_msg);
+      logger_->Put(BuildBinlogContent(req,
+            zp_data_server->local_ip(),
+            zp_data_server->local_port(), 
+            zp_data_server->meta_epoch()));
     }
     mutex_record_.Unlock(key);
   }
@@ -835,7 +861,9 @@ bool Partition::CouldPurge(uint32_t index) {
   if (index >= pro_num) {
     return false;
   }
+
   std::vector<Node>::iterator it;
+  slash::RWLock l(&state_rw_, false);
   for (it = slave_nodes_.begin(); it != slave_nodes_.end(); ++it) {
     int32_t filenum = zp_data_server->GetBinlogSendFilenum(table_name_, partition_id_, *it);
     if (index >= static_cast<uint32_t>(filenum)) { 
@@ -867,7 +895,7 @@ void Partition::Dump() {
     default:
       LOG(INFO) << "  +I'm single";
   }
-  LOG(INFO) << "     -*State " << pstate_;
+  LOG(INFO) << "     -*State " << static_cast<int>(pstate_);
   LOG(INFO) << "     -*Master node " << master_node_;
 
   for (size_t i = 0; i < slave_nodes_.size(); i++) {

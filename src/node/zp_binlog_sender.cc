@@ -53,6 +53,7 @@ Status ZPBinlogSendTask::Init() {
   if (partition == NULL) {
     return Status::NotFound("partiiton not exist");
   }
+
   binlog_filename_ = partition->GetBinlogFilename();
   std::string confile = NewFileName(binlog_filename_, filenum_);
   if (!slash::NewSequentialFile(confile, &queue_).ok()) {
@@ -309,7 +310,10 @@ void* ZPBinlogSendThread::ThreadMain() {
       if (s.ok()) {
         s = zp_data_server->SendToPeer(task->node(), scratch);
         if (!s.ok()) {
-          LOG(ERROR) << "Failed to send to peer " << task->node() << ", Error: " << s.ToString();
+          LOG(ERROR) << "Failed to send to peer " << task->node()
+            << ", table:" << task->table_name() << ", partition:" << task->partition_id()
+            << ", filenum:" << task->filenum() << ", offset:" << task->offset()
+            << ", Error: " << s.ToString();
           task->send_next = false;
           sleep(1);
         } else {
