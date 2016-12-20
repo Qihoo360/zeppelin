@@ -59,4 +59,11 @@ class ListNodeCmd : public Cmd {
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
+class ListMetaCmd : public Cmd {
+ public:
+  ListMetaCmd(int flag) : Cmd(flag) {}
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition = NULL) const;
+};
+
 #endif

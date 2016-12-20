@@ -425,6 +425,41 @@ Status ZPMetaServer::AddSlave(const std::string &table, int partition, const ZPM
 
 }
 
+Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
+  std::string value;
+  ZPMeta::Nodes allnodes;
+  std::vector<std::string> meta_nodes;
+  floyd_->GetAllNodes(meta_nodes);
+
+  ZPMeta::MetaNodes *p = nodes->mutable_nodes();
+  std::string leader_ip;
+  int leader_port;
+  bool ret = GetLeader(&leader_ip, &leader_port);
+  if (ret) {
+    ZPMeta::Node leader;
+    ZPMeta::Node *np = p->mutable_leader();
+    np->set_ip(leader_ip);
+    np->set_port(leader_port);
+  }
+
+  std::string ip;
+  int port;
+  for (auto iter = meta_nodes.begin(); iter != meta_nodes.end(); iter++) {
+    if (slash::ParseIpPortString(*iter, ip, port)) {
+      if (ret && ip == leader_ip && port == leader_port) {
+        continue;
+      } else {
+        ZPMeta::Node *np = p->add_followers();
+        np->set_ip(ip);
+        np->set_port(port);
+      }
+    } else {
+      return Status::Corruption("parse ip port error");
+    }
+  }
+  return Status::OK();
+}
+
 Status ZPMetaServer::GetTableList(ZPMeta::MetaCmdResponse_ListTable *tables) {
   std::string value;
   ZPMeta::TableName table_name;
@@ -675,6 +710,10 @@ void ZPMetaServer::InitClientCmdTable() {
   //ListNode Command
   Cmd* listnodeptr = new ListNodeCmd(kCmdFlagsWrite);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTNODE), listnodeptr));
+
+  //ListNode Command
+  Cmd* listmetaptr = new ListMetaCmd(kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTMETA), listmetaptr));
 }
 
 bool ZPMetaServer::ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque, const ZPMeta::Nodes &nodes, ZPMeta::Table *table_info, bool *should_update_version) {
