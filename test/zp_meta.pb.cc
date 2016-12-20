@@ -29,6 +29,9 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* Nodes_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Nodes_reflection_ = NULL;
+const ::google::protobuf::Descriptor* MetaNodes_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  MetaNodes_reflection_ = NULL;
 const ::google::protobuf::Descriptor* Partitions_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   Partitions_reflection_ = NULL;
@@ -77,6 +80,9 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* MetaCmdResponse_ListNode_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   MetaCmdResponse_ListNode_reflection_ = NULL;
+const ::google::protobuf::Descriptor* MetaCmdResponse_ListMeta_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  MetaCmdResponse_ListMeta_reflection_ = NULL;
 const ::google::protobuf::EnumDescriptor* StatusCode_descriptor_ = NULL;
 const ::google::protobuf::EnumDescriptor* Type_descriptor_ = NULL;
 const ::google::protobuf::EnumDescriptor* PState_descriptor_ = NULL;
@@ -137,7 +143,23 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(Nodes));
-  Partitions_descriptor_ = file->message_type(3);
+  MetaNodes_descriptor_ = file->message_type(3);
+  static const int MetaNodes_offsets_[2] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaNodes, followers_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaNodes, leader_),
+  };
+  MetaNodes_reflection_ =
+    new ::google::protobuf::internal::GeneratedMessageReflection(
+      MetaNodes_descriptor_,
+      MetaNodes::default_instance_,
+      MetaNodes_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaNodes, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaNodes, _unknown_fields_),
+      -1,
+      ::google::protobuf::DescriptorPool::generated_pool(),
+      ::google::protobuf::MessageFactory::generated_factory(),
+      sizeof(MetaNodes));
+  Partitions_descriptor_ = file->message_type(4);
   static const int Partitions_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partitions, id_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Partitions, state_),
@@ -155,7 +177,7 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(Partitions));
-  TableName_descriptor_ = file->message_type(4);
+  TableName_descriptor_ = file->message_type(5);
   static const int TableName_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(TableName, name_),
   };
@@ -170,7 +192,7 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(TableName));
-  Table_descriptor_ = file->message_type(5);
+  Table_descriptor_ = file->message_type(6);
   static const int Table_offsets_[2] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Table, name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(Table, partitions_),
@@ -186,7 +208,7 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(Table));
-  BasicCmdUnit_descriptor_ = file->message_type(6);
+  BasicCmdUnit_descriptor_ = file->message_type(7);
   static const int BasicCmdUnit_offsets_[3] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BasicCmdUnit, name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BasicCmdUnit, partition_),
@@ -203,7 +225,7 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(BasicCmdUnit));
-  MetaCmd_descriptor_ = file->message_type(7);
+  MetaCmd_descriptor_ = file->message_type(8);
   static const int MetaCmd_offsets_[7] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmd, type_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmd, ping_),
@@ -317,8 +339,8 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(MetaCmd_RemoveSlave));
-  MetaCmdResponse_descriptor_ = file->message_type(8);
-  static const int MetaCmdResponse_offsets_[7] = {
+  MetaCmdResponse_descriptor_ = file->message_type(9);
+  static const int MetaCmdResponse_offsets_[8] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse, type_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse, code_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse, msg_),
@@ -326,6 +348,7 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse, pull_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse, list_table_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse, list_node_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse, list_meta_),
   };
   MetaCmdResponse_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -399,6 +422,21 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(MetaCmdResponse_ListNode));
+  MetaCmdResponse_ListMeta_descriptor_ = MetaCmdResponse_descriptor_->nested_type(4);
+  static const int MetaCmdResponse_ListMeta_offsets_[1] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_ListMeta, nodes_),
+  };
+  MetaCmdResponse_ListMeta_reflection_ =
+    new ::google::protobuf::internal::GeneratedMessageReflection(
+      MetaCmdResponse_ListMeta_descriptor_,
+      MetaCmdResponse_ListMeta::default_instance_,
+      MetaCmdResponse_ListMeta_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_ListMeta, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_ListMeta, _unknown_fields_),
+      -1,
+      ::google::protobuf::DescriptorPool::generated_pool(),
+      ::google::protobuf::MessageFactory::generated_factory(),
+      sizeof(MetaCmdResponse_ListMeta));
   StatusCode_descriptor_ = file->enum_type(0);
   Type_descriptor_ = file->enum_type(1);
   PState_descriptor_ = file->enum_type(2);
@@ -420,6 +458,8 @@ void protobuf_RegisterTypes(const ::std::string&) {
     NodeStatus_descriptor_, &NodeStatus::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     Nodes_descriptor_, &Nodes::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+    MetaNodes_descriptor_, &MetaNodes::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     Partitions_descriptor_, &Partitions::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
@@ -452,6 +492,8 @@ void protobuf_RegisterTypes(const ::std::string&) {
     MetaCmdResponse_ListTable_descriptor_, &MetaCmdResponse_ListTable::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     MetaCmdResponse_ListNode_descriptor_, &MetaCmdResponse_ListNode::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+    MetaCmdResponse_ListMeta_descriptor_, &MetaCmdResponse_ListMeta::default_instance());
 }
 
 }  // namespace
@@ -463,6 +505,8 @@ void protobuf_ShutdownFile_zp_5fmeta_2eproto() {
   delete NodeStatus_reflection_;
   delete Nodes::default_instance_;
   delete Nodes_reflection_;
+  delete MetaNodes::default_instance_;
+  delete MetaNodes_reflection_;
   delete Partitions::default_instance_;
   delete Partitions_reflection_;
   delete TableName::default_instance_;
@@ -495,6 +539,8 @@ void protobuf_ShutdownFile_zp_5fmeta_2eproto() {
   delete MetaCmdResponse_ListTable_reflection_;
   delete MetaCmdResponse_ListNode::default_instance_;
   delete MetaCmdResponse_ListNode_reflection_;
+  delete MetaCmdResponse_ListMeta::default_instance_;
+  delete MetaCmdResponse_ListMeta_reflection_;
 }
 
 void protobuf_AddDesc_zp_5fmeta_2eproto() {
@@ -508,50 +554,55 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "\002(\t\022\014\n\004port\030\002 \002(\005\"8\n\nNodeStatus\022\032\n\004node\030"
     "\001 \002(\0132\014.ZPMeta.Node\022\016\n\006status\030\002 \002(\005\"*\n\005N"
     "odes\022!\n\005nodes\030\001 \003(\0132\022.ZPMeta.NodeStatus\""
-    "s\n\nPartitions\022\n\n\002id\030\001 \002(\005\022\035\n\005state\030\002 \002(\016"
-    "2\016.ZPMeta.PState\022\034\n\006master\030\003 \002(\0132\014.ZPMet"
-    "a.Node\022\034\n\006slaves\030\004 \003(\0132\014.ZPMeta.Node\"\031\n\t"
-    "TableName\022\014\n\004name\030\001 \003(\t\"=\n\005Table\022\014\n\004name"
-    "\030\001 \002(\t\022&\n\npartitions\030\002 \003(\0132\022.ZPMeta.Part"
-    "itions\"K\n\014BasicCmdUnit\022\014\n\004name\030\001 \002(\t\022\021\n\t"
-    "partition\030\002 \002(\005\022\032\n\004node\030\003 \002(\0132\014.ZPMeta.N"
-    "ode\"\301\004\n\007MetaCmd\022\032\n\004type\030\001 \002(\0162\014.ZPMeta.T"
-    "ype\022\"\n\004ping\030\002 \001(\0132\024.ZPMeta.MetaCmd.Ping\022"
-    "\"\n\004pull\030\003 \001(\0132\024.ZPMeta.MetaCmd.Pull\022\"\n\004i"
-    "nit\030\004 \001(\0132\024.ZPMeta.MetaCmd.Init\022-\n\nset_m"
-    "aster\030\005 \001(\0132\031.ZPMeta.MetaCmd.SetMaster\022+"
-    "\n\tadd_slave\030\006 \001(\0132\030.ZPMeta.MetaCmd.AddSl"
-    "ave\0221\n\014remove_slave\030\007 \001(\0132\033.ZPMeta.MetaC"
-    "md.RemoveSlave\0323\n\004Ping\022\017\n\007version\030\001 \002(\005\022"
-    "\032\n\004node\030\002 \002(\0132\014.ZPMeta.Node\0320\n\004Pull\022\032\n\004n"
-    "ode\030\001 \001(\0132\014.ZPMeta.Node\022\014\n\004name\030\002 \001(\t\032!\n"
-    "\004Init\022\014\n\004name\030\001 \002(\t\022\013\n\003num\030\002 \002(\005\0320\n\tSetM"
-    "aster\022#\n\005basic\030\001 \002(\0132\024.ZPMeta.BasicCmdUn"
-    "it\032/\n\010AddSlave\022#\n\005basic\030\001 \002(\0132\024.ZPMeta.B"
-    "asicCmdUnit\0322\n\013RemoveSlave\022#\n\005basic\030\001 \002("
-    "\0132\024.ZPMeta.BasicCmdUnit\"\316\003\n\017MetaCmdRespo"
-    "nse\022\032\n\004type\030\001 \002(\0162\014.ZPMeta.Type\022 \n\004code\030"
-    "\002 \002(\0162\022.ZPMeta.StatusCode\022\013\n\003msg\030\003 \001(\t\022*"
-    "\n\004ping\030\004 \001(\0132\034.ZPMeta.MetaCmdResponse.Pi"
-    "ng\022*\n\004pull\030\005 \001(\0132\034.ZPMeta.MetaCmdRespons"
-    "e.Pull\0225\n\nlist_table\030\006 \001(\0132!.ZPMeta.Meta"
-    "CmdResponse.ListTable\0223\n\tlist_node\030\007 \001(\013"
-    "2 .ZPMeta.MetaCmdResponse.ListNode\032\027\n\004Pi"
-    "ng\022\017\n\007version\030\001 \002(\005\0324\n\004Pull\022\017\n\007version\030\001"
-    " \002(\005\022\033\n\004info\030\002 \003(\0132\r.ZPMeta.Table\032.\n\tLis"
-    "tTable\022!\n\006tables\030\001 \002(\0132\021.ZPMeta.TableNam"
-    "e\032-\n\010ListNode\022!\n\005nodes\030\001 \002(\0132\022.ZPMeta.No"
-    "deStatus*-\n\nStatusCode\022\006\n\002OK\020\000\022\014\n\010NOTFOU"
-    "ND\020\001\022\t\n\005ERROR\020\002*}\n\004Type\022\010\n\004PING\020\001\022\010\n\004PUL"
-    "L\020\002\022\010\n\004INIT\020\003\022\r\n\tSETMASTER\020\004\022\014\n\010ADDSLAVE"
-    "\020\005\022\017\n\013REMOVESLAVE\020\006\022\r\n\tLISTTABLE\020\007\022\014\n\010LI"
-    "STNODE\020\010\022\014\n\010LISTMETA\020\t*\037\n\006PState\022\n\n\006ACTI"
-    "VE\020\001\022\t\n\005STUCK\020\002", 1695);
+    "J\n\tMetaNodes\022\037\n\tfollowers\030\001 \003(\0132\014.ZPMeta"
+    ".Node\022\034\n\006leader\030\002 \001(\0132\014.ZPMeta.Node\"s\n\nP"
+    "artitions\022\n\n\002id\030\001 \002(\005\022\035\n\005state\030\002 \002(\0162\016.Z"
+    "PMeta.PState\022\034\n\006master\030\003 \002(\0132\014.ZPMeta.No"
+    "de\022\034\n\006slaves\030\004 \003(\0132\014.ZPMeta.Node\"\031\n\tTabl"
+    "eName\022\014\n\004name\030\001 \003(\t\"=\n\005Table\022\014\n\004name\030\001 \002"
+    "(\t\022&\n\npartitions\030\002 \003(\0132\022.ZPMeta.Partitio"
+    "ns\"K\n\014BasicCmdUnit\022\014\n\004name\030\001 \002(\t\022\021\n\tpart"
+    "ition\030\002 \002(\005\022\032\n\004node\030\003 \002(\0132\014.ZPMeta.Node\""
+    "\301\004\n\007MetaCmd\022\032\n\004type\030\001 \002(\0162\014.ZPMeta.Type\022"
+    "\"\n\004ping\030\002 \001(\0132\024.ZPMeta.MetaCmd.Ping\022\"\n\004p"
+    "ull\030\003 \001(\0132\024.ZPMeta.MetaCmd.Pull\022\"\n\004init\030"
+    "\004 \001(\0132\024.ZPMeta.MetaCmd.Init\022-\n\nset_maste"
+    "r\030\005 \001(\0132\031.ZPMeta.MetaCmd.SetMaster\022+\n\tad"
+    "d_slave\030\006 \001(\0132\030.ZPMeta.MetaCmd.AddSlave\022"
+    "1\n\014remove_slave\030\007 \001(\0132\033.ZPMeta.MetaCmd.R"
+    "emoveSlave\0323\n\004Ping\022\017\n\007version\030\001 \002(\005\022\032\n\004n"
+    "ode\030\002 \002(\0132\014.ZPMeta.Node\0320\n\004Pull\022\032\n\004node\030"
+    "\001 \001(\0132\014.ZPMeta.Node\022\014\n\004name\030\002 \001(\t\032!\n\004Ini"
+    "t\022\014\n\004name\030\001 \002(\t\022\013\n\003num\030\002 \002(\005\0320\n\tSetMaste"
+    "r\022#\n\005basic\030\001 \002(\0132\024.ZPMeta.BasicCmdUnit\032/"
+    "\n\010AddSlave\022#\n\005basic\030\001 \002(\0132\024.ZPMeta.Basic"
+    "CmdUnit\0322\n\013RemoveSlave\022#\n\005basic\030\001 \002(\0132\024."
+    "ZPMeta.BasicCmdUnit\"\254\004\n\017MetaCmdResponse\022"
+    "\032\n\004type\030\001 \002(\0162\014.ZPMeta.Type\022 \n\004code\030\002 \002("
+    "\0162\022.ZPMeta.StatusCode\022\013\n\003msg\030\003 \001(\t\022*\n\004pi"
+    "ng\030\004 \001(\0132\034.ZPMeta.MetaCmdResponse.Ping\022*"
+    "\n\004pull\030\005 \001(\0132\034.ZPMeta.MetaCmdResponse.Pu"
+    "ll\0225\n\nlist_table\030\006 \001(\0132!.ZPMeta.MetaCmdR"
+    "esponse.ListTable\0223\n\tlist_node\030\007 \001(\0132 .Z"
+    "PMeta.MetaCmdResponse.ListNode\0223\n\tlist_m"
+    "eta\030\010 \001(\0132 .ZPMeta.MetaCmdResponse.ListM"
+    "eta\032\027\n\004Ping\022\017\n\007version\030\001 \002(\005\0324\n\004Pull\022\017\n\007"
+    "version\030\001 \002(\005\022\033\n\004info\030\002 \003(\0132\r.ZPMeta.Tab"
+    "le\032.\n\tListTable\022!\n\006tables\030\001 \002(\0132\021.ZPMeta"
+    ".TableName\032(\n\010ListNode\022\034\n\005nodes\030\001 \002(\0132\r."
+    "ZPMeta.Nodes\032,\n\010ListMeta\022 \n\005nodes\030\001 \002(\0132"
+    "\021.ZPMeta.MetaNodes*-\n\nStatusCode\022\006\n\002OK\020\000"
+    "\022\014\n\010NOTFOUND\020\001\022\t\n\005ERROR\020\002*}\n\004Type\022\010\n\004PIN"
+    "G\020\001\022\010\n\004PULL\020\002\022\010\n\004INIT\020\003\022\r\n\tSETMASTER\020\004\022\014"
+    "\n\010ADDSLAVE\020\005\022\017\n\013REMOVESLAVE\020\006\022\r\n\tLISTTAB"
+    "LE\020\007\022\014\n\010LISTNODE\020\010\022\014\n\010LISTMETA\020\t*\037\n\006PSta"
+    "te\022\n\n\006ACTIVE\020\001\022\t\n\005STUCK\020\002", 1865);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zp_meta.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
   NodeStatus::default_instance_ = new NodeStatus();
   Nodes::default_instance_ = new Nodes();
+  MetaNodes::default_instance_ = new MetaNodes();
   Partitions::default_instance_ = new Partitions();
   TableName::default_instance_ = new TableName();
   Table::default_instance_ = new Table();
@@ -568,9 +619,11 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
   MetaCmdResponse_Pull::default_instance_ = new MetaCmdResponse_Pull();
   MetaCmdResponse_ListTable::default_instance_ = new MetaCmdResponse_ListTable();
   MetaCmdResponse_ListNode::default_instance_ = new MetaCmdResponse_ListNode();
+  MetaCmdResponse_ListMeta::default_instance_ = new MetaCmdResponse_ListMeta();
   Node::default_instance_->InitAsDefaultInstance();
   NodeStatus::default_instance_->InitAsDefaultInstance();
   Nodes::default_instance_->InitAsDefaultInstance();
+  MetaNodes::default_instance_->InitAsDefaultInstance();
   Partitions::default_instance_->InitAsDefaultInstance();
   TableName::default_instance_->InitAsDefaultInstance();
   Table::default_instance_->InitAsDefaultInstance();
@@ -587,6 +640,7 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
   MetaCmdResponse_Pull::default_instance_->InitAsDefaultInstance();
   MetaCmdResponse_ListTable::default_instance_->InitAsDefaultInstance();
   MetaCmdResponse_ListNode::default_instance_->InitAsDefaultInstance();
+  MetaCmdResponse_ListMeta::default_instance_->InitAsDefaultInstance();
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_zp_5fmeta_2eproto);
 }
 
@@ -1372,6 +1426,266 @@ void Nodes::Swap(Nodes* other) {
   ::google::protobuf::Metadata metadata;
   metadata.descriptor = Nodes_descriptor_;
   metadata.reflection = Nodes_reflection_;
+  return metadata;
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int MetaNodes::kFollowersFieldNumber;
+const int MetaNodes::kLeaderFieldNumber;
+#endif  // !_MSC_VER
+
+MetaNodes::MetaNodes()
+  : ::google::protobuf::Message() {
+  SharedCtor();
+}
+
+void MetaNodes::InitAsDefaultInstance() {
+  leader_ = const_cast< ::ZPMeta::Node*>(&::ZPMeta::Node::default_instance());
+}
+
+MetaNodes::MetaNodes(const MetaNodes& from)
+  : ::google::protobuf::Message() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void MetaNodes::SharedCtor() {
+  _cached_size_ = 0;
+  leader_ = NULL;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+MetaNodes::~MetaNodes() {
+  SharedDtor();
+}
+
+void MetaNodes::SharedDtor() {
+  if (this != default_instance_) {
+    delete leader_;
+  }
+}
+
+void MetaNodes::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* MetaNodes::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return MetaNodes_descriptor_;
+}
+
+const MetaNodes& MetaNodes::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_zp_5fmeta_2eproto();
+  return *default_instance_;
+}
+
+MetaNodes* MetaNodes::default_instance_ = NULL;
+
+MetaNodes* MetaNodes::New() const {
+  return new MetaNodes;
+}
+
+void MetaNodes::Clear() {
+  if (_has_bits_[1 / 32] & (0xffu << (1 % 32))) {
+    if (has_leader()) {
+      if (leader_ != NULL) leader_->::ZPMeta::Node::Clear();
+    }
+  }
+  followers_.Clear();
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  mutable_unknown_fields()->Clear();
+}
+
+bool MetaNodes::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // repeated .ZPMeta.Node followers = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_followers:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+                input, add_followers()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(10)) goto parse_followers;
+        if (input->ExpectTag(18)) goto parse_leader;
+        break;
+      }
+
+      // optional .ZPMeta.Node leader = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_leader:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_leader()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void MetaNodes::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // repeated .ZPMeta.Node followers = 1;
+  for (int i = 0; i < this->followers_size(); i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      1, this->followers(i), output);
+  }
+
+  // optional .ZPMeta.Node leader = 2;
+  if (has_leader()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      2, this->leader(), output);
+  }
+
+  if (!unknown_fields().empty()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+}
+
+::google::protobuf::uint8* MetaNodes::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
+  // repeated .ZPMeta.Node followers = 1;
+  for (int i = 0; i < this->followers_size(); i++) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteMessageNoVirtualToArray(
+        1, this->followers(i), target);
+  }
+
+  // optional .ZPMeta.Node leader = 2;
+  if (has_leader()) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteMessageNoVirtualToArray(
+        2, this->leader(), target);
+  }
+
+  if (!unknown_fields().empty()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  return target;
+}
+
+int MetaNodes::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[1 / 32] & (0xffu << (1 % 32))) {
+    // optional .ZPMeta.Node leader = 2;
+    if (has_leader()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->leader());
+    }
+
+  }
+  // repeated .ZPMeta.Node followers = 1;
+  total_size += 1 * this->followers_size();
+  for (int i = 0; i < this->followers_size(); i++) {
+    total_size +=
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        this->followers(i));
+  }
+
+  if (!unknown_fields().empty()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void MetaNodes::MergeFrom(const ::google::protobuf::Message& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  const MetaNodes* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const MetaNodes*>(
+      &from);
+  if (source == NULL) {
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+    MergeFrom(*source);
+  }
+}
+
+void MetaNodes::MergeFrom(const MetaNodes& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  followers_.MergeFrom(from.followers_);
+  if (from._has_bits_[1 / 32] & (0xffu << (1 % 32))) {
+    if (from.has_leader()) {
+      mutable_leader()->::ZPMeta::Node::MergeFrom(from.leader());
+    }
+  }
+  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+}
+
+void MetaNodes::CopyFrom(const ::google::protobuf::Message& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void MetaNodes::CopyFrom(const MetaNodes& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool MetaNodes::IsInitialized() const {
+
+  for (int i = 0; i < followers_size(); i++) {
+    if (!this->followers(i).IsInitialized()) return false;
+  }
+  if (has_leader()) {
+    if (!this->leader().IsInitialized()) return false;
+  }
+  return true;
+}
+
+void MetaNodes::Swap(MetaNodes* other) {
+  if (other != this) {
+    followers_.Swap(&other->followers_);
+    std::swap(leader_, other->leader_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    _unknown_fields_.Swap(&other->_unknown_fields_);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::google::protobuf::Metadata MetaNodes::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = MetaNodes_descriptor_;
+  metadata.reflection = MetaNodes_reflection_;
   return metadata;
 }
 
@@ -5153,7 +5467,7 @@ MetaCmdResponse_ListNode::MetaCmdResponse_ListNode()
 }
 
 void MetaCmdResponse_ListNode::InitAsDefaultInstance() {
-  nodes_ = const_cast< ::ZPMeta::NodeStatus*>(&::ZPMeta::NodeStatus::default_instance());
+  nodes_ = const_cast< ::ZPMeta::Nodes*>(&::ZPMeta::Nodes::default_instance());
 }
 
 MetaCmdResponse_ListNode::MetaCmdResponse_ListNode(const MetaCmdResponse_ListNode& from)
@@ -5202,7 +5516,7 @@ MetaCmdResponse_ListNode* MetaCmdResponse_ListNode::New() const {
 void MetaCmdResponse_ListNode::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (has_nodes()) {
-      if (nodes_ != NULL) nodes_->::ZPMeta::NodeStatus::Clear();
+      if (nodes_ != NULL) nodes_->::ZPMeta::Nodes::Clear();
     }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -5215,7 +5529,7 @@ bool MetaCmdResponse_ListNode::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required .ZPMeta.NodeStatus nodes = 1;
+      // required .ZPMeta.Nodes nodes = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -5246,7 +5560,7 @@ bool MetaCmdResponse_ListNode::MergePartialFromCodedStream(
 
 void MetaCmdResponse_ListNode::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required .ZPMeta.NodeStatus nodes = 1;
+  // required .ZPMeta.Nodes nodes = 1;
   if (has_nodes()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
       1, this->nodes(), output);
@@ -5260,7 +5574,7 @@ void MetaCmdResponse_ListNode::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* MetaCmdResponse_ListNode::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required .ZPMeta.NodeStatus nodes = 1;
+  // required .ZPMeta.Nodes nodes = 1;
   if (has_nodes()) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -5278,7 +5592,7 @@ int MetaCmdResponse_ListNode::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .ZPMeta.NodeStatus nodes = 1;
+    // required .ZPMeta.Nodes nodes = 1;
     if (has_nodes()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
@@ -5313,7 +5627,7 @@ void MetaCmdResponse_ListNode::MergeFrom(const MetaCmdResponse_ListNode& from) {
   GOOGLE_CHECK_NE(&from, this);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_nodes()) {
-      mutable_nodes()->::ZPMeta::NodeStatus::MergeFrom(from.nodes());
+      mutable_nodes()->::ZPMeta::Nodes::MergeFrom(from.nodes());
     }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -5361,6 +5675,223 @@ void MetaCmdResponse_ListNode::Swap(MetaCmdResponse_ListNode* other) {
 // -------------------------------------------------------------------
 
 #ifndef _MSC_VER
+const int MetaCmdResponse_ListMeta::kNodesFieldNumber;
+#endif  // !_MSC_VER
+
+MetaCmdResponse_ListMeta::MetaCmdResponse_ListMeta()
+  : ::google::protobuf::Message() {
+  SharedCtor();
+}
+
+void MetaCmdResponse_ListMeta::InitAsDefaultInstance() {
+  nodes_ = const_cast< ::ZPMeta::MetaNodes*>(&::ZPMeta::MetaNodes::default_instance());
+}
+
+MetaCmdResponse_ListMeta::MetaCmdResponse_ListMeta(const MetaCmdResponse_ListMeta& from)
+  : ::google::protobuf::Message() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void MetaCmdResponse_ListMeta::SharedCtor() {
+  _cached_size_ = 0;
+  nodes_ = NULL;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+MetaCmdResponse_ListMeta::~MetaCmdResponse_ListMeta() {
+  SharedDtor();
+}
+
+void MetaCmdResponse_ListMeta::SharedDtor() {
+  if (this != default_instance_) {
+    delete nodes_;
+  }
+}
+
+void MetaCmdResponse_ListMeta::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* MetaCmdResponse_ListMeta::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return MetaCmdResponse_ListMeta_descriptor_;
+}
+
+const MetaCmdResponse_ListMeta& MetaCmdResponse_ListMeta::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_zp_5fmeta_2eproto();
+  return *default_instance_;
+}
+
+MetaCmdResponse_ListMeta* MetaCmdResponse_ListMeta::default_instance_ = NULL;
+
+MetaCmdResponse_ListMeta* MetaCmdResponse_ListMeta::New() const {
+  return new MetaCmdResponse_ListMeta;
+}
+
+void MetaCmdResponse_ListMeta::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (has_nodes()) {
+      if (nodes_ != NULL) nodes_->::ZPMeta::MetaNodes::Clear();
+    }
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  mutable_unknown_fields()->Clear();
+}
+
+bool MetaCmdResponse_ListMeta::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // required .ZPMeta.MetaNodes nodes = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_nodes()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void MetaCmdResponse_ListMeta::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // required .ZPMeta.MetaNodes nodes = 1;
+  if (has_nodes()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      1, this->nodes(), output);
+  }
+
+  if (!unknown_fields().empty()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+}
+
+::google::protobuf::uint8* MetaCmdResponse_ListMeta::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
+  // required .ZPMeta.MetaNodes nodes = 1;
+  if (has_nodes()) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteMessageNoVirtualToArray(
+        1, this->nodes(), target);
+  }
+
+  if (!unknown_fields().empty()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  return target;
+}
+
+int MetaCmdResponse_ListMeta::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // required .ZPMeta.MetaNodes nodes = 1;
+    if (has_nodes()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->nodes());
+    }
+
+  }
+  if (!unknown_fields().empty()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void MetaCmdResponse_ListMeta::MergeFrom(const ::google::protobuf::Message& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  const MetaCmdResponse_ListMeta* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const MetaCmdResponse_ListMeta*>(
+      &from);
+  if (source == NULL) {
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+    MergeFrom(*source);
+  }
+}
+
+void MetaCmdResponse_ListMeta::MergeFrom(const MetaCmdResponse_ListMeta& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_nodes()) {
+      mutable_nodes()->::ZPMeta::MetaNodes::MergeFrom(from.nodes());
+    }
+  }
+  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+}
+
+void MetaCmdResponse_ListMeta::CopyFrom(const ::google::protobuf::Message& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void MetaCmdResponse_ListMeta::CopyFrom(const MetaCmdResponse_ListMeta& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool MetaCmdResponse_ListMeta::IsInitialized() const {
+  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
+
+  if (has_nodes()) {
+    if (!this->nodes().IsInitialized()) return false;
+  }
+  return true;
+}
+
+void MetaCmdResponse_ListMeta::Swap(MetaCmdResponse_ListMeta* other) {
+  if (other != this) {
+    std::swap(nodes_, other->nodes_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    _unknown_fields_.Swap(&other->_unknown_fields_);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::google::protobuf::Metadata MetaCmdResponse_ListMeta::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = MetaCmdResponse_ListMeta_descriptor_;
+  metadata.reflection = MetaCmdResponse_ListMeta_reflection_;
+  return metadata;
+}
+
+
+// -------------------------------------------------------------------
+
+#ifndef _MSC_VER
 const int MetaCmdResponse::kTypeFieldNumber;
 const int MetaCmdResponse::kCodeFieldNumber;
 const int MetaCmdResponse::kMsgFieldNumber;
@@ -5368,6 +5899,7 @@ const int MetaCmdResponse::kPingFieldNumber;
 const int MetaCmdResponse::kPullFieldNumber;
 const int MetaCmdResponse::kListTableFieldNumber;
 const int MetaCmdResponse::kListNodeFieldNumber;
+const int MetaCmdResponse::kListMetaFieldNumber;
 #endif  // !_MSC_VER
 
 MetaCmdResponse::MetaCmdResponse()
@@ -5380,6 +5912,7 @@ void MetaCmdResponse::InitAsDefaultInstance() {
   pull_ = const_cast< ::ZPMeta::MetaCmdResponse_Pull*>(&::ZPMeta::MetaCmdResponse_Pull::default_instance());
   list_table_ = const_cast< ::ZPMeta::MetaCmdResponse_ListTable*>(&::ZPMeta::MetaCmdResponse_ListTable::default_instance());
   list_node_ = const_cast< ::ZPMeta::MetaCmdResponse_ListNode*>(&::ZPMeta::MetaCmdResponse_ListNode::default_instance());
+  list_meta_ = const_cast< ::ZPMeta::MetaCmdResponse_ListMeta*>(&::ZPMeta::MetaCmdResponse_ListMeta::default_instance());
 }
 
 MetaCmdResponse::MetaCmdResponse(const MetaCmdResponse& from)
@@ -5397,6 +5930,7 @@ void MetaCmdResponse::SharedCtor() {
   pull_ = NULL;
   list_table_ = NULL;
   list_node_ = NULL;
+  list_meta_ = NULL;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -5413,6 +5947,7 @@ void MetaCmdResponse::SharedDtor() {
     delete pull_;
     delete list_table_;
     delete list_node_;
+    delete list_meta_;
   }
 }
 
@@ -5457,6 +5992,9 @@ void MetaCmdResponse::Clear() {
     }
     if (has_list_node()) {
       if (list_node_ != NULL) list_node_->::ZPMeta::MetaCmdResponse_ListNode::Clear();
+    }
+    if (has_list_meta()) {
+      if (list_meta_ != NULL) list_meta_->::ZPMeta::MetaCmdResponse_ListMeta::Clear();
     }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -5579,6 +6117,20 @@ bool MetaCmdResponse::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
+        if (input->ExpectTag(66)) goto parse_list_meta;
+        break;
+      }
+
+      // optional .ZPMeta.MetaCmdResponse.ListMeta list_meta = 8;
+      case 8: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_list_meta:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_list_meta()));
+        } else {
+          goto handle_uninterpreted;
+        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -5646,6 +6198,12 @@ void MetaCmdResponse::SerializeWithCachedSizes(
       7, this->list_node(), output);
   }
 
+  // optional .ZPMeta.MetaCmdResponse.ListMeta list_meta = 8;
+  if (has_list_meta()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      8, this->list_meta(), output);
+  }
+
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -5702,6 +6260,13 @@ void MetaCmdResponse::SerializeWithCachedSizes(
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
         7, this->list_node(), target);
+  }
+
+  // optional .ZPMeta.MetaCmdResponse.ListMeta list_meta = 8;
+  if (has_list_meta()) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteMessageNoVirtualToArray(
+        8, this->list_meta(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -5762,6 +6327,13 @@ int MetaCmdResponse::ByteSize() const {
           this->list_node());
     }
 
+    // optional .ZPMeta.MetaCmdResponse.ListMeta list_meta = 8;
+    if (has_list_meta()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->list_meta());
+    }
+
   }
   if (!unknown_fields().empty()) {
     total_size +=
@@ -5810,6 +6382,9 @@ void MetaCmdResponse::MergeFrom(const MetaCmdResponse& from) {
     if (from.has_list_node()) {
       mutable_list_node()->::ZPMeta::MetaCmdResponse_ListNode::MergeFrom(from.list_node());
     }
+    if (from.has_list_meta()) {
+      mutable_list_meta()->::ZPMeta::MetaCmdResponse_ListMeta::MergeFrom(from.list_meta());
+    }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
@@ -5841,6 +6416,9 @@ bool MetaCmdResponse::IsInitialized() const {
   if (has_list_node()) {
     if (!this->list_node().IsInitialized()) return false;
   }
+  if (has_list_meta()) {
+    if (!this->list_meta().IsInitialized()) return false;
+  }
   return true;
 }
 
@@ -5853,6 +6431,7 @@ void MetaCmdResponse::Swap(MetaCmdResponse* other) {
     std::swap(pull_, other->pull_);
     std::swap(list_table_, other->list_table_);
     std::swap(list_node_, other->list_node_);
+    std::swap(list_meta_, other->list_meta_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

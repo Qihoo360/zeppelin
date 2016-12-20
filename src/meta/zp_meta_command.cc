@@ -194,3 +194,21 @@ void ListNodeCmd::Do(const google::protobuf::Message *req, google::protobuf::Mes
     response->set_msg(s.ToString());
   }
 }
+
+void ListMetaCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  ZPMeta::MetaCmdResponse_ListMeta *nodes = response->mutable_list_meta();
+
+  response->set_type(ZPMeta::Type::LISTMETA);
+
+  Status s = g_meta_server->GetAllMetaNodes(nodes);
+
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("ListMeta OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
+}
