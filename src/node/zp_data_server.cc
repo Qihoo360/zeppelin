@@ -6,6 +6,7 @@
 
 #include "zp_data_worker_thread.h"
 #include "zp_data_dispatch_thread.h"
+#include <google/protobuf/text_format.h>
 
 #include "rsync.h"
 
@@ -203,7 +204,11 @@ Status ZPDataServer::SendToPeer(const Node &node, const std::string &data) {
   
   client::SyncRequest msg;
   msg.ParseFromString(data);
-  res = iter->second->Send(static_cast<void*>(&msg));
+  //std::string text_format;
+  //google::protobuf::TextFormat::PrintToString(msg, &text_format);
+  //DLOG(INFO) << "SyncRequest to be sent: [" << text_format << "]";
+  
+  res = iter->second->Send(&msg);
   if (!res.ok()) {
     // Remove when second Failed, retry outside
     iter->second->Close();

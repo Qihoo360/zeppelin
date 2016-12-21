@@ -259,15 +259,12 @@ Status BinlogReader::Consume(uint64_t* size, std::string& scratch) {
 }
 
 Status BinlogReader::Seek(uint64_t offset) {
-  LOG(INFO) << "BinlogReaderSeek offset: " << offset;
   uint64_t start_block = (offset / kBlockSize) * kBlockSize;
-  LOG(INFO) << "BinlogReaderSeek skip start block " << start_block;
   Status s = queue_->Skip(start_block);
   if (!s.ok()) {
     return s;
   }
   int64_t block_offset = offset % kBlockSize;
-  LOG(INFO) << "BinlogReaderSeek block offset " << block_offset;
 
   while (block_offset > 0) {
     uint64_t size = 0;

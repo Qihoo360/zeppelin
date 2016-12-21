@@ -532,12 +532,10 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
     res.set_code(client::StatusCode::kError);
     res.set_msg("readonly mode");
 
-    if (role_ == Role::kNodeSlave) {
-      // Slave send client redirect msg
-      client::Node* node = res.mutable_redirect();
-      node->set_ip(master_node_.ip);
-      node->set_port(master_node_.port);
-    }
+    client::Node* node = res.mutable_redirect();
+    node->set_ip(master_node_.ip);
+    node->set_port(master_node_.port);
+
     LOG(WARNING) << "Readonly mode, failed to DoCommand  at Partition: " << partition_id_
       << " Role:" << RoleMsg[role_] << " ParititionState:" << static_cast<int>(pstate_);
     return;
