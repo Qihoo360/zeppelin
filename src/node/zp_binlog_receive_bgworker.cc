@@ -37,7 +37,7 @@ void ZPBinlogReceiveBgWorker::DoBinlogReceiveTask(void* task) {
       << partition->partition_id();
     return;
   }
-  partition->DoBinlogCommand(cmd, task_ptr->request, task_ptr->raw);
+  partition->DoBinlogCommand(cmd, task_ptr->request, task_ptr->raw, task_ptr->from_node);
   delete task_ptr;
 }
 

@@ -28,7 +28,7 @@ message CmdRequest {
     required string table_name = 2;
     required int32 partition_id = 3;
     required int32 filenum = 4 [default = 0];
-    required int32 offset = 5 [default = 0];
+    required int64 offset = 5 [default = 0];
   }
   optional Sync sync = 2; 
 
@@ -70,4 +70,10 @@ message CmdResponse {
   
   optional Node redirect = 5;
 
+}
+
+message SyncRequest {
+  required int64 epoch = 1;
+  required Node from = 2;
+  required CmdRequest request = 3;
 }

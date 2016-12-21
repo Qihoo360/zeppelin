@@ -33,10 +33,17 @@ int main(int argc, char* argv[]) {
   /* operation
   s = cluster->CreateTable("test", 24);
   */
-  s = cluster->Pull("tab");
-  s = cluster->Set("tab", "key", "value");
-  if (!s.ok()) {
-    std::cout << s.ToString() << std::endl;
+  while (true) {
+    s = cluster->Pull("test");
+    if (!s.ok()) {
+      std::cout << s.ToString() << std::endl;
+    }
+    s = cluster->Set("test", "key", "value");
+    if (!s.ok()) {
+      std::cout << s.ToString() << std::endl;
+    }
+    usleep(100);
+  
   }
   delete cluster;
 }

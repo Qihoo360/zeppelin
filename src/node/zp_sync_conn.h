@@ -17,8 +17,7 @@ class ZPSyncConn: public pink::PbConn {
 
  private:
 
-  client::CmdRequest request_;
-  client::CmdResponse response_;
+  client::SyncRequest request_;
 
   ZPBinlogReceiverThread* self_thread_;
 };

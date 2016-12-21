@@ -200,8 +200,10 @@ Status ZPDataServer::SendToPeer(const Node &node, const std::string &data) {
     }
     iter = (peers_.insert(std::pair<std::string, ZPPbCli*>(ip_port, cli))).first;
   }
-
-  res = iter->second->SendRaw(data.data(), data.size());
+  
+  client::SyncRequest msg;
+  msg.ParseFromString(data);
+  res = iter->second->Send(static_cast<void*>(&msg));
   if (!res.ok()) {
     // Remove when second Failed, retry outside
     iter->second->Close();

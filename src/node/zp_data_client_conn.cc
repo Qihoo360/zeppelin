@@ -54,7 +54,7 @@ int ZPDataClientConn::DealMessage() {
   }
 
   set_is_reply(true);
-  std::string raw_msg(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4);
+  //std::string raw_msg(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4);
 
   Partition* partition = NULL;
   if (request_.type() ==  client::Type::SYNC) {
@@ -72,7 +72,7 @@ int ZPDataClientConn::DealMessage() {
     return -1;
   }
 
-  partition->DoCommand(cmd, request_, response_, raw_msg);
+  partition->DoCommand(cmd, request_, response_);
 
   res_ = &response_;
   return 0;
