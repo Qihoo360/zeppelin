@@ -24,12 +24,12 @@ int ZPSyncConn::DealMessage() {
 
   request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
   
-  // Check requst
-  if (request_.epoch() < zp_data_server->meta_epoch()) {
-    LOG(WARNING) << "Receive Binlog command with expired epoch:" << request_.epoch()
-      << " , my current epoch" << zp_data_server->meta_epoch();
-    return -1;
-  }
+ // // Check requst
+ // if (request_.epoch() < zp_data_server->meta_epoch()) {
+ //   LOG(WARNING) << "Receive Binlog command with expired epoch:" << request_.epoch()
+ //     << " , my current epoch" << zp_data_server->meta_epoch();
+ //   return -1;
+ // }
   
   client::CmdRequest crequest = request_.request();
   // Debug info
@@ -68,7 +68,7 @@ int ZPSyncConn::DealMessage() {
       0, // Will be filled by zp_data_server
       cmd,
       crequest,
-      std::string(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4),
+      std::string(rbuf_ + cur_pos_ - header_len_, header_len_),
       slash::IpPortString(request_.from().ip(), request_.from().port()));
 
   zp_data_server->DispatchBinlogBGWorker(cmd->ExtractTable(&crequest), cmd->ExtractKey(&crequest), arg);
