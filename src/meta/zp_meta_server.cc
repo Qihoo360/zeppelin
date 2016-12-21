@@ -446,12 +446,12 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
   int port;
   for (auto iter = meta_nodes.begin(); iter != meta_nodes.end(); iter++) {
     if (slash::ParseIpPortString(*iter, ip, port)) {
-      if (ret && ip == leader_ip && port == leader_port) {
+      if (ret && ip == leader_ip && port-kMetaPortShiftFY == leader_port) {
         continue;
       } else {
         ZPMeta::Node *np = p->add_followers();
         np->set_ip(ip);
-        np->set_port(port);
+        np->set_port(port-kMetaPortShiftFY);
       }
     } else {
       return Status::Corruption("parse ip port error");
