@@ -37,6 +37,7 @@ void protobuf_ShutdownFile_zp_5fmeta_2eproto();
 class Node;
 class NodeStatus;
 class Nodes;
+class MetaNodes;
 class Partitions;
 class TableName;
 class Table;
@@ -53,6 +54,7 @@ class MetaCmdResponse_Ping;
 class MetaCmdResponse_Pull;
 class MetaCmdResponse_ListTable;
 class MetaCmdResponse_ListNode;
+class MetaCmdResponse_ListMeta;
 
 enum StatusCode {
   OK = 0,
@@ -394,6 +396,103 @@ class Nodes : public ::google::protobuf::Message {
 
   void InitAsDefaultInstance();
   static Nodes* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class MetaNodes : public ::google::protobuf::Message {
+ public:
+  MetaNodes();
+  virtual ~MetaNodes();
+
+  MetaNodes(const MetaNodes& from);
+
+  inline MetaNodes& operator=(const MetaNodes& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const MetaNodes& default_instance();
+
+  void Swap(MetaNodes* other);
+
+  // implements Message ----------------------------------------------
+
+  MetaNodes* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const MetaNodes& from);
+  void MergeFrom(const MetaNodes& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated .ZPMeta.Node followers = 1;
+  inline int followers_size() const;
+  inline void clear_followers();
+  static const int kFollowersFieldNumber = 1;
+  inline const ::ZPMeta::Node& followers(int index) const;
+  inline ::ZPMeta::Node* mutable_followers(int index);
+  inline ::ZPMeta::Node* add_followers();
+  inline const ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node >&
+      followers() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node >*
+      mutable_followers();
+
+  // optional .ZPMeta.Node leader = 2;
+  inline bool has_leader() const;
+  inline void clear_leader();
+  static const int kLeaderFieldNumber = 2;
+  inline const ::ZPMeta::Node& leader() const;
+  inline ::ZPMeta::Node* mutable_leader();
+  inline ::ZPMeta::Node* release_leader();
+  inline void set_allocated_leader(::ZPMeta::Node* leader);
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.MetaNodes)
+ private:
+  inline void set_has_leader();
+  inline void clear_has_leader();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node > followers_;
+  ::ZPMeta::Node* leader_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static MetaNodes* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -1860,6 +1959,90 @@ class MetaCmdResponse_ListNode : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class MetaCmdResponse_ListMeta : public ::google::protobuf::Message {
+ public:
+  MetaCmdResponse_ListMeta();
+  virtual ~MetaCmdResponse_ListMeta();
+
+  MetaCmdResponse_ListMeta(const MetaCmdResponse_ListMeta& from);
+
+  inline MetaCmdResponse_ListMeta& operator=(const MetaCmdResponse_ListMeta& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const MetaCmdResponse_ListMeta& default_instance();
+
+  void Swap(MetaCmdResponse_ListMeta* other);
+
+  // implements Message ----------------------------------------------
+
+  MetaCmdResponse_ListMeta* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const MetaCmdResponse_ListMeta& from);
+  void MergeFrom(const MetaCmdResponse_ListMeta& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required .ZPMeta.MetaNodes nodes = 1;
+  inline bool has_nodes() const;
+  inline void clear_nodes();
+  static const int kNodesFieldNumber = 1;
+  inline const ::ZPMeta::MetaNodes& nodes() const;
+  inline ::ZPMeta::MetaNodes* mutable_nodes();
+  inline ::ZPMeta::MetaNodes* release_nodes();
+  inline void set_allocated_nodes(::ZPMeta::MetaNodes* nodes);
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmdResponse.ListMeta)
+ private:
+  inline void set_has_nodes();
+  inline void clear_has_nodes();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::ZPMeta::MetaNodes* nodes_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static MetaCmdResponse_ListMeta* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class MetaCmdResponse : public ::google::protobuf::Message {
  public:
   MetaCmdResponse();
@@ -1916,6 +2099,7 @@ class MetaCmdResponse : public ::google::protobuf::Message {
   typedef MetaCmdResponse_Pull Pull;
   typedef MetaCmdResponse_ListTable ListTable;
   typedef MetaCmdResponse_ListNode ListNode;
+  typedef MetaCmdResponse_ListMeta ListMeta;
 
   // accessors -------------------------------------------------------
 
@@ -1981,6 +2165,15 @@ class MetaCmdResponse : public ::google::protobuf::Message {
   inline ::ZPMeta::MetaCmdResponse_ListNode* release_list_node();
   inline void set_allocated_list_node(::ZPMeta::MetaCmdResponse_ListNode* list_node);
 
+  // optional .ZPMeta.MetaCmdResponse.ListMeta list_meta = 8;
+  inline bool has_list_meta() const;
+  inline void clear_list_meta();
+  static const int kListMetaFieldNumber = 8;
+  inline const ::ZPMeta::MetaCmdResponse_ListMeta& list_meta() const;
+  inline ::ZPMeta::MetaCmdResponse_ListMeta* mutable_list_meta();
+  inline ::ZPMeta::MetaCmdResponse_ListMeta* release_list_meta();
+  inline void set_allocated_list_meta(::ZPMeta::MetaCmdResponse_ListMeta* list_meta);
+
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmdResponse)
  private:
   inline void set_has_type();
@@ -1997,6 +2190,8 @@ class MetaCmdResponse : public ::google::protobuf::Message {
   inline void clear_has_list_table();
   inline void set_has_list_node();
   inline void clear_has_list_node();
+  inline void set_has_list_meta();
+  inline void clear_has_list_meta();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -2007,9 +2202,10 @@ class MetaCmdResponse : public ::google::protobuf::Message {
   ::ZPMeta::MetaCmdResponse_Pull* pull_;
   ::ZPMeta::MetaCmdResponse_ListTable* list_table_;
   ::ZPMeta::MetaCmdResponse_ListNode* list_node_;
+  ::ZPMeta::MetaCmdResponse_ListMeta* list_meta_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(8 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -2208,6 +2404,73 @@ Nodes::nodes() const {
 inline ::google::protobuf::RepeatedPtrField< ::ZPMeta::NodeStatus >*
 Nodes::mutable_nodes() {
   return &nodes_;
+}
+
+// -------------------------------------------------------------------
+
+// MetaNodes
+
+// repeated .ZPMeta.Node followers = 1;
+inline int MetaNodes::followers_size() const {
+  return followers_.size();
+}
+inline void MetaNodes::clear_followers() {
+  followers_.Clear();
+}
+inline const ::ZPMeta::Node& MetaNodes::followers(int index) const {
+  return followers_.Get(index);
+}
+inline ::ZPMeta::Node* MetaNodes::mutable_followers(int index) {
+  return followers_.Mutable(index);
+}
+inline ::ZPMeta::Node* MetaNodes::add_followers() {
+  return followers_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node >&
+MetaNodes::followers() const {
+  return followers_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node >*
+MetaNodes::mutable_followers() {
+  return &followers_;
+}
+
+// optional .ZPMeta.Node leader = 2;
+inline bool MetaNodes::has_leader() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void MetaNodes::set_has_leader() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void MetaNodes::clear_has_leader() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void MetaNodes::clear_leader() {
+  if (leader_ != NULL) leader_->::ZPMeta::Node::Clear();
+  clear_has_leader();
+}
+inline const ::ZPMeta::Node& MetaNodes::leader() const {
+  return leader_ != NULL ? *leader_ : *default_instance_->leader_;
+}
+inline ::ZPMeta::Node* MetaNodes::mutable_leader() {
+  set_has_leader();
+  if (leader_ == NULL) leader_ = new ::ZPMeta::Node;
+  return leader_;
+}
+inline ::ZPMeta::Node* MetaNodes::release_leader() {
+  clear_has_leader();
+  ::ZPMeta::Node* temp = leader_;
+  leader_ = NULL;
+  return temp;
+}
+inline void MetaNodes::set_allocated_leader(::ZPMeta::Node* leader) {
+  delete leader_;
+  leader_ = leader;
+  if (leader) {
+    set_has_leader();
+  } else {
+    clear_has_leader();
+  }
 }
 
 // -------------------------------------------------------------------
@@ -3419,6 +3682,48 @@ inline void MetaCmdResponse_ListNode::set_allocated_nodes(::ZPMeta::Nodes* nodes
 
 // -------------------------------------------------------------------
 
+// MetaCmdResponse_ListMeta
+
+// required .ZPMeta.MetaNodes nodes = 1;
+inline bool MetaCmdResponse_ListMeta::has_nodes() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void MetaCmdResponse_ListMeta::set_has_nodes() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void MetaCmdResponse_ListMeta::clear_has_nodes() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void MetaCmdResponse_ListMeta::clear_nodes() {
+  if (nodes_ != NULL) nodes_->::ZPMeta::MetaNodes::Clear();
+  clear_has_nodes();
+}
+inline const ::ZPMeta::MetaNodes& MetaCmdResponse_ListMeta::nodes() const {
+  return nodes_ != NULL ? *nodes_ : *default_instance_->nodes_;
+}
+inline ::ZPMeta::MetaNodes* MetaCmdResponse_ListMeta::mutable_nodes() {
+  set_has_nodes();
+  if (nodes_ == NULL) nodes_ = new ::ZPMeta::MetaNodes;
+  return nodes_;
+}
+inline ::ZPMeta::MetaNodes* MetaCmdResponse_ListMeta::release_nodes() {
+  clear_has_nodes();
+  ::ZPMeta::MetaNodes* temp = nodes_;
+  nodes_ = NULL;
+  return temp;
+}
+inline void MetaCmdResponse_ListMeta::set_allocated_nodes(::ZPMeta::MetaNodes* nodes) {
+  delete nodes_;
+  nodes_ = nodes;
+  if (nodes) {
+    set_has_nodes();
+  } else {
+    clear_has_nodes();
+  }
+}
+
+// -------------------------------------------------------------------
+
 // MetaCmdResponse
 
 // required .ZPMeta.Type type = 1;
@@ -3686,6 +3991,44 @@ inline void MetaCmdResponse::set_allocated_list_node(::ZPMeta::MetaCmdResponse_L
     set_has_list_node();
   } else {
     clear_has_list_node();
+  }
+}
+
+// optional .ZPMeta.MetaCmdResponse.ListMeta list_meta = 8;
+inline bool MetaCmdResponse::has_list_meta() const {
+  return (_has_bits_[0] & 0x00000080u) != 0;
+}
+inline void MetaCmdResponse::set_has_list_meta() {
+  _has_bits_[0] |= 0x00000080u;
+}
+inline void MetaCmdResponse::clear_has_list_meta() {
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline void MetaCmdResponse::clear_list_meta() {
+  if (list_meta_ != NULL) list_meta_->::ZPMeta::MetaCmdResponse_ListMeta::Clear();
+  clear_has_list_meta();
+}
+inline const ::ZPMeta::MetaCmdResponse_ListMeta& MetaCmdResponse::list_meta() const {
+  return list_meta_ != NULL ? *list_meta_ : *default_instance_->list_meta_;
+}
+inline ::ZPMeta::MetaCmdResponse_ListMeta* MetaCmdResponse::mutable_list_meta() {
+  set_has_list_meta();
+  if (list_meta_ == NULL) list_meta_ = new ::ZPMeta::MetaCmdResponse_ListMeta;
+  return list_meta_;
+}
+inline ::ZPMeta::MetaCmdResponse_ListMeta* MetaCmdResponse::release_list_meta() {
+  clear_has_list_meta();
+  ::ZPMeta::MetaCmdResponse_ListMeta* temp = list_meta_;
+  list_meta_ = NULL;
+  return temp;
+}
+inline void MetaCmdResponse::set_allocated_list_meta(::ZPMeta::MetaCmdResponse_ListMeta* list_meta) {
+  delete list_meta_;
+  list_meta_ = list_meta;
+  if (list_meta) {
+    set_has_list_meta();
+  } else {
+    clear_has_list_meta();
   }
 }
 

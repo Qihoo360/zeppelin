@@ -221,10 +221,14 @@ void StartRepl(libzp::Cluster* cluster) {
           std::cout << "arg num wrong" << std::endl;
           continue;
         }
-        std::vector<libzp::IpPort> nodes;
-        s = cluster->ListMeta(nodes);
-        std::vector<libzp::IpPort>::iterator iter = nodes.begin();
-        while (iter != nodes.end()) {
+        std::vector<libzp::IpPort> slaves;
+        libzp::IpPort master;
+        s = cluster->ListMeta(&master, &slaves);
+        std::cout << "master" << ":" << master.ip
+          << " " << master.port << std::endl;
+        std::cout << "slave" << ":" << std::endl;
+        std::vector<libzp::IpPort>::iterator iter = slaves.begin();
+        while (iter != slaves.end()) {
           std::cout << iter->ip << ":" << iter->port << std::endl;
           iter++;
         }
@@ -236,11 +240,11 @@ void StartRepl(libzp::Cluster* cluster) {
           continue;
         }
         std::vector<libzp::IpPort> nodes;
-        s = cluster->ListNode(nodes);
-        std::vector<libzp::IpPort>::iterator iter = nodes.begin();
-        while (iter != nodes.end()) {
-          std::cout << iter->ip << ":" << iter->port << std::endl;
-          iter++;
+        std::vector<std::string> status;
+        s = cluster->ListNode(&nodes, &status);
+        for (int i = 0; i <= nodes.size() - 1; i++) {
+          std::cout << nodes[i].ip << ":" << nodes[i].port
+            << " " << status[i] << std::endl;
         }
         std::cout << s.ToString() << std::endl;
 
@@ -250,7 +254,7 @@ void StartRepl(libzp::Cluster* cluster) {
           continue;
         }
         std::vector<std::string> tables;
-        s = cluster->ListTable(tables);
+        s = cluster->ListTable(&tables);
         std::vector<std::string>::iterator iter = tables.begin();
         while (iter != tables.end()) {
           std::cout << *iter << std::endl;

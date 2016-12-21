@@ -43,7 +43,6 @@ int main(int argc, char* argv[]) {
       std::cout << s.ToString() << std::endl;
     }
     usleep(100);
-  
   }
   delete cluster;
 }

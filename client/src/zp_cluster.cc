@@ -244,7 +244,7 @@ Status Cluster::RemoveSlave(const std::string& table_name,
   }
 }
 
-Status Cluster::ListMeta(std::vector<IpPort>& nodes) {
+Status Cluster::ListMeta(IpPort* master, std::vector<IpPort>* nodes) {
   meta_cmd_.Clear();
   meta_cmd_.set_type(ZPMeta::Type::LISTMETA);
 
@@ -256,17 +256,20 @@ Status Cluster::ListMeta(std::vector<IpPort>& nodes) {
   if (meta_res_.code() != ZPMeta::StatusCode::OK) {
     return Status::NotSupported(meta_res_.msg());
   }
-  ZPMeta::Nodes info = meta_res_.list_node().nodes();
-  for (int i = 0; i < info.nodes_size(); i++) {
-    IpPort meta_node;
-    meta_node.ip = info.nodes(i).node().ip();
-    meta_node.port = info.nodes(i).node().port();
-    nodes.push_back(meta_node);
+  ZPMeta::MetaNodes info = meta_res_.list_meta().nodes();
+  master->ip = info.leader().ip();
+  master->port = info.leader().port();
+  for (int i = 0; i < info.followers_size(); i++) {
+    IpPort slave_node;
+    slave_node.ip = info.followers(i).ip();
+    slave_node.port = info.followers(i).port();
+    nodes->push_back(slave_node);
   }
   return Status::OK();
 }
 
-Status Cluster::ListNode(std::vector<IpPort>& nodes) {
+Status Cluster::ListNode(std::vector<IpPort>* nodes,
+    std::vector<std::string>* status) {
   meta_cmd_.Clear();
   meta_cmd_.set_type(ZPMeta::Type::LISTNODE);
 
@@ -283,12 +286,17 @@ Status Cluster::ListNode(std::vector<IpPort>& nodes) {
     IpPort data_node;
     data_node.ip = info.nodes(i).node().ip();
     data_node.port = info.nodes(i).node().port();
-    nodes.push_back(data_node);
+    nodes->push_back(data_node);
+    if (info.nodes(i).status() == 1) {
+      status->push_back("down");
+    } else {
+      status->push_back("up");
+    }
   }
   return Status::OK();
 }
 
-Status Cluster::ListTable(std::vector<std::string>& tables) {
+Status Cluster::ListTable(std::vector<std::string>* tables) {
   meta_cmd_.Clear();
   meta_cmd_.set_type(ZPMeta::Type::LISTTABLE);
 
@@ -302,7 +310,7 @@ Status Cluster::ListTable(std::vector<std::string>& tables) {
   }
   ZPMeta::TableName info = meta_res_.list_table().tables();
   for (int i = 0; i < info.name_size(); i++) {
-    tables.push_back(info.name(i));
+    tables->push_back(info.name(i));
   }
   return Status::OK();
 }
@@ -312,7 +320,6 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
   Status s;
   IpPort master;
 
-//  std::cout << "submit" << std::endl;
   s = GetDataMaster(table, key, &master);
   if (!s.ok()) {
     if (has_pull) {
@@ -327,7 +334,6 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
     }
   }
 
-//  std::cout << "data ip:" << master.ip << " port:" << master.port << std::endl;
   pink::PbCli* data_cli = data_pool_->GetConnection(master);
 
   if (data_cli) {
@@ -405,7 +411,6 @@ Status Cluster::DebugDumpTable(const std::string& table) {
 
 Table::Partition* Cluster::GetPartition(const std::string& table,
     const std::string& key) {
-  std::cout << "epoch:" << epoch_ << std::endl;
   auto it = tables_->begin();
   while (it != tables_->end()) {
     if (it->first == table) {
@@ -431,7 +436,6 @@ Status Cluster::GetDataMaster(const std::string& table,
     tables_->find(table);
   Status s;
   if (it == tables_->end()) {
-    std::cout << "know nothing about this table, repull" << std::endl;
     s = Pull(table);
     if (s.ok()) {
       it = tables_->find(table);
@@ -450,7 +454,6 @@ Status Cluster::GetDataMaster(const std::string& table,
 
 Status Cluster::ResetClusterMap(const ZPMeta::MetaCmdResponse_Pull& pull) {
   epoch_ = pull.version();
-  std::cout << "get " << pull.info_size() << " table info" << std::endl;
   for (int i = 0; i < pull.info_size(); i++) {
     std::cout << "reset table:" << pull.info(i).name() << std::endl;
     auto it = tables_->find(pull.info(i).name());
@@ -462,7 +465,6 @@ Status Cluster::ResetClusterMap(const ZPMeta::MetaCmdResponse_Pull& pull) {
     std::string table_name = pull.info(i).name();
     tables_->insert(std::make_pair(pull.info(i).name(), new_table));
   }
-  std::cout<< "pull done" <<  std::endl;
   return Status::OK();
 }
 

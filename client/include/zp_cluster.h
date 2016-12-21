@@ -48,9 +48,10 @@ class Cluster {
       const IpPort& ip_port);
 
   // statistical cmd
-  Status ListTable(std::vector<std::string>& tables);
-  Status ListMeta(std::vector<IpPort>& nodes);
-  Status ListNode(std::vector<IpPort>& nodes);
+  Status ListTable(std::vector<std::string>* tables);
+  Status ListMeta(IpPort* master, std::vector<IpPort>* nodes);
+  Status ListNode(std::vector<IpPort>* nodes,
+      std::vector<std::string>* status);
 
 
   // local cmd
