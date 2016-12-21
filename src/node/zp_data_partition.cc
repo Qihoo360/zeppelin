@@ -411,7 +411,6 @@ ZPMeta::PState Partition::UpdateState(ZPMeta::PState state) {
 }
 
 void Partition::Update(ZPMeta::PState state, const Node &master, const std::vector<Node> &slaves) {
-  assert(slaves.size() == kReplicaNum - 1);
   slash::RWLock l(&state_rw_, true);
 
   // Check Status first
