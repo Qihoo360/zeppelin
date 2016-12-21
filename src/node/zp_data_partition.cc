@@ -8,20 +8,6 @@
 
 extern ZPDataServer* zp_data_server;
 
-static std::string BuildBinlogContent(const client::CmdRequest &req,
-    const std::string ip, int port, int64_t epoch) {
-  client::SyncRequest sreq;
-  sreq.set_epoch(epoch);
-  client::Node *node = sreq.mutable_from();
-  node->set_ip(ip);
-  node->set_port(port);
-  client::CmdRequest *req_ptr = sreq.mutable_request();
-  req_ptr->CopyFrom(req);
-  std::string raw_msg;
-  assert(sreq.SerializeToString(&raw_msg));
-  return raw_msg;
-}
-
 Partition::Partition(const std::string &table_name, const int partition_id, const std::string &log_path, const std::string &data_path)
   : table_name_(table_name),
   partition_id_(partition_id),
@@ -502,10 +488,11 @@ Partition* NewPartition(const std::string &table_name,
 
 // Keep binlog order outside
 void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
-    const std::string &raw_msg, const std::string &from_ip_port) {
+    const std::string &from_ip_port) {
   slash::RWLock l(&state_rw_, false);
   if (from_ip_port != slash::IpPortString(master_node_.ip, master_node_.port)) {
-    LOG(WARNING) << "Discard binlog item from " << from_ip_port;
+    LOG(WARNING) << "Discard binlog item from " << from_ip_port
+      << ", current my master is " << master_node_;
     return;
   }
 
@@ -516,7 +503,10 @@ void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
 
   client::CmdResponse res;
   cmd->Do(&req, &res, this);
-  logger_->Put(raw_msg);
+
+  std::string raw;
+  assert(req.SerializeToString(&raw));
+  logger_->Put(raw);
 
   if (!cmd->is_suspend()) {
     pthread_rwlock_unlock(&partition_rw_);
@@ -556,10 +546,9 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
   if (cmd->is_write()) {
     if (res.code() == client::StatusCode::kOk  && req.type() != client::Type::SYNC) {
       // Restore Message
-      logger_->Put(BuildBinlogContent(req,
-            zp_data_server->local_ip(),
-            zp_data_server->local_port(), 
-            zp_data_server->meta_epoch()));
+      std::string raw;
+      assert(req.SerializeToString(&raw));
+      logger_->Put(raw);
     }
     mutex_record_.Unlock(key);
   }

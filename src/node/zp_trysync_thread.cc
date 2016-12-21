@@ -45,9 +45,6 @@ void ZPTrySyncThread::TrySyncTask(Partition* partition) {
     return;
   }
 
-  //Get Partiton by id
-  //Partition* partition = zp_data_server->GetTablePartitionById(table_name, partition_id);
-  
   // Do try sync
   if (!SendTrySync(partition)) {
     // Need one more trysync, since error happenning or waiting for db sync

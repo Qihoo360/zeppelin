@@ -10,6 +10,19 @@
 
 #include "rsync.h"
 
+static void BuildSyncRequest(const client::CmdRequest &req,
+    int64_t epoch, const std::string ip, int port, client::SyncRequest* msg) {
+  msg->set_epoch(epoch);
+  client::Node *node = msg->mutable_from();
+  node->set_ip(ip);
+  node->set_port(port);
+  client::CmdRequest *req_ptr = msg->mutable_request();
+  req_ptr->CopyFrom(req);
+  //std::string text_format;
+  //google::protobuf::TextFormat::PrintToString(msg, &text_format);
+  //DLOG(INFO) << "SyncRequest to be sent: [" << text_format << "]";
+}
+
 ZPDataServer::ZPDataServer()
   : table_count_(0),
   should_exit_(false),
@@ -202,11 +215,14 @@ Status ZPDataServer::SendToPeer(const Node &node, const std::string &data) {
     iter = (peers_.insert(std::pair<std::string, ZPPbCli*>(ip_port, cli))).first;
   }
   
+  client::CmdRequest req;
+  req.ParseFromString(data);
   client::SyncRequest msg;
-  msg.ParseFromString(data);
-  //std::string text_format;
-  //google::protobuf::TextFormat::PrintToString(msg, &text_format);
-  //DLOG(INFO) << "SyncRequest to be sent: [" << text_format << "]";
+  BuildSyncRequest(req,
+      meta_epoch(),
+      local_ip(),
+      local_port(),
+      &msg);
   
   res = iter->second->Send(&msg);
   if (!res.ok()) {
@@ -218,12 +234,6 @@ Status ZPDataServer::SendToPeer(const Node &node, const std::string &data) {
   }
   return Status::OK();
 }
-
-//Partition* ZPDataServer::GetPartition(const std::string &key) {
-//  uint32_t id = KeyToPartition(key);
-//  return GetPartitionById(id);
-//}
-
 
 // TODO rm;
 bool ZPDataServer::SetTablePartitionCount(const std::string &table_name, const int count) {
