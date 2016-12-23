@@ -126,13 +126,13 @@ message MetaCmdResponse {
 
   // ListTable 
   message ListTable {
-    required TableName tables = 1;
+    optional TableName tables = 1;
   }
   optional ListTable list_table = 6;
 
   // ListNode
   message ListNode {
-    required Nodes nodes = 1;  
+    optional Nodes nodes = 1;
   }
   optional ListNode list_node = 7;
 

@@ -588,8 +588,8 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "eta\030\010 \001(\0132 .ZPMeta.MetaCmdResponse.ListM"
     "eta\032\027\n\004Ping\022\017\n\007version\030\001 \002(\005\0324\n\004Pull\022\017\n\007"
     "version\030\001 \002(\005\022\033\n\004info\030\002 \003(\0132\r.ZPMeta.Tab"
-    "le\032.\n\tListTable\022!\n\006tables\030\001 \002(\0132\021.ZPMeta"
-    ".TableName\032(\n\010ListNode\022\034\n\005nodes\030\001 \002(\0132\r."
+    "le\032.\n\tListTable\022!\n\006tables\030\001 \001(\0132\021.ZPMeta"
+    ".TableName\032(\n\010ListNode\022\034\n\005nodes\030\001 \001(\0132\r."
     "ZPMeta.Nodes\032,\n\010ListMeta\022 \n\005nodes\030\001 \002(\0132"
     "\021.ZPMeta.MetaNodes*-\n\nStatusCode\022\006\n\002OK\020\000"
     "\022\014\n\010NOTFOUND\020\001\022\t\n\005ERROR\020\002*}\n\004Type\022\010\n\004PIN"
@@ -5315,7 +5315,7 @@ bool MetaCmdResponse_ListTable::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required .ZPMeta.TableName tables = 1;
+      // optional .ZPMeta.TableName tables = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -5346,7 +5346,7 @@ bool MetaCmdResponse_ListTable::MergePartialFromCodedStream(
 
 void MetaCmdResponse_ListTable::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required .ZPMeta.TableName tables = 1;
+  // optional .ZPMeta.TableName tables = 1;
   if (has_tables()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
       1, this->tables(), output);
@@ -5360,7 +5360,7 @@ void MetaCmdResponse_ListTable::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* MetaCmdResponse_ListTable::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required .ZPMeta.TableName tables = 1;
+  // optional .ZPMeta.TableName tables = 1;
   if (has_tables()) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -5378,7 +5378,7 @@ int MetaCmdResponse_ListTable::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .ZPMeta.TableName tables = 1;
+    // optional .ZPMeta.TableName tables = 1;
     if (has_tables()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
@@ -5432,7 +5432,6 @@ void MetaCmdResponse_ListTable::CopyFrom(const MetaCmdResponse_ListTable& from) 
 }
 
 bool MetaCmdResponse_ListTable::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
 
   return true;
 }
@@ -5529,7 +5528,7 @@ bool MetaCmdResponse_ListNode::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required .ZPMeta.Nodes nodes = 1;
+      // optional .ZPMeta.Nodes nodes = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -5560,7 +5559,7 @@ bool MetaCmdResponse_ListNode::MergePartialFromCodedStream(
 
 void MetaCmdResponse_ListNode::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required .ZPMeta.Nodes nodes = 1;
+  // optional .ZPMeta.Nodes nodes = 1;
   if (has_nodes()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
       1, this->nodes(), output);
@@ -5574,7 +5573,7 @@ void MetaCmdResponse_ListNode::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* MetaCmdResponse_ListNode::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required .ZPMeta.Nodes nodes = 1;
+  // optional .ZPMeta.Nodes nodes = 1;
   if (has_nodes()) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -5592,7 +5591,7 @@ int MetaCmdResponse_ListNode::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required .ZPMeta.Nodes nodes = 1;
+    // optional .ZPMeta.Nodes nodes = 1;
     if (has_nodes()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
@@ -5646,7 +5645,6 @@ void MetaCmdResponse_ListNode::CopyFrom(const MetaCmdResponse_ListNode& from) {
 }
 
 bool MetaCmdResponse_ListNode::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
 
   if (has_nodes()) {
     if (!this->nodes().IsInitialized()) return false;
@@ -6409,9 +6407,6 @@ bool MetaCmdResponse::IsInitialized() const {
   }
   if (has_pull()) {
     if (!this->pull().IsInitialized()) return false;
-  }
-  if (has_list_table()) {
-    if (!this->list_table().IsInitialized()) return false;
   }
   if (has_list_node()) {
     if (!this->list_node().IsInitialized()) return false;
