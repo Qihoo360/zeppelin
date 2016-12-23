@@ -1845,7 +1845,7 @@ class MetaCmdResponse_ListTable : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required .ZPMeta.TableName tables = 1;
+  // optional .ZPMeta.TableName tables = 1;
   inline bool has_tables() const;
   inline void clear_tables();
   static const int kTablesFieldNumber = 1;
@@ -1929,7 +1929,7 @@ class MetaCmdResponse_ListNode : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required .ZPMeta.Nodes nodes = 1;
+  // optional .ZPMeta.Nodes nodes = 1;
   inline bool has_nodes() const;
   inline void clear_nodes();
   static const int kNodesFieldNumber = 1;
@@ -3600,7 +3600,7 @@ MetaCmdResponse_Pull::mutable_info() {
 
 // MetaCmdResponse_ListTable
 
-// required .ZPMeta.TableName tables = 1;
+// optional .ZPMeta.TableName tables = 1;
 inline bool MetaCmdResponse_ListTable::has_tables() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -3642,7 +3642,7 @@ inline void MetaCmdResponse_ListTable::set_allocated_tables(::ZPMeta::TableName*
 
 // MetaCmdResponse_ListNode
 
-// required .ZPMeta.Nodes nodes = 1;
+// optional .ZPMeta.Nodes nodes = 1;
 inline bool MetaCmdResponse_ListNode::has_nodes() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
