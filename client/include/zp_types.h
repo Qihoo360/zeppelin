@@ -136,9 +136,15 @@ class Table {
     std::cout << "  partition: "<< partition_num_ <<std::endl;
     auto par = partitions_.begin();
     while (par != partitions_.end()) {
-      std::cout << "    partition: "<< par->second->id;
-      std::cout << "    master: " << par->second->master.ip
+      std::cout << "    partition: "<< par->second->id << std::endl;;
+      std::cout << "      master: " << par->second->master.ip
         << " : " << par->second->master.port << std::endl;
+      auto slave = par->second->slaves.begin();
+      while (slave != par->second->slaves.end()) {
+        std::cout << "       slave: " << slave->ip
+          << " : " << slave->port << std::endl;
+        slave++;
+      }
       par++;
     }
   }
