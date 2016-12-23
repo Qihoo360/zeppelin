@@ -242,11 +242,14 @@ void StartRepl(libzp::Cluster* cluster) {
         std::vector<libzp::IpPort> nodes;
         std::vector<std::string> status;
         s = cluster->ListNode(&nodes, &status);
+        if (nodes.size() == 0) {
+          std::cout << "no node exist" << std::endl;
+          continue;
+        }
         for (int i = 0; i <= nodes.size() - 1; i++) {
           std::cout << nodes[i].ip << ":" << nodes[i].port
             << " " << status[i] << std::endl;
         }
-        std::cout << s.ToString() << std::endl;
 
     } else if (!strncmp(line, "listtable", 9)) {
         if (line_args.size() != 1) {
