@@ -12,15 +12,23 @@
 namespace libzp {
 
 Cluster::Cluster(const Options& options) {
-  data_cmd_ = client::CmdRequest();
-  data_res_ = client::CmdResponse();
-  meta_cmd_ = ZPMeta::MetaCmd();
-  meta_res_ = ZPMeta::MetaCmdResponse();
-
   meta_addr_ = options.meta_addr;
   if (meta_addr_.size() == 0) {
     fprintf(stderr, "you need input at least 1 meta node address:\n");
   }
+  InitParam();
+}
+
+Cluster::Cluster(const std::string& ip, const int port) {
+  meta_addr_.push_back(Node(ip, port));
+  InitParam();
+}
+
+void Cluster::InitParam() {
+  data_cmd_ = client::CmdRequest();
+  data_res_ = client::CmdResponse();
+  meta_cmd_ = ZPMeta::MetaCmd();
+  meta_res_ = ZPMeta::MetaCmdResponse();
   epoch_ = 0;
   tables_ = new std::unordered_map<std::string, Table*>();
   meta_pool_ = new ConnectionPool();
@@ -130,8 +138,8 @@ Status Cluster::CreateTable(const std::string& table_name,
 Status Cluster::Connect() {
   Status s;
   int attempt_count = 0;
-  IpPort meta;
-  ZpCli* meta_cli = meta_pool_->GetExistConnection(&meta);
+  Node meta;
+  ZpConn* meta_cli = meta_pool_->GetExistConnection();
   if (meta_cli != NULL) {
     return Status::OK();
   }
@@ -173,7 +181,7 @@ Status Cluster::Pull(const std::string& table) {
 }
 
 Status Cluster::SetMaster(const std::string& table_name,
-    const int partition_num, const IpPort& ip_port) {
+    const int partition_num, const Node& ip_port) {
   meta_cmd_.Clear();
   meta_cmd_.set_type(ZPMeta::Type::SETMASTER);
   ZPMeta::MetaCmd_SetMaster* set_master_cmd = meta_cmd_.mutable_set_master();
@@ -196,7 +204,7 @@ Status Cluster::SetMaster(const std::string& table_name,
   }
 }
 Status Cluster::AddSlave(const std::string& table_name,
-    const int partition_num, const IpPort& ip_port) {
+    const int partition_num, const Node& ip_port) {
   meta_cmd_.Clear();
   meta_cmd_.set_type(ZPMeta::Type::ADDSLAVE);
   ZPMeta::MetaCmd_AddSlave* add_slave_cmd = meta_cmd_.mutable_add_slave();
@@ -220,7 +228,7 @@ Status Cluster::AddSlave(const std::string& table_name,
 }
 
 Status Cluster::RemoveSlave(const std::string& table_name,
-    const int partition_num, const IpPort& ip_port) {
+    const int partition_num, const Node& ip_port) {
   meta_cmd_.Clear();
   meta_cmd_.set_type(ZPMeta::Type::REMOVESLAVE);
   ZPMeta::MetaCmd_RemoveSlave* remove_slave_cmd =
@@ -244,7 +252,7 @@ Status Cluster::RemoveSlave(const std::string& table_name,
   }
 }
 
-Status Cluster::ListMeta(IpPort* master, std::vector<IpPort>* nodes) {
+Status Cluster::ListMeta(Node* master, std::vector<Node>* nodes) {
   meta_cmd_.Clear();
   meta_cmd_.set_type(ZPMeta::Type::LISTMETA);
 
@@ -260,7 +268,7 @@ Status Cluster::ListMeta(IpPort* master, std::vector<IpPort>* nodes) {
   master->ip = info.leader().ip();
   master->port = info.leader().port();
   for (int i = 0; i < info.followers_size(); i++) {
-    IpPort slave_node;
+    Node slave_node;
     slave_node.ip = info.followers(i).ip();
     slave_node.port = info.followers(i).port();
     nodes->push_back(slave_node);
@@ -268,7 +276,7 @@ Status Cluster::ListMeta(IpPort* master, std::vector<IpPort>* nodes) {
   return Status::OK();
 }
 
-Status Cluster::ListNode(std::vector<IpPort>* nodes,
+Status Cluster::ListNode(std::vector<Node>* nodes,
     std::vector<std::string>* status) {
   meta_cmd_.Clear();
   meta_cmd_.set_type(ZPMeta::Type::LISTNODE);
@@ -283,7 +291,7 @@ Status Cluster::ListNode(std::vector<IpPort>* nodes,
   }
   ZPMeta::Nodes info = meta_res_.list_node().nodes();
   for (int i = 0; i < info.nodes_size(); i++) {
-    IpPort data_node;
+    Node data_node;
     data_node.ip = info.nodes(i).node().ip();
     data_node.port = info.nodes(i).node().port();
     nodes->push_back(data_node);
@@ -318,7 +326,7 @@ Status Cluster::ListTable(std::vector<std::string>* tables) {
 Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
     int attempt, bool has_pull) {
   Status s;
-  IpPort master;
+  Node master;
 
   s = GetDataMaster(table, key, &master);
   if (!s.ok()) {
@@ -334,7 +342,7 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
     }
   }
 
-  ZpCli* data_cli = data_pool_->GetConnection(master);
+  ZpConn* data_cli = data_pool_->GetConnection(master);
 
   if (data_cli) {
     s = data_cli->Send(&data_cmd_);
@@ -344,7 +352,7 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
     if (s.ok()) {
       return s;
     } else if (s.IsIOError()) {
-      data_pool_->RemoveConnection(master);
+      data_pool_->RemoveConnection(data_cli);
       if (attempt <= kDataAttempt) {
         return SubmitDataCmd(table, key, attempt+1, has_pull);
       }
@@ -366,9 +374,9 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
 
 Status Cluster::SubmitMetaCmd(int attempt) {
   Status s = Status::IOError("got no meta cli");
-  IpPort meta;
+  Node meta;
   meta = GetRandomMetaAddr();
-  ZpCli* meta_cli = meta_pool_->GetConnection(meta);
+  ZpConn* meta_cli = meta_pool_->GetConnection(meta);
   if (meta_cli) {
     s = meta_cli->Send(&meta_cmd_);
     if (s.ok()) {
@@ -377,7 +385,7 @@ Status Cluster::SubmitMetaCmd(int attempt) {
     if (s.ok()) {
       return s;
     } else if (s.IsIOError()) {
-      meta_pool_->RemoveConnection(meta);
+      meta_pool_->RemoveConnection(meta_cli);
       if (attempt <= kMetaAttempt) {
         return SubmitMetaCmd(attempt+1);
       }
@@ -409,7 +417,7 @@ Status Cluster::DebugDumpTable(const std::string& table) {
 }
 
 
-Table::Partition* Cluster::GetPartition(const std::string& table,
+const Table::Partition* Cluster::GetPartition(const std::string& table,
     const std::string& key) {
   auto it = tables_->begin();
   while (it != tables_->end()) {
@@ -422,7 +430,7 @@ Table::Partition* Cluster::GetPartition(const std::string& table,
 }
 
 
-IpPort Cluster::GetRandomMetaAddr() {
+Node Cluster::GetRandomMetaAddr() {
   std::random_device rd;
   std::mt19937 mt(rd());
   std::uniform_int_distribution<int> di(0, meta_addr_.size()-1);
@@ -431,7 +439,7 @@ IpPort Cluster::GetRandomMetaAddr() {
 }
 
 Status Cluster::GetDataMaster(const std::string& table,
-    const std::string& key, IpPort* master) {
+    const std::string& key, Node* master) {
   std::unordered_map<std::string, Table*>::iterator it =
     tables_->find(table);
   Status s;

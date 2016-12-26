@@ -21,8 +21,8 @@ int main(int argc, char* argv[]) {
     return -1;
   }
   libzp::Options option;
-  libzp::IpPort ip_port(argv[1], atoi(argv[2]));
-  option.meta_addr.push_back(ip_port);
+  libzp::Node node(argv[1], atoi(argv[2]));
+  option.meta_addr.push_back(node);
 
   // cluster handle cluster operation
   std::cout << "create cluster" << std::endl;

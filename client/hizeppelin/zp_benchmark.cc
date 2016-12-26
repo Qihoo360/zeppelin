@@ -69,8 +69,8 @@ int main(int argc, char* argv[]) {
   int request_num = (argc != 6 ? 1000 : atoi(argv[5]));
 
   libzp::Options option;
-  libzp::IpPort ip_port(host, port);
-  option.meta_addr.push_back(ip_port);
+  libzp::Node node(host, port);
+  option.meta_addr.push_back(node);
 
   std::thread *threads = new std::thread[client_num];
 
