@@ -131,7 +131,7 @@ Status Cluster::Connect() {
   Status s;
   int attempt_count = 0;
   IpPort meta;
-  pink::PbCli* meta_cli = meta_pool_->GetExistConnection(&meta);
+  ZpCli* meta_cli = meta_pool_->GetExistConnection(&meta);
   if (meta_cli != NULL) {
     return Status::OK();
   }
@@ -334,7 +334,7 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
     }
   }
 
-  pink::PbCli* data_cli = data_pool_->GetConnection(master);
+  ZpCli* data_cli = data_pool_->GetConnection(master);
 
   if (data_cli) {
     s = data_cli->Send(&data_cmd_);
@@ -368,7 +368,7 @@ Status Cluster::SubmitMetaCmd(int attempt) {
   Status s = Status::IOError("got no meta cli");
   IpPort meta;
   meta = GetRandomMetaAddr();
-  pink::PbCli* meta_cli = meta_pool_->GetConnection(meta);
+  ZpCli* meta_cli = meta_pool_->GetConnection(meta);
   if (meta_cli) {
     s = meta_cli->Send(&meta_cmd_);
     if (s.ok()) {
