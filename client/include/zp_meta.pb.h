@@ -42,6 +42,7 @@ class Partitions;
 class TableName;
 class Table;
 class BasicCmdUnit;
+class SyncOffset;
 class MetaCmd;
 class MetaCmd_Ping;
 class MetaCmd_Pull;
@@ -911,6 +912,123 @@ class BasicCmdUnit : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class SyncOffset : public ::google::protobuf::Message {
+ public:
+  SyncOffset();
+  virtual ~SyncOffset();
+
+  SyncOffset(const SyncOffset& from);
+
+  inline SyncOffset& operator=(const SyncOffset& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SyncOffset& default_instance();
+
+  void Swap(SyncOffset* other);
+
+  // implements Message ----------------------------------------------
+
+  SyncOffset* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const SyncOffset& from);
+  void MergeFrom(const SyncOffset& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string name = 1;
+  inline bool has_name() const;
+  inline void clear_name();
+  static const int kNameFieldNumber = 1;
+  inline const ::std::string& name() const;
+  inline void set_name(const ::std::string& value);
+  inline void set_name(const char* value);
+  inline void set_name(const char* value, size_t size);
+  inline ::std::string* mutable_name();
+  inline ::std::string* release_name();
+  inline void set_allocated_name(::std::string* name);
+
+  // required int32 partition = 2;
+  inline bool has_partition() const;
+  inline void clear_partition();
+  static const int kPartitionFieldNumber = 2;
+  inline ::google::protobuf::int32 partition() const;
+  inline void set_partition(::google::protobuf::int32 value);
+
+  // required int32 filenum = 3;
+  inline bool has_filenum() const;
+  inline void clear_filenum();
+  static const int kFilenumFieldNumber = 3;
+  inline ::google::protobuf::int32 filenum() const;
+  inline void set_filenum(::google::protobuf::int32 value);
+
+  // required int64 offset = 4;
+  inline bool has_offset() const;
+  inline void clear_offset();
+  static const int kOffsetFieldNumber = 4;
+  inline ::google::protobuf::int64 offset() const;
+  inline void set_offset(::google::protobuf::int64 value);
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.SyncOffset)
+ private:
+  inline void set_has_name();
+  inline void clear_has_name();
+  inline void set_has_partition();
+  inline void clear_has_partition();
+  inline void set_has_filenum();
+  inline void clear_has_filenum();
+  inline void set_has_offset();
+  inline void clear_has_offset();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* name_;
+  ::google::protobuf::int32 partition_;
+  ::google::protobuf::int32 filenum_;
+  ::google::protobuf::int64 offset_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static SyncOffset* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class MetaCmd_Ping : public ::google::protobuf::Message {
  public:
   MetaCmd_Ping();
@@ -981,6 +1099,18 @@ class MetaCmd_Ping : public ::google::protobuf::Message {
   inline ::ZPMeta::Node* release_node();
   inline void set_allocated_node(::ZPMeta::Node* node);
 
+  // repeated .ZPMeta.SyncOffset offset = 3;
+  inline int offset_size() const;
+  inline void clear_offset();
+  static const int kOffsetFieldNumber = 3;
+  inline const ::ZPMeta::SyncOffset& offset(int index) const;
+  inline ::ZPMeta::SyncOffset* mutable_offset(int index);
+  inline ::ZPMeta::SyncOffset* add_offset();
+  inline const ::google::protobuf::RepeatedPtrField< ::ZPMeta::SyncOffset >&
+      offset() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ZPMeta::SyncOffset >*
+      mutable_offset();
+
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd.Ping)
  private:
   inline void set_has_version();
@@ -991,10 +1121,11 @@ class MetaCmd_Ping : public ::google::protobuf::Message {
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::ZPMeta::Node* node_;
+  ::google::protobuf::RepeatedPtrField< ::ZPMeta::SyncOffset > offset_;
   ::google::protobuf::int32 version_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -1675,17 +1806,37 @@ class MetaCmdResponse_Ping : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 version() const;
   inline void set_version(::google::protobuf::int32 value);
 
+  // optional bool need_offset = 2;
+  inline bool has_need_offset() const;
+  inline void clear_need_offset();
+  static const int kNeedOffsetFieldNumber = 2;
+  inline bool need_offset() const;
+  inline void set_need_offset(bool value);
+
+  // optional int32 interval = 3;
+  inline bool has_interval() const;
+  inline void clear_interval();
+  static const int kIntervalFieldNumber = 3;
+  inline ::google::protobuf::int32 interval() const;
+  inline void set_interval(::google::protobuf::int32 value);
+
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmdResponse.Ping)
  private:
   inline void set_has_version();
   inline void clear_has_version();
+  inline void set_has_need_offset();
+  inline void clear_has_need_offset();
+  inline void set_has_interval();
+  inline void clear_has_interval();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::google::protobuf::int32 version_;
+  bool need_offset_;
+  ::google::protobuf::int32 interval_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -2868,6 +3019,146 @@ inline void BasicCmdUnit::set_allocated_node(::ZPMeta::Node* node) {
 
 // -------------------------------------------------------------------
 
+// SyncOffset
+
+// required string name = 1;
+inline bool SyncOffset::has_name() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void SyncOffset::set_has_name() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void SyncOffset::clear_has_name() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void SyncOffset::clear_name() {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    name_->clear();
+  }
+  clear_has_name();
+}
+inline const ::std::string& SyncOffset::name() const {
+  return *name_;
+}
+inline void SyncOffset::set_name(const ::std::string& value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
+}
+inline void SyncOffset::set_name(const char* value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
+}
+inline void SyncOffset::set_name(const char* value, size_t size) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* SyncOffset::mutable_name() {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  return name_;
+}
+inline ::std::string* SyncOffset::release_name() {
+  clear_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = name_;
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void SyncOffset::set_allocated_name(::std::string* name) {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    delete name_;
+  }
+  if (name) {
+    set_has_name();
+    name_ = name;
+  } else {
+    clear_has_name();
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required int32 partition = 2;
+inline bool SyncOffset::has_partition() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void SyncOffset::set_has_partition() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void SyncOffset::clear_has_partition() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void SyncOffset::clear_partition() {
+  partition_ = 0;
+  clear_has_partition();
+}
+inline ::google::protobuf::int32 SyncOffset::partition() const {
+  return partition_;
+}
+inline void SyncOffset::set_partition(::google::protobuf::int32 value) {
+  set_has_partition();
+  partition_ = value;
+}
+
+// required int32 filenum = 3;
+inline bool SyncOffset::has_filenum() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void SyncOffset::set_has_filenum() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void SyncOffset::clear_has_filenum() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void SyncOffset::clear_filenum() {
+  filenum_ = 0;
+  clear_has_filenum();
+}
+inline ::google::protobuf::int32 SyncOffset::filenum() const {
+  return filenum_;
+}
+inline void SyncOffset::set_filenum(::google::protobuf::int32 value) {
+  set_has_filenum();
+  filenum_ = value;
+}
+
+// required int64 offset = 4;
+inline bool SyncOffset::has_offset() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void SyncOffset::set_has_offset() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void SyncOffset::clear_has_offset() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void SyncOffset::clear_offset() {
+  offset_ = GOOGLE_LONGLONG(0);
+  clear_has_offset();
+}
+inline ::google::protobuf::int64 SyncOffset::offset() const {
+  return offset_;
+}
+inline void SyncOffset::set_offset(::google::protobuf::int64 value) {
+  set_has_offset();
+  offset_ = value;
+}
+
+// -------------------------------------------------------------------
+
 // MetaCmd_Ping
 
 // required int32 version = 1;
@@ -2928,6 +3219,31 @@ inline void MetaCmd_Ping::set_allocated_node(::ZPMeta::Node* node) {
   } else {
     clear_has_node();
   }
+}
+
+// repeated .ZPMeta.SyncOffset offset = 3;
+inline int MetaCmd_Ping::offset_size() const {
+  return offset_.size();
+}
+inline void MetaCmd_Ping::clear_offset() {
+  offset_.Clear();
+}
+inline const ::ZPMeta::SyncOffset& MetaCmd_Ping::offset(int index) const {
+  return offset_.Get(index);
+}
+inline ::ZPMeta::SyncOffset* MetaCmd_Ping::mutable_offset(int index) {
+  return offset_.Mutable(index);
+}
+inline ::ZPMeta::SyncOffset* MetaCmd_Ping::add_offset() {
+  return offset_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::ZPMeta::SyncOffset >&
+MetaCmd_Ping::offset() const {
+  return offset_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::ZPMeta::SyncOffset >*
+MetaCmd_Ping::mutable_offset() {
+  return &offset_;
 }
 
 // -------------------------------------------------------------------
@@ -3543,6 +3859,50 @@ inline ::google::protobuf::int32 MetaCmdResponse_Ping::version() const {
 inline void MetaCmdResponse_Ping::set_version(::google::protobuf::int32 value) {
   set_has_version();
   version_ = value;
+}
+
+// optional bool need_offset = 2;
+inline bool MetaCmdResponse_Ping::has_need_offset() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void MetaCmdResponse_Ping::set_has_need_offset() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void MetaCmdResponse_Ping::clear_has_need_offset() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void MetaCmdResponse_Ping::clear_need_offset() {
+  need_offset_ = false;
+  clear_has_need_offset();
+}
+inline bool MetaCmdResponse_Ping::need_offset() const {
+  return need_offset_;
+}
+inline void MetaCmdResponse_Ping::set_need_offset(bool value) {
+  set_has_need_offset();
+  need_offset_ = value;
+}
+
+// optional int32 interval = 3;
+inline bool MetaCmdResponse_Ping::has_interval() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void MetaCmdResponse_Ping::set_has_interval() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void MetaCmdResponse_Ping::clear_has_interval() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void MetaCmdResponse_Ping::clear_interval() {
+  interval_ = 0;
+  clear_has_interval();
+}
+inline ::google::protobuf::int32 MetaCmdResponse_Ping::interval() const {
+  return interval_;
+}
+inline void MetaCmdResponse_Ping::set_interval(::google::protobuf::int32 value) {
+  set_has_interval();
+  interval_ = value;
 }
 
 // -------------------------------------------------------------------
