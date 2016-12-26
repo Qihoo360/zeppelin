@@ -384,11 +384,8 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(MetaCmdResponse));
   MetaCmdResponse_Ping_descriptor_ = MetaCmdResponse_descriptor_->nested_type(0);
-  static const int MetaCmdResponse_Ping_offsets_[4] = {
+  static const int MetaCmdResponse_Ping_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_Ping, version_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_Ping, need_offset_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_Ping, interval_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_Ping, offset_),
   };
   MetaCmdResponse_Ping_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -609,7 +606,7 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "ter\022#\n\005basic\030\001 \002(\0132\024.ZPMeta.BasicCmdUnit"
     "\032/\n\010AddSlave\022#\n\005basic\030\001 \002(\0132\024.ZPMeta.Bas"
     "icCmdUnit\0322\n\013RemoveSlave\022#\n\005basic\030\001 \002(\0132"
-    "\024.ZPMeta.BasicCmdUnit\"\367\004\n\017MetaCmdRespons"
+    "\024.ZPMeta.BasicCmdUnit\"\254\004\n\017MetaCmdRespons"
     "e\022\032\n\004type\030\001 \002(\0162\014.ZPMeta.Type\022 \n\004code\030\002 "
     "\002(\0162\022.ZPMeta.StatusCode\022\013\n\003msg\030\003 \001(\t\022*\n\004"
     "ping\030\004 \001(\0132\034.ZPMeta.MetaCmdResponse.Ping"
@@ -618,19 +615,17 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "dResponse.ListTable\0223\n\tlist_node\030\007 \001(\0132 "
     ".ZPMeta.MetaCmdResponse.ListNode\0223\n\tlist"
     "_meta\030\010 \001(\0132 .ZPMeta.MetaCmdResponse.Lis"
-    "tMeta\032b\n\004Ping\022\017\n\007version\030\001 \002(\005\022\023\n\013need_o"
-    "ffset\030\002 \001(\010\022\020\n\010interval\030\003 \001(\005\022\"\n\006offset\030"
-    "\004 \003(\0132\022.ZPMeta.SyncOffset\0324\n\004Pull\022\017\n\007ver"
-    "sion\030\001 \002(\005\022\033\n\004info\030\002 \003(\0132\r.ZPMeta.Table\032"
-    ".\n\tListTable\022!\n\006tables\030\001 \001(\0132\021.ZPMeta.Ta"
-    "bleName\032(\n\010ListNode\022\034\n\005nodes\030\001 \001(\0132\r.ZPM"
-    "eta.Nodes\032,\n\010ListMeta\022 \n\005nodes\030\001 \002(\0132\021.Z"
-    "PMeta.MetaNodes*-\n\nStatusCode\022\006\n\002OK\020\000\022\014\n"
-    "\010NOTFOUND\020\001\022\t\n\005ERROR\020\002*}\n\004Type\022\010\n\004PING\020\001"
-    "\022\010\n\004PULL\020\002\022\010\n\004INIT\020\003\022\r\n\tSETMASTER\020\004\022\014\n\010A"
-    "DDSLAVE\020\005\022\017\n\013REMOVESLAVE\020\006\022\r\n\tLISTTABLE\020"
-    "\007\022\014\n\010LISTNODE\020\010\022\014\n\010LISTMETA\020\t*\037\n\006PState\022"
-    "\n\n\006ACTIVE\020\001\022\t\n\005STUCK\020\002", 2062);
+    "tMeta\032\027\n\004Ping\022\017\n\007version\030\001 \002(\005\0324\n\004Pull\022\017"
+    "\n\007version\030\001 \002(\005\022\033\n\004info\030\002 \003(\0132\r.ZPMeta.T"
+    "able\032.\n\tListTable\022!\n\006tables\030\001 \001(\0132\021.ZPMe"
+    "ta.TableName\032(\n\010ListNode\022\034\n\005nodes\030\001 \001(\0132"
+    "\r.ZPMeta.Nodes\032,\n\010ListMeta\022 \n\005nodes\030\001 \002("
+    "\0132\021.ZPMeta.MetaNodes*-\n\nStatusCode\022\006\n\002OK"
+    "\020\000\022\014\n\010NOTFOUND\020\001\022\t\n\005ERROR\020\002*}\n\004Type\022\010\n\004P"
+    "ING\020\001\022\010\n\004PULL\020\002\022\010\n\004INIT\020\003\022\r\n\tSETMASTER\020\004"
+    "\022\014\n\010ADDSLAVE\020\005\022\017\n\013REMOVESLAVE\020\006\022\r\n\tLISTT"
+    "ABLE\020\007\022\014\n\010LISTNODE\020\010\022\014\n\010LISTMETA\020\t*\037\n\006PS"
+    "tate\022\n\n\006ACTIVE\020\001\022\t\n\005STUCK\020\002", 1987);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zp_meta.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -5217,9 +5212,6 @@ void MetaCmd::Swap(MetaCmd* other) {
 
 #ifndef _MSC_VER
 const int MetaCmdResponse_Ping::kVersionFieldNumber;
-const int MetaCmdResponse_Ping::kNeedOffsetFieldNumber;
-const int MetaCmdResponse_Ping::kIntervalFieldNumber;
-const int MetaCmdResponse_Ping::kOffsetFieldNumber;
 #endif  // !_MSC_VER
 
 MetaCmdResponse_Ping::MetaCmdResponse_Ping()
@@ -5239,8 +5231,6 @@ MetaCmdResponse_Ping::MetaCmdResponse_Ping(const MetaCmdResponse_Ping& from)
 void MetaCmdResponse_Ping::SharedCtor() {
   _cached_size_ = 0;
   version_ = 0;
-  need_offset_ = false;
-  interval_ = 0;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -5277,10 +5267,7 @@ MetaCmdResponse_Ping* MetaCmdResponse_Ping::New() const {
 void MetaCmdResponse_Ping::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     version_ = 0;
-    need_offset_ = false;
-    interval_ = 0;
   }
-  offset_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
 }
@@ -5302,53 +5289,6 @@ bool MetaCmdResponse_Ping::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(16)) goto parse_need_offset;
-        break;
-      }
-
-      // optional bool need_offset = 2;
-      case 2: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_need_offset:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
-                 input, &need_offset_)));
-          set_has_need_offset();
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(24)) goto parse_interval;
-        break;
-      }
-
-      // optional int32 interval = 3;
-      case 3: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_interval:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 input, &interval_)));
-          set_has_interval();
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(34)) goto parse_offset;
-        break;
-      }
-
-      // repeated .ZPMeta.SyncOffset offset = 4;
-      case 4: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-         parse_offset:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
-                input, add_offset()));
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(34)) goto parse_offset;
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -5376,22 +5316,6 @@ void MetaCmdResponse_Ping::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->version(), output);
   }
 
-  // optional bool need_offset = 2;
-  if (has_need_offset()) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(2, this->need_offset(), output);
-  }
-
-  // optional int32 interval = 3;
-  if (has_interval()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(3, this->interval(), output);
-  }
-
-  // repeated .ZPMeta.SyncOffset offset = 4;
-  for (int i = 0; i < this->offset_size(); i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
-      4, this->offset(i), output);
-  }
-
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -5403,23 +5327,6 @@ void MetaCmdResponse_Ping::SerializeWithCachedSizes(
   // required int32 version = 1;
   if (has_version()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->version(), target);
-  }
-
-  // optional bool need_offset = 2;
-  if (has_need_offset()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(2, this->need_offset(), target);
-  }
-
-  // optional int32 interval = 3;
-  if (has_interval()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(3, this->interval(), target);
-  }
-
-  // repeated .ZPMeta.SyncOffset offset = 4;
-  for (int i = 0; i < this->offset_size(); i++) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteMessageNoVirtualToArray(
-        4, this->offset(i), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -5440,27 +5347,7 @@ int MetaCmdResponse_Ping::ByteSize() const {
           this->version());
     }
 
-    // optional bool need_offset = 2;
-    if (has_need_offset()) {
-      total_size += 1 + 1;
-    }
-
-    // optional int32 interval = 3;
-    if (has_interval()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
-          this->interval());
-    }
-
   }
-  // repeated .ZPMeta.SyncOffset offset = 4;
-  total_size += 1 * this->offset_size();
-  for (int i = 0; i < this->offset_size(); i++) {
-    total_size +=
-      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
-        this->offset(i));
-  }
-
   if (!unknown_fields().empty()) {
     total_size +=
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
@@ -5486,16 +5373,9 @@ void MetaCmdResponse_Ping::MergeFrom(const ::google::protobuf::Message& from) {
 
 void MetaCmdResponse_Ping::MergeFrom(const MetaCmdResponse_Ping& from) {
   GOOGLE_CHECK_NE(&from, this);
-  offset_.MergeFrom(from.offset_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_version()) {
       set_version(from.version());
-    }
-    if (from.has_need_offset()) {
-      set_need_offset(from.need_offset());
-    }
-    if (from.has_interval()) {
-      set_interval(from.interval());
     }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -5516,18 +5396,12 @@ void MetaCmdResponse_Ping::CopyFrom(const MetaCmdResponse_Ping& from) {
 bool MetaCmdResponse_Ping::IsInitialized() const {
   if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
 
-  for (int i = 0; i < offset_size(); i++) {
-    if (!this->offset(i).IsInitialized()) return false;
-  }
   return true;
 }
 
 void MetaCmdResponse_Ping::Swap(MetaCmdResponse_Ping* other) {
   if (other != this) {
     std::swap(version_, other->version_);
-    std::swap(need_offset_, other->need_offset_);
-    std::swap(interval_, other->interval_);
-    offset_.Swap(&other->offset_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

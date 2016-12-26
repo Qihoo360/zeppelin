@@ -122,9 +122,6 @@ message MetaCmdResponse {
   // Ping
   message Ping {
     required int32 version = 1;
-    optional bool need_offset = 2;
-    optional int32 interval = 3;
-    repeated SyncOffset offset = 4;
   }
   optional Ping ping = 4;
 

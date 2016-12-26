@@ -1809,50 +1809,17 @@ class MetaCmdResponse_Ping : public ::google::protobuf::Message {
   inline ::google::protobuf::int32 version() const;
   inline void set_version(::google::protobuf::int32 value);
 
-  // optional bool need_offset = 2;
-  inline bool has_need_offset() const;
-  inline void clear_need_offset();
-  static const int kNeedOffsetFieldNumber = 2;
-  inline bool need_offset() const;
-  inline void set_need_offset(bool value);
-
-  // optional int32 interval = 3;
-  inline bool has_interval() const;
-  inline void clear_interval();
-  static const int kIntervalFieldNumber = 3;
-  inline ::google::protobuf::int32 interval() const;
-  inline void set_interval(::google::protobuf::int32 value);
-
-  // repeated .ZPMeta.SyncOffset offset = 4;
-  inline int offset_size() const;
-  inline void clear_offset();
-  static const int kOffsetFieldNumber = 4;
-  inline const ::ZPMeta::SyncOffset& offset(int index) const;
-  inline ::ZPMeta::SyncOffset* mutable_offset(int index);
-  inline ::ZPMeta::SyncOffset* add_offset();
-  inline const ::google::protobuf::RepeatedPtrField< ::ZPMeta::SyncOffset >&
-      offset() const;
-  inline ::google::protobuf::RepeatedPtrField< ::ZPMeta::SyncOffset >*
-      mutable_offset();
-
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmdResponse.Ping)
  private:
   inline void set_has_version();
   inline void clear_has_version();
-  inline void set_has_need_offset();
-  inline void clear_has_need_offset();
-  inline void set_has_interval();
-  inline void clear_has_interval();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::google::protobuf::int32 version_;
-  bool need_offset_;
-  ::google::protobuf::RepeatedPtrField< ::ZPMeta::SyncOffset > offset_;
-  ::google::protobuf::int32 interval_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -3878,75 +3845,6 @@ inline ::google::protobuf::int32 MetaCmdResponse_Ping::version() const {
 inline void MetaCmdResponse_Ping::set_version(::google::protobuf::int32 value) {
   set_has_version();
   version_ = value;
-}
-
-// optional bool need_offset = 2;
-inline bool MetaCmdResponse_Ping::has_need_offset() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
-}
-inline void MetaCmdResponse_Ping::set_has_need_offset() {
-  _has_bits_[0] |= 0x00000002u;
-}
-inline void MetaCmdResponse_Ping::clear_has_need_offset() {
-  _has_bits_[0] &= ~0x00000002u;
-}
-inline void MetaCmdResponse_Ping::clear_need_offset() {
-  need_offset_ = false;
-  clear_has_need_offset();
-}
-inline bool MetaCmdResponse_Ping::need_offset() const {
-  return need_offset_;
-}
-inline void MetaCmdResponse_Ping::set_need_offset(bool value) {
-  set_has_need_offset();
-  need_offset_ = value;
-}
-
-// optional int32 interval = 3;
-inline bool MetaCmdResponse_Ping::has_interval() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
-}
-inline void MetaCmdResponse_Ping::set_has_interval() {
-  _has_bits_[0] |= 0x00000004u;
-}
-inline void MetaCmdResponse_Ping::clear_has_interval() {
-  _has_bits_[0] &= ~0x00000004u;
-}
-inline void MetaCmdResponse_Ping::clear_interval() {
-  interval_ = 0;
-  clear_has_interval();
-}
-inline ::google::protobuf::int32 MetaCmdResponse_Ping::interval() const {
-  return interval_;
-}
-inline void MetaCmdResponse_Ping::set_interval(::google::protobuf::int32 value) {
-  set_has_interval();
-  interval_ = value;
-}
-
-// repeated .ZPMeta.SyncOffset offset = 4;
-inline int MetaCmdResponse_Ping::offset_size() const {
-  return offset_.size();
-}
-inline void MetaCmdResponse_Ping::clear_offset() {
-  offset_.Clear();
-}
-inline const ::ZPMeta::SyncOffset& MetaCmdResponse_Ping::offset(int index) const {
-  return offset_.Get(index);
-}
-inline ::ZPMeta::SyncOffset* MetaCmdResponse_Ping::mutable_offset(int index) {
-  return offset_.Mutable(index);
-}
-inline ::ZPMeta::SyncOffset* MetaCmdResponse_Ping::add_offset() {
-  return offset_.Add();
-}
-inline const ::google::protobuf::RepeatedPtrField< ::ZPMeta::SyncOffset >&
-MetaCmdResponse_Ping::offset() const {
-  return offset_;
-}
-inline ::google::protobuf::RepeatedPtrField< ::ZPMeta::SyncOffset >*
-MetaCmdResponse_Ping::mutable_offset() {
-  return &offset_;
 }
 
 // -------------------------------------------------------------------
