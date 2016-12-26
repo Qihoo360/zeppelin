@@ -230,7 +230,7 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       sizeof(BasicCmdUnit));
   SyncOffset_descriptor_ = file->message_type(8);
   static const int SyncOffset_offsets_[4] = {
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SyncOffset, name_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SyncOffset, table_name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SyncOffset, partition_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SyncOffset, filenum_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SyncOffset, offset_),
@@ -384,10 +384,8 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(MetaCmdResponse));
   MetaCmdResponse_Ping_descriptor_ = MetaCmdResponse_descriptor_->nested_type(0);
-  static const int MetaCmdResponse_Ping_offsets_[3] = {
+  static const int MetaCmdResponse_Ping_offsets_[1] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_Ping, version_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_Ping, need_offset_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(MetaCmdResponse_Ping, interval_),
   };
   MetaCmdResponse_Ping_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -591,44 +589,43 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "(\t\022&\n\npartitions\030\002 \003(\0132\022.ZPMeta.Partitio"
     "ns\"K\n\014BasicCmdUnit\022\014\n\004name\030\001 \002(\t\022\021\n\tpart"
     "ition\030\002 \002(\005\022\032\n\004node\030\003 \002(\0132\014.ZPMeta.Node\""
-    "N\n\nSyncOffset\022\014\n\004name\030\001 \002(\t\022\021\n\tpartition"
-    "\030\002 \002(\005\022\017\n\007filenum\030\003 \002(\005\022\016\n\006offset\030\004 \002(\003\""
-    "\345\004\n\007MetaCmd\022\032\n\004type\030\001 \002(\0162\014.ZPMeta.Type\022"
-    "\"\n\004ping\030\002 \001(\0132\024.ZPMeta.MetaCmd.Ping\022\"\n\004p"
-    "ull\030\003 \001(\0132\024.ZPMeta.MetaCmd.Pull\022\"\n\004init\030"
-    "\004 \001(\0132\024.ZPMeta.MetaCmd.Init\022-\n\nset_maste"
-    "r\030\005 \001(\0132\031.ZPMeta.MetaCmd.SetMaster\022+\n\tad"
-    "d_slave\030\006 \001(\0132\030.ZPMeta.MetaCmd.AddSlave\022"
-    "1\n\014remove_slave\030\007 \001(\0132\033.ZPMeta.MetaCmd.R"
-    "emoveSlave\032W\n\004Ping\022\017\n\007version\030\001 \002(\005\022\032\n\004n"
-    "ode\030\002 \002(\0132\014.ZPMeta.Node\022\"\n\006offset\030\003 \003(\0132"
-    "\022.ZPMeta.SyncOffset\0320\n\004Pull\022\032\n\004node\030\001 \001("
-    "\0132\014.ZPMeta.Node\022\014\n\004name\030\002 \001(\t\032!\n\004Init\022\014\n"
-    "\004name\030\001 \002(\t\022\013\n\003num\030\002 \002(\005\0320\n\tSetMaster\022#\n"
-    "\005basic\030\001 \002(\0132\024.ZPMeta.BasicCmdUnit\032/\n\010Ad"
-    "dSlave\022#\n\005basic\030\001 \002(\0132\024.ZPMeta.BasicCmdU"
-    "nit\0322\n\013RemoveSlave\022#\n\005basic\030\001 \002(\0132\024.ZPMe"
-    "ta.BasicCmdUnit\"\323\004\n\017MetaCmdResponse\022\032\n\004t"
-    "ype\030\001 \002(\0162\014.ZPMeta.Type\022 \n\004code\030\002 \002(\0162\022."
-    "ZPMeta.StatusCode\022\013\n\003msg\030\003 \001(\t\022*\n\004ping\030\004"
-    " \001(\0132\034.ZPMeta.MetaCmdResponse.Ping\022*\n\004pu"
-    "ll\030\005 \001(\0132\034.ZPMeta.MetaCmdResponse.Pull\0225"
-    "\n\nlist_table\030\006 \001(\0132!.ZPMeta.MetaCmdRespo"
-    "nse.ListTable\0223\n\tlist_node\030\007 \001(\0132 .ZPMet"
-    "a.MetaCmdResponse.ListNode\0223\n\tlist_meta\030"
-    "\010 \001(\0132 .ZPMeta.MetaCmdResponse.ListMeta\032"
-    ">\n\004Ping\022\017\n\007version\030\001 \002(\005\022\023\n\013need_offset\030"
-    "\002 \001(\010\022\020\n\010interval\030\003 \001(\005\0324\n\004Pull\022\017\n\007versi"
-    "on\030\001 \002(\005\022\033\n\004info\030\002 \003(\0132\r.ZPMeta.Table\032.\n"
-    "\tListTable\022!\n\006tables\030\001 \001(\0132\021.ZPMeta.Tabl"
-    "eName\032(\n\010ListNode\022\034\n\005nodes\030\001 \001(\0132\r.ZPMet"
-    "a.Nodes\032,\n\010ListMeta\022 \n\005nodes\030\001 \002(\0132\021.ZPM"
-    "eta.MetaNodes*-\n\nStatusCode\022\006\n\002OK\020\000\022\014\n\010N"
-    "OTFOUND\020\001\022\t\n\005ERROR\020\002*}\n\004Type\022\010\n\004PING\020\001\022\010"
-    "\n\004PULL\020\002\022\010\n\004INIT\020\003\022\r\n\tSETMASTER\020\004\022\014\n\010ADD"
-    "SLAVE\020\005\022\017\n\013REMOVESLAVE\020\006\022\r\n\tLISTTABLE\020\007\022"
-    "\014\n\010LISTNODE\020\010\022\014\n\010LISTMETA\020\t*\037\n\006PState\022\n\n"
-    "\006ACTIVE\020\001\022\t\n\005STUCK\020\002", 2020);
+    "T\n\nSyncOffset\022\022\n\ntable_name\030\001 \002(\t\022\021\n\tpar"
+    "tition\030\002 \003(\005\022\017\n\007filenum\030\003 \001(\005\022\016\n\006offset\030"
+    "\004 \001(\003\"\345\004\n\007MetaCmd\022\032\n\004type\030\001 \002(\0162\014.ZPMeta"
+    ".Type\022\"\n\004ping\030\002 \001(\0132\024.ZPMeta.MetaCmd.Pin"
+    "g\022\"\n\004pull\030\003 \001(\0132\024.ZPMeta.MetaCmd.Pull\022\"\n"
+    "\004init\030\004 \001(\0132\024.ZPMeta.MetaCmd.Init\022-\n\nset"
+    "_master\030\005 \001(\0132\031.ZPMeta.MetaCmd.SetMaster"
+    "\022+\n\tadd_slave\030\006 \001(\0132\030.ZPMeta.MetaCmd.Add"
+    "Slave\0221\n\014remove_slave\030\007 \001(\0132\033.ZPMeta.Met"
+    "aCmd.RemoveSlave\032W\n\004Ping\022\017\n\007version\030\001 \002("
+    "\005\022\032\n\004node\030\002 \002(\0132\014.ZPMeta.Node\022\"\n\006offset\030"
+    "\003 \003(\0132\022.ZPMeta.SyncOffset\0320\n\004Pull\022\032\n\004nod"
+    "e\030\001 \001(\0132\014.ZPMeta.Node\022\014\n\004name\030\002 \001(\t\032!\n\004I"
+    "nit\022\014\n\004name\030\001 \002(\t\022\013\n\003num\030\002 \002(\005\0320\n\tSetMas"
+    "ter\022#\n\005basic\030\001 \002(\0132\024.ZPMeta.BasicCmdUnit"
+    "\032/\n\010AddSlave\022#\n\005basic\030\001 \002(\0132\024.ZPMeta.Bas"
+    "icCmdUnit\0322\n\013RemoveSlave\022#\n\005basic\030\001 \002(\0132"
+    "\024.ZPMeta.BasicCmdUnit\"\254\004\n\017MetaCmdRespons"
+    "e\022\032\n\004type\030\001 \002(\0162\014.ZPMeta.Type\022 \n\004code\030\002 "
+    "\002(\0162\022.ZPMeta.StatusCode\022\013\n\003msg\030\003 \001(\t\022*\n\004"
+    "ping\030\004 \001(\0132\034.ZPMeta.MetaCmdResponse.Ping"
+    "\022*\n\004pull\030\005 \001(\0132\034.ZPMeta.MetaCmdResponse."
+    "Pull\0225\n\nlist_table\030\006 \001(\0132!.ZPMeta.MetaCm"
+    "dResponse.ListTable\0223\n\tlist_node\030\007 \001(\0132 "
+    ".ZPMeta.MetaCmdResponse.ListNode\0223\n\tlist"
+    "_meta\030\010 \001(\0132 .ZPMeta.MetaCmdResponse.Lis"
+    "tMeta\032\027\n\004Ping\022\017\n\007version\030\001 \002(\005\0324\n\004Pull\022\017"
+    "\n\007version\030\001 \002(\005\022\033\n\004info\030\002 \003(\0132\r.ZPMeta.T"
+    "able\032.\n\tListTable\022!\n\006tables\030\001 \001(\0132\021.ZPMe"
+    "ta.TableName\032(\n\010ListNode\022\034\n\005nodes\030\001 \001(\0132"
+    "\r.ZPMeta.Nodes\032,\n\010ListMeta\022 \n\005nodes\030\001 \002("
+    "\0132\021.ZPMeta.MetaNodes*-\n\nStatusCode\022\006\n\002OK"
+    "\020\000\022\014\n\010NOTFOUND\020\001\022\t\n\005ERROR\020\002*}\n\004Type\022\010\n\004P"
+    "ING\020\001\022\010\n\004PULL\020\002\022\010\n\004INIT\020\003\022\r\n\tSETMASTER\020\004"
+    "\022\014\n\010ADDSLAVE\020\005\022\017\n\013REMOVESLAVE\020\006\022\r\n\tLISTT"
+    "ABLE\020\007\022\014\n\010LISTNODE\020\010\022\014\n\010LISTMETA\020\t*\037\n\006PS"
+    "tate\022\n\n\006ACTIVE\020\001\022\t\n\005STUCK\020\002", 1987);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zp_meta.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -2867,7 +2864,7 @@ void BasicCmdUnit::Swap(BasicCmdUnit* other) {
 // ===================================================================
 
 #ifndef _MSC_VER
-const int SyncOffset::kNameFieldNumber;
+const int SyncOffset::kTableNameFieldNumber;
 const int SyncOffset::kPartitionFieldNumber;
 const int SyncOffset::kFilenumFieldNumber;
 const int SyncOffset::kOffsetFieldNumber;
@@ -2889,8 +2886,7 @@ SyncOffset::SyncOffset(const SyncOffset& from)
 
 void SyncOffset::SharedCtor() {
   _cached_size_ = 0;
-  name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  partition_ = 0;
+  table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   filenum_ = 0;
   offset_ = GOOGLE_LONGLONG(0);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -2901,8 +2897,8 @@ SyncOffset::~SyncOffset() {
 }
 
 void SyncOffset::SharedDtor() {
-  if (name_ != &::google::protobuf::internal::kEmptyString) {
-    delete name_;
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    delete table_name_;
   }
   if (this != default_instance_) {
   }
@@ -2931,15 +2927,15 @@ SyncOffset* SyncOffset::New() const {
 
 void SyncOffset::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (has_name()) {
-      if (name_ != &::google::protobuf::internal::kEmptyString) {
-        name_->clear();
+    if (has_table_name()) {
+      if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+        table_name_->clear();
       }
     }
-    partition_ = 0;
     filenum_ = 0;
     offset_ = GOOGLE_LONGLONG(0);
   }
+  partition_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
 }
@@ -2950,14 +2946,14 @@ bool SyncOffset::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required string name = 1;
+      // required string table_name = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
           DO_(::google::protobuf::internal::WireFormatLite::ReadString(
-                input, this->mutable_name()));
+                input, this->mutable_table_name()));
           ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-            this->name().data(), this->name().length(),
+            this->table_name().data(), this->table_name().length(),
             ::google::protobuf::internal::WireFormat::PARSE);
         } else {
           goto handle_uninterpreted;
@@ -2966,23 +2962,29 @@ bool SyncOffset::MergePartialFromCodedStream(
         break;
       }
 
-      // required int32 partition = 2;
+      // repeated int32 partition = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
          parse_partition:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+          DO_((::google::protobuf::internal::WireFormatLite::ReadRepeatedPrimitive<
                    ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 input, &partition_)));
-          set_has_partition();
+                 1, 16, input, this->mutable_partition())));
+        } else if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag)
+                   == ::google::protobuf::internal::WireFormatLite::
+                      WIRETYPE_LENGTH_DELIMITED) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPackedPrimitiveNoInline<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, this->mutable_partition())));
         } else {
           goto handle_uninterpreted;
         }
+        if (input->ExpectTag(16)) goto parse_partition;
         if (input->ExpectTag(24)) goto parse_filenum;
         break;
       }
 
-      // required int32 filenum = 3;
+      // optional int32 filenum = 3;
       case 3: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -2998,7 +3000,7 @@ bool SyncOffset::MergePartialFromCodedStream(
         break;
       }
 
-      // required int64 offset = 4;
+      // optional int64 offset = 4;
       case 4: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -3032,26 +3034,27 @@ bool SyncOffset::MergePartialFromCodedStream(
 
 void SyncOffset::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required string name = 1;
-  if (has_name()) {
+  // required string table_name = 1;
+  if (has_table_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->name().data(), this->name().length(),
+      this->table_name().data(), this->table_name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
     ::google::protobuf::internal::WireFormatLite::WriteString(
-      1, this->name(), output);
+      1, this->table_name(), output);
   }
 
-  // required int32 partition = 2;
-  if (has_partition()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->partition(), output);
+  // repeated int32 partition = 2;
+  for (int i = 0; i < this->partition_size(); i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(
+      2, this->partition(i), output);
   }
 
-  // required int32 filenum = 3;
+  // optional int32 filenum = 3;
   if (has_filenum()) {
     ::google::protobuf::internal::WireFormatLite::WriteInt32(3, this->filenum(), output);
   }
 
-  // required int64 offset = 4;
+  // optional int64 offset = 4;
   if (has_offset()) {
     ::google::protobuf::internal::WireFormatLite::WriteInt64(4, this->offset(), output);
   }
@@ -3064,27 +3067,28 @@ void SyncOffset::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* SyncOffset::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required string name = 1;
-  if (has_name()) {
+  // required string table_name = 1;
+  if (has_table_name()) {
     ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->name().data(), this->name().length(),
+      this->table_name().data(), this->table_name().length(),
       ::google::protobuf::internal::WireFormat::SERIALIZE);
     target =
       ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
-        1, this->name(), target);
+        1, this->table_name(), target);
   }
 
-  // required int32 partition = 2;
-  if (has_partition()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->partition(), target);
+  // repeated int32 partition = 2;
+  for (int i = 0; i < this->partition_size(); i++) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteInt32ToArray(2, this->partition(i), target);
   }
 
-  // required int32 filenum = 3;
+  // optional int32 filenum = 3;
   if (has_filenum()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(3, this->filenum(), target);
   }
 
-  // required int64 offset = 4;
+  // optional int64 offset = 4;
   if (has_offset()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(4, this->offset(), target);
   }
@@ -3100,28 +3104,21 @@ int SyncOffset::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required string name = 1;
-    if (has_name()) {
+    // required string table_name = 1;
+    if (has_table_name()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
-          this->name());
+          this->table_name());
     }
 
-    // required int32 partition = 2;
-    if (has_partition()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
-          this->partition());
-    }
-
-    // required int32 filenum = 3;
+    // optional int32 filenum = 3;
     if (has_filenum()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::Int32Size(
           this->filenum());
     }
 
-    // required int64 offset = 4;
+    // optional int64 offset = 4;
     if (has_offset()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::Int64Size(
@@ -3129,6 +3126,16 @@ int SyncOffset::ByteSize() const {
     }
 
   }
+  // repeated int32 partition = 2;
+  {
+    int data_size = 0;
+    for (int i = 0; i < this->partition_size(); i++) {
+      data_size += ::google::protobuf::internal::WireFormatLite::
+        Int32Size(this->partition(i));
+    }
+    total_size += 1 * this->partition_size() + data_size;
+  }
+
   if (!unknown_fields().empty()) {
     total_size +=
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
@@ -3154,12 +3161,10 @@ void SyncOffset::MergeFrom(const ::google::protobuf::Message& from) {
 
 void SyncOffset::MergeFrom(const SyncOffset& from) {
   GOOGLE_CHECK_NE(&from, this);
+  partition_.MergeFrom(from.partition_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from.has_name()) {
-      set_name(from.name());
-    }
-    if (from.has_partition()) {
-      set_partition(from.partition());
+    if (from.has_table_name()) {
+      set_table_name(from.table_name());
     }
     if (from.has_filenum()) {
       set_filenum(from.filenum());
@@ -3184,15 +3189,15 @@ void SyncOffset::CopyFrom(const SyncOffset& from) {
 }
 
 bool SyncOffset::IsInitialized() const {
-  if ((_has_bits_[0] & 0x0000000f) != 0x0000000f) return false;
+  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
 
   return true;
 }
 
 void SyncOffset::Swap(SyncOffset* other) {
   if (other != this) {
-    std::swap(name_, other->name_);
-    std::swap(partition_, other->partition_);
+    std::swap(table_name_, other->table_name_);
+    partition_.Swap(&other->partition_);
     std::swap(filenum_, other->filenum_);
     std::swap(offset_, other->offset_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
@@ -5207,8 +5212,6 @@ void MetaCmd::Swap(MetaCmd* other) {
 
 #ifndef _MSC_VER
 const int MetaCmdResponse_Ping::kVersionFieldNumber;
-const int MetaCmdResponse_Ping::kNeedOffsetFieldNumber;
-const int MetaCmdResponse_Ping::kIntervalFieldNumber;
 #endif  // !_MSC_VER
 
 MetaCmdResponse_Ping::MetaCmdResponse_Ping()
@@ -5228,8 +5231,6 @@ MetaCmdResponse_Ping::MetaCmdResponse_Ping(const MetaCmdResponse_Ping& from)
 void MetaCmdResponse_Ping::SharedCtor() {
   _cached_size_ = 0;
   version_ = 0;
-  need_offset_ = false;
-  interval_ = 0;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -5266,8 +5267,6 @@ MetaCmdResponse_Ping* MetaCmdResponse_Ping::New() const {
 void MetaCmdResponse_Ping::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     version_ = 0;
-    need_offset_ = false;
-    interval_ = 0;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
@@ -5287,38 +5286,6 @@ bool MetaCmdResponse_Ping::MergePartialFromCodedStream(
                    ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
                  input, &version_)));
           set_has_version();
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(16)) goto parse_need_offset;
-        break;
-      }
-
-      // optional bool need_offset = 2;
-      case 2: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_need_offset:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
-                 input, &need_offset_)));
-          set_has_need_offset();
-        } else {
-          goto handle_uninterpreted;
-        }
-        if (input->ExpectTag(24)) goto parse_interval;
-        break;
-      }
-
-      // optional int32 interval = 3;
-      case 3: {
-        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_interval:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 input, &interval_)));
-          set_has_interval();
         } else {
           goto handle_uninterpreted;
         }
@@ -5349,16 +5316,6 @@ void MetaCmdResponse_Ping::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->version(), output);
   }
 
-  // optional bool need_offset = 2;
-  if (has_need_offset()) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(2, this->need_offset(), output);
-  }
-
-  // optional int32 interval = 3;
-  if (has_interval()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(3, this->interval(), output);
-  }
-
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -5370,16 +5327,6 @@ void MetaCmdResponse_Ping::SerializeWithCachedSizes(
   // required int32 version = 1;
   if (has_version()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->version(), target);
-  }
-
-  // optional bool need_offset = 2;
-  if (has_need_offset()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(2, this->need_offset(), target);
-  }
-
-  // optional int32 interval = 3;
-  if (has_interval()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(3, this->interval(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -5398,18 +5345,6 @@ int MetaCmdResponse_Ping::ByteSize() const {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::Int32Size(
           this->version());
-    }
-
-    // optional bool need_offset = 2;
-    if (has_need_offset()) {
-      total_size += 1 + 1;
-    }
-
-    // optional int32 interval = 3;
-    if (has_interval()) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
-          this->interval());
     }
 
   }
@@ -5442,12 +5377,6 @@ void MetaCmdResponse_Ping::MergeFrom(const MetaCmdResponse_Ping& from) {
     if (from.has_version()) {
       set_version(from.version());
     }
-    if (from.has_need_offset()) {
-      set_need_offset(from.need_offset());
-    }
-    if (from.has_interval()) {
-      set_interval(from.interval());
-    }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
@@ -5473,8 +5402,6 @@ bool MetaCmdResponse_Ping::IsInitialized() const {
 void MetaCmdResponse_Ping::Swap(MetaCmdResponse_Ping* other) {
   if (other != this) {
     std::swap(version_, other->version_);
-    std::swap(need_offset_, other->need_offset_);
-    std::swap(interval_, other->interval_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);
