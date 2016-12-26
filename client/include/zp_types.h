@@ -24,43 +24,19 @@ namespace libzp {
 typedef pink::Status Status;
 
 struct IpPort {
-  IpPort() {
-  }
-  IpPort(const std::string& other_ip, int other_port) :
-    ip(other_ip),
-    port(other_port) {
-  }
+  IpPort();
+  IpPort(const std::string& other_ip, int other_port);
 
-  IpPort(const IpPort& other) :
-    ip(other.ip),
-    port(other.port) {
-  }
+  IpPort(const IpPort& other);
 
-  ~IpPort() {
-  }
+  ~IpPort();
 
   std::string ip;
   int port;
 
-  IpPort& operator = (const IpPort& other) {
-    ip = other.ip;
-    port = other.port;
-    return *this;
-  }
-
-  bool operator < (const IpPort& other) const {
-    if (port < other.port) {
-      return true;
-    }
-    return false;
-  }
-
-  bool operator == (const IpPort& other) const {
-    if (ip == other.ip && port == other.port) {
-      return true;
-    }
-    return false;
-  }
+  IpPort& operator = (const IpPort& other);
+  bool operator < (const IpPort& other) const;
+  bool operator == (const IpPort& other) const;
 };
 
 
@@ -90,64 +66,20 @@ class Table {
     Partition() {
       id = -1;
     }
+
+    ~Partition() {
+      slaves.clear();
+    }
   };
 
-  explicit Table(const ZPMeta::Table& table_info) {
-    table_name_ = table_info.name();
-    partition_num_ = table_info.partitions_size();
-    ZPMeta::Partitions partition_info;
-    for (int i = 0; i < table_info.partitions_size(); i++) {
-      partition_info = table_info.partitions(i);
-      Partition* par = new Partition(partition_info);
-      partitions_.insert(std::make_pair(partition_info.id(), par));
-    }
-  }
+  explicit Table(const ZPMeta::Table& table_info);
+  virtual ~Table();
 
-  virtual ~Table() {
-    std::map<int, Partition*>::iterator iter = partitions_.begin();
-    while (iter != partitions_.end()) {
-      delete iter->second;
-      iter++;
-    }
-  }
+  IpPort GetKeyMaster(const std::string& key);
 
-  IpPort GetKeyMaster(const std::string& key) {
-    int par_num = std::hash<std::string>()(key) % partitions_.size();
-    std::map<int, Partition*>::iterator iter = partitions_.find(par_num);
-    if (iter != partitions_.end()) {
-      return iter->second->master;
-    } else {
-      return IpPort();
-    }
-  }
+  Partition* GetPartition(const std::string& key);
 
-  Partition* GetPartition(const std::string& key) {
-    int par_num = std::hash<std::string>()(key) % partitions_.size();
-    std::map<int, Partition*>::iterator iter = partitions_.find(par_num);
-    if (iter != partitions_.end()) {
-      return iter->second;
-    } else {
-      return NULL;
-    }
-  }
-
-  void DebugDump() {
-    std::cout << "  name: "<< table_name_ <<std::endl;
-    std::cout << "  partition: "<< partition_num_ <<std::endl;
-    auto par = partitions_.begin();
-    while (par != partitions_.end()) {
-      std::cout << "    partition: "<< par->second->id << std::endl;;
-      std::cout << "      master: " << par->second->master.ip
-        << " : " << par->second->master.port << std::endl;
-      auto slave = par->second->slaves.begin();
-      while (slave != par->second->slaves.end()) {
-        std::cout << "       slave: " << slave->ip
-          << " : " << slave->port << std::endl;
-        slave++;
-      }
-      par++;
-    }
-  }
+  void DebugDump();
 
  private:
   std::string table_name_;
@@ -165,46 +97,36 @@ class Options {
   std::vector<IpPort> meta_addr;
 };
 
+class ZpCli {
+ public:
+  explicit ZpCli(const IpPort& ip_port);
+  ~ZpCli();
+  Status Connect();
+  Status Send(void *msg);
+  Status Recv(void *msg_res);
+  Status CheckTimeout();
+ private:
+  uint64_t NowMicros();
+  Status ReConnect();
+  pink::PbCli* cli_;
+  std::string ip_;
+  int port_;
+  uint64_t lastchecktime_;
+};
+
 class ConnectionPool {
  public :
-  pink::PbCli* GetConnection(const IpPort ip_port) {
-    std::map<IpPort, pink::PbCli*>::iterator it;
-    it = conn_pool_.find(ip_port);
-    if (it != conn_pool_.end()) {
-      return it->second;
-    } else {
-      pink::PbCli* cli = new pink::PbCli();
-      Status s = cli->Connect(ip_port.ip, ip_port.port);
-      if (s.ok()) {
-        conn_pool_.insert(std::make_pair(ip_port, cli));
-        return cli;
-      } else {
-        delete cli;
-        return NULL;
-      }
-    }
-  }
 
-  void RemoveConnection(const IpPort ip_port) {
-    std::map<IpPort, pink::PbCli*>::iterator it;
-    it = conn_pool_.find(ip_port);
-    if (it != conn_pool_.end()) {
-      delete(it->second);
-      conn_pool_.erase(it);
-    }
-  }
+  ConnectionPool();
 
-  pink::PbCli* GetExistConnection(IpPort* ip_port) {
-    if (conn_pool_.size() != 0) {
-      *ip_port = conn_pool_.begin()->first;
-      return conn_pool_.begin()->second;
-    } else {
-      return NULL;
-    }
-  }
+  virtual ~ConnectionPool();
+
+  ZpCli* GetConnection(const IpPort ip_port);
+  void RemoveConnection(const IpPort ip_port);
+  ZpCli* GetExistConnection(IpPort* ip_port);
 
  private:
-  std::map<IpPort, pink::PbCli*> conn_pool_;
+  std::map<IpPort, ZpCli*> conn_pool_;
 };
 
 }  // namespace libzp
