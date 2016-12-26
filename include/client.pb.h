@@ -40,19 +40,26 @@ class CmdRequest_Sync;
 class CmdRequest_Set;
 class CmdRequest_Get;
 class CmdRequest_Del;
+class SyncOffset;
 class CmdResponse;
 class CmdResponse_Get;
+class CmdResponse_InfoStats;
+class CmdResponse_InfoCapacity;
+class CmdResponse_InfoPartition;
 class SyncRequest;
 
 enum Type {
   SYNC = 0,
   SET = 1,
   GET = 2,
-  DEL = 3
+  DEL = 3,
+  INFOSTATS = 4,
+  INFOCAPACITY = 5,
+  INFOPARTITION = 6
 };
 bool Type_IsValid(int value);
 const Type Type_MIN = SYNC;
-const Type Type_MAX = DEL;
+const Type Type_MAX = INFOPARTITION;
 const int Type_ARRAYSIZE = Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Type_descriptor();
@@ -815,6 +822,108 @@ class CmdRequest : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class SyncOffset : public ::google::protobuf::Message {
+ public:
+  SyncOffset();
+  virtual ~SyncOffset();
+
+  SyncOffset(const SyncOffset& from);
+
+  inline SyncOffset& operator=(const SyncOffset& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SyncOffset& default_instance();
+
+  void Swap(SyncOffset* other);
+
+  // implements Message ----------------------------------------------
+
+  SyncOffset* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const SyncOffset& from);
+  void MergeFrom(const SyncOffset& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required int32 partition = 1;
+  inline bool has_partition() const;
+  inline void clear_partition();
+  static const int kPartitionFieldNumber = 1;
+  inline ::google::protobuf::int32 partition() const;
+  inline void set_partition(::google::protobuf::int32 value);
+
+  // required int32 filenum = 2;
+  inline bool has_filenum() const;
+  inline void clear_filenum();
+  static const int kFilenumFieldNumber = 2;
+  inline ::google::protobuf::int32 filenum() const;
+  inline void set_filenum(::google::protobuf::int32 value);
+
+  // required int64 offset = 3;
+  inline bool has_offset() const;
+  inline void clear_offset();
+  static const int kOffsetFieldNumber = 3;
+  inline ::google::protobuf::int64 offset() const;
+  inline void set_offset(::google::protobuf::int64 value);
+
+  // @@protoc_insertion_point(class_scope:client.SyncOffset)
+ private:
+  inline void set_has_partition();
+  inline void clear_has_partition();
+  inline void set_has_filenum();
+  inline void clear_has_filenum();
+  inline void set_has_offset();
+  inline void clear_has_offset();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::int32 partition_;
+  ::google::protobuf::int32 filenum_;
+  ::google::protobuf::int64 offset_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static SyncOffset* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class CmdResponse_Get : public ::google::protobuf::Message {
  public:
   CmdResponse_Get();
@@ -902,6 +1011,320 @@ class CmdResponse_Get : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class CmdResponse_InfoStats : public ::google::protobuf::Message {
+ public:
+  CmdResponse_InfoStats();
+  virtual ~CmdResponse_InfoStats();
+
+  CmdResponse_InfoStats(const CmdResponse_InfoStats& from);
+
+  inline CmdResponse_InfoStats& operator=(const CmdResponse_InfoStats& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const CmdResponse_InfoStats& default_instance();
+
+  void Swap(CmdResponse_InfoStats* other);
+
+  // implements Message ----------------------------------------------
+
+  CmdResponse_InfoStats* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const CmdResponse_InfoStats& from);
+  void MergeFrom(const CmdResponse_InfoStats& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string table_name = 1;
+  inline bool has_table_name() const;
+  inline void clear_table_name();
+  static const int kTableNameFieldNumber = 1;
+  inline const ::std::string& table_name() const;
+  inline void set_table_name(const ::std::string& value);
+  inline void set_table_name(const char* value);
+  inline void set_table_name(const char* value, size_t size);
+  inline ::std::string* mutable_table_name();
+  inline ::std::string* release_table_name();
+  inline void set_allocated_table_name(::std::string* table_name);
+
+  // required int32 total_querys = 2;
+  inline bool has_total_querys() const;
+  inline void clear_total_querys();
+  static const int kTotalQuerysFieldNumber = 2;
+  inline ::google::protobuf::int32 total_querys() const;
+  inline void set_total_querys(::google::protobuf::int32 value);
+
+  // required int32 qps = 3;
+  inline bool has_qps() const;
+  inline void clear_qps();
+  static const int kQpsFieldNumber = 3;
+  inline ::google::protobuf::int32 qps() const;
+  inline void set_qps(::google::protobuf::int32 value);
+
+  // @@protoc_insertion_point(class_scope:client.CmdResponse.InfoStats)
+ private:
+  inline void set_has_table_name();
+  inline void clear_has_table_name();
+  inline void set_has_total_querys();
+  inline void clear_has_total_querys();
+  inline void set_has_qps();
+  inline void clear_has_qps();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* table_name_;
+  ::google::protobuf::int32 total_querys_;
+  ::google::protobuf::int32 qps_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static CmdResponse_InfoStats* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class CmdResponse_InfoCapacity : public ::google::protobuf::Message {
+ public:
+  CmdResponse_InfoCapacity();
+  virtual ~CmdResponse_InfoCapacity();
+
+  CmdResponse_InfoCapacity(const CmdResponse_InfoCapacity& from);
+
+  inline CmdResponse_InfoCapacity& operator=(const CmdResponse_InfoCapacity& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const CmdResponse_InfoCapacity& default_instance();
+
+  void Swap(CmdResponse_InfoCapacity* other);
+
+  // implements Message ----------------------------------------------
+
+  CmdResponse_InfoCapacity* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const CmdResponse_InfoCapacity& from);
+  void MergeFrom(const CmdResponse_InfoCapacity& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string table_name = 1;
+  inline bool has_table_name() const;
+  inline void clear_table_name();
+  static const int kTableNameFieldNumber = 1;
+  inline const ::std::string& table_name() const;
+  inline void set_table_name(const ::std::string& value);
+  inline void set_table_name(const char* value);
+  inline void set_table_name(const char* value, size_t size);
+  inline ::std::string* mutable_table_name();
+  inline ::std::string* release_table_name();
+  inline void set_allocated_table_name(::std::string* table_name);
+
+  // required int32 used = 2;
+  inline bool has_used() const;
+  inline void clear_used();
+  static const int kUsedFieldNumber = 2;
+  inline ::google::protobuf::int32 used() const;
+  inline void set_used(::google::protobuf::int32 value);
+
+  // required int32 remain = 3;
+  inline bool has_remain() const;
+  inline void clear_remain();
+  static const int kRemainFieldNumber = 3;
+  inline ::google::protobuf::int32 remain() const;
+  inline void set_remain(::google::protobuf::int32 value);
+
+  // @@protoc_insertion_point(class_scope:client.CmdResponse.InfoCapacity)
+ private:
+  inline void set_has_table_name();
+  inline void clear_has_table_name();
+  inline void set_has_used();
+  inline void clear_has_used();
+  inline void set_has_remain();
+  inline void clear_has_remain();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* table_name_;
+  ::google::protobuf::int32 used_;
+  ::google::protobuf::int32 remain_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static CmdResponse_InfoCapacity* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class CmdResponse_InfoPartition : public ::google::protobuf::Message {
+ public:
+  CmdResponse_InfoPartition();
+  virtual ~CmdResponse_InfoPartition();
+
+  CmdResponse_InfoPartition(const CmdResponse_InfoPartition& from);
+
+  inline CmdResponse_InfoPartition& operator=(const CmdResponse_InfoPartition& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const CmdResponse_InfoPartition& default_instance();
+
+  void Swap(CmdResponse_InfoPartition* other);
+
+  // implements Message ----------------------------------------------
+
+  CmdResponse_InfoPartition* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const CmdResponse_InfoPartition& from);
+  void MergeFrom(const CmdResponse_InfoPartition& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string table_name = 1;
+  inline bool has_table_name() const;
+  inline void clear_table_name();
+  static const int kTableNameFieldNumber = 1;
+  inline const ::std::string& table_name() const;
+  inline void set_table_name(const ::std::string& value);
+  inline void set_table_name(const char* value);
+  inline void set_table_name(const char* value, size_t size);
+  inline ::std::string* mutable_table_name();
+  inline ::std::string* release_table_name();
+  inline void set_allocated_table_name(::std::string* table_name);
+
+  // repeated .client.SyncOffset sync_offset = 2;
+  inline int sync_offset_size() const;
+  inline void clear_sync_offset();
+  static const int kSyncOffsetFieldNumber = 2;
+  inline const ::client::SyncOffset& sync_offset(int index) const;
+  inline ::client::SyncOffset* mutable_sync_offset(int index);
+  inline ::client::SyncOffset* add_sync_offset();
+  inline const ::google::protobuf::RepeatedPtrField< ::client::SyncOffset >&
+      sync_offset() const;
+  inline ::google::protobuf::RepeatedPtrField< ::client::SyncOffset >*
+      mutable_sync_offset();
+
+  // @@protoc_insertion_point(class_scope:client.CmdResponse.InfoPartition)
+ private:
+  inline void set_has_table_name();
+  inline void clear_has_table_name();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* table_name_;
+  ::google::protobuf::RepeatedPtrField< ::client::SyncOffset > sync_offset_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static CmdResponse_InfoPartition* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class CmdResponse : public ::google::protobuf::Message {
  public:
   CmdResponse();
@@ -955,6 +1378,9 @@ class CmdResponse : public ::google::protobuf::Message {
   // nested types ----------------------------------------------------
 
   typedef CmdResponse_Get Get;
+  typedef CmdResponse_InfoStats InfoStats;
+  typedef CmdResponse_InfoCapacity InfoCapacity;
+  typedef CmdResponse_InfoPartition InfoPartition;
 
   // accessors -------------------------------------------------------
 
@@ -1002,6 +1428,42 @@ class CmdResponse : public ::google::protobuf::Message {
   inline ::client::Node* release_redirect();
   inline void set_allocated_redirect(::client::Node* redirect);
 
+  // repeated .client.CmdResponse.InfoStats info_stats = 6;
+  inline int info_stats_size() const;
+  inline void clear_info_stats();
+  static const int kInfoStatsFieldNumber = 6;
+  inline const ::client::CmdResponse_InfoStats& info_stats(int index) const;
+  inline ::client::CmdResponse_InfoStats* mutable_info_stats(int index);
+  inline ::client::CmdResponse_InfoStats* add_info_stats();
+  inline const ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoStats >&
+      info_stats() const;
+  inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoStats >*
+      mutable_info_stats();
+
+  // repeated .client.CmdResponse.InfoCapacity info_capacity = 7;
+  inline int info_capacity_size() const;
+  inline void clear_info_capacity();
+  static const int kInfoCapacityFieldNumber = 7;
+  inline const ::client::CmdResponse_InfoCapacity& info_capacity(int index) const;
+  inline ::client::CmdResponse_InfoCapacity* mutable_info_capacity(int index);
+  inline ::client::CmdResponse_InfoCapacity* add_info_capacity();
+  inline const ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoCapacity >&
+      info_capacity() const;
+  inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoCapacity >*
+      mutable_info_capacity();
+
+  // repeated .client.CmdResponse.InfoPartition info_partition = 8;
+  inline int info_partition_size() const;
+  inline void clear_info_partition();
+  static const int kInfoPartitionFieldNumber = 8;
+  inline const ::client::CmdResponse_InfoPartition& info_partition(int index) const;
+  inline ::client::CmdResponse_InfoPartition* mutable_info_partition(int index);
+  inline ::client::CmdResponse_InfoPartition* add_info_partition();
+  inline const ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoPartition >&
+      info_partition() const;
+  inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoPartition >*
+      mutable_info_partition();
+
   // @@protoc_insertion_point(class_scope:client.CmdResponse)
  private:
   inline void set_has_type();
@@ -1022,9 +1484,12 @@ class CmdResponse : public ::google::protobuf::Message {
   ::std::string* msg_;
   ::client::CmdResponse_Get* get_;
   ::client::Node* redirect_;
+  ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoStats > info_stats_;
+  ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoCapacity > info_capacity_;
+  ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoPartition > info_partition_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(8 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -2309,6 +2774,76 @@ inline void CmdRequest::set_allocated_del(::client::CmdRequest_Del* del) {
 
 // -------------------------------------------------------------------
 
+// SyncOffset
+
+// required int32 partition = 1;
+inline bool SyncOffset::has_partition() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void SyncOffset::set_has_partition() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void SyncOffset::clear_has_partition() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void SyncOffset::clear_partition() {
+  partition_ = 0;
+  clear_has_partition();
+}
+inline ::google::protobuf::int32 SyncOffset::partition() const {
+  return partition_;
+}
+inline void SyncOffset::set_partition(::google::protobuf::int32 value) {
+  set_has_partition();
+  partition_ = value;
+}
+
+// required int32 filenum = 2;
+inline bool SyncOffset::has_filenum() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void SyncOffset::set_has_filenum() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void SyncOffset::clear_has_filenum() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void SyncOffset::clear_filenum() {
+  filenum_ = 0;
+  clear_has_filenum();
+}
+inline ::google::protobuf::int32 SyncOffset::filenum() const {
+  return filenum_;
+}
+inline void SyncOffset::set_filenum(::google::protobuf::int32 value) {
+  set_has_filenum();
+  filenum_ = value;
+}
+
+// required int64 offset = 3;
+inline bool SyncOffset::has_offset() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void SyncOffset::set_has_offset() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void SyncOffset::clear_has_offset() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void SyncOffset::clear_offset() {
+  offset_ = GOOGLE_LONGLONG(0);
+  clear_has_offset();
+}
+inline ::google::protobuf::int64 SyncOffset::offset() const {
+  return offset_;
+}
+inline void SyncOffset::set_offset(::google::protobuf::int64 value) {
+  set_has_offset();
+  offset_ = value;
+}
+
+// -------------------------------------------------------------------
+
 // CmdResponse_Get
 
 // optional string value = 1;
@@ -2379,6 +2914,341 @@ inline void CmdResponse_Get::set_allocated_value(::std::string* value) {
     clear_has_value();
     value_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   }
+}
+
+// -------------------------------------------------------------------
+
+// CmdResponse_InfoStats
+
+// required string table_name = 1;
+inline bool CmdResponse_InfoStats::has_table_name() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void CmdResponse_InfoStats::set_has_table_name() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void CmdResponse_InfoStats::clear_has_table_name() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void CmdResponse_InfoStats::clear_table_name() {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    table_name_->clear();
+  }
+  clear_has_table_name();
+}
+inline const ::std::string& CmdResponse_InfoStats::table_name() const {
+  return *table_name_;
+}
+inline void CmdResponse_InfoStats::set_table_name(const ::std::string& value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdResponse_InfoStats::set_table_name(const char* value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdResponse_InfoStats::set_table_name(const char* value, size_t size) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CmdResponse_InfoStats::mutable_table_name() {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  return table_name_;
+}
+inline ::std::string* CmdResponse_InfoStats::release_table_name() {
+  clear_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = table_name_;
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CmdResponse_InfoStats::set_allocated_table_name(::std::string* table_name) {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    delete table_name_;
+  }
+  if (table_name) {
+    set_has_table_name();
+    table_name_ = table_name;
+  } else {
+    clear_has_table_name();
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required int32 total_querys = 2;
+inline bool CmdResponse_InfoStats::has_total_querys() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void CmdResponse_InfoStats::set_has_total_querys() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void CmdResponse_InfoStats::clear_has_total_querys() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void CmdResponse_InfoStats::clear_total_querys() {
+  total_querys_ = 0;
+  clear_has_total_querys();
+}
+inline ::google::protobuf::int32 CmdResponse_InfoStats::total_querys() const {
+  return total_querys_;
+}
+inline void CmdResponse_InfoStats::set_total_querys(::google::protobuf::int32 value) {
+  set_has_total_querys();
+  total_querys_ = value;
+}
+
+// required int32 qps = 3;
+inline bool CmdResponse_InfoStats::has_qps() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void CmdResponse_InfoStats::set_has_qps() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void CmdResponse_InfoStats::clear_has_qps() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void CmdResponse_InfoStats::clear_qps() {
+  qps_ = 0;
+  clear_has_qps();
+}
+inline ::google::protobuf::int32 CmdResponse_InfoStats::qps() const {
+  return qps_;
+}
+inline void CmdResponse_InfoStats::set_qps(::google::protobuf::int32 value) {
+  set_has_qps();
+  qps_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// CmdResponse_InfoCapacity
+
+// required string table_name = 1;
+inline bool CmdResponse_InfoCapacity::has_table_name() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void CmdResponse_InfoCapacity::set_has_table_name() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void CmdResponse_InfoCapacity::clear_has_table_name() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void CmdResponse_InfoCapacity::clear_table_name() {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    table_name_->clear();
+  }
+  clear_has_table_name();
+}
+inline const ::std::string& CmdResponse_InfoCapacity::table_name() const {
+  return *table_name_;
+}
+inline void CmdResponse_InfoCapacity::set_table_name(const ::std::string& value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdResponse_InfoCapacity::set_table_name(const char* value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdResponse_InfoCapacity::set_table_name(const char* value, size_t size) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CmdResponse_InfoCapacity::mutable_table_name() {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  return table_name_;
+}
+inline ::std::string* CmdResponse_InfoCapacity::release_table_name() {
+  clear_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = table_name_;
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CmdResponse_InfoCapacity::set_allocated_table_name(::std::string* table_name) {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    delete table_name_;
+  }
+  if (table_name) {
+    set_has_table_name();
+    table_name_ = table_name;
+  } else {
+    clear_has_table_name();
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required int32 used = 2;
+inline bool CmdResponse_InfoCapacity::has_used() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void CmdResponse_InfoCapacity::set_has_used() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void CmdResponse_InfoCapacity::clear_has_used() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void CmdResponse_InfoCapacity::clear_used() {
+  used_ = 0;
+  clear_has_used();
+}
+inline ::google::protobuf::int32 CmdResponse_InfoCapacity::used() const {
+  return used_;
+}
+inline void CmdResponse_InfoCapacity::set_used(::google::protobuf::int32 value) {
+  set_has_used();
+  used_ = value;
+}
+
+// required int32 remain = 3;
+inline bool CmdResponse_InfoCapacity::has_remain() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void CmdResponse_InfoCapacity::set_has_remain() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void CmdResponse_InfoCapacity::clear_has_remain() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void CmdResponse_InfoCapacity::clear_remain() {
+  remain_ = 0;
+  clear_has_remain();
+}
+inline ::google::protobuf::int32 CmdResponse_InfoCapacity::remain() const {
+  return remain_;
+}
+inline void CmdResponse_InfoCapacity::set_remain(::google::protobuf::int32 value) {
+  set_has_remain();
+  remain_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// CmdResponse_InfoPartition
+
+// required string table_name = 1;
+inline bool CmdResponse_InfoPartition::has_table_name() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void CmdResponse_InfoPartition::set_has_table_name() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void CmdResponse_InfoPartition::clear_has_table_name() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void CmdResponse_InfoPartition::clear_table_name() {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    table_name_->clear();
+  }
+  clear_has_table_name();
+}
+inline const ::std::string& CmdResponse_InfoPartition::table_name() const {
+  return *table_name_;
+}
+inline void CmdResponse_InfoPartition::set_table_name(const ::std::string& value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdResponse_InfoPartition::set_table_name(const char* value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdResponse_InfoPartition::set_table_name(const char* value, size_t size) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CmdResponse_InfoPartition::mutable_table_name() {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  return table_name_;
+}
+inline ::std::string* CmdResponse_InfoPartition::release_table_name() {
+  clear_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = table_name_;
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CmdResponse_InfoPartition::set_allocated_table_name(::std::string* table_name) {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    delete table_name_;
+  }
+  if (table_name) {
+    set_has_table_name();
+    table_name_ = table_name;
+  } else {
+    clear_has_table_name();
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// repeated .client.SyncOffset sync_offset = 2;
+inline int CmdResponse_InfoPartition::sync_offset_size() const {
+  return sync_offset_.size();
+}
+inline void CmdResponse_InfoPartition::clear_sync_offset() {
+  sync_offset_.Clear();
+}
+inline const ::client::SyncOffset& CmdResponse_InfoPartition::sync_offset(int index) const {
+  return sync_offset_.Get(index);
+}
+inline ::client::SyncOffset* CmdResponse_InfoPartition::mutable_sync_offset(int index) {
+  return sync_offset_.Mutable(index);
+}
+inline ::client::SyncOffset* CmdResponse_InfoPartition::add_sync_offset() {
+  return sync_offset_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::client::SyncOffset >&
+CmdResponse_InfoPartition::sync_offset() const {
+  return sync_offset_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::client::SyncOffset >*
+CmdResponse_InfoPartition::mutable_sync_offset() {
+  return &sync_offset_;
 }
 
 // -------------------------------------------------------------------
@@ -2575,6 +3445,81 @@ inline void CmdResponse::set_allocated_redirect(::client::Node* redirect) {
   } else {
     clear_has_redirect();
   }
+}
+
+// repeated .client.CmdResponse.InfoStats info_stats = 6;
+inline int CmdResponse::info_stats_size() const {
+  return info_stats_.size();
+}
+inline void CmdResponse::clear_info_stats() {
+  info_stats_.Clear();
+}
+inline const ::client::CmdResponse_InfoStats& CmdResponse::info_stats(int index) const {
+  return info_stats_.Get(index);
+}
+inline ::client::CmdResponse_InfoStats* CmdResponse::mutable_info_stats(int index) {
+  return info_stats_.Mutable(index);
+}
+inline ::client::CmdResponse_InfoStats* CmdResponse::add_info_stats() {
+  return info_stats_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoStats >&
+CmdResponse::info_stats() const {
+  return info_stats_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoStats >*
+CmdResponse::mutable_info_stats() {
+  return &info_stats_;
+}
+
+// repeated .client.CmdResponse.InfoCapacity info_capacity = 7;
+inline int CmdResponse::info_capacity_size() const {
+  return info_capacity_.size();
+}
+inline void CmdResponse::clear_info_capacity() {
+  info_capacity_.Clear();
+}
+inline const ::client::CmdResponse_InfoCapacity& CmdResponse::info_capacity(int index) const {
+  return info_capacity_.Get(index);
+}
+inline ::client::CmdResponse_InfoCapacity* CmdResponse::mutable_info_capacity(int index) {
+  return info_capacity_.Mutable(index);
+}
+inline ::client::CmdResponse_InfoCapacity* CmdResponse::add_info_capacity() {
+  return info_capacity_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoCapacity >&
+CmdResponse::info_capacity() const {
+  return info_capacity_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoCapacity >*
+CmdResponse::mutable_info_capacity() {
+  return &info_capacity_;
+}
+
+// repeated .client.CmdResponse.InfoPartition info_partition = 8;
+inline int CmdResponse::info_partition_size() const {
+  return info_partition_.size();
+}
+inline void CmdResponse::clear_info_partition() {
+  info_partition_.Clear();
+}
+inline const ::client::CmdResponse_InfoPartition& CmdResponse::info_partition(int index) const {
+  return info_partition_.Get(index);
+}
+inline ::client::CmdResponse_InfoPartition* CmdResponse::mutable_info_partition(int index) {
+  return info_partition_.Mutable(index);
+}
+inline ::client::CmdResponse_InfoPartition* CmdResponse::add_info_partition() {
+  return info_partition_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoPartition >&
+CmdResponse::info_partition() const {
+  return info_partition_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoPartition >*
+CmdResponse::mutable_info_partition() {
+  return &info_partition_;
 }
 
 // -------------------------------------------------------------------

@@ -5,6 +5,9 @@ enum Type {
   SET = 1;
   GET = 2;
   DEL = 3;
+  INFOSTATS = 4;
+  INFOCAPACITY = 5;
+  INFOPARTITION = 6;
 }
 
 enum StatusCode {
@@ -18,6 +21,7 @@ message Node {
   required string ip = 1;
   required int32 port = 2;
 }
+
 
 message CmdRequest {
   required Type type = 1;
@@ -58,6 +62,12 @@ message CmdRequest {
   optional Del del = 5;
 }
 
+message SyncOffset {
+  required int32 partition = 1;
+  required int32 filenum = 2;
+  required int64 offset = 3;
+}
+
 message CmdResponse {
   required Type type = 1;
   required StatusCode code = 2;
@@ -69,7 +79,29 @@ message CmdResponse {
   optional Get get = 4;
   
   optional Node redirect = 5;
+  
+  // InfoStats
+  message InfoStats {
+    required string table_name = 1;
+    required int32 total_querys = 2;
+    required int32 qps = 3;
+  }
+  repeated InfoStats info_stats = 6;
 
+  // InfoCapacity
+  message InfoCapacity {
+    required string table_name = 1;
+    required int32 used = 2;
+    required int32 remain = 3;
+  }
+  repeated InfoCapacity info_capacity = 7;
+
+  // InfoPartition
+  message InfoPartition {
+    required string table_name = 1;
+    repeated SyncOffset sync_offset = 2; 
+  }
+  repeated InfoPartition info_partition = 8;
 }
 
 message SyncRequest {

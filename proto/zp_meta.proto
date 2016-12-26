@@ -64,6 +64,13 @@ message BasicCmdUnit {
   required Node node = 3;
 }
 
+message SyncOffset {
+  required string name = 1;
+  required int32 partition = 2;
+  required int32 filenum = 3;
+  required int64 offset = 4;
+}
+
 message MetaCmd {
 
   required Type type = 1;
@@ -72,6 +79,7 @@ message MetaCmd {
   message Ping {
     required int32 version = 1;
     required Node node = 2;
+    repeated SyncOffset offset = 3;
   }
   optional Ping ping = 2;
 
@@ -113,7 +121,9 @@ message MetaCmdResponse {
 
   // Ping
   message Ping {
-    required int32 version = 1;  
+    required int32 version = 1;
+    optional bool need_offset = 2;
+    optional int32 interval = 3; 
   }
   optional Ping ping = 4;
 
