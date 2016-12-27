@@ -52,19 +52,19 @@ all: $(OBJECT)
 
 
 zp_cli: zp_cli.cc
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(LIBS)
 
 zp_manager: zp_manager.cc
-	$(CXX) $(CXXFLAGS) -o $@ $^ ../third/linenoise/linenoise.o $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ ../third/linenoise/linenoise.o $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(LIBS)
 
 zp_client: zp_client.cc
-	$(CXX) $(CXXFLAGS) -o $@ $^  $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $^  $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(LIBS)
 
 zp_benchmark: zp_benchmark.cc
-	$(CXX) $(CXXFLAGS) -o $@ $^  $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $^  $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(LIBS)
 
 qps_test: qps_test.cc
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(LIBS)
 
 
 
