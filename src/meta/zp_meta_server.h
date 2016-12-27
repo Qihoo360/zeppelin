@@ -137,6 +137,7 @@ private:
   NodeAliveMap node_alive_;
 
   // Meta related
+  bool GetSlaveOffset(const std::string &table, const std::string &ip_port, const int partition, int32_t *filenum, int64_t *offset);
   void Reorganize(const std::vector<ZPMeta::NodeStatus> &t_alive_nodes, std::vector<ZPMeta::NodeStatus> *alive_nodes);
   void SetNodeStatus(ZPMeta::Nodes *nodes, const std::string &ip, int port, int status, bool *should_update_node);
   void GetAllAliveNode(const ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> *alive_nodes);
