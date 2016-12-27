@@ -17,7 +17,8 @@
 #include "include/zp_meta.pb.h"
 #include "include/client.pb.h"
 
-#include "include/zp_types.h"
+#include "include/zp_table.h"
+#include "include/zp_conn.h"
 #include "include/zp_const.h"
 
 namespace libzp {
@@ -27,6 +28,7 @@ class Cluster {
  public :
 
   explicit Cluster(const Options& options);
+  explicit Cluster(const std::string& ip, const int port);
   virtual ~Cluster();
   Status Connect();
 
@@ -41,29 +43,30 @@ class Cluster {
   Status CreateTable(const std::string& table_name, int partition_num);
   Status Pull(const std::string& table);
   Status SetMaster(const std::string& table, const int partition,
-      const IpPort& ip_port);
+      const Node& ip_port);
   Status AddSlave(const std::string& table, const int partition,
-      const IpPort& ip_port);
+      const Node& ip_port);
   Status RemoveSlave(const std::string& table, const int partition,
-      const IpPort& ip_port);
+      const Node& ip_port);
 
   // statistical cmd
   Status ListTable(std::vector<std::string>* tables);
-  Status ListMeta(IpPort* master, std::vector<IpPort>* nodes);
-  Status ListNode(std::vector<IpPort>* nodes,
+  Status ListMeta(Node* master, std::vector<Node>* nodes);
+  Status ListNode(std::vector<Node>* nodes,
       std::vector<std::string>* status);
 
 
   // local cmd
   Status DebugDumpTable(const std::string& table);
-  Table::Partition* GetPartition(const std::string& table,
+  const Table::Partition* GetPartition(const std::string& table,
       const std::string& key);
 
  private :
 
-  IpPort GetRandomMetaAddr();
+  void InitParam();
+  Node GetRandomMetaAddr();
   Status GetDataMaster(const std::string& table,
-      const std::string& key, IpPort* master);
+      const std::string& key, Node* master);
 
   Status SubmitDataCmd(const std::string& table,
       const std::string& key, int attempt = 0, bool has_pull = false);
@@ -72,7 +75,7 @@ class Cluster {
 
   // meta info
   int64_t epoch_;
-  std::vector<IpPort> meta_addr_;
+  std::vector<Node> meta_addr_;
   std::unordered_map<std::string, Table*>* tables_;
 
   // connection pool
@@ -85,6 +88,26 @@ class Cluster {
   client::CmdRequest data_cmd_;
   client::CmdResponse data_res_;
 };
+
+class Client {
+ public :
+
+  explicit Client(const std::string& ip, const int port,
+      const std::string& table);
+  virtual ~Client();
+  Status Connect();
+
+  // data cmd
+  Status Set(const std::string& key, const std::string& value);
+  Status Get(const std::string& key, std::string* value);
+  Status Delete(const std::string& key);
+
+
+ private :
+  Cluster* cluster_;
+  const std::string table_;
+};
+
 
 };  // namespace libzp
 
