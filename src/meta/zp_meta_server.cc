@@ -577,6 +577,39 @@ Status ZPMetaServer::Distribute(const std::string &name, int num) {
   return Status::OK();
 }
 
+void ZPMetaServer::UpdateOffset(const ZPMeta::MetaCmd_Ping &ping) {
+  slash::MutexLock l(&offset_mutex_);
+  std::string ip_port;
+  std::string p;
+  LOG(INFO) << "Size: " << ping.offset_size();
+  for (int i = 0; i < ping.offset_size(); i++) {
+//    LOG(INFO) << "process " << i;
+    auto iter = offset_.find(ping.offset(i).table_name());
+    if (iter == offset_.end()) {
+      LOG(INFO) << "Table: Not Found " << ping.offset(i).table_name() << ", insert!";
+      std::unordered_map<std::string, std::unordered_map<std::string, NodeOffset> > partition2node;
+      offset_.insert(std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, NodeOffset> > >::value_type(ping.offset(i).table_name(), partition2node));
+      iter = offset_.find(ping.offset(i).table_name());
+    }
+    p = std::to_string(ping.offset(i).partition());
+
+    ip_port = slash::IpPortString(ping.node().ip(), ping.node().port()); 
+
+    NodeOffset node_offset = {ping.offset(i).filenum(), ping.offset(i).offset()};
+    auto it = iter->second.find(p);
+    if (it == iter->second.end()) {
+      LOG(INFO) << "Partition: Not Found " << p << ", insert!";
+      std::unordered_map<std::string, NodeOffset> node2offset;
+      node2offset.insert(std::unordered_map<std::string, NodeOffset>::value_type(ip_port, node_offset));
+      iter->second.insert(std::unordered_map<std::string, std::unordered_map<std::string, NodeOffset> >::value_type(p, node2offset));
+    } else {
+//      it->second.insert(std::unordered_map<std::string, NodeOffset>::value_type(ip_port, node_offset));
+      it->second[ip_port] = node_offset;
+    }
+//    LOG(INFO) << "Insert " << ping.offset(i).table_name() << ", " << p << " : " << ip_port << " -> " << node_offset.filenum << ":" << node_offset.offset;
+  }
+}
+
 Status ZPMetaServer::InitVersionIfNeeded() {
   std::string value;
   int version = -1;
@@ -675,6 +708,21 @@ void ZPMetaServer::DebugNodes() {
     }
     LOG(INFO) << str;
   }
+}
+
+void ZPMetaServer::DebugOffset() {
+  slash::MutexLock l(&offset_mutex_);
+  for (auto iter = offset_.begin(); iter != offset_.end(); iter++) {
+    std::string str = iter->first + " :\n";
+    for (auto ite = iter->second.begin(); ite != iter->second.end(); ite++) {
+      str += ("    " + ite->first + " : ");
+      for (auto it = ite->second.begin(); it != ite->second.end(); it++) {
+        str += (it->first + " -> " + std::to_string(it->second.filenum) + ":" + std::to_string(it->second.offset) + "; ");
+      }
+      str += "\n";
+    }
+    LOG(INFO) << str;
+  } 
 }
 
 void ZPMetaServer::InitClientCmdTable() {

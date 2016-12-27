@@ -21,6 +21,24 @@ extern ZpConf* g_zp_conf;
 
 typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
 
+struct NodeOffset {
+  int32_t filenum;
+  int64_t offset;
+};
+
+struct StuckState {
+  std::string table;
+  int partition;
+
+  std::string old_master_ip;
+  int old_master_port;
+  NodeOffset old_master_offset;
+
+  std::string new_master_ip;
+  int new_master_port;
+  NodeOffset new_master_offset;
+};
+
 class ZPMetaServer {
  public:
 
@@ -67,11 +85,13 @@ class ZPMetaServer {
   Status GetTableList(ZPMeta::MetaCmdResponse_ListTable *tables);
   Status GetAllNodes(ZPMeta::MetaCmdResponse_ListNode *nodes);
   Status Distribute(const std::string &table, int num);
+  void UpdateOffset(const ZPMeta::MetaCmd_Ping &ping);
   Status InitVersionIfNeeded();
 
   // Leader related
   Status RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse *response);
   bool IsLeader();
+  void DebugOffset();
 
 private:
 
@@ -132,7 +152,10 @@ private:
   Status AddVersion();
 
 
+  std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, NodeOffset> > > offset_;
   std::unordered_map<std::string, std::set<std::string> > nodes_;
+  std::vector<StuckState> stuck_;
+  slash::Mutex offset_mutex_; //protect offset_ & stuck_
   slash::Mutex node_mutex_;
 
   // Floyd related
