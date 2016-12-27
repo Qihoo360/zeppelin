@@ -89,6 +89,26 @@ class Cluster {
   client::CmdResponse data_res_;
 };
 
+class Client {
+ public :
+
+  explicit Client(const std::string& ip, const int port,
+      const std::string& table);
+  virtual ~Client();
+  Status Connect();
+
+  // data cmd
+  Status Set(const std::string& key, const std::string& value);
+  Status Get(const std::string& key, std::string* value);
+  Status Delete(const std::string& key);
+
+
+ private :
+  Cluster* cluster_;
+  const std::string table_;
+};
+
+
 };  // namespace libzp
 
 #endif  // CLIENT_INCLUDE_ZP_CLUSTER_H_

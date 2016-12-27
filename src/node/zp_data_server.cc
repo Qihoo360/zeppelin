@@ -244,7 +244,6 @@ bool ZPDataServer::SetTablePartitionCount(const std::string &table_name, const i
 Table* ZPDataServer::GetOrAddTable(const std::string &table_name) {
   slash::RWLock l(&table_rw_, false);
   auto it = tables_.find(table_name);
-  //std::unordered_map<std::string, Table*>::iterator it = tables_.find(table_name);
   if (it != tables_.end()) {
     return it->second;
   }
@@ -258,11 +257,21 @@ Table* ZPDataServer::GetOrAddTable(const std::string &table_name) {
 Table* ZPDataServer::GetTable(const std::string &table_name) {
   slash::RWLock l(&table_rw_, false);
   auto it = tables_.find(table_name);
-  //std::unordered_map<std::string, Table*>::iterator it = tables_.find(table_name);
   if (it != tables_.end()) {
     return it->second;
   }
   return NULL;
+}
+
+void ZPDataServer::DumpTableBinlogOffsets(std::unordered_map<std::string,
+    std::vector<PartitionBinlogOffset>> &all_offset) {
+  slash::RWLock l(&table_rw_, false);
+  for (auto& it : tables_) {
+    std::vector<PartitionBinlogOffset> poffset;
+    (it.second)->DumpPartitionBinlogOffsets(poffset);
+    all_offset.insert(std::pair<std::string,
+        std::vector<PartitionBinlogOffset>>(it.first, poffset));
+  }
 }
 
 Partition* ZPDataServer::GetTablePartition(const std::string &table_name, const std::string &key) {

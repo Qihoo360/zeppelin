@@ -476,4 +476,34 @@ Status Cluster::ResetClusterMap(const ZPMeta::MetaCmdResponse_Pull& pull) {
   return Status::OK();
 }
 
+Client::Client(const std::string& ip, const int port, const std::string& table)
+: cluster_(new Cluster(ip, port)),
+  table_(table) {
+}
+
+Client::~Client() {
+  delete cluster_;
+}
+
+Status Client::Connect() {
+  Status s = cluster_->Connect();
+  if (!s.ok()) {
+    return s;
+  }
+  s = cluster_->Pull(table_);
+  return s;
+}
+
+Status Client::Set(const std::string& key, const std::string& value) {
+  return cluster_->Set(table_, key, value);
+}
+
+Status Client::Get(const std::string& key, std::string* value) {
+  return cluster_->Get(table_, key, value);
+}
+
+Status Client::Delete(const std::string& key) {
+  return cluster_->Delete(table_, key);
+}
+
 }  // namespace libzp
