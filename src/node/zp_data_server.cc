@@ -192,11 +192,11 @@ void ZPDataServer::PickMeta() {
 void ZPDataServer::DumpTablePartitions() {
   slash::RWLock l(&table_rw_, false);
 
-  DLOG(INFO) << "==========================";
+  DLOG(INFO) << "TablePartition==========================";
   for (auto iter = tables_.begin(); iter != tables_.end(); iter++) {
     iter->second->Dump();
   }
-  DLOG(INFO) << "--------------------------";
+  DLOG(INFO) << "TablePartition--------------------------";
 }
 
 Status ZPDataServer::SendToPeer(const Node &node, const std::string &data) {
@@ -318,6 +318,12 @@ Status ZPDataServer::RemoveBinlogSendTask(const std::string &table, int partitio
 int32_t ZPDataServer::GetBinlogSendFilenum(const std::string &table, int partition_id, const Node& node) {
   std::string task_name = ZPBinlogSendTaskName(table, partition_id, node);
   return binlog_send_pool_.TaskFilenum(task_name);
+}
+
+void ZPDataServer::DumpBinlogSendTask() {
+  LOG(INFO) << "BinlogSendTask==========================";
+  binlog_send_pool_.Dump();
+  LOG(INFO) << "BinlogSendTask--------------------------";
 }
 
 void ZPDataServer::AddSyncTask(Partition* partition) {

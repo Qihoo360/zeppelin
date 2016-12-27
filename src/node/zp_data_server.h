@@ -131,6 +131,7 @@ class ZPDataServer {
  // }
 
   void DumpTablePartitions();
+  void DumpBinlogSendTask();
   
   // Peer Client
   Status SendToPeer(const Node &node, const std::string &data);
