@@ -31,7 +31,7 @@ pink::Status ZPPingThread::Send() {
       offset->set_table_name(item.first);
       offset->set_partition(p.partition_id);
       offset->set_filenum(p.filenum);
-      offset->set_filenum(p.offset);
+      offset->set_offset(p.offset);
     }
   }
 
