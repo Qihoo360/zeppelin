@@ -7,78 +7,13 @@
 #include <iostream>
 #include <algorithm>
 
-#include "linenoise/linenoise.h"
-
 #include "include/zp_cluster.h"
+#include "linenoise/linenoise.h"
+#include "./help.h"
 
-void usage() {
-  std::cout << "usage:\n"
-            << "      zp_cli host port\n";
-}
-
-// completion example
-void completion(const char *buf, linenoiseCompletions *lc) {
-  if (buf[0] == 's') {
-    linenoiseAddCompletion(lc, "set");
-  } else if (buf[0] == 'c') {
-    linenoiseAddCompletion(lc, "create");
-  } else if (buf[0] == 'g') {
-    linenoiseAddCompletion(lc, "get");
-  } else if (buf[0] == 'p') {
-    linenoiseAddCompletion(lc, "pull");
-  } else if (buf[0] == 'l') {
-    linenoiseAddCompletion(lc, "locate");
-  } else if (buf[0] == 'd') {
-    linenoiseAddCompletion(lc, "dump");
-  }
-}
-
-// hints example
-char *hints(const char *buf, int *color, int *bold) {
-  if (!strcasecmp(buf, "create")) {
-    *color = 35;
-    *bold = 0;
-    return " TABLE PARTITION";
-  }
-  if (!strcasecmp(buf, "set")) {
-    *color = 35;
-    *bold = 0;
-    return " TABLE KEY VALUE";
-  }
-  if (!strcasecmp(buf, "get")) {
-    *color = 35;
-    *bold = 0;
-    return " TABLE KEY VALUE";
-  }
-  if (!strcasecmp(buf, "pull")) {
-    *color = 35;
-    *bold = 0;
-    return " TABLE";
-  }
-  if (!strcasecmp(buf, "locate")) {
-    *color = 35;
-    *bold = 0;
-    return " TABLE KEY";
-  }
-  if (!strcasecmp(buf, "dump")) {
-    *color = 35;
-    *bold = 0;
-    return " TABLE TABLE_NAME";
-  }
-  if (!strcasecmp(buf, "addslave")) {
-    *color = 35;
-    *bold = 0;
-    return " TABLE PARTITON IP PORT";
-  }
-  if (!strcasecmp(buf, "removeslave")) {
-    *color = 35;
-    *bold = 0;
-    return " TABLE PARTITON IP PORT";
-  }
-  return NULL;
-}
-
-void SplitByBlank(std::string& line, std::vector<std::string>& line_args) {
+void SplitByBlank(const std::string& old_line,
+    std::vector<std::string>& line_args) {
+  std::string line = old_line;
   line += " ";
   std::string unparse = line;
   std::string::size_type pos_start;
@@ -91,6 +26,82 @@ void SplitByBlank(std::string& line, std::vector<std::string>& line_args) {
     pos_start = unparse.find_first_not_of(" ");
   }
 }
+
+typedef struct {
+  std::string name;
+  std::string params;
+  int params_num;
+  std::string info;
+} CommandEntry;
+
+
+static std::vector<CommandEntry> commandEntries;
+static int helpEntriesLen;
+
+static void cliInitHelp(void) {
+  int commands_num = sizeof(commandHelp)/sizeof(struct CommandHelp);
+  int i, len, pos = 0;
+  CommandEntry tmp;
+  for (int i = 0; i < commands_num; i++) {
+    tmp.name = std::string(commandHelp[i].name);
+    tmp.params = std::string(commandHelp[i].params);
+    tmp.params_num = commandHelp[i].params_num;
+    tmp.info = std::string(commandHelp[i].summary);
+    commandEntries.push_back(tmp);
+  }
+}
+
+// completion example
+void completion(const char *buf, linenoiseCompletions *lc) {
+  size_t start_pos = 0;
+  size_t match_len = 0;
+  std::string tmp;
+
+  for (int i = 0; i < commandEntries.size(); i++) {
+    match_len = strlen(buf);
+    if (strncasecmp(buf, commandEntries[i].name.c_str(), match_len) == 0) {
+      tmp = std::string();
+      tmp = commandEntries[i].name;
+      linenoiseAddCompletion(lc, tmp.c_str());
+    }
+  }
+}
+
+// hints example
+char *hints(const char *buf, int *color, int *bold) {
+  std::string buf_str = std::string(buf);
+  std::vector<std::string> buf_args;
+  SplitByBlank(buf_str, buf_args);
+  size_t buf_len = strlen(buf);
+  if (buf_len == 0) {
+    return NULL;
+  }
+  int endspace = buf_len && isspace(buf[buf_len-1]);
+  for (int i = 0; i < commandEntries.size(); i++) {
+    size_t match_len = std::max(strlen(commandEntries[i].name.c_str()),
+        strlen(buf_args[0].c_str()));
+    if (strncasecmp(buf_args[0].c_str(),
+          commandEntries[i].name.c_str(), match_len) == 0) {
+      *color = 90;
+      *bold = 0;
+      char* hint = const_cast<char *>(commandEntries[i].params.c_str());
+      int to_move = buf_args.size() - 1;
+      while (strlen(hint) && to_move > 0) {
+        if (hint[0] == ' ') {
+          to_move--;
+        }
+        hint = hint + 1;
+      }
+      if (!endspace) {
+        std::string new_hint = std::string(" ") + std::string(hint);
+        hint = const_cast<char *>(new_hint.c_str());
+      }
+      return strlen(hint)? hint:NULL;
+    }
+  }
+  return NULL;
+}
+
 
 void StartRepl(libzp::Cluster* cluster) {
   char *line;
@@ -108,7 +119,7 @@ void StartRepl(libzp::Cluster* cluster) {
     std::vector<std::string> line_args;
     SplitByBlank(info, line_args);
 
-    if (!strncmp(line, "create ", 7)) {
+    if (!strncasecmp(line, "CREATE ", 7)) {
       std::string table_name = line_args[1];
       int partition_num = atoi(line_args[2].c_str());
       s = cluster->CreateTable(table_name, partition_num);
@@ -116,7 +127,7 @@ void StartRepl(libzp::Cluster* cluster) {
       std::cout << "repull table "<< table_name << std::endl;
       s = cluster->Pull(table_name);
 
-    } else if (!strncmp(line, "pull ", 5)) {
+    } else if (!strncasecmp(line, "PULL ", 5)) {
       if (line_args.size() != 2) {
         std::cout << "arg num wrong" << std::endl;
         continue;
@@ -127,7 +138,7 @@ void StartRepl(libzp::Cluster* cluster) {
       std::cout << "current table info:" << std::endl;
       cluster->DebugDumpTable(table_name);
 
-    } else if (!strncmp(line, "dump table ", 11)) {
+    } else if (!strncasecmp(line, "DUMP TABLE ", 11)) {
       if (line_args.size() != 3) {
         std::cout << "arg num wrong" << std::endl;
         continue;
@@ -135,14 +146,14 @@ void StartRepl(libzp::Cluster* cluster) {
       std::string table_name = line_args[2];
       cluster->DebugDumpTable(table_name);
 
-    } else if (!strncmp(line, "locate ", 5)) {
+    } else if (!strncasecmp(line, "LOCATE ", 5)) {
       if (line_args.size() != 3) {
         std::cout << "arg num wrong" << std::endl;
         continue;
       }
       std::string table_name = line_args[1];
       std::string key = line_args[2];
-      libzp::Table::Partition* partition =
+      const libzp::Table::Partition* partition =
         cluster->GetPartition(table_name, key);
       if (partition) {
         std::cout << "partition_id: " << partition->id << std::endl;
@@ -158,7 +169,7 @@ void StartRepl(libzp::Cluster* cluster) {
         std::cout << "doe not exist in local table" << std::endl;
       }
 
-    } else if (!strncmp(line, "set ", 4)) {
+    } else if (!strncasecmp(line, "SET ", 4)) {
       if (line_args.size() != 4) {
         std::cout << "arg num wrong" << std::endl;
         continue;
@@ -169,40 +180,40 @@ void StartRepl(libzp::Cluster* cluster) {
       s = cluster->Set(table_name, key, value);
       std::cout << s.ToString() << std::endl;
 
-    } else if (!strncmp(line, "setmaster ", 10)) {
+    } else if (!strncasecmp(line, "SETMASTER ", 10)) {
       if (line_args.size() != 5) {
         std::cout << "arg num wrong" << std::endl;
         continue;
       }
       std::string table_name = line_args[1];
       int partition = atoi(line_args[2].c_str());
-      libzp::IpPort ip_port(line_args[3], atoi(line_args[4].c_str()));
-      s = cluster->SetMaster(table_name, partition, ip_port);
+      libzp::Node node(line_args[3], atoi(line_args[4].c_str()));
+      s = cluster->SetMaster(table_name, partition, node);
       std::cout << s.ToString() << std::endl;
 
-    } else if (!strncmp(line, "addslave ", 9)) {
+    } else if (!strncasecmp(line, "ADDSLAVE ", 9)) {
       if (line_args.size() != 5) {
         std::cout << "arg num wrong" << std::endl;
         continue;
       }
       std::string table_name = line_args[1];
       int partition = atoi(line_args[2].c_str());
-      libzp::IpPort ip_port(line_args[3], atoi(line_args[4].c_str()));
-      s = cluster->AddSlave(table_name, partition, ip_port);
+      libzp::Node node(line_args[3], atoi(line_args[4].c_str()));
+      s = cluster->AddSlave(table_name, partition, node);
       std::cout << s.ToString() << std::endl;
 
-    } else if (!strncmp(line, "removeslave ", 12)) {
+    } else if (!strncasecmp(line, "REMOVESLAVE ", 12)) {
       if (line_args.size() != 5) {
         std::cout << "arg num wrong" << std::endl;
         continue;
       }
       std::string table_name = line_args[1];
       int partition = atoi(line_args[2].c_str());
-      libzp::IpPort ip_port(line_args[3], atoi(line_args[4].c_str()));
-      s = cluster->RemoveSlave(table_name, partition, ip_port);
+      libzp::Node node(line_args[3], atoi(line_args[4].c_str()));
+      s = cluster->RemoveSlave(table_name, partition, node);
       std::cout << s.ToString() << std::endl;
 
-    } else if (!strncmp(line, "get ", 4)) {
+    } else if (!strncasecmp(line, "GET ", 4)) {
       if (line_args.size() != 3) {
         std::cout << "arg num wrong" << std::endl;
         continue;
@@ -216,30 +227,30 @@ void StartRepl(libzp::Cluster* cluster) {
       } else {
         std::cout << s.ToString() << std::endl;
       }
-    } else if (!strncmp(line, "listmeta", 8)) {
+    } else if (!strncasecmp(line, "LISTMETA", 8)) {
         if (line_args.size() != 1) {
           std::cout << "arg num wrong" << std::endl;
           continue;
         }
-        std::vector<libzp::IpPort> slaves;
-        libzp::IpPort master;
+        std::vector<libzp::Node> slaves;
+        libzp::Node master;
         s = cluster->ListMeta(&master, &slaves);
         std::cout << "master" << ":" << master.ip
           << " " << master.port << std::endl;
         std::cout << "slave" << ":" << std::endl;
-        std::vector<libzp::IpPort>::iterator iter = slaves.begin();
+        std::vector<libzp::Node>::iterator iter = slaves.begin();
         while (iter != slaves.end()) {
           std::cout << iter->ip << ":" << iter->port << std::endl;
           iter++;
         }
         std::cout << s.ToString() << std::endl;
 
-    } else if (!strncmp(line, "listnode", 8)) {
+    } else if (!strncasecmp(line, "LISTNODE", 8)) {
         if (line_args.size() != 1) {
           std::cout << "arg num wrong" << std::endl;
           continue;
         }
-        std::vector<libzp::IpPort> nodes;
+        std::vector<libzp::Node> nodes;
         std::vector<std::string> status;
         s = cluster->ListNode(&nodes, &status);
         if (nodes.size() == 0) {
@@ -251,7 +262,7 @@ void StartRepl(libzp::Cluster* cluster) {
             << " " << status[i] << std::endl;
         }
 
-    } else if (!strncmp(line, "listtable", 9)) {
+    } else if (!strncasecmp(line, "LISTTABLE", 9)) {
         if (line_args.size() != 1) {
           std::cout << "arg num wrong" << std::endl;
           continue;
@@ -273,6 +284,11 @@ void StartRepl(libzp::Cluster* cluster) {
   std::cout << "out of loop" << std::endl;
 }
 
+void usage() {
+  std::cout << "usage:\n"
+            << "      zp_cli host port\n";
+}
+
 int main(int argc, char* argv[]) {
   if (argc != 3) {
     usage();
@@ -280,8 +296,8 @@ int main(int argc, char* argv[]) {
   }
   std::cout << "start" << std::endl;
   libzp::Options option;
-  libzp::IpPort ip_port(argv[1], atoi(argv[2]));
-  option.meta_addr.push_back(ip_port);
+  libzp::Node node(argv[1], atoi(argv[2]));
+  option.meta_addr.push_back(node);
 
   // cluster handle cluster operation
   std::cout << "create cluster" << std::endl;
@@ -294,6 +310,7 @@ int main(int argc, char* argv[]) {
     exit(-1);
   }
 
+  cliInitHelp();
   StartRepl(cluster);
   /*
   Status s = cluster.ListMetaNode(node_list);
