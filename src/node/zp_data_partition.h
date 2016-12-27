@@ -46,6 +46,12 @@ struct SlaveItem {
     }
 };
 
+struct PartitionBinlogOffset {
+  int partition_id;
+  uint32_t filenum;
+  uint64_t offset;
+};
+
 class Partition {
   public:
   Partition(const std::string &table_name, const int partition_id, const std::string &log_path, const std::string &data_path);

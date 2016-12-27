@@ -14,9 +14,9 @@
 #include "zp_meta_utils.h"
 //#include "zp_command.h"
 
-
-class Partition;
 class Table;
+class Partition;
+class PartitionBinlogOffset;
 
 Table* NewTable(const std::string &table_name, const std::string log_path, const std::string data_path);
 
@@ -36,6 +36,7 @@ class Table {
 
   void Dump();
   void DoTimingTask();
+  void DumpPartitionBinlogOffsets(std::vector<PartitionBinlogOffset> &offset);
 
  private:
   std::string table_name_;

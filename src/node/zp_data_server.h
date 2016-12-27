@@ -151,6 +151,8 @@ class ZPDataServer {
   Cmd* CmdGet(const int op) {
     return GetCmdFromTable(op, cmds_);
   }
+  void DumpTableBinlogOffsets(std::unordered_map<std::string,
+      std::vector<PartitionBinlogOffset>> &all_offset);
 
  private:
 
@@ -161,9 +163,7 @@ class ZPDataServer {
   //Note: this lock only protect table map, rather than certain partiton which should keep thread safety itself
   pthread_rwlock_t table_rw_;
   std::atomic<int> table_count_;
-  //std::map<int, Partition*> partitions_;
   std::unordered_map<std::string, Table*> tables_;
-  //uint32_t KeyToPartition(const std::string &key);
 
   // Binlog Send related
   slash::Mutex mutex_peers_;

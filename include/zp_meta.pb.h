@@ -978,17 +978,12 @@ class SyncOffset : public ::google::protobuf::Message {
   inline ::std::string* release_table_name();
   inline void set_allocated_table_name(::std::string* table_name);
 
-  // repeated int32 partition = 2;
-  inline int partition_size() const;
+  // required int32 partition = 2;
+  inline bool has_partition() const;
   inline void clear_partition();
   static const int kPartitionFieldNumber = 2;
-  inline ::google::protobuf::int32 partition(int index) const;
-  inline void set_partition(int index, ::google::protobuf::int32 value);
-  inline void add_partition(::google::protobuf::int32 value);
-  inline const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >&
-      partition() const;
-  inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
-      mutable_partition();
+  inline ::google::protobuf::int32 partition() const;
+  inline void set_partition(::google::protobuf::int32 value);
 
   // optional int32 filenum = 3;
   inline bool has_filenum() const;
@@ -1008,6 +1003,8 @@ class SyncOffset : public ::google::protobuf::Message {
  private:
   inline void set_has_table_name();
   inline void clear_has_table_name();
+  inline void set_has_partition();
+  inline void clear_has_partition();
   inline void set_has_filenum();
   inline void clear_has_filenum();
   inline void set_has_offset();
@@ -1016,9 +1013,9 @@ class SyncOffset : public ::google::protobuf::Message {
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::std::string* table_name_;
-  ::google::protobuf::RepeatedField< ::google::protobuf::int32 > partition_;
-  ::google::protobuf::int64 offset_;
+  ::google::protobuf::int32 partition_;
   ::google::protobuf::int32 filenum_;
+  ::google::protobuf::int64 offset_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
@@ -3074,29 +3071,26 @@ inline void SyncOffset::set_allocated_table_name(::std::string* table_name) {
   }
 }
 
-// repeated int32 partition = 2;
-inline int SyncOffset::partition_size() const {
-  return partition_.size();
+// required int32 partition = 2;
+inline bool SyncOffset::has_partition() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void SyncOffset::set_has_partition() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void SyncOffset::clear_has_partition() {
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline void SyncOffset::clear_partition() {
-  partition_.Clear();
+  partition_ = 0;
+  clear_has_partition();
 }
-inline ::google::protobuf::int32 SyncOffset::partition(int index) const {
-  return partition_.Get(index);
-}
-inline void SyncOffset::set_partition(int index, ::google::protobuf::int32 value) {
-  partition_.Set(index, value);
-}
-inline void SyncOffset::add_partition(::google::protobuf::int32 value) {
-  partition_.Add(value);
-}
-inline const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >&
-SyncOffset::partition() const {
+inline ::google::protobuf::int32 SyncOffset::partition() const {
   return partition_;
 }
-inline ::google::protobuf::RepeatedField< ::google::protobuf::int32 >*
-SyncOffset::mutable_partition() {
-  return &partition_;
+inline void SyncOffset::set_partition(::google::protobuf::int32 value) {
+  set_has_partition();
+  partition_ = value;
 }
 
 // optional int32 filenum = 3;
