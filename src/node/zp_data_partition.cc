@@ -504,7 +504,7 @@ void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
   cmd->Do(&req, &res, this);
 
   std::string raw;
-  assert(req.SerializeToString(&raw));
+  req.SerializeToString(&raw);
   logger_->Put(raw);
 
   if (!cmd->is_suspend()) {
@@ -546,7 +546,7 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
     if (res.code() == client::StatusCode::kOk  && req.type() != client::Type::SYNC) {
       // Restore Message
       std::string raw;
-      assert(req.SerializeToString(&raw));
+      req.SerializeToString(&raw);
       logger_->Put(raw);
     }
     mutex_record_.Unlock(key);

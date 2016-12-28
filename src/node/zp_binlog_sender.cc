@@ -82,7 +82,7 @@ Status ZPBinlogSendTask::ProcessTask(std::string &item) {
     return Status::EndFile("no more binlog item");
   }
   //LOG(INFO) << "Processing a task" << table_name_
-  //  << "parititon: " << partition_id_;
+  // << "parititon: " << partition_id_;
 
   uint64_t consume_len = 0;
   Status s = reader_->Consume(&consume_len, item);
@@ -247,17 +247,19 @@ void ZPBinlogSendTaskPool::Dump() {
     std::list<ZPBinlogSendTask*>::iterator tptr = it->second;
     LOG(INFO) << "----------------------------";
     LOG(INFO) << "+Binlog Send Task" << it->first;
-    LOG(INFO) << "  +Table  " << (*tptr)->table_name();
-    LOG(INFO) << "  +Partition  " << (*tptr)->partition_id();
-    LOG(INFO) << "  +Node  " << (*tptr)->node();
-    LOG(INFO) << "  +filenum " << (*tptr)->filenum();
-    LOG(INFO) << "  +offset " << (*tptr)->offset();
+    if (tptr != tasks_.end()) {
+      LOG(INFO) << "  +Table  " << (*tptr)->table_name();
+      LOG(INFO) << "  +Partition  " << (*tptr)->partition_id();
+      LOG(INFO) << "  +Node  " << (*tptr)->node();
+      LOG(INFO) << "  +filenum " << (*tptr)->filenum();
+      LOG(INFO) << "  +offset " << (*tptr)->offset();
+    } else {
+      LOG(INFO) << "  +Being occupied";
+    }
     LOG(INFO) << "----------------------------";
   }
   LOG(INFO) << "----------------------------";
 }
-
-
 
 /**
  * ZPBinlogSendThread
