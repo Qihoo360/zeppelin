@@ -22,6 +22,11 @@ message Node {
   required int32 port = 2;
 }
 
+message SyncOffset {
+  required int32 partition = 1;
+  required int32 filenum = 2;
+  required int64 offset = 3;
+}
 
 message CmdRequest {
   required Type type = 1;
@@ -30,12 +35,9 @@ message CmdRequest {
   message Sync {
     required Node node = 1;
     required string table_name = 2;
-    required int32 partition_id = 3;
-    required int32 filenum = 4 [default = 0];
-    required int64 offset = 5 [default = 0];
+    required SyncOffset sync_offset = 3;
   }
   optional Sync sync = 2; 
-
 
   message Set {
     required string table_name = 1;
@@ -43,7 +45,6 @@ message CmdRequest {
     required string value = 3;
     optional string uuid = 4;
   }
-
   optional Set set = 3;
 
   message Get {
@@ -60,12 +61,11 @@ message CmdRequest {
     optional string uuid = 3;
   }
   optional Del del = 5;
-}
 
-message SyncOffset {
-  required int32 partition = 1;
-  required int32 filenum = 2;
-  required int64 offset = 3;
+  message Info {
+    optional string table_name = 1; 
+  }
+  optional Info info = 6;
 }
 
 message CmdResponse {
@@ -73,12 +73,18 @@ message CmdResponse {
   required StatusCode code = 2;
   optional string msg = 3;
 
+  message Sync {
+    required string table_name = 1;
+    required SyncOffset sync_offset = 2;
+  }
+  optional Sync sync = 4;
+
   message Get {
     optional string value = 1;
   }
-  optional Get get = 4;
+  optional Get get = 5;
   
-  optional Node redirect = 5;
+  optional Node redirect = 6;
   
   // InfoStats
   message InfoStats {
@@ -86,7 +92,7 @@ message CmdResponse {
     required int32 total_querys = 2;
     required int32 qps = 3;
   }
-  repeated InfoStats info_stats = 6;
+  repeated InfoStats info_stats = 7;
 
   // InfoCapacity
   message InfoCapacity {
@@ -94,14 +100,14 @@ message CmdResponse {
     required int32 used = 2;
     required int32 remain = 3;
   }
-  repeated InfoCapacity info_capacity = 7;
+  repeated InfoCapacity info_capacity = 8;
 
   // InfoPartition
   message InfoPartition {
     required string table_name = 1;
     repeated SyncOffset sync_offset = 2; 
   }
-  repeated InfoPartition info_partition = 8;
+  repeated InfoPartition info_partition = 9;
 }
 
 message SyncRequest {
