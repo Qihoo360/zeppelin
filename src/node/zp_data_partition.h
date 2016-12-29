@@ -1,10 +1,10 @@
 #ifndef ZP_DATA_PARTITION_H
 #define ZP_DATA_PARTITION_H
 
-#include <vector>
 #include <memory>
 #include <functional>
 #include <unordered_set>
+#include <set>
 
 #include "pb_conn.h"
 #include "pb_cli.h"
@@ -24,7 +24,7 @@
 class Partition;
 std::string NewPartitionPath(const std::string& name, const uint32_t current);
 Partition* NewPartition(const std::string &table_name, const std::string& log_path, const std::string& data_path,
-                        const int partition_id, const Node& master, const std::vector<Node> &slaves);
+                        const int partition_id, const Node& master, const std::set<Node> &slaves);
 
 // Slave item
 struct SlaveItem {
@@ -94,7 +94,7 @@ class Partition {
   void WaitDBSyncDone();
 
   // Partition node related
-  void Update(ZPMeta::PState state, const Node& master, const std::vector<Node> &slaves);
+  void Update(ZPMeta::PState state, const Node& master, const std::set<Node> &slaves);
 
   // Binlog related
   Status SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset);
@@ -169,12 +169,12 @@ class Partition {
   // State related
   pthread_rwlock_t state_rw_; //protect partition status below
   Node master_node_;
-  std::vector<Node> slave_nodes_;
+  std::set<Node> slave_nodes_;
   std::atomic<bool> readonly_;
   ZPMeta::PState pstate_;
   Role role_;
   int repl_state_;
-  void CleanRoleEnv();
+  void CleanSlaves(const std::set<Node> &old_slaves);
   void BecomeSingle();
   void BecomeMaster();
   void BecomeSlave();

@@ -1,18 +1,15 @@
 #ifndef ZP_DATA_TABLE_H
 #define ZP_DATA_TABLE_H
 
+#include <set>
 #include <atomic>
 #include <vector>
 #include <memory>
-//#include <functional>
-#include <unordered_set>
 
 #include "zp_const.h"
 #include "client.pb.h"
 #include "zp_meta.pb.h"
-//#include "zp_conf.h"
 #include "zp_meta_utils.h"
-//#include "zp_command.h"
 
 class Table;
 class Partition;
@@ -30,7 +27,7 @@ class Table {
   Partition* GetPartition(const std::string &key);
   Partition* GetPartitionById(const int partition_id);
   bool UpdateOrAddPartition(int partition_id, ZPMeta::PState state,
-      const Node& master, const std::vector<Node>& slaves);
+      const Node& master, const std::set<Node>& slaves);
   
   uint32_t KeyToPartition(const std::string &key);
 

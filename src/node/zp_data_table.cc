@@ -73,7 +73,7 @@ Partition* Table::GetPartitionById(const int partition_id) {
 }
 
 bool Table::UpdateOrAddPartition(const int partition_id,
-    ZPMeta::PState state, const Node& master, const std::vector<Node>& slaves) {
+    ZPMeta::PState state, const Node& master, const std::set<Node>& slaves) {
   slash::RWLock l(&partition_rw_, true);
   auto iter = partitions_.find(partition_id);
   if (iter != partitions_.end()) {
