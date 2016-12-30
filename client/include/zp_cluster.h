@@ -9,6 +9,7 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <utility>
 #include <unordered_map>
 
 
@@ -55,6 +56,9 @@ class Cluster {
   Status ListNode(std::vector<Node>* nodes,
       std::vector<std::string>* status);
 
+  Status InfoQps(const std::string& table, int* qps, int* total_query);
+  Status InfoOffset(const Node& node, const std::string& table,
+      std::vector<std::pair<int, BinlogOffset>>* partitions);
 
   // local cmd
   Status DebugDumpTable(const std::string& table);
@@ -69,14 +73,15 @@ class Cluster {
       const std::string& key, Node* master);
 
   Status SubmitDataCmd(const std::string& table,
-      const std::string& key, int attempt = 0, bool has_pull = false);
+      const std::string& key, bool has_pull = false);
+  Status TryDataRpc(const Node& node, int attempt = 0);
   Status SubmitMetaCmd(int attempt = 0);
   Status ResetClusterMap(const ZPMeta::MetaCmdResponse_Pull& pull);
 
   // meta info
   int64_t epoch_;
   std::vector<Node> meta_addr_;
-  std::unordered_map<std::string, Table*>* tables_;
+  std::unordered_map<std::string, Table*> tables_;
 
   // connection pool
   ConnectionPool* meta_pool_;
