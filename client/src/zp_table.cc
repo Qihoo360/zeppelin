@@ -95,4 +95,17 @@ void Table::DebugDump() {
   }
 }
 
+void Table::GetNodes(std::vector<Node>* nodes) {
+  auto par = partitions_.begin();
+  while (par != partitions_.end()) {
+    nodes->push_back(par->second->master);
+    par++;
+  }
+  std::sort(nodes->begin(), nodes->end());
+  nodes->erase(
+      std::unique(nodes->begin(),
+                  nodes->end()),
+      nodes->end());
+}
+
 }  // namespace libzp

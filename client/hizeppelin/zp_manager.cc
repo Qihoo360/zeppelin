@@ -276,6 +276,52 @@ void StartRepl(libzp::Cluster* cluster) {
         }
         std::cout << s.ToString() << std::endl;
 
+    } else if (!strncasecmp(line, "QPS", 3)) {
+        if (line_args.size() != 2) {
+          std::cout << "arg num wrong" << std::endl;
+          continue;
+        }
+        std::string table_name = line_args[1];
+        int qps, total_query;
+        s = cluster->InfoQps(table_name, &qps, &total_query);
+        std::cout << "qps:" << qps << std::endl;
+        std::cout << "total query:" << total_query << std::endl;
+
+    } else if (!strncasecmp(line, "offset", 6)) {
+        if (line_args.size() != 4) {
+          std::cout << "arg num wrong" << std::endl;
+          continue;
+        }
+        std::string table_name = line_args[1];
+        std::string ip = line_args[2];
+        int port = atoi(line_args[3].c_str());
+        libzp::Node node(ip, port);
+        std::vector<std::pair<int, libzp::BinlogOffset>> partitions;
+        libzp::Status s = cluster->InfoOffset(node, table_name, &partitions);
+        for (int i = 0; i < partitions.size(); i++) {
+          std::cout << "partition:" << partitions[i].first << std::endl;
+          std::cout << "  filenum:" << partitions[i].second.file_num
+            << std::endl;
+          std::cout << "  offset:" << partitions[i].second.offset << std::endl;
+        }
+
+    } else if (!strncasecmp(line, "space", 5)) {
+       if (line_args.size() != 2) {
+         std::cout << "arg num wrong" << std::endl;
+         continue;
+       }
+       std::string table_name = line_args[1];
+       std::vector<std::pair<libzp::Node, libzp::SpaceInfo>> nodes;
+       libzp::Status s = cluster->InfoSpace(table_name, &nodes);
+       std::cout << "space info for " << table_name << std::endl;
+       for (int i = 0; i < nodes.size(); i++) {
+         std::cout << "node: " << nodes[i].first.ip << "" <<
+           nodes[i].first.port << std::endl;
+         std::cout << "  used:" << nodes[i].second.used
+           << " bytes" << std::endl;
+         std::cout << "  remain:" << nodes[i].second.remain
+           << " bytes" << std::endl;
+       }
     } else {
       printf("Unrecognized command: %s\n", line);
     }

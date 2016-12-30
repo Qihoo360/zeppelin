@@ -25,7 +25,7 @@ struct CommandHelp {
   "pull table info"},
 
   { "SETMASTER",
-  "tab par ip port",
+  "table partit p",
   4,
   "set a partition's master"},
 
@@ -53,6 +53,21 @@ struct CommandHelp {
   "",
   0,
   "list all meta nodes"},
+
+  { "QPS",
+  "table",
+  1,
+  "get qps for a table"},
+
+  { "OFFSET",
+  "table ip port",
+  1,
+  "get a node's binlog offset"},
+
+  { "SPACE",
+  "table",
+  1,
+  "get space info for a table"},
 
   { "LOCATE",
   "table key",

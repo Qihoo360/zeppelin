@@ -39,6 +39,16 @@ struct Node {
 };
 
 
+struct BinlogOffset {
+  int file_num;
+  int offset;
+};
+
+struct SpaceInfo {
+  int used;
+  int remain;
+};
+
 class Table {
  public:
   struct Partition {
@@ -79,6 +89,7 @@ class Table {
   const Partition* GetPartition(const std::string& key);
 
   void DebugDump();
+  void GetNodes(std::vector<Node> *node);
 
  private:
   std::string table_name_;

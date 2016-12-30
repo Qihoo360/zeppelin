@@ -30,18 +30,16 @@ void Cluster::InitParam() {
   meta_cmd_ = ZPMeta::MetaCmd();
   meta_res_ = ZPMeta::MetaCmdResponse();
   epoch_ = 0;
-  tables_ = new std::unordered_map<std::string, Table*>();
   meta_pool_ = new ConnectionPool();
   data_pool_ = new ConnectionPool();
 }
 
 Cluster::~Cluster() {
-  std::unordered_map<std::string, Table*>::iterator iter = tables_->begin();
-  while (iter != tables_->end()) {
+  std::unordered_map<std::string, Table*>::iterator iter = tables_.begin();
+  while (iter != tables_.end()) {
     delete iter->second;
     iter++;
   }
-  delete tables_;
   delete meta_pool_;
   delete data_pool_;
 }
@@ -323,8 +321,110 @@ Status Cluster::ListTable(std::vector<std::string>* tables) {
   return Status::OK();
 }
 
+Status Cluster::InfoQps(const std::string& table, int* qps, int* total_query) {
+  Status s;
+  *qps = 0;
+  *total_query = 0;
+
+  Pull(table);
+  auto table_iter = tables_.find(table);
+  if (table_iter == tables_.end()) {
+    return Status::NotFound("this table does not exist");
+  }
+  Table* table_map = table_iter->second;
+
+  std::vector<Node> related_nodes;
+  table_map->GetNodes(&related_nodes);
+
+  auto node_iter = related_nodes.begin();
+  while (node_iter != related_nodes.end()) {
+    data_cmd_.Clear();
+    data_cmd_.set_type(client::Type::INFOSTATS);
+    s = TryDataRpc(*node_iter);
+    node_iter++;
+    if (s.IsIOError()) {
+      continue;
+    }
+    for (int i = 0; i < data_res_.info_stats_size(); i++) {
+      std::string name = data_res_.info_stats(i).table_name();
+      if (name == table) {
+        *qps += data_res_.info_stats(i).qps();
+        *total_query += data_res_.info_stats(i).total_querys();
+        break;
+      }
+    }
+  }
+  return Status::OK();
+}
+
+Status Cluster::InfoOffset(const Node& node, const std::string& table,
+    std::vector<std::pair<int, BinlogOffset>>* partitions) {
+  Status s;
+
+  Pull(table);
+  data_cmd_.Clear();
+  data_cmd_.set_type(client::Type::INFOPARTITION);
+  s = TryDataRpc(node);
+
+  for (int i = 0; i < data_res_.info_partition_size(); i++) {
+    std::string name = data_res_.info_partition(i).table_name();
+    if (name == table) {
+      std::pair<int, BinlogOffset> offset;
+      int par_size = data_res_.info_partition(i).sync_offset_size();
+      for (int j = 0; j < par_size; j++) {
+        offset.first = data_res_.info_partition(i).sync_offset(j).partition();
+        offset.second.file_num =
+          data_res_.info_partition(i).sync_offset(j).filenum();
+        offset.second.offset =
+          data_res_.info_partition(i).sync_offset(j).offset();
+        partitions->push_back(offset);
+      }
+      break;
+    }
+  }
+  return Status::OK();
+}
+
+Status Cluster::InfoSpace(const std::string& table,
+    std::vector<std::pair<Node, SpaceInfo>>* nodes) {
+  Status s;
+
+  Pull(table);
+  auto table_iter = tables_.find(table);
+  if (table_iter == tables_.end()) {
+    return Status::NotFound("this table does not exist");
+  }
+  Table* table_map = table_iter->second;
+
+  std::vector<Node> related_nodes;
+  table_map->GetNodes(&related_nodes);
+
+  auto node_iter = related_nodes.begin();
+  while (node_iter != related_nodes.end()) {
+    data_cmd_.Clear();
+    data_cmd_.set_type(client::Type::INFOCAPACITY);
+    s = TryDataRpc(*node_iter);
+    node_iter++;
+    if (s.IsIOError()) {
+      continue;
+    }
+    for (int i = 0; i < data_res_.info_capacity_size(); i++) {
+      std::string name = data_res_.info_capacity(i).table_name();
+      if (name == table) {
+        std::pair<Node, SpaceInfo> info;
+        info.first = *node_iter;
+        info.second.used = data_res_.info_capacity(i).used();
+        info.second.remain = data_res_.info_capacity(i).remain();
+        nodes->push_back(info);
+        break;
+      }
+    }
+  }
+  return Status::OK();
+}
+
 Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
-    int attempt, bool has_pull) {
+    bool has_pull) {
   Status s;
   Node master;
 
@@ -336,14 +436,30 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
     s = Pull(table);
     has_pull = true;
     if (s.ok()) {
-      return SubmitDataCmd(table, key, attempt, has_pull);
+      return SubmitDataCmd(table, key, has_pull);
     } else {
       return Status::IOError("can't find data node, can't pull either");
     }
   }
+  s =  TryDataRpc(master);
+  if (!s.ok()) {
+    if (has_pull) {
+      return Status::IOError("can't connect to data node after pull");
+    }
+    s = Pull(table);
+    has_pull = true;
+    if (s.ok()) {
+      return SubmitDataCmd(table, key, has_pull);
+    } else {
+      return Status::IOError("can't connect to data node, can't pull either");
+    }
+  }
+  return s;
+}
 
+Status Cluster::TryDataRpc(const Node& master, int attempt) {
   ZpConn* data_cli = data_pool_->GetConnection(master);
-
+  Status s;
   if (data_cli) {
     s = data_cli->Send(&data_cmd_);
     if (s.ok()) {
@@ -354,22 +470,12 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
     } else if (s.IsIOError()) {
       data_pool_->RemoveConnection(data_cli);
       if (attempt <= kDataAttempt) {
-        return SubmitDataCmd(table, key, attempt+1, has_pull);
+        return TryDataRpc(master, attempt+1);
       }
       return Status::IOError("data connectin can't work,after attempts");
     }
-
-  } else if (has_pull) {
-    return Status::IOError("can't connect to data,after pull");
-  } else if (!has_pull) {
-    s = Pull(table);
-    if (s.ok()) {
-      return SubmitDataCmd(table, key, attempt+1, true);
-    } else {
-      return Status::IOError("can't find data node, can't pull either");
-    }
   }
-  return Status::Corruption("should never reach here");
+  return Status::NotFound("can't get data conn");
 }
 
 Status Cluster::SubmitMetaCmd(int attempt) {
@@ -401,8 +507,8 @@ Status Cluster::SubmitMetaCmd(int attempt) {
 Status Cluster::DebugDumpTable(const std::string& table) {
   std::cout << "epoch:" << epoch_ << std::endl;
   bool found = false;
-  auto it = tables_->begin();
-  while (it != tables_->end()) {
+  auto it = tables_.begin();
+  while (it != tables_.end()) {
     if (it->first == table) {
       found = true;
       it->second->DebugDump();
@@ -419,8 +525,8 @@ Status Cluster::DebugDumpTable(const std::string& table) {
 
 const Table::Partition* Cluster::GetPartition(const std::string& table,
     const std::string& key) {
-  auto it = tables_->begin();
-  while (it != tables_->end()) {
+  auto it = tables_.begin();
+  while (it != tables_.end()) {
     if (it->first == table) {
       return it->second->GetPartition(key);
     }
@@ -441,18 +547,18 @@ Node Cluster::GetRandomMetaAddr() {
 Status Cluster::GetDataMaster(const std::string& table,
     const std::string& key, Node* master) {
   std::unordered_map<std::string, Table*>::iterator it =
-    tables_->find(table);
+    tables_.find(table);
   Status s;
-  if (it == tables_->end()) {
+  if (it == tables_.end()) {
     s = Pull(table);
     if (s.ok()) {
-      it = tables_->find(table);
+      it = tables_.find(table);
     } else {
       return Status::NotFound("table does not exist");
     }
   }
 
-  if (it != tables_->end()) {
+  if (it != tables_.end()) {
     *master = it->second->GetKeyMaster(key);
     return Status::OK();
   } else {
@@ -464,14 +570,14 @@ Status Cluster::ResetClusterMap(const ZPMeta::MetaCmdResponse_Pull& pull) {
   epoch_ = pull.version();
   for (int i = 0; i < pull.info_size(); i++) {
     std::cout << "reset table:" << pull.info(i).name() << std::endl;
-    auto it = tables_->find(pull.info(i).name());
-    if (it != tables_->end()) {
+    auto it = tables_.find(pull.info(i).name());
+    if (it != tables_.end()) {
       delete it->second;
-      tables_->erase(it);
+      tables_.erase(it);
     }
     Table* new_table = new Table(pull.info(i));
     std::string table_name = pull.info(i).name();
-    tables_->insert(std::make_pair(pull.info(i).name(), new_table));
+    tables_.insert(std::make_pair(pull.info(i).name(), new_table));
   }
   return Status::OK();
 }
