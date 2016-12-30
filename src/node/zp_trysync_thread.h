@@ -28,9 +28,15 @@ class ZPTrySyncThread {
   pink::BGThread* bg_thread_;
   static void DoTrySyncTask(void* arg);
   bool SendTrySync(Partition *partition);
-  bool Send(Partition* partition, pink::PbCli* cli);
-  // Return value:   0 means ok; -1 means wait; -2 means error;
-  int Recv(int id, pink::PbCli* cli);
+  bool Send(const Partition* partition, pink::PbCli* cli);
+  
+  struct RecvResult {
+    client::StatusCode code;
+    std::string message;
+    uint32_t filenum;
+    uint64_t offset;
+  };
+  bool Recv(Partition* partition, pink::PbCli* cli, RecvResult* res);
 
   // Rsync related
   int rsync_flag_;

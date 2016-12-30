@@ -53,13 +53,11 @@ void ZPTrySyncThread::TrySyncTask(Partition* partition) {
   }
 }
 
-bool ZPTrySyncThread::Send(Partition* partition, pink::PbCli* cli) {
-  std::string wbuf_str;
+bool ZPTrySyncThread::Send(const Partition* partition, pink::PbCli* cli) {
+  // Generate Request 
   client::CmdRequest request;
   client::CmdRequest_Sync* sync = request.mutable_sync();
-
   request.set_type(client::Type::SYNC);
-
   client::Node* node = sync->mutable_node();
   node->set_ip(zp_data_server->local_ip());
   node->set_port(zp_data_server->local_port());
@@ -68,44 +66,47 @@ bool ZPTrySyncThread::Send(Partition* partition, pink::PbCli* cli) {
   uint64_t offset = 0;
   partition->GetBinlogOffset(&filenum, &offset);
   sync->set_table_name(partition->table_name());
-  sync->set_filenum(filenum);
-  sync->set_offset(offset);
-  sync->set_partition_id(partition->partition_id());
+  client::SyncOffset *sync_offset = sync->mutable_sync_offset();
+  sync_offset->set_partition(partition->partition_id());
+  sync_offset->set_filenum(filenum);
+  sync_offset->set_offset(offset);
 
+  // Send through client
   pink::Status s = cli->Send(&request);
-  DLOG(INFO) << "TrySync: Partition " << partition->table_name() << "_" << partition->partition_id() << " with SyncPoint ("
-    << sync->node().ip() << ":" << sync->node().port() << ", " << filenum << ", " << offset << ")";
+  DLOG(INFO) << "TrySync: Partition " << partition->table_name() << "_"
+    << partition->partition_id() << " with SyncPoint ("
+    << sync->node().ip() << ":" << sync->node().port()
+    << ", " << filenum << ", " << offset << ")";
   if (!s.ok()) {
-    LOG(WARNING) << "TrySync send failed, Partition " << partition->table_name() << "_" << partition->partition_id() << ", caz " << s.ToString();
+    LOG(WARNING) << "TrySync send failed, Partition " << partition->table_name()
+      << "_" << partition->partition_id() << ", caz " << s.ToString();
     return false;
   }
   return true;
 }
 
-int ZPTrySyncThread::Recv(int partition_id, pink::PbCli* cli) {
+bool ZPTrySyncThread::Recv(Partition* partition, pink::PbCli* cli, RecvResult* res) {
+  // Recv from client
   client::CmdResponse response;
   pink::Status result = cli->Recv(&response); 
-
   if (!result.ok()) {
-    LOG(WARNING) << "TrySync recv failed, Partition:" << partition_id << ", caz " << result.ToString();
-    return -2;
+    LOG(WARNING) << "TrySync recv failed, Partition:"
+      << partition->partition_id() << ", caz " << result.ToString();
+    return false;
   }
 
-  if (response.type() == client::Type::SYNC) {
-    if (response.code() == client::StatusCode::kOk) {
-      DLOG(INFO) << "TrySync receive ok, Partition:" << partition_id;;
-    } else if (response.code() == client::StatusCode::kWait) {
-      LOG(INFO) << "TrySync receive kWait, Partition:" << partition_id;
-      return -1;
-    } else {
-      LOG(WARNING) << "TrySync receive error: " << response.msg() <<" Partition:" << partition_id;
-      return -2;
-    }
-  } else {
-    LOG(WARNING) << "TrySync recv error type reponse, Partition:" << partition_id;
-    return -2;
+  res->code = response.code();
+  res->message = response.msg();
+  if (response.type() != client::Type::SYNC) {
+    LOG(WARNING) << "TrySync recv error type reponse, Partition:"
+      << partition->partition_id();
+    return false;
   }
-  return 0;
+  if (response.has_sync())  {
+    res->filenum = response.sync().sync_offset().filenum();
+    res->offset = response.sync().sync_offset().offset();
+  }
+  return true;
 }
 
 pink::PbCli* ZPTrySyncThread::GetConnection(const Node& node) {
@@ -147,7 +148,8 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
     }
     partition->WaitDBSyncDone();
     RsyncUnref();
-    LOG(INFO) << "Success Update Master Offset for Partition " << partition->table_name() << "_" << partition->partition_id();
+    LOG(INFO) << "Success Update Master Offset for Partition "
+      << partition->table_name() << "_" << partition->partition_id();
   }
 
   if (!partition->ShouldTrySync()) {
@@ -155,9 +157,10 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
   }
 
   Node master_node = partition->master_node();
-  //DLOG(INFO) << "TrySync will connect(" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ")";
   pink::PbCli* cli = GetConnection(master_node);
-  DLOG(INFO) << "TrySync connect(" << partition->table_name() << "_" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ") " << (cli != NULL ? "ok" : "failed");
+  DLOG(INFO) << "TrySync connect(" << partition->table_name() << "_"
+    << partition->partition_id() << "_" << master_node.ip << ":"
+    << master_node.port << ") " << (cli != NULL ? "ok" : "failed");
   if (cli) {
     cli->set_send_timeout(1000);
     cli->set_recv_timeout(1000);
@@ -166,21 +169,43 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
     RsyncRef();
     // Send && Recv
     if (Send(partition, cli)) {
-      int ret = Recv(partition->partition_id(), cli);
-      if (ret == 0) {
-        RsyncUnref();
-        partition->TrySyncDone();
-        return true;
-      } else if (ret == -1) {
-        partition->SetWaitDBSync();
+      RecvResult res;
+      if (Recv(partition, cli, &res)) {
+        switch (res.code) {
+          case client::StatusCode::kOk:
+            partition->TrySyncDone();
+            RsyncUnref();
+            return true;
+          case client::StatusCode::kFallback:
+            partition->SetBinlogOffset(res.filenum, res.offset);
+            break;
+          case client::StatusCode::kWait:
+            RsyncRef(); // Keep the rsync deamon for sync file receive
+            partition->SetWaitDBSync();
+            break;
+          default:
+            LOG(WARNING) << "TrySyncThread failed, " 
+              << partition->table_name() << "_" << partition->partition_id()
+              << "_" << master_node.ip << ":" << master_node.port << "), Msg: "
+              << res.message;
+        }
       } else {
-        RsyncUnref();
+        LOG(WARNING) << "TrySyncThread Recv failed, " 
+          << partition->table_name() << "_" << partition->partition_id()
+          << "_" << master_node.ip << ":" << master_node.port << ")";
         DropConnection(master_node);
       }
+    } else {
+      LOG(WARNING) << "TrySyncThread Send failed, " 
+        << partition->table_name() << "_" << partition->partition_id()
+        << "_" << master_node.ip << ":" << master_node.port << ")";
+      DropConnection(master_node);
     }
+    RsyncUnref();
   } else {
-    LOG(WARNING) << "TrySyncThread Connect failed(" 
-      << partition->table_name() << "_" << partition->partition_id() << "_" << master_node.ip << ":" << master_node.port << ")";
+    LOG(WARNING) << "TrySyncThread Connect failed (" 
+      << partition->table_name() << "_" << partition->partition_id()
+      << "_" << master_node.ip << ":" << master_node.port << ")";
   }
   return false;
 }
@@ -200,11 +225,9 @@ void ZPTrySyncThread::RsyncRef() {
   if (0 == rsync_flag_) {
     slash::StopRsync(zp_data_server->db_sync_path());
     std::string dbsync_path = zp_data_server->db_sync_path();
-    //std::string ip_port = slash::IpPortString(zp_data_server->master_ip(), zp_data_server->master_port());
 
     // We append the master ip port after module name
     // To make sure only data from current master is received
-    //int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, zp_data_server->local_port() + kPortShiftRsync);
     int ret = slash::StartRsync(dbsync_path, kDBSyncModule,
         zp_data_server->local_ip(), zp_data_server->local_port() + kPortShiftRsync);
     if (0 != ret) {

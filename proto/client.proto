@@ -15,6 +15,7 @@ enum StatusCode {
   kNotFound = 1;
   kWait = 2;
   kError = 3;
+  kFallback = 4;
 }
 
 message Node {

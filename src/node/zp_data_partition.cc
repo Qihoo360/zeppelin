@@ -319,7 +319,7 @@ bool Partition::TryUpdateMasterOffset() {
   }
 
   // Update master offset
-  logger_->SetProducerStatus(filenum, offset);
+  SetBinlogOffset(filenum, offset);
   return true;
 }
 
@@ -329,7 +329,7 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
   uint64_t cur_offset = 0;
   logger_->GetProducerStatus(&cur_filenum, &cur_offset);
   if (cur_filenum < filenum || (cur_filenum == filenum && cur_offset < offset)) {
-    return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
+    return Status::EndFile("AddBinlogSender invalid binlog offset");
   }
 
   // Binlog already be purged
@@ -376,6 +376,9 @@ void Partition::BecomeMaster() {
   role_ = Role::kNodeMaster;
   repl_state_ = ReplState::kNoConnect;
   readonly_ = false;
+  
+  // Record binlog offset when I win the master for the later slave sync
+  GetBinlogOffset(&win_filenum_, &win_offset_);
 }
 
 // Requeired: hold write lock of state_rw_
@@ -386,6 +389,18 @@ void Partition::BecomeSlave() {
   readonly_ = true;
 
   zp_data_server->AddSyncTask(this);
+}
+
+// Get binlog offset when I win the election
+// Return false if I'm not a master
+bool Partition::GetWinBinlogOffset(uint32_t* filenum, uint64_t* offset) {
+  slash::RWLock l(&state_rw_, false);
+  if (role_ != Role::kNodeMaster) {
+    return false;
+  }
+  *filenum = win_filenum_;
+  *offset = win_offset_;
+  return true;
 }
 
 // Update partition state
