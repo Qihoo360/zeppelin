@@ -361,9 +361,11 @@ Status Cluster::InfoOffset(const Node& node, const std::string& table,
     std::vector<std::pair<int, BinlogOffset>>* partitions) {
   Status s;
 
+  Pull(table);
   data_cmd_.Clear();
   data_cmd_.set_type(client::Type::INFOPARTITION);
   s = TryDataRpc(node);
+
   for (int i = 0; i < data_res_.info_partition_size(); i++) {
     std::string name = data_res_.info_partition(i).table_name();
     if (name == table) {
@@ -378,6 +380,44 @@ Status Cluster::InfoOffset(const Node& node, const std::string& table,
         partitions->push_back(offset);
       }
       break;
+    }
+  }
+  return Status::OK();
+}
+
+Status Cluster::InfoSpace(const std::string& table,
+    std::vector<std::pair<Node, SpaceInfo>>* nodes) {
+  Status s;
+
+  Pull(table);
+  auto table_iter = tables_.find(table);
+  if (table_iter == tables_.end()) {
+    return Status::NotFound("this table does not exist");
+  }
+  Table* table_map = table_iter->second;
+
+  std::vector<Node> related_nodes;
+  table_map->GetNodes(&related_nodes);
+
+  auto node_iter = related_nodes.begin();
+  while (node_iter != related_nodes.end()) {
+    data_cmd_.Clear();
+    data_cmd_.set_type(client::Type::INFOCAPACITY);
+    s = TryDataRpc(*node_iter);
+    node_iter++;
+    if (s.IsIOError()) {
+      continue;
+    }
+    for (int i = 0; i < data_res_.info_capacity_size(); i++) {
+      std::string name = data_res_.info_capacity(i).table_name();
+      if (name == table) {
+        std::pair<Node, SpaceInfo> info;
+        info.first = *node_iter;
+        info.second.used = data_res_.info_capacity(i).used();
+        info.second.remain = data_res_.info_capacity(i).remain();
+        nodes->push_back(info);
+        break;
+      }
     }
   }
   return Status::OK();

@@ -59,6 +59,8 @@ class Cluster {
   Status InfoQps(const std::string& table, int* qps, int* total_query);
   Status InfoOffset(const Node& node, const std::string& table,
       std::vector<std::pair<int, BinlogOffset>>* partitions);
+  Status InfoSpace(const std::string& table,
+      std::vector<std::pair<Node, SpaceInfo>>* nodes);
 
   // local cmd
   Status DebugDumpTable(const std::string& table);

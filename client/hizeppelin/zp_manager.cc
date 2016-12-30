@@ -305,6 +305,23 @@ void StartRepl(libzp::Cluster* cluster) {
           std::cout << "  offset:" << partitions[i].second.offset << std::endl;
         }
 
+    } else if (!strncasecmp(line, "space", 5)) {
+       if (line_args.size() != 2) {
+         std::cout << "arg num wrong" << std::endl;
+         continue;
+       }
+       std::string table_name = line_args[1];
+       std::vector<std::pair<libzp::Node, libzp::SpaceInfo>> nodes;
+       libzp::Status s = cluster->InfoSpace(table_name, &nodes);
+       std::cout << "space info for " << table_name << std::endl;
+       for (int i = 0; i < nodes.size(); i++) {
+         std::cout << "node: " << nodes[i].first.ip << "" <<
+           nodes[i].first.port << std::endl;
+         std::cout << "  used:" << nodes[i].second.used
+           << " bytes" << std::endl;
+         std::cout << "  remain:" << nodes[i].second.remain
+           << " bytes" << std::endl;
+       }
     } else {
       printf("Unrecognized command: %s\n", line);
     }

@@ -43,6 +43,12 @@ struct BinlogOffset {
   int file_num;
   int offset;
 };
+
+struct SpaceInfo {
+  int used;
+  int remain;
+};
+
 class Table {
  public:
   struct Partition {
