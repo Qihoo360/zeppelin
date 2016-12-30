@@ -1,6 +1,6 @@
 #include "zp_data_partition.h"
 
-#include <set>
+#include <vector>
 #include <fstream>
 #include <glog/logging.h>
 #include "zp_data_server.h"
@@ -355,45 +355,35 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
   return s;
 }
 
-// Should hold write lock of state_rw_
-void Partition::CleanRoleEnv() {
-  // Clean binlog sender if needed
-  for (auto iter = slave_nodes_.begin(); iter != slave_nodes_.end(); iter++) {
-    zp_data_server->RemoveBinlogSendTask(table_name_, partition_id_, *iter);
+// Requeired: hold write lock of state_rw_
+void Partition::CleanSlaves(const std::set<Node> &old_slaves) {
+  for (auto& old : old_slaves) {
+    zp_data_server->RemoveBinlogSendTask(table_name_, partition_id_, old);
   }
-
-  // Clean binlog receiver
-  // TODO
 }
 
-// Should hold write lock of state_rw_
+// Requeired: hold write lock of state_rw_
 void Partition::BecomeSingle() {
-  CleanRoleEnv();
   LOG(INFO) << " Partition " << partition_id_ << " BecomeSingle";
   role_ = Role::kNodeSingle;
   repl_state_ = ReplState::kNoConnect;
   readonly_ = true;
 }
 
-// Should hold write lock of state_rw_
+// Requeired: hold write lock of state_rw_
 void Partition::BecomeMaster() {
-  CleanRoleEnv();
   LOG(INFO) << " Partition " << partition_id_ << " BecomeMaster";
   role_ = Role::kNodeMaster;
   repl_state_ = ReplState::kNoConnect;
   readonly_ = false;
 }
 
-// Should hold write lock of state_rw_
+// Requeired: hold write lock of state_rw_
 void Partition::BecomeSlave() {
-  CleanRoleEnv();
   LOG(INFO) << " Partition " << partition_id_ << " BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
   role_ = Role::kNodeSlave;
   repl_state_ = ReplState::kShouldConnect;
   readonly_ = true;
-
-  // Clean binlog
-  logger_->SetProducerStatus(0, 0);
 
   zp_data_server->AddSyncTask(this);
 }
@@ -410,7 +400,7 @@ ZPMeta::PState Partition::UpdateState(ZPMeta::PState state) {
   return pstate_;
 }
 
-void Partition::Update(ZPMeta::PState state, const Node &master, const std::vector<Node> &slaves) {
+void Partition::Update(ZPMeta::PState state, const Node &master, const std::set<Node> &slaves) {
   slash::RWLock l(&state_rw_, true);
 
   // Check Status first
@@ -421,20 +411,25 @@ void Partition::Update(ZPMeta::PState state, const Node &master, const std::vect
   }
 
   // Update master slave nodes
-  bool change_master = false, change_slave = false;
+  bool change_master = false;
+  std::set<Node> miss_slaves;
+
   if (master_node_ != master) {
     master_node_ = master;
     change_master = true;
   }
   if (slave_nodes_ != slaves) {
+    miss_slaves = slave_nodes_;
     slave_nodes_.clear();
-    for (auto slave : slaves) {
-      slave_nodes_.push_back(slave);
+    for (auto& slave : slaves) {
+      slave_nodes_.insert(slave);
+      // Remove those who also exist in the new slaves
+      // And what's remain in miss_slaves is those who will not be slave any more
+      miss_slaves.erase(slave);
     }
-    change_slave = true;
   }
 
-  // Update role
+  // Determine new role
   Role new_role = Role::kNodeSingle;
   if (zp_data_server->IsSelf(master)) {
     new_role = Role::kNodeMaster;
@@ -445,6 +440,17 @@ void Partition::Update(ZPMeta::PState state, const Node &master, const std::vect
       break;
     }
   }
+
+  // Clean Slaves
+  if (role_ == Role::kNodeMaster) {
+    CleanSlaves(miss_slaves);
+    if (new_role != Role::kNodeMaster) {
+      // Clean all others also
+      CleanSlaves(slave_nodes_);
+    }
+  }
+
+  // Update role
   if (role_ != new_role) {
     // Change role
     if (new_role == Role::kNodeMaster) {
@@ -457,9 +463,6 @@ void Partition::Update(ZPMeta::PState state, const Node &master, const std::vect
   } else if (change_master && role_ == Role::kNodeSlave) {
     // Change master
     BecomeSlave();
-  } else if (change_slave && role_ == Role::kNodeMaster) {
-    // Change slave
-    BecomeMaster();
   }
 }
 
@@ -471,7 +474,7 @@ std::string NewPartitionPath(const std::string& name, const uint32_t current) {
 
 Partition* NewPartition(const std::string &table_name,
     const std::string& log_path, const std::string& data_path,
-    const int partition_id, const Node& master, const std::vector<Node> &slaves) {
+    const int partition_id, const Node& master, const std::set<Node> &slaves) {
   Partition* partition = new Partition(table_name, partition_id, log_path, data_path);
 
   // Check and update purged_index_
@@ -504,7 +507,7 @@ void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
   cmd->Do(&req, &res, this);
 
   std::string raw;
-  assert(req.SerializeToString(&raw));
+  req.SerializeToString(&raw);
   logger_->Put(raw);
 
   if (!cmd->is_suspend()) {
@@ -546,7 +549,7 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
     if (res.code() == client::StatusCode::kOk  && req.type() != client::Type::SYNC) {
       // Restore Message
       std::string raw;
-      assert(req.SerializeToString(&raw));
+      req.SerializeToString(&raw);
       logger_->Put(raw);
     }
     mutex_record_.Unlock(key);
@@ -848,7 +851,7 @@ bool Partition::CouldPurge(uint32_t index) {
     return false;
   }
 
-  std::vector<Node>::iterator it;
+  std::set<Node>::iterator it;
   slash::RWLock l(&state_rw_, false);
   for (it = slave_nodes_.begin(); it != slave_nodes_.end(); ++it) {
     int32_t filenum = zp_data_server->GetBinlogSendFilenum(table_name_, partition_id_, *it);
@@ -884,8 +887,8 @@ void Partition::Dump() {
   LOG(INFO) << "     -*State " << static_cast<int>(pstate_);
   LOG(INFO) << "     -*Master node " << master_node_;
 
-  for (size_t i = 0; i < slave_nodes_.size(); i++) {
-    LOG(INFO) << "     -* slave  " << i << " " <<  slave_nodes_[i];
+  for (auto& slave : slave_nodes_) {
+    LOG(INFO) << "     -* slave  " <<  slave;
   }
 }
 

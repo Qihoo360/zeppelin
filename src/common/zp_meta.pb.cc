@@ -590,7 +590,7 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "ns\"K\n\014BasicCmdUnit\022\014\n\004name\030\001 \002(\t\022\021\n\tpart"
     "ition\030\002 \002(\005\022\032\n\004node\030\003 \002(\0132\014.ZPMeta.Node\""
     "T\n\nSyncOffset\022\022\n\ntable_name\030\001 \002(\t\022\021\n\tpar"
-    "tition\030\002 \003(\005\022\017\n\007filenum\030\003 \001(\005\022\016\n\006offset\030"
+    "tition\030\002 \002(\005\022\017\n\007filenum\030\003 \001(\005\022\016\n\006offset\030"
     "\004 \001(\003\"\345\004\n\007MetaCmd\022\032\n\004type\030\001 \002(\0162\014.ZPMeta"
     ".Type\022\"\n\004ping\030\002 \001(\0132\024.ZPMeta.MetaCmd.Pin"
     "g\022\"\n\004pull\030\003 \001(\0132\024.ZPMeta.MetaCmd.Pull\022\"\n"
@@ -2887,6 +2887,7 @@ SyncOffset::SyncOffset(const SyncOffset& from)
 void SyncOffset::SharedCtor() {
   _cached_size_ = 0;
   table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  partition_ = 0;
   filenum_ = 0;
   offset_ = GOOGLE_LONGLONG(0);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -2932,10 +2933,10 @@ void SyncOffset::Clear() {
         table_name_->clear();
       }
     }
+    partition_ = 0;
     filenum_ = 0;
     offset_ = GOOGLE_LONGLONG(0);
   }
-  partition_.Clear();
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
 }
@@ -2962,24 +2963,18 @@ bool SyncOffset::MergePartialFromCodedStream(
         break;
       }
 
-      // repeated int32 partition = 2;
+      // required int32 partition = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
          parse_partition:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadRepeatedPrimitive<
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 1, 16, input, this->mutable_partition())));
-        } else if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag)
-                   == ::google::protobuf::internal::WireFormatLite::
-                      WIRETYPE_LENGTH_DELIMITED) {
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPackedPrimitiveNoInline<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 input, this->mutable_partition())));
+                 input, &partition_)));
+          set_has_partition();
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(16)) goto parse_partition;
         if (input->ExpectTag(24)) goto parse_filenum;
         break;
       }
@@ -3043,10 +3038,9 @@ void SyncOffset::SerializeWithCachedSizes(
       1, this->table_name(), output);
   }
 
-  // repeated int32 partition = 2;
-  for (int i = 0; i < this->partition_size(); i++) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(
-      2, this->partition(i), output);
+  // required int32 partition = 2;
+  if (has_partition()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->partition(), output);
   }
 
   // optional int32 filenum = 3;
@@ -3077,10 +3071,9 @@ void SyncOffset::SerializeWithCachedSizes(
         1, this->table_name(), target);
   }
 
-  // repeated int32 partition = 2;
-  for (int i = 0; i < this->partition_size(); i++) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      WriteInt32ToArray(2, this->partition(i), target);
+  // required int32 partition = 2;
+  if (has_partition()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->partition(), target);
   }
 
   // optional int32 filenum = 3;
@@ -3111,6 +3104,13 @@ int SyncOffset::ByteSize() const {
           this->table_name());
     }
 
+    // required int32 partition = 2;
+    if (has_partition()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->partition());
+    }
+
     // optional int32 filenum = 3;
     if (has_filenum()) {
       total_size += 1 +
@@ -3126,16 +3126,6 @@ int SyncOffset::ByteSize() const {
     }
 
   }
-  // repeated int32 partition = 2;
-  {
-    int data_size = 0;
-    for (int i = 0; i < this->partition_size(); i++) {
-      data_size += ::google::protobuf::internal::WireFormatLite::
-        Int32Size(this->partition(i));
-    }
-    total_size += 1 * this->partition_size() + data_size;
-  }
-
   if (!unknown_fields().empty()) {
     total_size +=
       ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
@@ -3161,10 +3151,12 @@ void SyncOffset::MergeFrom(const ::google::protobuf::Message& from) {
 
 void SyncOffset::MergeFrom(const SyncOffset& from) {
   GOOGLE_CHECK_NE(&from, this);
-  partition_.MergeFrom(from.partition_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     if (from.has_table_name()) {
       set_table_name(from.table_name());
+    }
+    if (from.has_partition()) {
+      set_partition(from.partition());
     }
     if (from.has_filenum()) {
       set_filenum(from.filenum());
@@ -3189,7 +3181,7 @@ void SyncOffset::CopyFrom(const SyncOffset& from) {
 }
 
 bool SyncOffset::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
+  if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
 
   return true;
 }
@@ -3197,7 +3189,7 @@ bool SyncOffset::IsInitialized() const {
 void SyncOffset::Swap(SyncOffset* other) {
   if (other != this) {
     std::swap(table_name_, other->table_name_);
-    partition_.Swap(&other->partition_);
+    std::swap(partition_, other->partition_);
     std::swap(filenum_, other->filenum_);
     std::swap(offset_, other->offset_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);

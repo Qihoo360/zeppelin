@@ -73,7 +73,7 @@ Partition* Table::GetPartitionById(const int partition_id) {
 }
 
 bool Table::UpdateOrAddPartition(const int partition_id,
-    ZPMeta::PState state, const Node& master, const std::vector<Node>& slaves) {
+    ZPMeta::PState state, const Node& master, const std::set<Node>& slaves) {
   slash::RWLock l(&partition_rw_, true);
   auto iter = partitions_.find(partition_id);
   if (iter != partitions_.end()) {
@@ -117,5 +117,15 @@ void Table::DoTimingTask() {
   for (auto pair : partitions_) {
     //sleep(1);
     pair.second->AutoPurge();
+  }
+}
+
+void Table::DumpPartitionBinlogOffsets(std::vector<PartitionBinlogOffset> &offset) {
+  slash::RWLock l(&partition_rw_, false);
+  PartitionBinlogOffset tboffset;
+  for (auto& pair : partitions_) {
+    tboffset.partition_id = pair.first;
+    (pair.second)->GetBinlogOffset(&(tboffset.filenum), &(tboffset.offset));
+    offset.push_back(tboffset);
   }
 }

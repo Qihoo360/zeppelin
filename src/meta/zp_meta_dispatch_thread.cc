@@ -30,6 +30,7 @@ void ZPMetaDispatchThread::CronHandle() {
   
   // Check alive
   g_meta_server->CheckNodeAlive();
+  g_meta_server->DebugOffset();
   g_meta_server->ScheduleUpdate();
 }
 

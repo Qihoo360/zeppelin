@@ -39,14 +39,17 @@ class Node {
     return (ip.empty() || port == 0);
   }
 
-  bool operator==(const Node& rhs) const {
+  bool operator== (const Node& rhs) const {
     return (ip == rhs.ip && port == rhs.port);
   }
-  bool operator!=(const Node& rhs) const {
+  bool operator!= (const Node& rhs) const {
     return (ip != rhs.ip || port != rhs.port);
   }
+  bool operator< (const Node& rhs) const {
+    return (ip < rhs.ip || port < rhs.port);
+  }
 
-  friend std::ostream& operator<<(std::ostream& stream, const Node& node) {
+  friend std::ostream& operator<< (std::ostream& stream, const Node& node) {
     stream << node.ip << ":" << node.port;
     return stream;
   }

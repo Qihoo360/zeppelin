@@ -29,6 +29,8 @@ void PingCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
     response->set_msg(s.ToString());
   }
 
+  g_meta_server->UpdateOffset(request->ping());
+
   ZPMeta::MetaCmdResponse_Ping* ping = response->mutable_ping();
   ping->set_version(g_meta_server->version());
 

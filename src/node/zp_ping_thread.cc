@@ -22,8 +22,21 @@ pink::Status ZPPingThread::Send() {
   node->set_ip(zp_data_server->local_ip());
   node->set_port(zp_data_server->local_port());
   request.set_type(ZPMeta::Type::PING);
+  
+  std::unordered_map<std::string, std::vector<PartitionBinlogOffset>> all_offset;
+  zp_data_server->DumpTableBinlogOffsets(all_offset);
+  for (auto& item : all_offset) {
+    for(auto& p : item.second) {
+      ZPMeta::SyncOffset *offset = ping->add_offset();
+      offset->set_table_name(item.first);
+      offset->set_partition(p.partition_id);
+      offset->set_filenum(p.filenum);
+      offset->set_offset(p.offset);
+    }
+  }
 
-  DLOG(INFO) << "Ping Meta (" << zp_data_server->meta_ip() << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd
+  DLOG(INFO) << "Ping Meta (" << zp_data_server->meta_ip()
+    << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd
     << ") with Epoch: " << meta_epoch;
   return cli_->Send(&request);
 }

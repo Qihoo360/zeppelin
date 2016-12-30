@@ -24,12 +24,12 @@ int ZPSyncConn::DealMessage() {
 
   request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
   
-  // Check requst
-  //if (request_.epoch() < zp_data_server->meta_epoch()) {
-  //  LOG(WARNING) << "Receive Binlog command with expired epoch:" << request_.epoch()
-  //    << " , my current epoch" << zp_data_server->meta_epoch();
-  //  return -1;
-  //}
+  // Check request
+  if (request_.epoch() < zp_data_server->meta_epoch()) {
+    LOG(WARNING) << "Receive Binlog command with expired epoch:" << request_.epoch()
+      << " , my current epoch" << zp_data_server->meta_epoch();
+    return -1;
+  }
   
   client::CmdRequest crequest = request_.request();
   // Debug info

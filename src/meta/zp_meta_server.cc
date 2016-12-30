@@ -577,6 +577,38 @@ Status ZPMetaServer::Distribute(const std::string &name, int num) {
   return Status::OK();
 }
 
+void ZPMetaServer::UpdateOffset(const ZPMeta::MetaCmd_Ping &ping) {
+  slash::MutexLock l(&offset_mutex_);
+  std::string ip_port;
+  std::string p;
+  LOG(INFO) << "Size: " << ping.offset_size();
+  for (int i = 0; i < ping.offset_size(); i++) {
+//    LOG(INFO) << "process " << i;
+    auto iter = offset_.find(ping.offset(i).table_name());
+    if (iter == offset_.end()) {
+      LOG(INFO) << "Table: Not Found " << ping.offset(i).table_name() << ", insert!";
+      std::unordered_map<std::string, std::unordered_map<std::string, NodeOffset> > partition2node;
+      offset_.insert(std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, NodeOffset> > >::value_type(ping.offset(i).table_name(), partition2node));
+      iter = offset_.find(ping.offset(i).table_name());
+    }
+    p = std::to_string(ping.offset(i).partition());
+
+    ip_port = slash::IpPortString(ping.node().ip(), ping.node().port()); 
+
+    NodeOffset node_offset = {ping.offset(i).filenum(), ping.offset(i).offset()};
+    auto it = iter->second.find(p);
+    if (it == iter->second.end()) {
+      LOG(INFO) << "Partition: Not Found " << p << ", insert!";
+      std::unordered_map<std::string, NodeOffset> node2offset;
+      node2offset.insert(std::unordered_map<std::string, NodeOffset>::value_type(ip_port, node_offset));
+      iter->second.insert(std::unordered_map<std::string, std::unordered_map<std::string, NodeOffset> >::value_type(p, node2offset));
+    } else {
+      it->second[ip_port] = node_offset;
+    }
+//    LOG(INFO) << "Insert " << ping.offset(i).table_name() << ", " << p << " : " << ip_port << " -> " << node_offset.filenum << ":" << node_offset.offset;
+  }
+}
+
 Status ZPMetaServer::InitVersionIfNeeded() {
   std::string value;
   int version = -1;
@@ -675,6 +707,21 @@ void ZPMetaServer::DebugNodes() {
     }
     LOG(INFO) << str;
   }
+}
+
+void ZPMetaServer::DebugOffset() {
+  slash::MutexLock l(&offset_mutex_);
+  for (auto iter = offset_.begin(); iter != offset_.end(); iter++) {
+    std::string str = iter->first + " :\n";
+    for (auto ite = iter->second.begin(); ite != iter->second.end(); ite++) {
+      str += ("    " + ite->first + " : ");
+      for (auto it = ite->second.begin(); it != ite->second.end(); it++) {
+        str += (it->first + " -> " + std::to_string(it->second.filenum) + ":" + std::to_string(it->second.offset) + "; ");
+      }
+      str += "\n";
+    }
+    LOG(INFO) << str;
+  } 
 }
 
 void ZPMetaServer::InitClientCmdTable() {
@@ -784,17 +831,30 @@ void ZPMetaServer::DoDownNodeForTableInfo(const ZPMeta::Nodes &nodes, ZPMeta::Ta
     ZPMeta::Node* master = p->mutable_master();
     int slaves_size = p->slaves_size();
     LOG(INFO) << "slaves_size:" << slaves_size;
+
+    int32_t max_filenum = -1;
+    int64_t max_offset = -1;
+    int candidate = -1;
+
     int j = 0;
+    int32_t filenum;
+    int64_t offset;
     for (j = 0; j < slaves_size; j++) {
       if (IsAlive(alive_nodes, p->slaves(j).ip(), p->slaves(j).port())) {
-        LOG(INFO) << "Use Slave " << j << " " << p->slaves(j).ip() << " " << p->slaves(j).port();
-        master->CopyFrom(p->slaves(j));
-        ZPMeta::Node* first = p->mutable_slaves(j);
-        first->CopyFrom(tmp);
-        break;
+        bool ret = GetSlaveOffset(table_info->name(), slash::IpPortString(p->slaves(j).ip(), p->slaves(j).port()), i, &filenum, &offset);
+        if (ret && (filenum > max_filenum || (filenum == max_filenum && offset > max_offset))) {
+          candidate = j;
+          max_filenum = filenum;
+          max_offset = offset;
+        }
       }
     }
-    if (j == slaves_size) {
+    if (candidate != -1) {
+      LOG(INFO) << "Use Slave " << candidate << " " << p->slaves(candidate).ip() << " " << p->slaves(candidate).port();
+      master->CopyFrom(p->slaves(candidate));
+      ZPMeta::Node* first = p->mutable_slaves(candidate);
+      first->CopyFrom(tmp);
+    } else {
       LOG(INFO) << "No Slave to use";
       ZPMeta::Node *slave = p->add_slaves();
       slave->CopyFrom(tmp);
@@ -1026,6 +1086,26 @@ bool ZPMetaServer::ShouldRetryAddVersion(const ZPMetaUpdateTaskDeque task_deque)
     }
   }
   return false;
+}
+
+bool ZPMetaServer::GetSlaveOffset(const std::string &table, const std::string &ip_port, const int partition, int32_t *filenum, int64_t *offset) {
+  slash::MutexLock l(&offset_mutex_);
+  auto iter = offset_.find(table);
+  if (iter == offset_.end()) {
+    return false;
+  }
+  auto ite = iter->second.find(std::to_string(partition));
+  if (ite == iter->second.end()) {
+    return false;
+  }
+  auto it = ite->second.find(ip_port);
+  if (it == ite->second.end()) {
+    return false;
+  }
+
+  *filenum = it->second.filenum;
+  *offset = it->second.offset;
+  return true;
 }
 
 void ZPMetaServer::Reorganize(const std::vector<ZPMeta::NodeStatus> &t_alive_nodes, std::vector<ZPMeta::NodeStatus> *alive_nodes) {

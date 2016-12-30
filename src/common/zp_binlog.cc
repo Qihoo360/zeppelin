@@ -245,8 +245,6 @@ Status BinlogReader::Consume(uint64_t* size, std::string& scratch) {
       case kBadRecord:
         last_error_happened_ = true;
         return Status::IOError("Data Corruption");
-      case kOldRecord:
-        return Status::EndFile("Eof");
       default:
         last_error_happened_ = true;
         return Status::IOError("Unknow reason");
@@ -307,15 +305,13 @@ unsigned int BinlogReader::ReadPhysicalRecord(uint64_t *size, slash::Slice *resu
   const uint32_t c = static_cast<uint32_t>(header[2]) & 0xff;
   const unsigned int type = header[3];
   const uint32_t length = a | (b << 8) | (c << 16);
-  if (type == kZeroType || length == 0) {
-    buffer_.clear();
-    return kOldRecord;
-  }
 
   buffer_.clear();
   s = queue_->Read(length, &buffer_, backing_store_);
   *result = slash::Slice(buffer_.data(), buffer_.size());
-  if (!s.ok()) {
+  if (s.IsEndFile()) {
+    return kEof;
+  } else if (!s.ok()) {
     return kBadRecord;
   }
 
@@ -445,6 +441,8 @@ Status Binlog::Put(const std::string &item) {
     uint64_t offset = 0;
     version_->Fetch(&filenum, &offset);
     version_->Save(filenum, offset + go_ahead);
+  } else {
+    LOG(WARNING) << "Binlog write failed: " << s.ToString();
   }
   return s;
 }

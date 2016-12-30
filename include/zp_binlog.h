@@ -29,7 +29,6 @@ enum RecordType {
   kLastType = 4,
   kEof = 5,
   kBadRecord = 6,
-  kOldRecord = 7
 };
 
 /**

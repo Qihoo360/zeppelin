@@ -115,12 +115,11 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(const ZPMeta::MetaCmdResponse 
         // No master patitions, simply ignore
         continue;
       }
-      std::vector<Node> slave_nodes;
+      std::set<Node> slave_nodes;
       for (int j = 0; j < partition.slaves_size(); j++) {
-        slave_nodes.push_back(Node(partition.slaves(j).ip(), partition.slaves(j).port()));
+        slave_nodes.insert(Node(partition.slaves(j).ip(), partition.slaves(j).port()));
       }
 
-      //bool result = zp_data_server->UpdateOrAddTablePartition(table_info.name(), partition.id(), master_node, slave_nodes);
       bool result = table->UpdateOrAddPartition(partition.id(), partition.state(), master_node, slave_nodes);
       if (!result) {
         LOG(WARNING) << "Failed to AddPartition " << partition.id() << ", State: " << static_cast<int>(partition.state())
