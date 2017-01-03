@@ -177,7 +177,6 @@ void SyncCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
     client::CmdResponse_Sync *sync_res = response->mutable_sync();
     sync_res->set_table_name(sync_req.table_name());
     client::SyncOffset *offset = sync_res->mutable_sync_offset();
-    offset->set_partition(sync_req.sync_offset().partition());
     uint32_t win_filenum = 0;
     uint64_t win_offset = 0;
     ptr->GetWinBinlogOffset(&win_filenum, &win_offset);

@@ -24,9 +24,9 @@ message Node {
 }
 
 message SyncOffset {
-  required int32 partition = 1;
-  required int32 filenum = 2;
-  required int64 offset = 3;
+  required int32 filenum = 1;
+  required int64 offset = 2;
+  optional int32 partition = 3;
 }
 
 message CmdRequest {
@@ -114,5 +114,6 @@ message CmdResponse {
 message SyncRequest {
   required int64 epoch = 1;
   required Node from = 2;
-  required CmdRequest request = 3;
+  required SyncOffset sync_offset = 3;
+  required CmdRequest request = 4;
 }

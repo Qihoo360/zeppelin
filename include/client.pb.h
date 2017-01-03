@@ -249,41 +249,41 @@ class SyncOffset : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required int32 partition = 1;
-  inline bool has_partition() const;
-  inline void clear_partition();
-  static const int kPartitionFieldNumber = 1;
-  inline ::google::protobuf::int32 partition() const;
-  inline void set_partition(::google::protobuf::int32 value);
-
-  // required int32 filenum = 2;
+  // required int32 filenum = 1;
   inline bool has_filenum() const;
   inline void clear_filenum();
-  static const int kFilenumFieldNumber = 2;
+  static const int kFilenumFieldNumber = 1;
   inline ::google::protobuf::int32 filenum() const;
   inline void set_filenum(::google::protobuf::int32 value);
 
-  // required int64 offset = 3;
+  // required int64 offset = 2;
   inline bool has_offset() const;
   inline void clear_offset();
-  static const int kOffsetFieldNumber = 3;
+  static const int kOffsetFieldNumber = 2;
   inline ::google::protobuf::int64 offset() const;
   inline void set_offset(::google::protobuf::int64 value);
 
+  // optional int32 partition = 3;
+  inline bool has_partition() const;
+  inline void clear_partition();
+  static const int kPartitionFieldNumber = 3;
+  inline ::google::protobuf::int32 partition() const;
+  inline void set_partition(::google::protobuf::int32 value);
+
   // @@protoc_insertion_point(class_scope:client.SyncOffset)
  private:
-  inline void set_has_partition();
-  inline void clear_has_partition();
   inline void set_has_filenum();
   inline void clear_has_filenum();
   inline void set_has_offset();
   inline void clear_has_offset();
+  inline void set_has_partition();
+  inline void clear_has_partition();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
-  ::google::protobuf::int32 partition_;
-  ::google::protobuf::int32 filenum_;
   ::google::protobuf::int64 offset_;
+  ::google::protobuf::int32 filenum_;
+  ::google::protobuf::int32 partition_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
@@ -1767,10 +1767,19 @@ class SyncRequest : public ::google::protobuf::Message {
   inline ::client::Node* release_from();
   inline void set_allocated_from(::client::Node* from);
 
-  // required .client.CmdRequest request = 3;
+  // required .client.SyncOffset sync_offset = 3;
+  inline bool has_sync_offset() const;
+  inline void clear_sync_offset();
+  static const int kSyncOffsetFieldNumber = 3;
+  inline const ::client::SyncOffset& sync_offset() const;
+  inline ::client::SyncOffset* mutable_sync_offset();
+  inline ::client::SyncOffset* release_sync_offset();
+  inline void set_allocated_sync_offset(::client::SyncOffset* sync_offset);
+
+  // required .client.CmdRequest request = 4;
   inline bool has_request() const;
   inline void clear_request();
-  static const int kRequestFieldNumber = 3;
+  static const int kRequestFieldNumber = 4;
   inline const ::client::CmdRequest& request() const;
   inline ::client::CmdRequest* mutable_request();
   inline ::client::CmdRequest* release_request();
@@ -1782,6 +1791,8 @@ class SyncRequest : public ::google::protobuf::Message {
   inline void clear_has_epoch();
   inline void set_has_from();
   inline void clear_has_from();
+  inline void set_has_sync_offset();
+  inline void clear_has_sync_offset();
   inline void set_has_request();
   inline void clear_has_request();
 
@@ -1789,10 +1800,11 @@ class SyncRequest : public ::google::protobuf::Message {
 
   ::google::protobuf::int64 epoch_;
   ::client::Node* from_;
+  ::client::SyncOffset* sync_offset_;
   ::client::CmdRequest* request_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -1904,37 +1916,15 @@ inline void Node::set_port(::google::protobuf::int32 value) {
 
 // SyncOffset
 
-// required int32 partition = 1;
-inline bool SyncOffset::has_partition() const {
+// required int32 filenum = 1;
+inline bool SyncOffset::has_filenum() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void SyncOffset::set_has_partition() {
+inline void SyncOffset::set_has_filenum() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void SyncOffset::clear_has_partition() {
-  _has_bits_[0] &= ~0x00000001u;
-}
-inline void SyncOffset::clear_partition() {
-  partition_ = 0;
-  clear_has_partition();
-}
-inline ::google::protobuf::int32 SyncOffset::partition() const {
-  return partition_;
-}
-inline void SyncOffset::set_partition(::google::protobuf::int32 value) {
-  set_has_partition();
-  partition_ = value;
-}
-
-// required int32 filenum = 2;
-inline bool SyncOffset::has_filenum() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
-}
-inline void SyncOffset::set_has_filenum() {
-  _has_bits_[0] |= 0x00000002u;
-}
 inline void SyncOffset::clear_has_filenum() {
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000001u;
 }
 inline void SyncOffset::clear_filenum() {
   filenum_ = 0;
@@ -1948,15 +1938,15 @@ inline void SyncOffset::set_filenum(::google::protobuf::int32 value) {
   filenum_ = value;
 }
 
-// required int64 offset = 3;
+// required int64 offset = 2;
 inline bool SyncOffset::has_offset() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
+  return (_has_bits_[0] & 0x00000002u) != 0;
 }
 inline void SyncOffset::set_has_offset() {
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000002u;
 }
 inline void SyncOffset::clear_has_offset() {
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline void SyncOffset::clear_offset() {
   offset_ = GOOGLE_LONGLONG(0);
@@ -1968,6 +1958,28 @@ inline ::google::protobuf::int64 SyncOffset::offset() const {
 inline void SyncOffset::set_offset(::google::protobuf::int64 value) {
   set_has_offset();
   offset_ = value;
+}
+
+// optional int32 partition = 3;
+inline bool SyncOffset::has_partition() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void SyncOffset::set_has_partition() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void SyncOffset::clear_has_partition() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void SyncOffset::clear_partition() {
+  partition_ = 0;
+  clear_has_partition();
+}
+inline ::google::protobuf::int32 SyncOffset::partition() const {
+  return partition_;
+}
+inline void SyncOffset::set_partition(::google::protobuf::int32 value) {
+  set_has_partition();
+  partition_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -4017,15 +4029,53 @@ inline void SyncRequest::set_allocated_from(::client::Node* from) {
   }
 }
 
-// required .client.CmdRequest request = 3;
-inline bool SyncRequest::has_request() const {
+// required .client.SyncOffset sync_offset = 3;
+inline bool SyncRequest::has_sync_offset() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
-inline void SyncRequest::set_has_request() {
+inline void SyncRequest::set_has_sync_offset() {
   _has_bits_[0] |= 0x00000004u;
 }
-inline void SyncRequest::clear_has_request() {
+inline void SyncRequest::clear_has_sync_offset() {
   _has_bits_[0] &= ~0x00000004u;
+}
+inline void SyncRequest::clear_sync_offset() {
+  if (sync_offset_ != NULL) sync_offset_->::client::SyncOffset::Clear();
+  clear_has_sync_offset();
+}
+inline const ::client::SyncOffset& SyncRequest::sync_offset() const {
+  return sync_offset_ != NULL ? *sync_offset_ : *default_instance_->sync_offset_;
+}
+inline ::client::SyncOffset* SyncRequest::mutable_sync_offset() {
+  set_has_sync_offset();
+  if (sync_offset_ == NULL) sync_offset_ = new ::client::SyncOffset;
+  return sync_offset_;
+}
+inline ::client::SyncOffset* SyncRequest::release_sync_offset() {
+  clear_has_sync_offset();
+  ::client::SyncOffset* temp = sync_offset_;
+  sync_offset_ = NULL;
+  return temp;
+}
+inline void SyncRequest::set_allocated_sync_offset(::client::SyncOffset* sync_offset) {
+  delete sync_offset_;
+  sync_offset_ = sync_offset;
+  if (sync_offset) {
+    set_has_sync_offset();
+  } else {
+    clear_has_sync_offset();
+  }
+}
+
+// required .client.CmdRequest request = 4;
+inline bool SyncRequest::has_request() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void SyncRequest::set_has_request() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void SyncRequest::clear_has_request() {
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline void SyncRequest::clear_request() {
   if (request_ != NULL) request_->::client::CmdRequest::Clear();

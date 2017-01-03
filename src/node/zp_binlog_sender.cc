@@ -16,9 +16,9 @@ static void BuildSyncRequest(uint32_t filenum, uint64_t offset,
   client::Node *node = msg->mutable_from();
   node->set_ip(zp_data_server->local_ip());
   node->set_port(zp_data_server->local_port());
-  client::SyncOffset *offset = msg->mutable_offset();
-  offset->set_filenum(filenum);
-  offset->set_offset(offset);
+  client::SyncOffset *sync_offset = msg->mutable_sync_offset();
+  sync_offset->set_filenum(filenum);
+  sync_offset->set_offset(offset);
   client::CmdRequest *req_ptr = msg->mutable_request();
   req_ptr->CopyFrom(req);
   //std::string text_format;
