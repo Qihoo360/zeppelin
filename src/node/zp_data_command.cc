@@ -14,6 +14,7 @@ void SetCmd::Do(const google::protobuf::Message *req, google::protobuf::Message 
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
 
+  response->Clear();
   response->set_type(client::Type::SET);
 
   nemo::Status s = ptr->db()->Set(request->set().key(), request->set().value());
@@ -32,6 +33,7 @@ void GetCmd::Do(const google::protobuf::Message *req, google::protobuf::Message 
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
 
+  response->Clear();
   client::CmdResponse_Get* get_res = response->mutable_get();
   response->set_type(client::Type::GET);
 
@@ -56,6 +58,7 @@ void DelCmd::Do(const google::protobuf::Message *req, google::protobuf::Message 
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
 
+  response->Clear();
   response->set_type(client::Type::DEL);
 
   int64_t count;
@@ -89,7 +92,9 @@ void InfoCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
       DLOG(INFO) << "InfoStat with " << stats.size() << " tables total";
 
       for (auto it = stats.begin(); it != stats.end(); it++) {
-        it->Dump();
+        // TODO anan debug;
+        //DLOG(INFO) << "InfoStats ---->";
+        //it->Dump();
         client::CmdResponse_InfoStats* info_stat = response->add_info_stats();
         info_stat->set_table_name(it->table_name);
         info_stat->set_total_querys(it->querys);
@@ -155,6 +160,7 @@ void SyncCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
 
+  response->Clear();
   client::CmdRequest_Sync sync_req = request->sync();
 
   slash::Status s;
