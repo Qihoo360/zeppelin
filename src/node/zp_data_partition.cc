@@ -505,11 +505,32 @@ Partition* NewPartition(const std::string &table_name,
 
 // Keep binlog order outside
 void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
-    const std::string &from_ip_port) {
+    const std::string &from_ip_port, uint32_t filenum, uint64_t offset) {
   slash::RWLock l(&state_rw_, false);
+
+  // Check binlog item
+  if (role_ != Role::kNodeSlave) {
+    LOG(WARNING) << "Discard binlog item from " << from_ip_port
+      << ", partition:" << partition_id_
+      << ", since I'm not a slave now, role: " << role_;
+    return;
+  }
+
   if (from_ip_port != slash::IpPortString(master_node_.ip, master_node_.port)) {
     LOG(WARNING) << "Discard binlog item from " << from_ip_port
+      << ", partition:" << partition_id_
       << ", current my master is " << master_node_;
+    return;
+  }
+
+  uint32_t cur_filenum = 0;
+  uint64_t cur_offset = 0;
+  logger_->GetProducerStatus(&cur_filenum, &cur_offset);
+  if (cur_filenum != filenum || cur_offset != offset) {
+    LOG(WARNING) << "Discard binlog item from " << from_ip_port
+      << ", partition:" << partition_id_
+      << ", with offset (" << filenum << ", " << offset << ")"
+      << ", my current offset: (" << cur_filenum << ", " << cur_offset << ")";
     return;
   }
 

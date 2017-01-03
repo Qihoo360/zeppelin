@@ -134,7 +134,7 @@ class ZPDataServer {
   void DumpBinlogSendTask();
   
   // Peer Client
-  Status SendToPeer(const Node &node, const std::string &data);
+  Status SendToPeer(const Node &node, const client::SyncRequest &msg);
   
   // Backgroud thread
   void BGSaveTaskSchedule(void (*function)(void*), void* arg);
