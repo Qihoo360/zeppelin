@@ -137,7 +137,7 @@ Status Cluster::Connect() {
   Status s;
   int attempt_count = 0;
   Node meta;
-  ZpConn* meta_cli = meta_pool_->GetExistConnection();
+  ZpCli* meta_cli = meta_pool_->GetExistConnection();
   if (meta_cli != NULL) {
     return Status::OK();
   }
@@ -458,12 +458,12 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
 }
 
 Status Cluster::TryDataRpc(const Node& master, int attempt) {
-  ZpConn* data_cli = data_pool_->GetConnection(master);
+  ZpCli* data_cli = data_pool_->GetConnection(master);
   Status s;
   if (data_cli) {
-    s = data_cli->Send(&data_cmd_);
+    s = data_cli->cli->Send(&data_cmd_);
     if (s.ok()) {
-      s = data_cli->Recv(&data_res_);
+      s = data_cli->cli->Recv(&data_res_);
     }
     if (s.ok()) {
       return s;
@@ -482,11 +482,11 @@ Status Cluster::SubmitMetaCmd(int attempt) {
   Status s = Status::IOError("got no meta cli");
   Node meta;
   meta = GetRandomMetaAddr();
-  ZpConn* meta_cli = meta_pool_->GetConnection(meta);
+  ZpCli* meta_cli = meta_pool_->GetConnection(meta);
   if (meta_cli) {
-    s = meta_cli->Send(&meta_cmd_);
+    s = meta_cli->cli->Send(&meta_cmd_);
     if (s.ok()) {
-      s = meta_cli->Recv(&meta_res_);
+      s = meta_cli->cli->Recv(&meta_res_);
     }
     if (s.ok()) {
       return s;

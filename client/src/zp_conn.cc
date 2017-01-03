@@ -19,43 +19,28 @@ static uint64_t NowMicros() {
     static_cast<uint64_t>(tv.tv_usec);
 }
 
-ZpConn::ZpConn(const Node& node)
-: node_(node),
-  cli_(new pink::PbCli()),
-  lastchecktime_(NowMicros()) {
+ZpCli::ZpCli(const Node& node)
+: node(node),
+  cli(new pink::PbCli()),
+  lastchecktime(NowMicros()) {
 }
 
-ZpConn::~ZpConn() {
-  delete cli_;
+ZpCli::~ZpCli() {
+  delete cli;
 }
 
-Status ZpConn::Connect() {
-  return cli_->Connect(node_.ip, node_.port);
-}
 
-Status ZpConn::ReConnect() {
-  return cli_->Connect(node_.ip, node_.port);
-}
-
-Status ZpConn::Send(void *msg) {
-  return cli_->Send(msg);
-}
-
-Status ZpConn::Recv(void *msg_res) {
-  return cli_->Recv(msg_res);
-}
-
-Status ZpConn::CheckTimeout() {
+Status ZpCli::CheckTimeout() {
   uint64_t now = NowMicros();
-  if ((now - lastchecktime_) > kDataConnTimeout) {
-    Status s = ReConnect();
+  if ((now - lastchecktime) > kDataConnTimeout) {
+    Status s = cli->Connect(node.ip, node.port);
     if (s.ok()) {
-      lastchecktime_ = now;
+      lastchecktime = now;
       return Status::OK();
     }
     return s;
   }
-  lastchecktime_ = now;
+  lastchecktime = now;
   return Status::OK();
 }
 
@@ -63,7 +48,7 @@ ConnectionPool::ConnectionPool() {
 }
 
 ConnectionPool::~ConnectionPool() {
-  std::map<Node, ZpConn*>::iterator iter = conn_pool_.begin();
+  std::map<Node, ZpCli*>::iterator iter = conn_pool_.begin();
   while (iter != conn_pool_.end()) {
     delete iter->second;
     iter++;
@@ -71,8 +56,8 @@ ConnectionPool::~ConnectionPool() {
   conn_pool_.clear();
 }
 
-ZpConn* ConnectionPool::GetConnection(const Node& node) {
-  std::map<Node, ZpConn*>::iterator it;
+ZpCli* ConnectionPool::GetConnection(const Node& node) {
+  std::map<Node, ZpCli*>::iterator it;
   it = conn_pool_.find(node);
   if (it != conn_pool_.end()) {
     Status s = it->second->CheckTimeout();
@@ -84,8 +69,8 @@ ZpConn* ConnectionPool::GetConnection(const Node& node) {
       return NULL;
     }
   } else {
-    ZpConn* cli = new ZpConn(node);
-    Status s = cli->Connect();
+    ZpCli* cli = new ZpCli(node);
+    Status s = cli->cli->Connect(node.ip, node.port);
     if (s.ok()) {
       conn_pool_.insert(std::make_pair(node, cli));
       return cli;
@@ -97,9 +82,9 @@ ZpConn* ConnectionPool::GetConnection(const Node& node) {
   return NULL;
 }
 
-void ConnectionPool::RemoveConnection(ZpConn* conn) {
-  Node node = conn->node_;
-  std::map<Node, ZpConn*>::iterator it;
+void ConnectionPool::RemoveConnection(ZpCli* conn) {
+  Node node = conn->node;
+  std::map<Node, ZpCli*>::iterator it;
   it = conn_pool_.find(node);
   if (it != conn_pool_.end()) {
     delete(it->second);
@@ -107,7 +92,7 @@ void ConnectionPool::RemoveConnection(ZpConn* conn) {
   }
 }
 
-ZpConn* ConnectionPool::GetExistConnection() {
+ZpCli* ConnectionPool::GetExistConnection() {
   Status s;
   while (conn_pool_.size() != 0) {
     s = conn_pool_.begin()->second->CheckTimeout();
