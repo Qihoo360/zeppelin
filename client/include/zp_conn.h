@@ -19,20 +19,15 @@ namespace libzp {
 
 typedef pink::Status Status;
 
-class ZpConn {
+struct ZpCli {
  public:
-  explicit ZpConn(const Node& node);
-  ~ZpConn();
-  Status Connect();
-  Status Send(void *msg);
-  Status Recv(void *msg_res);
+  explicit ZpCli(const Node& node);
+  ~ZpCli();
   Status CheckTimeout();
 
-  Node node_;
- private:
-  Status ReConnect();
-  pink::PbCli* cli_;
-  uint64_t lastchecktime_;
+  Node node;
+  pink::PbCli* cli;
+  uint64_t lastchecktime;
 };
 
 class ConnectionPool {
@@ -42,12 +37,12 @@ class ConnectionPool {
 
   virtual ~ConnectionPool();
 
-  ZpConn* GetConnection(const Node& node);
-  void RemoveConnection(ZpConn* conn);
-  ZpConn* GetExistConnection();
+  ZpCli* GetConnection(const Node& node);
+  void RemoveConnection(ZpCli* conn);
+  ZpCli* GetExistConnection();
 
  private:
-  std::map<Node, ZpConn*> conn_pool_;
+  std::map<Node, ZpCli*> conn_pool_;
 };
 
 }  // namespace libzp

@@ -287,7 +287,7 @@ void StartRepl(libzp::Cluster* cluster) {
         std::cout << "qps:" << qps << std::endl;
         std::cout << "total query:" << total_query << std::endl;
 
-    } else if (!strncasecmp(line, "offset", 6)) {
+    } else if (!strncasecmp(line, "OFFSET", 6)) {
         if (line_args.size() != 4) {
           std::cout << "arg num wrong" << std::endl;
           continue;
