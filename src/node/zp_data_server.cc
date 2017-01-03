@@ -364,10 +364,13 @@ bool ZPDataServer::GetTableStat(const std::string& table_name, std::vector<Stati
       Statistic tmp;
       zp_worker_thread_[i]->GetStat(*it, tmp);
       sum.Add(tmp);
-      DLOG(INFO) << "worker " << i << ":";
-      tmp.Dump();
+      // TODO anan debug
+      //DLOG(INFO) << "TableStat --worker " << i << ":";
+      //tmp.Dump();
     }
-    sum.Dump();
+    // TODO anan debug
+    //DLOG(INFO) << "TableStat sum of " << sum.table_name << " is :";
+    //sum.Dump();
     stats.push_back(sum);
   }
   return true;

@@ -81,6 +81,11 @@ bool ZPBinlogReceiverThread::GetTotalStat(Statistic& stat) {
     stat.Add(*(it->second));
   }
   stat.Add(other_stat_);
+  //TODO anan debug;
+  //DLOG(INFO) << "BinlogReceiver GetTotalStat other_stat_-->";
+  //other_stat_.Dump();
+  //DLOG(INFO) << "result stat ->";
+  //stat.Dump();
   return true;
 }
 
