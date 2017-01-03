@@ -8,10 +8,13 @@ struct ZPBinlogReceiveTask {
   const Cmd* cmd;
   client::CmdRequest request;
   std::string from_node;
-  ZPBinlogReceiveTask(uint32_t id, const Cmd* c,
-      const client::CmdRequest &req, const std::string& from)
+  uint32_t filenum;
+  uint64_t offset;
+  ZPBinlogReceiveTask(uint32_t id, const Cmd* c, const client::CmdRequest &req,
+      const std::string& from, uint32_t arg_filenum, uint64_t arg_offset)
     : partition_id(id), cmd(c),
-    request(req), from_node(from) {}
+    request(req), from_node(from),
+    filenum(arg_filenum), offset(arg_offset) {}
 };
 
 class ZPBinlogReceiveBgWorker {

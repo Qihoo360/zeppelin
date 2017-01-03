@@ -99,7 +99,7 @@ public:
   BinlogReader(slash::SequentialFile *queue);
   ~BinlogReader(); 
   Status Seek(uint64_t offset);
-  Status Consume(uint64_t *size, std::string &item);
+  Status Consume(uint64_t *size, std::string *item);
 
 private:
   slash::SequentialFile *queue_;

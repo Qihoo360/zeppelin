@@ -206,7 +206,7 @@ BinlogReader::~BinlogReader() {
   delete [] backing_store_;
 }
 
-Status BinlogReader::Consume(uint64_t* size, std::string& scratch) {
+Status BinlogReader::Consume(uint64_t* size, std::string* scratch) {
   assert(size != NULL);
   if (last_error_happened_) {
     // BadRecord happend, skip to the next Block
@@ -225,19 +225,19 @@ Status BinlogReader::Consume(uint64_t* size, std::string& scratch) {
 
     switch (record_type) {
       case kFullType:
-        scratch = std::string(fragment.data(), fragment.size());
+        *scratch = std::string(fragment.data(), fragment.size());
         s = Status::OK();
         break;
       case kFirstType:
-        scratch.assign(fragment.data(), fragment.size());
+        scratch->assign(fragment.data(), fragment.size());
         s = Status::NotFound("Middle Status");
         break;
       case kMiddleType:
-        scratch.append(fragment.data(), fragment.size());
+        scratch->append(fragment.data(), fragment.size());
         s = Status::NotFound("Middle Status");
         break;
       case kLastType:
-        scratch.append(fragment.data(), fragment.size());
+        scratch->append(fragment.data(), fragment.size());
         s = Status::OK();
         break;
       case kEof:
@@ -267,7 +267,7 @@ Status BinlogReader::Seek(uint64_t offset) {
   while (block_offset > 0) {
     uint64_t size = 0;
     std::string tmp;
-    s = Consume(&size, tmp);
+    s = Consume(&size, &tmp);
     if (!s.ok()) {
       LOG(INFO) << "Consume Error BinlogReaderSeek consume size, " << size << ", block_offset, " << block_offset << " content : " << tmp;
       return s;
