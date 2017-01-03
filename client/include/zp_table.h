@@ -45,8 +45,8 @@ struct BinlogOffset {
 };
 
 struct SpaceInfo {
-  int used;
-  int remain;
+  int64_t used;
+  int64_t remain;
 };
 
 class Table {

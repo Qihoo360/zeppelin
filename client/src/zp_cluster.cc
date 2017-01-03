@@ -404,8 +404,8 @@ Status Cluster::InfoSpace(const std::string& table,
     data_cmd_.Clear();
     data_cmd_.set_type(client::Type::INFOCAPACITY);
     s = TryDataRpc(*node_iter);
-    node_iter++;
     if (s.IsIOError()) {
+      node_iter++;
       continue;
     }
     for (int i = 0; i < data_res_.info_capacity_size(); i++) {
@@ -419,6 +419,7 @@ Status Cluster::InfoSpace(const std::string& table,
         break;
       }
     }
+    node_iter++;
   }
   return Status::OK();
 }

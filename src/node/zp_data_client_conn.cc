@@ -24,7 +24,6 @@ int ZPDataClientConn::DealMessage() {
     LOG(WARNING) << "Receive Client command, but the server is not availible yet";
     return -1;
   }
-  self_thread_->PlusThreadQuerynum();
   request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
 
   // TODO test only
@@ -45,35 +44,55 @@ int ZPDataClientConn::DealMessage() {
       DLOG(INFO) << "Receive Sync cmd";
       break;
     }
-  }
-
-  Cmd* cmd = zp_data_server->CmdGet(static_cast<int>(request_.type()));
-  if (cmd == NULL) {
-    LOG(ERROR) << "unsupported type: " << (int)request_.type();
-    return -1;
+    default: {
+      DLOG(INFO) << "Receive Info cmd " << request_.type();
+      break;
+    }
   }
 
   set_is_reply(true);
   //std::string raw_msg(rbuf_ + cur_pos_ - header_len_ - 4, header_len_ + 4);
 
-  Partition* partition = NULL;
-  if (request_.type() ==  client::Type::SYNC) {
-    partition = zp_data_server->GetTablePartitionById(cmd->ExtractTable(&request_),
-        request_.sync().sync_offset().partition());
-  } else {
-    partition = zp_data_server->GetTablePartition(cmd->ExtractTable(&request_), cmd->ExtractKey(&request_));
-  }
-
-  if (partition == NULL) {
-    // Partition not found
+  Cmd* cmd = zp_data_server->CmdGet(static_cast<int>(request_.type()));
+  if (cmd == NULL) {
     response_.set_type(request_.type());
     response_.set_code(client::StatusCode::kError);
-    response_.set_msg("no partition");
+    response_.set_msg("unsupported cmd");
+    LOG(ERROR) << "unsupported type: " << (int)request_.type();
     res_ = &response_;
     return -1;
   }
 
-  partition->DoCommand(cmd, request_, response_);
+  self_thread_->PlusStat(cmd->ExtractTable(&request_));
+
+  // Note: We treat 3 kinds of InfoCmds as 1 InfoCmd;
+  // we just run InfoCmd here.
+  if (request_.type() == client::Type::INFOSTATS
+      || request_.type() == client::Type::INFOCAPACITY
+      || request_.type() == client::Type::INFOPARTITION) {
+    cmd->Do(&request_, &response_);
+  } else { // Single Partition related Cmds
+    Partition* partition = NULL;
+    if (request_.type() ==  client::Type::SYNC) {
+      partition = zp_data_server->GetTablePartitionById(cmd->ExtractTable(&request_),
+                                                        request_.sync().sync_offset().partition());
+    } else {
+      self_thread_->PlusStat(cmd->ExtractTable(&request_));
+      partition = zp_data_server->GetTablePartition(cmd->ExtractTable(&request_), cmd->ExtractKey(&request_));
+    }
+
+
+    if (partition == NULL) {
+      // Partition not found
+      response_.set_type(request_.type());
+      response_.set_code(client::StatusCode::kError);
+      response_.set_msg("no partition");
+      res_ = &response_;
+      return -1;
+    }
+
+    partition->DoCommand(cmd, request_, response_);
+  }
 
   res_ = &response_;
   return 0;

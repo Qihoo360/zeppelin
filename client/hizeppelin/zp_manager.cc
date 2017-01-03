@@ -315,7 +315,7 @@ void StartRepl(libzp::Cluster* cluster) {
        libzp::Status s = cluster->InfoSpace(table_name, &nodes);
        std::cout << "space info for " << table_name << std::endl;
        for (int i = 0; i < nodes.size(); i++) {
-         std::cout << "node: " << nodes[i].first.ip << "" <<
+         std::cout << "node: " << nodes[i].first.ip << " " <<
            nodes[i].first.port << std::endl;
          std::cout << "  used:" << nodes[i].second.used
            << " bytes" << std::endl;

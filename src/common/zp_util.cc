@@ -54,3 +54,45 @@ FileLocker::~FileLocker() {
     slash::UnlockFile(file_lock_);
   }
 }
+
+Statistic::Statistic()
+  : last_querys(0), querys(0), last_qps(0), used_disk(0), free_disk(0) {}
+
+Statistic::Statistic(const Statistic& stat)
+  : table_name(stat.table_name),
+    last_querys(stat.last_querys), querys(stat.querys), last_qps(stat.last_qps),
+    used_disk(stat.used_disk), free_disk(stat.free_disk) {}
+
+    void Statistic::Reset() {
+      table_name.clear();
+      last_querys = 0;
+      querys = 0;
+      last_qps = 0;
+      used_disk = 0;
+      free_disk = 0;
+    }
+
+void Statistic::Add(const Statistic& stat) {
+  last_querys += stat.last_querys;
+  querys += stat.querys;
+  last_qps += stat.last_qps;
+  used_disk += stat.used_disk;
+  free_disk += stat.free_disk;
+}
+
+void Statistic::Dump() {
+  printf ("   table_name : %s\n"
+          "   last_querys: %lu\n"
+          "   querys     : %lu\n"
+          "   last_qps   : %lu\n"
+          "   used_disk  : %lu\n"
+          "   free_disk  : %lu\n",
+          table_name.c_str(), last_querys, querys,
+          last_qps, used_disk, free_disk);
+  DLOG(INFO) << "   table_name : " << table_name
+      << "\n   last_querys: " << last_querys
+      << "\n   querys     : " << querys
+      << "\n   last_qps   : " << last_qps
+      << "\n   used_disk  : " << used_disk
+      << "\n   free_disk  : " << free_disk << "\n";
+}

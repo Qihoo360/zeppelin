@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 
+#include "zp_util.h"
 #include "zp_const.h"
 #include "client.pb.h"
 #include "zp_meta.pb.h"
@@ -34,6 +35,7 @@ class Table {
   void Dump();
   void DoTimingTask();
   void DumpPartitionBinlogOffsets(std::vector<PartitionBinlogOffset> &offset);
+  void GetCapacity(Statistic *stat);
 
  private:
   std::string table_name_;

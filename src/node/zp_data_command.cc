@@ -1,5 +1,6 @@
 #include "zp_data_command.h"
 
+#include <google/protobuf/text_format.h>
 #include <glog/logging.h>
 #include "zp_data_server.h"
 
@@ -22,7 +23,7 @@ void SetCmd::Do(const google::protobuf::Message *req, google::protobuf::Message 
     LOG(ERROR) << "command failed: Set, caz " << s.ToString();
   } else {
     response->set_code(client::StatusCode::kOk);
-    DLOG(INFO) << "Set key(" << request->set().key() << ") at Partition: " << ptr->partition_id() << " ok";
+    DLOG(INFO) << "Set key(" << request->set().key() << ") at " << ptr->table_name() << "_" << ptr->partition_id() << " ok";
   }
 }
 
@@ -39,14 +40,14 @@ void GetCmd::Do(const google::protobuf::Message *req, google::protobuf::Message 
   if (s.ok()) {
     response->set_code(client::StatusCode::kOk);
     get_res->set_value(value);
-    DLOG(INFO) << "Get key(" << request->get().key() << ") at Partition " << ptr->partition_id() << " ok, value is (" << value << ")";
+    DLOG(INFO) << "Get key(" << request->get().key() << ") at " << ptr->table_name() << "_" << ptr->partition_id() << " ok, value is (" << value << ")";
   } else if (s.IsNotFound()) {
     response->set_code(client::StatusCode::kNotFound);
-    DLOG(INFO) << "Get key(" << request->get().key() << ") at Partition " << ptr->partition_id() << " not found!";
+    DLOG(INFO) << "Get key(" << request->get().key() << ") at " << ptr->table_name() << "_" << ptr->partition_id() << " not found!";
   } else {
     response->set_code(client::StatusCode::kError);
     response->set_msg(s.ToString());
-    LOG(ERROR) << "command failed: Get at Partition " << ptr->partition_id() << ", caz " << s.ToString();
+    LOG(ERROR) << "command failed: Get at " << ptr->table_name() << "_"  << ptr->partition_id() << ", caz " << s.ToString();
   }
 }
 
@@ -68,6 +69,85 @@ void DelCmd::Do(const google::protobuf::Message *req, google::protobuf::Message 
     DLOG(INFO) << "Del key(" << request->del().key() << ") at Partition: " << ptr->partition_id() << " ok";
   }
 }
+
+void InfoCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* p) const {
+  const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
+  client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+
+  response->Clear();
+  std::string table_name;
+  if (request->has_info() && request->info().has_table_name()) {
+    table_name = request->info().table_name();
+  }
+
+  switch (request->type()) {
+    case client::Type::INFOSTATS: {
+      response->set_type(client::Type::INFOSTATS);
+
+      std::vector<Statistic> stats;
+      zp_data_server->GetTableStat(table_name, stats);
+      DLOG(INFO) << "InfoStat with " << stats.size() << " tables total";
+
+      for (auto it = stats.begin(); it != stats.end(); it++) {
+        it->Dump();
+        client::CmdResponse_InfoStats* info_stat = response->add_info_stats();
+        info_stat->set_table_name(it->table_name);
+        info_stat->set_total_querys(it->querys);
+        info_stat->set_qps(it->last_qps);
+      }
+      break;
+    }
+    case client::Type::INFOCAPACITY: {
+      response->set_type(client::Type::INFOCAPACITY);
+      std::vector<Statistic> stats;
+      zp_data_server->GetTableCapacity(table_name, stats);
+      DLOG(INFO) << "InfoCapacity with " << stats.size() << " tables total";
+
+      for (auto it = stats.begin(); it != stats.end(); it++) {
+        // TODO anan debug;
+        //DLOG(INFO) << "InfoCapacity ---->";
+        //it->Dump();
+        client::CmdResponse_InfoCapacity* info_cpct = response->add_info_capacity();
+        info_cpct->set_table_name(it->table_name);
+        info_cpct->set_used(it->used_disk);
+        info_cpct->set_remain(it->free_disk);
+      }
+      break;
+    }
+    case client::Type::INFOPARTITION: {
+      response->set_type(client::Type::INFOPARTITION);
+      std::unordered_map<std::string, std::vector<PartitionBinlogOffset>> table_offsets;
+      zp_data_server->DumpTableBinlogOffsets(table_name, table_offsets);
+      DLOG(INFO) << "InfoPartition with " << table_offsets.size() << " tables in total.";
+
+      for (auto& item : table_offsets) {
+        client::CmdResponse_InfoPartition* info_part = response->add_info_partition();
+        info_part->set_table_name(item.first);
+        for(auto& p : item.second) {
+          client::SyncOffset* offset = info_part->add_sync_offset();
+          offset->set_partition(p.partition_id);
+          offset->set_filenum(p.filenum);
+          offset->set_offset(p.offset);
+        }
+      }
+      break;
+    }
+    default: {
+      response->set_code(client::StatusCode::kError);
+      response->set_msg("unsupported cmd type");
+      LOG(ERROR) << "unsupported cmd type" << request->type(); 
+      return;
+    }
+  }
+
+  response->set_code(client::StatusCode::kOk);
+
+  // TODO anan debug;
+  //std::string text_format;
+  //google::protobuf::TextFormat::PrintToString(*response, &text_format);
+  //DLOG(INFO) << "InfoCmd text_format : [" << text_format << "]";
+}
+
 
 // Sync between nodes
 void SyncCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {

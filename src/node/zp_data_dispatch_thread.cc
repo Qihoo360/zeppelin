@@ -18,19 +18,24 @@ ZPDataDispatchThread::~ZPDataDispatchThread() {
 }
 
 void ZPDataDispatchThread::CronHandle() {
-  uint64_t server_querynum = 0;
-  uint64_t server_current_qps = 0;
+  // Note: ServerCurrentQPS is the sum of client qps and sync qps;
+  uint64_t server_querys = 0;
+  uint64_t server_qps = 0;
   for (int i = 0; i < work_num(); i++) {
-    slash::RWLock(&(((ZPDataWorkerThread**)worker_thread())[i]->rwlock_), false);
-    server_querynum += ((ZPDataWorkerThread**)worker_thread())[i]->thread_querynum();
-    server_current_qps += ((ZPDataWorkerThread**)worker_thread())[i]->last_sec_thread_querynum();
+    Statistic stat;
+    ((ZPDataWorkerThread**)worker_thread())[i]->GetTotalStat(stat);
+    server_querys += stat.querys;
+    server_qps += stat.last_qps;
   }
 
-  uint64_t sync_querynum = zp_data_server->zp_binlog_receiver_thread()->query_num();
+  Statistic stat;
+  zp_data_server->zp_binlog_receiver_thread()->GetTotalStat(stat);
+  uint64_t sync_querys = stat.querys;
+  server_qps += stat.last_qps;
 
-  LOG(INFO) << "ClientNum: " << ClientNum() << " ClientQueryNum: " << server_querynum
-      << " SyncCmdNum: " << sync_querynum
-      << " ServerCurrentQps: " << server_current_qps;
+  LOG(INFO) << "ClientNum: " << ClientNum() << " ClientQueryNum: " << server_querys
+      << " SyncCmdNum: " << sync_querys
+      << " ServerCurrentQps: " << server_qps;
   zp_data_server->DumpTablePartitions();
   zp_data_server->DumpBinlogSendTask();
 }

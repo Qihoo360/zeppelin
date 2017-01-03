@@ -1,5 +1,6 @@
 #include "zp_data_table.h"
 
+#include <sys/statvfs.h>
 #include <glog/logging.h>
 
 #include "zp_data_server.h"
@@ -128,4 +129,23 @@ void Table::DumpPartitionBinlogOffsets(std::vector<PartitionBinlogOffset> &offse
     (pair.second)->GetBinlogOffset(&(tboffset.filenum), &(tboffset.offset));
     offset.push_back(tboffset);
   }
+}
+
+uint64_t Df(const std::string& path) {
+  struct statvfs sfs;
+  if (statvfs(path.data(), &sfs) != -1) {
+    return (uint64_t)(sfs.f_bsize * sfs.f_blocks);
+  }
+  return 0LL;
+}
+
+void Table::GetCapacity(Statistic *stat) {
+  stat->Reset();
+  stat->table_name = table_name_;
+  stat->used_disk = slash::Du(data_path_) + slash::Du(log_path_);
+  // TODO anan: we will support table based disk; 
+  // For now, just use node's free disk instead.
+  stat->free_disk = Df(data_path_);
+  DLOG(INFO) << "GetCapacity for table " << table_name_ << ":";
+  stat->Dump();
 }

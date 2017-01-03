@@ -49,6 +49,21 @@ class DelCmd : public Cmd {
   }
 };
 
+////// Info Cmds /////
+class InfoCmd : public Cmd {
+ public:
+  InfoCmd(int flag) : Cmd(flag) {}
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* parition = NULL) const;
+  virtual std::string ExtractTable(const google::protobuf::Message *req) const {
+    const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
+    if (request->has_info() && request->info().has_table_name()) {
+      return request->info().table_name();
+    }
+    return "";
+  }
+};
+
 ////// Sync //////
 class SyncCmd : public Cmd {
  public:

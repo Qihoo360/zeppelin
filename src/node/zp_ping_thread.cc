@@ -24,7 +24,7 @@ pink::Status ZPPingThread::Send() {
   request.set_type(ZPMeta::Type::PING);
   
   std::unordered_map<std::string, std::vector<PartitionBinlogOffset>> all_offset;
-  zp_data_server->DumpTableBinlogOffsets(all_offset);
+  zp_data_server->DumpTableBinlogOffsets("", all_offset);
   for (auto& item : all_offset) {
     for(auto& p : item.second) {
       ZPMeta::SyncOffset *offset = ping->add_offset();
