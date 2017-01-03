@@ -20,7 +20,7 @@ int ZPSyncConn::DealMessage() {
     LOG(WARNING) << "Receive Binlog command, but the server is not availible yet";
     return -1;
   }
-  self_thread_->PlusQueryNum();
+  //self_thread_->PlusQueryNum();
 
   request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
   
@@ -57,6 +57,8 @@ int ZPSyncConn::DealMessage() {
     LOG(ERROR) << "unsupported type: " << (int)crequest.type();
     return -1;
   }
+
+  self_thread_->PlusStat(cmd->ExtractTable(&request_));
 
   // do not reply
   set_is_reply(false);

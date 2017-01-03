@@ -90,7 +90,7 @@ message CmdResponse {
   // InfoStats
   message InfoStats {
     required string table_name = 1;
-    required int32 total_querys = 2;
+    required int64 total_querys = 2;
     required int32 qps = 3;
   }
   repeated InfoStats info_stats = 7;
@@ -98,8 +98,8 @@ message CmdResponse {
   // InfoCapacity
   message InfoCapacity {
     required string table_name = 1;
-    required int32 used = 2;
-    required int32 remain = 3;
+    required int64 used = 2;
+    required int64 remain = 3;
   }
   repeated InfoCapacity info_capacity = 8;
 

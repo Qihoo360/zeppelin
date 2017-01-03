@@ -452,9 +452,9 @@ void protobuf_AddDesc_client_2eproto() {
     "e_name\030\001 \002(\t\022\'\n\013sync_offset\030\002 \002(\0132\022.clie"
     "nt.SyncOffset\032\024\n\003Get\022\r\n\005value\030\001 \001(\t\032B\n\tI"
     "nfoStats\022\022\n\ntable_name\030\001 \002(\t\022\024\n\014total_qu"
-    "erys\030\002 \002(\005\022\013\n\003qps\030\003 \002(\005\032@\n\014InfoCapacity\022"
-    "\022\n\ntable_name\030\001 \002(\t\022\014\n\004used\030\002 \002(\005\022\016\n\006rem"
-    "ain\030\003 \002(\005\032L\n\rInfoPartition\022\022\n\ntable_name"
+    "erys\030\002 \002(\003\022\013\n\003qps\030\003 \002(\005\032@\n\014InfoCapacity\022"
+    "\022\n\ntable_name\030\001 \002(\t\022\014\n\004used\030\002 \002(\003\022\016\n\006rem"
+    "ain\030\003 \002(\003\032L\n\rInfoPartition\022\022\n\ntable_name"
     "\030\001 \002(\t\022\'\n\013sync_offset\030\002 \003(\0132\022.client.Syn"
     "cOffset\"]\n\013SyncRequest\022\r\n\005epoch\030\001 \002(\003\022\032\n"
     "\004from\030\002 \002(\0132\014.client.Node\022#\n\007request\030\003 \002"
@@ -3696,7 +3696,7 @@ CmdResponse_InfoStats::CmdResponse_InfoStats(const CmdResponse_InfoStats& from)
 void CmdResponse_InfoStats::SharedCtor() {
   _cached_size_ = 0;
   table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  total_querys_ = 0;
+  total_querys_ = GOOGLE_LONGLONG(0);
   qps_ = 0;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -3741,7 +3741,7 @@ void CmdResponse_InfoStats::Clear() {
         table_name_->clear();
       }
     }
-    total_querys_ = 0;
+    total_querys_ = GOOGLE_LONGLONG(0);
     qps_ = 0;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -3770,13 +3770,13 @@ bool CmdResponse_InfoStats::MergePartialFromCodedStream(
         break;
       }
 
-      // required int32 total_querys = 2;
+      // required int64 total_querys = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
          parse_total_querys:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                   ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
                  input, &total_querys_)));
           set_has_total_querys();
         } else {
@@ -3829,9 +3829,9 @@ void CmdResponse_InfoStats::SerializeWithCachedSizes(
       1, this->table_name(), output);
   }
 
-  // required int32 total_querys = 2;
+  // required int64 total_querys = 2;
   if (has_total_querys()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->total_querys(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteInt64(2, this->total_querys(), output);
   }
 
   // required int32 qps = 3;
@@ -3857,9 +3857,9 @@ void CmdResponse_InfoStats::SerializeWithCachedSizes(
         1, this->table_name(), target);
   }
 
-  // required int32 total_querys = 2;
+  // required int64 total_querys = 2;
   if (has_total_querys()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->total_querys(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(2, this->total_querys(), target);
   }
 
   // required int32 qps = 3;
@@ -3885,10 +3885,10 @@ int CmdResponse_InfoStats::ByteSize() const {
           this->table_name());
     }
 
-    // required int32 total_querys = 2;
+    // required int64 total_querys = 2;
     if (has_total_querys()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
+        ::google::protobuf::internal::WireFormatLite::Int64Size(
           this->total_querys());
     }
 
@@ -4002,8 +4002,8 @@ CmdResponse_InfoCapacity::CmdResponse_InfoCapacity(const CmdResponse_InfoCapacit
 void CmdResponse_InfoCapacity::SharedCtor() {
   _cached_size_ = 0;
   table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  used_ = 0;
-  remain_ = 0;
+  used_ = GOOGLE_LONGLONG(0);
+  remain_ = GOOGLE_LONGLONG(0);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -4047,8 +4047,8 @@ void CmdResponse_InfoCapacity::Clear() {
         table_name_->clear();
       }
     }
-    used_ = 0;
-    remain_ = 0;
+    used_ = GOOGLE_LONGLONG(0);
+    remain_ = GOOGLE_LONGLONG(0);
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
@@ -4076,13 +4076,13 @@ bool CmdResponse_InfoCapacity::MergePartialFromCodedStream(
         break;
       }
 
-      // required int32 used = 2;
+      // required int64 used = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
          parse_used:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                   ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
                  input, &used_)));
           set_has_used();
         } else {
@@ -4092,13 +4092,13 @@ bool CmdResponse_InfoCapacity::MergePartialFromCodedStream(
         break;
       }
 
-      // required int32 remain = 3;
+      // required int64 remain = 3;
       case 3: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
          parse_remain:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                   ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
                  input, &remain_)));
           set_has_remain();
         } else {
@@ -4135,14 +4135,14 @@ void CmdResponse_InfoCapacity::SerializeWithCachedSizes(
       1, this->table_name(), output);
   }
 
-  // required int32 used = 2;
+  // required int64 used = 2;
   if (has_used()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->used(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteInt64(2, this->used(), output);
   }
 
-  // required int32 remain = 3;
+  // required int64 remain = 3;
   if (has_remain()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(3, this->remain(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteInt64(3, this->remain(), output);
   }
 
   if (!unknown_fields().empty()) {
@@ -4163,14 +4163,14 @@ void CmdResponse_InfoCapacity::SerializeWithCachedSizes(
         1, this->table_name(), target);
   }
 
-  // required int32 used = 2;
+  // required int64 used = 2;
   if (has_used()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->used(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(2, this->used(), target);
   }
 
-  // required int32 remain = 3;
+  // required int64 remain = 3;
   if (has_remain()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(3, this->remain(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(3, this->remain(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -4191,17 +4191,17 @@ int CmdResponse_InfoCapacity::ByteSize() const {
           this->table_name());
     }
 
-    // required int32 used = 2;
+    // required int64 used = 2;
     if (has_used()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
+        ::google::protobuf::internal::WireFormatLite::Int64Size(
           this->used());
     }
 
-    // required int32 remain = 3;
+    // required int64 remain = 3;
     if (has_remain()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
+        ::google::protobuf::internal::WireFormatLite::Int64Size(
           this->remain());
     }
 

@@ -1261,12 +1261,12 @@ class CmdResponse_InfoStats : public ::google::protobuf::Message {
   inline ::std::string* release_table_name();
   inline void set_allocated_table_name(::std::string* table_name);
 
-  // required int32 total_querys = 2;
+  // required int64 total_querys = 2;
   inline bool has_total_querys() const;
   inline void clear_total_querys();
   static const int kTotalQuerysFieldNumber = 2;
-  inline ::google::protobuf::int32 total_querys() const;
-  inline void set_total_querys(::google::protobuf::int32 value);
+  inline ::google::protobuf::int64 total_querys() const;
+  inline void set_total_querys(::google::protobuf::int64 value);
 
   // required int32 qps = 3;
   inline bool has_qps() const;
@@ -1287,7 +1287,7 @@ class CmdResponse_InfoStats : public ::google::protobuf::Message {
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::std::string* table_name_;
-  ::google::protobuf::int32 total_querys_;
+  ::google::protobuf::int64 total_querys_;
   ::google::protobuf::int32 qps_;
 
   mutable int _cached_size_;
@@ -1368,19 +1368,19 @@ class CmdResponse_InfoCapacity : public ::google::protobuf::Message {
   inline ::std::string* release_table_name();
   inline void set_allocated_table_name(::std::string* table_name);
 
-  // required int32 used = 2;
+  // required int64 used = 2;
   inline bool has_used() const;
   inline void clear_used();
   static const int kUsedFieldNumber = 2;
-  inline ::google::protobuf::int32 used() const;
-  inline void set_used(::google::protobuf::int32 value);
+  inline ::google::protobuf::int64 used() const;
+  inline void set_used(::google::protobuf::int64 value);
 
-  // required int32 remain = 3;
+  // required int64 remain = 3;
   inline bool has_remain() const;
   inline void clear_remain();
   static const int kRemainFieldNumber = 3;
-  inline ::google::protobuf::int32 remain() const;
-  inline void set_remain(::google::protobuf::int32 value);
+  inline ::google::protobuf::int64 remain() const;
+  inline void set_remain(::google::protobuf::int64 value);
 
   // @@protoc_insertion_point(class_scope:client.CmdResponse.InfoCapacity)
  private:
@@ -1394,8 +1394,8 @@ class CmdResponse_InfoCapacity : public ::google::protobuf::Message {
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::std::string* table_name_;
-  ::google::protobuf::int32 used_;
-  ::google::protobuf::int32 remain_;
+  ::google::protobuf::int64 used_;
+  ::google::protobuf::int64 remain_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
@@ -3383,7 +3383,7 @@ inline void CmdResponse_InfoStats::set_allocated_table_name(::std::string* table
   }
 }
 
-// required int32 total_querys = 2;
+// required int64 total_querys = 2;
 inline bool CmdResponse_InfoStats::has_total_querys() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
@@ -3394,13 +3394,13 @@ inline void CmdResponse_InfoStats::clear_has_total_querys() {
   _has_bits_[0] &= ~0x00000002u;
 }
 inline void CmdResponse_InfoStats::clear_total_querys() {
-  total_querys_ = 0;
+  total_querys_ = GOOGLE_LONGLONG(0);
   clear_has_total_querys();
 }
-inline ::google::protobuf::int32 CmdResponse_InfoStats::total_querys() const {
+inline ::google::protobuf::int64 CmdResponse_InfoStats::total_querys() const {
   return total_querys_;
 }
-inline void CmdResponse_InfoStats::set_total_querys(::google::protobuf::int32 value) {
+inline void CmdResponse_InfoStats::set_total_querys(::google::protobuf::int64 value) {
   set_has_total_querys();
   total_querys_ = value;
 }
@@ -3501,7 +3501,7 @@ inline void CmdResponse_InfoCapacity::set_allocated_table_name(::std::string* ta
   }
 }
 
-// required int32 used = 2;
+// required int64 used = 2;
 inline bool CmdResponse_InfoCapacity::has_used() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
@@ -3512,18 +3512,18 @@ inline void CmdResponse_InfoCapacity::clear_has_used() {
   _has_bits_[0] &= ~0x00000002u;
 }
 inline void CmdResponse_InfoCapacity::clear_used() {
-  used_ = 0;
+  used_ = GOOGLE_LONGLONG(0);
   clear_has_used();
 }
-inline ::google::protobuf::int32 CmdResponse_InfoCapacity::used() const {
+inline ::google::protobuf::int64 CmdResponse_InfoCapacity::used() const {
   return used_;
 }
-inline void CmdResponse_InfoCapacity::set_used(::google::protobuf::int32 value) {
+inline void CmdResponse_InfoCapacity::set_used(::google::protobuf::int64 value) {
   set_has_used();
   used_ = value;
 }
 
-// required int32 remain = 3;
+// required int64 remain = 3;
 inline bool CmdResponse_InfoCapacity::has_remain() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
@@ -3534,13 +3534,13 @@ inline void CmdResponse_InfoCapacity::clear_has_remain() {
   _has_bits_[0] &= ~0x00000004u;
 }
 inline void CmdResponse_InfoCapacity::clear_remain() {
-  remain_ = 0;
+  remain_ = GOOGLE_LONGLONG(0);
   clear_has_remain();
 }
-inline ::google::protobuf::int32 CmdResponse_InfoCapacity::remain() const {
+inline ::google::protobuf::int64 CmdResponse_InfoCapacity::remain() const {
   return remain_;
 }
-inline void CmdResponse_InfoCapacity::set_remain(::google::protobuf::int32 value) {
+inline void CmdResponse_InfoCapacity::set_remain(::google::protobuf::int64 value) {
   set_has_remain();
   remain_ = value;
 }

@@ -21,34 +21,17 @@ class ZPBinlogReceiverThread : public pink::HolyThread<ZPSyncConn> {
   virtual bool AccessHandle(std::string& ip);
   void KillBinlogSender();
 
-  uint64_t query_num() {
-    slash::RWLock(&rwlock_, false);
-    return query_num_;
-  }
-
-  uint64_t last_sec_query_num() {
-    slash::RWLock(&rwlock_, false);
-    return last_sec_query_num_;
-  }
-
-  void PlusQueryNum() {
-    slash::RWLock(&rwlock_, true);
-    query_num_++;
-  }
-
-  void ResetLastSecQuerynum() {
-    uint64_t cur_time_ms = slash::NowMicros();
-    slash::RWLock(&rwlock_, true);
-    last_sec_query_num_ = (query_num_ - last_query_num_) * 1000000 / (cur_time_ms - last_time_us_ + 1);
-    last_time_us_ = cur_time_ms;
-    last_query_num_ = query_num_;
-  }
-
   int32_t ThreadClientNum() {
     slash::RWLock(&rwlock_, false);
     int32_t num = conns_.size();
     return num;
   }
+
+
+  void PlusStat(const std::string &table);
+  void UpdateLastStat();
+  bool GetStat(const std::string &table, Statistic& stat);
+  bool GetTotalStat(Statistic& stat);
 
 
  private:
@@ -57,10 +40,12 @@ class ZPBinlogReceiverThread : public pink::HolyThread<ZPSyncConn> {
   void KillAll();
   std::queue<WorkerCronTask> cron_tasks_;
 
-  uint64_t query_num_;
-  uint64_t last_query_num_;
+  // statistic related
+  slash::Mutex stat_mu_;
   uint64_t last_time_us_;
-  uint64_t last_sec_query_num_;
+  Statistic other_stat_;
+  std::unordered_map<std::string, Statistic*> table_stats_;
+
   uint64_t serial_;
 };
 #endif

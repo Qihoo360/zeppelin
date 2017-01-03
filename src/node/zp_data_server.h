@@ -152,8 +152,13 @@ class ZPDataServer {
   Cmd* CmdGet(const int op) {
     return GetCmdFromTable(op, cmds_);
   }
-  void DumpTableBinlogOffsets(std::unordered_map<std::string,
-      std::vector<PartitionBinlogOffset>> &all_offset);
+  void DumpTableBinlogOffsets(const std::string &table_name,
+                              std::unordered_map<std::string, std::vector<PartitionBinlogOffset>> &all_offset);
+
+  // Statistic related
+  bool GetAllTableName(std::vector<std::string>& table_names);
+  bool GetTableStat(const std::string& table_name, std::vector<Statistic>& stats);
+  bool GetTableCapacity(const std::string& table_name, std::vector<Statistic>& capacity_stats);
 
  private:
 

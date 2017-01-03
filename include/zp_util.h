@@ -2,8 +2,12 @@
 #define INCLUDE_ZP_UTIL_H_
 
 #include <string>
+#include <glog/logging.h>
 
 #include "zp_conf.h"
+
+#include "env.h"
+
 // @TODO use Tasktype instead of macro
 enum TaskType {
   kTaskKill = 0,
@@ -30,6 +34,22 @@ class FileLocker {
  private:
   slash::FileLock* file_lock_;
   const std::string file_;
+};
+
+struct Statistic {
+  std::string table_name;
+  uint64_t last_querys;
+  uint64_t querys;
+  uint64_t last_qps;
+  uint64_t used_disk;
+  uint64_t free_disk;  // not used for now
+
+  Statistic();
+  Statistic(const Statistic& stat);
+
+  void Reset();
+  void Add(const Statistic& stat);
+  void Dump();
 };
 
 #endif

@@ -54,6 +54,8 @@ ZPDataServer::ZPDataServer()
       binlog_send_workers_.push_back(thread);
     }
 
+    // TODO anan  configable
+    // debug
     worker_num_ = 4;
     for (int i = 0; i < worker_num_; i++) {
       zp_worker_thread_[i] = new ZPDataWorkerThread(kWorkerCronInterval);
@@ -263,14 +265,25 @@ Table* ZPDataServer::GetTable(const std::string &table_name) {
   return NULL;
 }
 
-void ZPDataServer::DumpTableBinlogOffsets(std::unordered_map<std::string,
-    std::vector<PartitionBinlogOffset>> &all_offset) {
+// We will dump all tables when table_name is empty.
+void ZPDataServer::DumpTableBinlogOffsets(const std::string &table_name,
+                                          std::unordered_map<std::string, std::vector<PartitionBinlogOffset>> &all_offset) {
   slash::RWLock l(&table_rw_, false);
-  for (auto& it : tables_) {
-    std::vector<PartitionBinlogOffset> poffset;
-    (it.second)->DumpPartitionBinlogOffsets(poffset);
-    all_offset.insert(std::pair<std::string,
-        std::vector<PartitionBinlogOffset>>(it.first, poffset));
+  if (table_name.empty()) {
+    for (auto& item : tables_) {
+      std::vector<PartitionBinlogOffset> poffset;
+      (item.second)->DumpPartitionBinlogOffsets(poffset);
+      all_offset.insert(std::pair<std::string,
+                        std::vector<PartitionBinlogOffset>>(item.first, poffset));
+    }
+  } else {
+    auto it = tables_.find(table_name);
+    if (it != tables_.end()) {
+      std::vector<PartitionBinlogOffset> poffset;
+      it->second->DumpPartitionBinlogOffsets(poffset);
+      all_offset.insert(std::pair<std::string,
+                        std::vector<PartitionBinlogOffset>>(it->first, poffset));
+    }
   }
 }
 
@@ -349,6 +362,60 @@ void ZPDataServer::DispatchBinlogBGWorker(const std::string &table_name, const s
   }
 }
 
+// Statistic related
+bool ZPDataServer::GetAllTableName(std::vector<std::string>& table_names) {
+  slash::RWLock l(&table_rw_, false);
+  for (auto iter = tables_.begin(); iter != tables_.end(); iter++) {
+    table_names.push_back(iter->first);
+  }
+  return true;
+}
+
+bool ZPDataServer::GetTableStat(const std::string& table_name, std::vector<Statistic>& stats) {
+  std::vector<std::string> stat_tables;
+  if (table_name.empty()) {
+    GetAllTableName(stat_tables);
+  } else {
+    stat_tables.push_back(table_name);
+  }
+
+  for (auto it = stat_tables.begin(); it != stat_tables.end(); it++) {
+    Statistic sum;
+    sum.table_name = *it;
+    for (int i = 0; i < worker_num_; i++) {
+      Statistic tmp;
+      zp_worker_thread_[i]->GetStat(*it, tmp);
+      sum.Add(tmp);
+      DLOG(INFO) << "worker " << i << ":";
+      tmp.Dump();
+    }
+    sum.Dump();
+    stats.push_back(sum);
+  }
+  return true;
+}
+
+bool ZPDataServer::GetTableCapacity(const std::string& table_name, std::vector<Statistic>& capacity_stats) {
+  slash::RWLock l(&table_rw_, false);
+  if (table_name.empty()) {
+    for (auto& item : tables_) {
+      Statistic tmp;
+      tmp.table_name = item.first;
+      (item.second)->GetCapacity(&tmp);
+      capacity_stats.push_back(tmp);
+    }
+  } else {
+    auto it = tables_.find(table_name);
+    if (it != tables_.end()) {
+      Statistic tmp;
+      tmp.table_name = it->first;
+      it->second->GetCapacity(&tmp);
+      capacity_stats.push_back(tmp);
+    }
+  }
+  return true;
+}
+
 void ZPDataServer::InitClientCmdTable() {
   // SetCmd
   Cmd* setptr = new SetCmd(kCmdFlagsKv | kCmdFlagsWrite);
@@ -359,6 +426,11 @@ void ZPDataServer::InitClientCmdTable() {
   // DelCmd
   Cmd* delptr = new DelCmd(kCmdFlagsKv | kCmdFlagsWrite);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::DEL), delptr));
+  // One InfoCmd handle many type queries;
+  Cmd* infoptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOSTATS), infoptr));
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOCAPACITY), infoptr));
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOPARTITION), infoptr));
   // SyncCmd
   Cmd* syncptr = new SyncCmd(kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SYNC), syncptr));
@@ -366,7 +438,7 @@ void ZPDataServer::InitClientCmdTable() {
 
 void ZPDataServer::DoTimingTask() {
   slash::RWLock l(&table_rw_, false);
-  for (auto pair : tables_) {
+  for (auto& pair : tables_) {
     pair.second->DoTimingTask();
   }
 }
