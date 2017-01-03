@@ -57,17 +57,17 @@ class Partition {
   Partition(const std::string &table_name, const int partition_id, const std::string &log_path, const std::string &data_path);
   ~Partition();
 
-  int partition_id() {
+  int partition_id() const {
     return partition_id_;
   }
-  std::string sync_path() {
+  std::string sync_path() const {
     return sync_path_;
   }
-  std::string table_name() {
+  std::string table_name() const {
     return table_name_;
   }
 
-  const std::shared_ptr<nemo::Nemo> db() {
+  const std::shared_ptr<nemo::Nemo> db() const {
     return db_;
   }
   Node master_node() {
@@ -98,8 +98,11 @@ class Partition {
 
   // Binlog related
   Status SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset);
-  void GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) {
+  void GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) const {
     logger_->GetProducerStatus(filenum, pro_offset);
+  }
+  void SetBinlogOffset(uint32_t filenum, uint64_t offset) {
+    logger_->SetProducerStatus(filenum, offset);
   }
   std::string GetBinlogFilename() {
     return logger_->filename();
@@ -156,6 +159,9 @@ class Partition {
   void AutoPurge();
   void Dump();
 
+  // State related
+  bool GetWinBinlogOffset(uint32_t* filenum, uint64_t* offset);
+
  private:
   //TODO define PartitionOption if needed
 
@@ -174,6 +180,8 @@ class Partition {
   ZPMeta::PState pstate_;
   Role role_;
   int repl_state_;
+  uint32_t win_filenum_;
+  uint64_t win_offset_;
   void CleanSlaves(const std::set<Node> &old_slaves);
   void BecomeSingle();
   void BecomeMaster();
