@@ -23,12 +23,17 @@ INCLUDE_PATH = -I./ \
 
 
 LIB_PATH = -L./ \
+		   -L/usr/local/lib/google/ \
 		   -L$(THIRD_PATH)/slash/output/lib/ \
 		   -L$(THIRD_PATH)/pink/output/lib/ 
 
 
 
-LIBS = 
+LIBS = -lpthread \
+	   -lprotobuf \
+	   -lglog \
+	   -lslash \
+		 -lpink
 
 LIBRARY = libzp.a
 
@@ -62,8 +67,7 @@ $(OBJECT): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) -Wl,-Bdynamic $(LIBS)
 
 $(OBJS): %.o : %.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) 
-
+	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) $(LIBS)
 clean: 
 	make -C hizeppelin clean
 	rm -rf $(SRC_DIR)/*.o
