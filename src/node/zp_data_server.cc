@@ -69,6 +69,12 @@ ZPDataServer::~ZPDataServer() {
     delete zp_worker_thread_[i];
   }
 
+
+  std::vector<ZPBinlogSendThread*>::iterator it = binlog_send_workers_.begin();
+  for (; it != binlog_send_workers_.end(); ++it) {
+    delete *it;
+  }
+
   {
     slash::MutexLock l(&mutex_peers_);
     std::unordered_map<std::string, ZPPbCli*>::iterator iter = peers_.begin();
@@ -79,10 +85,6 @@ ZPDataServer::~ZPDataServer() {
     }
   }
 
-  std::vector<ZPBinlogSendThread*>::iterator it = binlog_send_workers_.begin();
-  for (; it != binlog_send_workers_.end(); ++it) {
-    delete *it;
-  }
   //delete binlog_send_pool_;
   delete zp_binlog_receiver_thread_;
   std::vector<ZPBinlogReceiveBgWorker*>::iterator binlogbg_iter = zp_binlog_receive_bgworkers_.begin();
@@ -101,6 +103,7 @@ ZPDataServer::~ZPDataServer() {
       delete iter->second;
     }
   }
+  LOG(INFO) << " All Tables exit!!!";
 
   bgsave_thread_.Stop();
   bgpurge_thread_.Stop();
@@ -408,10 +411,12 @@ void ZPDataServer::InitClientCmdTable() {
   Cmd* delptr = new DelCmd(kCmdFlagsKv | kCmdFlagsWrite);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::DEL), delptr));
   // One InfoCmd handle many type queries;
-  Cmd* infoptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOSTATS), infoptr));
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOCAPACITY), infoptr));
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOPARTITION), infoptr));
+  Cmd* infostatsptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOSTATS), infostatsptr));
+  Cmd* infocapacityptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOCAPACITY), infocapacityptr));
+  Cmd* infopartitionptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOPARTITION), infopartitionptr));
   // SyncCmd
   Cmd* syncptr = new SyncCmd(kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SYNC), syncptr));
