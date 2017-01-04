@@ -77,7 +77,7 @@ int ZPDataClientConn::DealMessage() {
       partition = zp_data_server->GetTablePartitionById(cmd->ExtractTable(&request_),
                                                         request_.sync().sync_offset().partition());
     } else {
-      self_thread_->PlusStat(cmd->ExtractTable(&request_));
+      //self_thread_->PlusStat(cmd->ExtractTable(&request_));
       partition = zp_data_server->GetTablePartition(cmd->ExtractTable(&request_), cmd->ExtractKey(&request_));
     }
 

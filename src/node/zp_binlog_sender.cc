@@ -8,6 +8,24 @@
 
 extern ZPDataServer* zp_data_server;
 
+static void BuildSyncRequest(uint32_t filenum, uint64_t offset,
+    const std::string& content, client::SyncRequest *msg) {
+  client::CmdRequest req;
+  req.ParseFromString(content);
+  msg->set_epoch(zp_data_server->meta_epoch());
+  client::Node *node = msg->mutable_from();
+  node->set_ip(zp_data_server->local_ip());
+  node->set_port(zp_data_server->local_port());
+  client::SyncOffset *sync_offset = msg->mutable_sync_offset();
+  sync_offset->set_filenum(filenum);
+  sync_offset->set_offset(offset);
+  client::CmdRequest *req_ptr = msg->mutable_request();
+  req_ptr->CopyFrom(req);
+  //std::string text_format;
+  //google::protobuf::TextFormat::PrintToString(msg, &text_format);
+  //DLOG(INFO) << "SyncRequest to be sent: [" << text_format << "]";
+} 
+
 std::string ZPBinlogSendTaskName(const std::string& table, int32_t id, const Node& target) {
   char buf[256];
   sprintf(buf, "%s_%d_%s_%d", table.c_str(), id, target.ip.c_str(), target.port);
@@ -39,8 +57,11 @@ ZPBinlogSendTask::ZPBinlogSendTask(const std::string &table, int32_t id, const N
   partition_id_(id),
   node_(target),
   filenum_(ifilenum),
-  offset_(ioffset) {
+  offset_(ioffset),
+  pre_filenum_(0),
+  pre_offset_(0) {
     name_ = ZPBinlogSendTaskName(table, partition_id_, target);
+    pre_content_.reserve(1024 * 1024);
   }
 
 ZPBinlogSendTask::~ZPBinlogSendTask() {
@@ -63,7 +84,7 @@ Status ZPBinlogSendTask::Init() {
   return reader_->Seek(offset_);
 }
 
-Status ZPBinlogSendTask::ProcessTask(std::string &item) {
+Status ZPBinlogSendTask::ProcessTask() {
   if (reader_ == NULL || queue_ == NULL) {
     return Status::InvalidArgument("Error Task");
   }
@@ -83,9 +104,10 @@ Status ZPBinlogSendTask::ProcessTask(std::string &item) {
   }
   //LOG(INFO) << "Processing a task" << table_name_
   // << "parititon: " << partition_id_;
+  RecordPreOffset();
 
   uint64_t consume_len = 0;
-  Status s = reader_->Consume(&consume_len, item);
+  Status s = reader_->Consume(&consume_len, &pre_content_);
   if (s.IsEndFile()) {
     // Roll to next File
     std::string confile = NewFileName(binlog_filename_, filenum_ + 1);
@@ -106,7 +128,7 @@ Status ZPBinlogSendTask::ProcessTask(std::string &item) {
       reader_ = new BinlogReader(queue_);
       filenum_++;
       offset_ = 0;
-      return ProcessTask(item);
+      return ProcessTask();
     }
     // Return EndFile
   } else if (!s.ok()) {
@@ -278,8 +300,6 @@ ZPBinlogSendThread::~ZPBinlogSendThread() {
 
 void* ZPBinlogSendThread::ThreadMain() {
   struct timeval begin, now;
-  std::string scratch;
-  scratch.reserve(1024 * 1024);
 
   while (!should_exit_) {
     sleep(1);
@@ -294,9 +314,10 @@ void* ZPBinlogSendThread::ThreadMain() {
     // Fetched one task, process it
     gettimeofday(&begin, NULL);
     while (!should_exit_) {
+      // Record offset of current binlog item for sending later
       if (task->send_next) {
-        //Process ProcessTask
-        s = task->ProcessTask(scratch);
+        // Process ProcessTask
+        s = task->ProcessTask();
         if (s.IsEndFile()) {
           //LOG(INFO) << "No more binlog item for table: " << task->table_name()
           //  << " parititon: " << task->partition_id();
@@ -310,7 +331,9 @@ void* ZPBinlogSendThread::ThreadMain() {
 
       // Send binlog
       if (s.ok()) {
-        s = zp_data_server->SendToPeer(task->node(), scratch);
+        client::SyncRequest sreq;
+        BuildSyncRequest(task->pre_filenum(), task->pre_offset(), task->pre_content(), &sreq);
+        s = zp_data_server->SendToPeer(task->node(), sreq);
         if (!s.ok()) {
           LOG(ERROR) << "Failed to send to peer " << task->node()
             << ", table:" << task->table_name() << ", partition:" << task->partition_id()
@@ -335,4 +358,6 @@ void* ZPBinlogSendThread::ThreadMain() {
 
   return NULL;
 }
+
+
 

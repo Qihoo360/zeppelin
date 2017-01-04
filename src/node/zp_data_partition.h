@@ -81,7 +81,7 @@ class Partition {
 
   // Command related
   void DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
-      const std::string &from_ip_port);
+      const std::string &from_ip_port, uint32_t filenum, uint64_t offset);
   void DoCommand(const Cmd* cmd, const client::CmdRequest &req,
       client::CmdResponse &res);
 

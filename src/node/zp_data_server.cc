@@ -10,19 +10,6 @@
 
 #include "rsync.h"
 
-static void BuildSyncRequest(const client::CmdRequest &req,
-    int64_t epoch, const std::string ip, int port, client::SyncRequest* msg) {
-  msg->set_epoch(epoch);
-  client::Node *node = msg->mutable_from();
-  node->set_ip(ip);
-  node->set_port(port);
-  client::CmdRequest *req_ptr = msg->mutable_request();
-  req_ptr->CopyFrom(req);
-  //std::string text_format;
-  //google::protobuf::TextFormat::PrintToString(msg, &text_format);
-  //DLOG(INFO) << "SyncRequest to be sent: [" << text_format << "]";
-}
-
 ZPDataServer::ZPDataServer()
   : table_count_(0),
   should_exit_(false),
@@ -201,7 +188,7 @@ void ZPDataServer::DumpTablePartitions() {
   DLOG(INFO) << "TablePartition--------------------------";
 }
 
-Status ZPDataServer::SendToPeer(const Node &node, const std::string &data) {
+Status ZPDataServer::SendToPeer(const Node &node, const client::SyncRequest &msg) {
   pink::Status res;
   std::string ip_port = slash::IpPortString(node.ip, node.port);
 
@@ -217,16 +204,7 @@ Status ZPDataServer::SendToPeer(const Node &node, const std::string &data) {
     iter = (peers_.insert(std::pair<std::string, ZPPbCli*>(ip_port, cli))).first;
   }
   
-  client::CmdRequest req;
-  req.ParseFromString(data);
-  client::SyncRequest msg;
-  BuildSyncRequest(req,
-      meta_epoch(),
-      local_ip(),
-      local_port(),
-      &msg);
-  
-  res = iter->second->Send(&msg);
+  res = iter->second->Send(const_cast<client::SyncRequest*>(&msg));
   if (!res.ok()) {
     // Remove when second Failed, retry outside
     iter->second->Close();
@@ -386,10 +364,13 @@ bool ZPDataServer::GetTableStat(const std::string& table_name, std::vector<Stati
       Statistic tmp;
       zp_worker_thread_[i]->GetStat(*it, tmp);
       sum.Add(tmp);
-      DLOG(INFO) << "worker " << i << ":";
-      tmp.Dump();
+      // TODO anan debug
+      //DLOG(INFO) << "TableStat --worker " << i << ":";
+      //tmp.Dump();
     }
-    sum.Dump();
+    // TODO anan debug
+    //DLOG(INFO) << "TableStat sum of " << sum.table_name << " is :";
+    //sum.Dump();
     stats.push_back(sum);
   }
   return true;

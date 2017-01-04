@@ -40,20 +40,29 @@ public:
   std::string table_name() const {
     return table_name_;
   }
-  int32_t partition_id() {
+  int32_t partition_id() const {
     return partition_id_;
   }
   Node node() const {
     return node_;
   }
-  uint32_t filenum() {
+  uint32_t filenum() const {
     return filenum_;
   }
-  uint64_t offset() {
+  uint64_t offset() const {
     return offset_;
   }
+  uint32_t pre_filenum() const {
+    return pre_filenum_;
+  }
+  uint64_t pre_offset() const {
+    return pre_offset_;
+  }
+  std::string pre_content() const {
+    return pre_content_;
+  }
 
-  Status ProcessTask(std::string &item);
+  Status ProcessTask();
 
 private:
   std::string name_; // Name of the task
@@ -62,10 +71,21 @@ private:
   const Node node_;
   uint32_t filenum_;
   uint64_t offset_;
+  // Record The last item filenum and offset
+  // For sending use later
+  uint32_t pre_filenum_;
+  uint64_t pre_offset_;
+  std::string pre_content_;
   std::string binlog_filename_; // Name of the binlog file
   slash::SequentialFile *queue_;
   BinlogReader *reader_;
   Status Init();
+  // Record current filenum and offset in the pre one
+  // So that we can know where the last binlog item begin
+  void RecordPreOffset() {
+    pre_filenum_ = filenum_;
+    pre_offset_ = offset_;
+  }
 };
 
 

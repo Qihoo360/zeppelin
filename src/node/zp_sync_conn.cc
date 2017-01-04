@@ -70,7 +70,8 @@ int ZPSyncConn::DealMessage() {
       0, // Will be filled by zp_data_server
       cmd,
       crequest,
-      slash::IpPortString(request_.from().ip(), request_.from().port()));
+      slash::IpPortString(request_.from().ip(), request_.from().port()),
+      request_.sync_offset().filenum(), request_.sync_offset().offset());
 
   zp_data_server->DispatchBinlogBGWorker(cmd->ExtractTable(&crequest), cmd->ExtractKey(&crequest), arg);
 

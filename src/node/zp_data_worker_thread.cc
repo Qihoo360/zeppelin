@@ -67,6 +67,9 @@ bool ZPDataWorkerThread::GetStat(const std::string &table, Statistic& stat) {
     return false;
   }
   stat = *(it->second);
+  // TODO anan debug
+  //DLOG(INFO) << "Worker GetStat -->";
+  //stat.Dump();
   return true;
 }
 
@@ -77,6 +80,9 @@ bool ZPDataWorkerThread::GetTotalStat(Statistic& stat) {
     stat.Add(*(it->second));
   }
   stat.Add(other_stat_);
+  // TODO anan debug
+  //DLOG(INFO) << "Worker GetTotalStat -->";
+  //stat.Dump();
   return true;
 }
 
