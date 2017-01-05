@@ -1,0 +1,4 @@
+This is the python extension for zeppelin
+Install tips:
+  To compile, run "python setup.py build".
+  To auto-install, run "python setup.py install".
