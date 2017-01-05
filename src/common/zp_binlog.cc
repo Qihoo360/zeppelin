@@ -23,7 +23,7 @@ Version::Version(slash::RWFile *save)
     save_(save) {
   pthread_rwlock_init(&rwlock_, NULL);
   assert(save_ != NULL);
-  StableSave();
+  StableLoad();
 }
 
 Version::~Version() {
@@ -44,11 +44,11 @@ void Version::Fetch(uint32_t *num, uint64_t *offset) {
   *offset = pro_offset_;
 }
 
-Status Version::Load() {
+Status Version::StableLoad() {
   Status s;
   if (save_->GetData() != NULL) {
     memcpy((char*)(&pro_num_), save_->GetData(), sizeof(uint32_t));
-    memcpy((char*)(&pro_offset_), save_->GetData() + 4, sizeof(uint64_t));
+    memcpy((char*)(&pro_offset_), save_->GetData() + sizeof(uint32_t), sizeof(uint64_t));
     DLOG(INFO) << "Load Binlog Version pro_num"<< pro_num_ << " pro_offset " << pro_offset_;;
     return Status::OK();
   } else {
@@ -61,6 +61,7 @@ void Version::StableSave() {
   memcpy(p, &pro_num_, sizeof(uint32_t));
   p += sizeof(uint32_t);
   memcpy(p, &pro_offset_, sizeof(uint64_t));
+  DLOG(INFO) << "Save to Version pro_num "<< pro_num_ << " pro_offset " << pro_offset_;;
 }
 
 void Version::Debug() {
@@ -377,7 +378,6 @@ Status Binlog::Init() {
       return s;
     }
     version_ = new Version(manifest_);
-    version_->Load();
     //version_->Debug();
 
     // Open Binlog

@@ -44,7 +44,6 @@ class Version {
     return pro_num_;
   }
 
-  Status Load();
   void Save(uint32_t num, uint64_t offset);
   void Fetch(uint32_t *num, uint64_t *offset);
 
@@ -57,8 +56,10 @@ class Version {
   uint64_t pro_offset_;
 
   slash::RWFile *save_;
-  // Should hold write lock on rwlock_
+
+  // StableSave and StableLoad Should hold write lock on rwlock_
   void StableSave();
+  Status StableLoad();
 
   // No copying allowed;
   Version(const Version&);

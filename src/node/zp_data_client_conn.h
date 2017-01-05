@@ -25,8 +25,9 @@ class ZPDataClientConn : public pink::PbConn {
 
   client::CmdRequest request_;
   client::CmdResponse response_;
-
   ZPDataWorkerThread* self_thread_;
+  
+  int DealMessageInternal();
 };
 
 #endif

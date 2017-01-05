@@ -46,6 +46,7 @@ Table::~Table() {
     }
   }
   pthread_rwlock_destroy(&partition_rw_);
+  LOG(INFO) << " Table " << table_name_ << " exit!!!";
 }
 
 bool Table::SetPartitionCount(const int count) {
