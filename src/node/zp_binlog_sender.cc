@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <glog/logging.h>
+#include <google/protobuf/text_format.h>
 #include "zp_const.h"
 #include "zp_data_server.h"
 #include "zp_data_partition.h"
@@ -21,9 +22,6 @@ static void BuildSyncRequest(uint32_t filenum, uint64_t offset,
   sync_offset->set_offset(offset);
   client::CmdRequest *req_ptr = msg->mutable_request();
   req_ptr->CopyFrom(req);
-  //std::string text_format;
-  //google::protobuf::TextFormat::PrintToString(msg, &text_format);
-  //DLOG(INFO) << "SyncRequest to be sent: [" << text_format << "]";
 } 
 
 std::string ZPBinlogSendTaskName(const std::string& table, int32_t id, const Node& target) {
@@ -81,7 +79,10 @@ Status ZPBinlogSendTask::Init() {
     return Status::IOError("ZPBinlogSendTask Init new sequtial file failed");
   }
   reader_ = new BinlogReader(queue_);
-  return reader_->Seek(offset_);
+  if (!(reader_->Seek(offset_).ok())) {
+    return Status::InvalidArgument("Invalid binlog offset");
+  }
+  return Status::OK();
 }
 
 Status ZPBinlogSendTask::ProcessTask() {
@@ -167,6 +168,7 @@ bool ZPBinlogSendTaskPool::TaskExist(const std::string& task_name) {
   return true;
 }
 
+// Create and add a new Task
 Status ZPBinlogSendTaskPool::AddNewTask(const std::string &table_name, int32_t id, const Node& target,
     uint32_t ifilenum, uint64_t ioffset, bool force) {
   ZPBinlogSendTask* task_ptr = NULL;
@@ -188,7 +190,7 @@ Status ZPBinlogSendTaskPool::AddTask(ZPBinlogSendTask* task) {
   assert(task != NULL);
   slash::RWLock l(&tasks_rwlock_, true);
   if (task_ptrs_.find(task->name()) != task_ptrs_.end()) {
-    return Status::InvalidArgument("Task already exist");
+    return Status::Complete("Task already exist");
   }
   tasks_.push_back(task);
   // index point to the last one just push back
@@ -332,7 +334,11 @@ void* ZPBinlogSendThread::ThreadMain() {
       // Send binlog
       if (s.ok()) {
         client::SyncRequest sreq;
+        assert(!(task->pre_content().empty()));
         BuildSyncRequest(task->pre_filenum(), task->pre_offset(), task->pre_content(), &sreq);
+        std::string text_format;
+        google::protobuf::TextFormat::PrintToString(sreq, &text_format);
+        DLOG(INFO) << "SyncRequest to be sent: [" << text_format << "]";
         s = zp_data_server->SendToPeer(task->node(), sreq);
         if (!s.ok()) {
           LOG(ERROR) << "Failed to send to peer " << task->node()

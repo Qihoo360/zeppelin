@@ -140,7 +140,7 @@ void InfoCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
     default: {
       response->set_code(client::StatusCode::kError);
       response->set_msg("unsupported cmd type");
-      LOG(ERROR) << "unsupported cmd type" << request->type(); 
+      LOG(ERROR) << "unsupported cmd type" << static_cast<int>(request->type()); 
       return;
     }
   }
@@ -165,8 +165,15 @@ void SyncCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
 
   slash::Status s;
   Node node(sync_req.node().ip(), sync_req.node().port());
-
   response->set_type(client::Type::SYNC);
+
+  if (ptr->role() != Role::kNodeMaster) {
+    response->set_code(client::StatusCode::kError);
+    response->set_msg("Current node is not master");
+    DLOG(INFO) << "I'm not master for partition: " << ptr->partition_id()
+      << ", but receive sync from:" << node;
+    return;
+  }
 
   uint32_t s_filenum = sync_req.sync_offset().filenum();
   uint64_t s_offset = sync_req.sync_offset().offset();
@@ -177,20 +184,33 @@ void SyncCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
   if (s.ok()) {
     response->set_code(client::StatusCode::kOk);
     DLOG(INFO) << "SyncCmd add node ok";
-  } else if (s.IsEndFile()) {
-    // Peer's offset is larger than me, send fallback offset
+  } else if (s.IsEndFile() || s.IsInvalidArgument()) {
+    // Need send fallback offset
     response->set_code(client::StatusCode::kFallback);
     client::CmdResponse_Sync *sync_res = response->mutable_sync();
     sync_res->set_table_name(sync_req.table_name());
     client::SyncOffset *offset = sync_res->mutable_sync_offset();
-    uint32_t win_filenum = 0;
-    uint64_t win_offset = 0;
-    ptr->GetWinBinlogOffset(&win_filenum, &win_offset);
-    offset->set_filenum(win_filenum);
-    offset->set_offset(win_offset);
-    DLOG(INFO) << "SyncCmd with offset larger than me, node:"
+    uint32_t fallback_filenum = 0;
+    uint64_t fallback_offset = 0;
+    if (s.IsEndFile()) {
+      // Peer's offset is larger than me, send fallback offset
+      ptr->GetWinBinlogOffset(&fallback_filenum, &fallback_offset);
+      DLOG(INFO) << "SyncCmd with offset larger than me, node:"
+        << sync_req.node().ip() << ":" << sync_req.node().port();
+    } else {
+      // Invalid filenum an offset, sen fallback offset
+      ptr->GetBinlogOffset(&fallback_filenum, &fallback_offset);
+      DLOG(INFO) << "SyncCmd with offset invalid, node:"
+        << sync_req.node().ip() << ":" << sync_req.node().port();
+    }
+    offset->set_filenum(fallback_filenum);
+    fallback_offset = BinlogBlockStart(fallback_offset);
+    offset->set_offset(fallback_offset);
+    DLOG(INFO) << "Send back fallback binlog point: "
+      << fallback_filenum << ", " << fallback_offset << " To: "
       << sync_req.node().ip() << ":" << sync_req.node().port();
   } else if (s.IsIncomplete()) {
+    // Slave should wait for db sync
     response->set_code(client::StatusCode::kWait);
     DLOG(INFO) << "SyncCmd add node incomplete";
   } else {

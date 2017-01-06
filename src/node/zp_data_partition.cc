@@ -347,6 +347,10 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
   if (s.ok()) {
     LOG(INFO) << "Success AddBinlogSendTask for Table " << table_name_ << " Partition " << partition_id_ << " To "
       << node.ip << ":" << node.port + kPortShiftSync << " at " << filenum << ", " << offset;
+  } else if (s.IsInvalidArgument()) {
+    // Invalid filenum and offset
+    LOG(INFO) << "Failed AddBinlogSendTask for Table " << table_name_ << " Partition " << partition_id_ << " To "
+      << node.ip << ":" << node.port + kPortShiftSync << " Since the Invalid Offset : " << filenum << ", " << offset;
   } else {
     LOG(WARNING) << "Failed AddBinlogSendTask for Table " << table_name_ << " Partition " << partition_id_ << " To "
       << node.ip << ":" << node.port + kPortShiftSync << " at " << filenum << ", " << offset << ", Error:" << s.ToString()
@@ -512,7 +516,7 @@ void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
   if (role_ != Role::kNodeSlave) {
     LOG(WARNING) << "Discard binlog item from " << from_ip_port
       << ", partition:" << partition_id_
-      << ", since I'm not a slave now, role: " << role_;
+      << ", since I'm not a slave now, role: " << static_cast<int>(role_);
     return;
   }
 
