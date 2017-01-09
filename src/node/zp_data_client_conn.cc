@@ -55,7 +55,7 @@ int ZPDataClientConn::DealMessageInternal() {
       break;
     }
     default: {
-      DLOG(INFO) << "Receive Info cmd " << request_.type();
+      DLOG(INFO) << "Receive Info cmd " << static_cast<int>(request_.type());
       break;
     }
   }

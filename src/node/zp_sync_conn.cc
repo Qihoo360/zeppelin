@@ -20,14 +20,14 @@ int ZPSyncConn::DealMessage() {
     LOG(WARNING) << "Receive Binlog command, but the server is not availible yet";
     return -1;
   }
-  //self_thread_->PlusQueryNum();
 
   request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
   
   // Check request
   if (request_.epoch() < zp_data_server->meta_epoch()) {
     LOG(WARNING) << "Receive Binlog command with expired epoch:" << request_.epoch()
-      << " , my current epoch" << zp_data_server->meta_epoch();
+      << ", my current epoch :" << zp_data_server->meta_epoch()
+      << ", from: (" << request_.from().ip() << ", " << request_.from().port() << ")";
     return -1;
   }
   
@@ -48,6 +48,10 @@ int ZPSyncConn::DealMessage() {
     }
     case client::Type::SYNC: {
       DLOG(INFO) << "SyncConn Receive Sync cmd";
+      break;
+    }
+    default: {
+      DLOG(INFO) << "Receive Info cmd " << static_cast<int>(crequest.type());
       break;
     }
   }

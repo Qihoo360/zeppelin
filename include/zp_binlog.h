@@ -15,11 +15,15 @@
 #include "env.h"
 #include "slash_status.h"
 #include "slash_mutex.h"
+#include "zp_const.h"
 
 using slash::Status;
 using slash::Slice;
 
 std::string NewFileName(const std::string name, const uint32_t current);
+
+// Find the nearest block start offset
+uint64_t BinlogBlockStart(uint64_t offset);
 
 enum RecordType {
   kZeroType = 0,
@@ -75,15 +79,16 @@ class BinlogWriter {
 public:
   BinlogWriter(slash::WritableFile *queue);
   ~BinlogWriter(); 
+  Status Fallback(uint64_t offset);
   Status Produce(const Slice &item, int64_t *write_size);
-  Status AppendBlank(uint64_t len);
-  void Load();
 
 private:
   slash::WritableFile *queue_;
   int block_offset_;
   Status EmitPhysicalRecord(RecordType t,
       const char *ptr, size_t n, int64_t *write_size);
+  Status AppendBlank(uint64_t len);
+  void Load();
 
   // No copying allowed
   BinlogWriter(const BinlogWriter&);

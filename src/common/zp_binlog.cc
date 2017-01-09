@@ -4,14 +4,16 @@
 #include <string>
 #include <glog/logging.h>
 
-#include "zp_const.h"
-
 using slash::RWLock;
 
 std::string NewFileName(const std::string name, const uint32_t current) {
   char buf[256];
   snprintf(buf, sizeof(buf), "%s%u", name.c_str(), current);
   return std::string(buf);
+}
+
+uint64_t BinlogBlockStart(uint64_t offset) {
+  return ((offset / kBlockSize) * kBlockSize);
 }
 
 /*
@@ -77,6 +79,7 @@ void Version::Debug() {
 BinlogWriter::BinlogWriter(slash::WritableFile *queue)
   :queue_(queue),
   block_offset_(0) {
+    Load();
   }
 
 BinlogWriter::~BinlogWriter() {
@@ -88,6 +91,17 @@ void BinlogWriter::Load() {
   block_offset_ = filesize % kBlockSize;
 }
 
+Status BinlogWriter::Fallback(uint64_t offset) {
+  if (offset > queue_->Filesize()) {
+    return Status::EndFile("offset beyond file size");
+  }
+  Status s = queue_->Trim(offset);
+  if (s.ok()) {
+    Load();
+  }
+  return s;
+}
+ 
 Status BinlogWriter::Produce(const Slice &item, int64_t *write_size) {
   Status s;
   const char *ptr = item.data();
@@ -257,8 +271,9 @@ Status BinlogReader::Consume(uint64_t* size, std::string* scratch) {
   return Status::OK();
 }
 
+// Seek to a offset larger than the filesize will return Status::EOF
 Status BinlogReader::Seek(uint64_t offset) {
-  uint64_t start_block = (offset / kBlockSize) * kBlockSize;
+  uint64_t start_block = BinlogBlockStart(offset);
   Status s = queue_->Skip(start_block);
   if (!s.ok()) {
     return s;
@@ -274,7 +289,6 @@ Status BinlogReader::Seek(uint64_t offset) {
       return s;
     }
     block_offset -= size;
-    LOG(INFO) << "BinlogReaderSeek consume size, " << size << ", block_offset, " << block_offset << "content : " << tmp;
   }
   if (block_offset != 0) {
     // offset not availible
@@ -392,7 +406,6 @@ Status Binlog::Init() {
       return s;
     }
     writer_ = new BinlogWriter(queue_);
-    writer_->Load();
   }
   return Status::OK();
 }
@@ -430,7 +443,6 @@ Status Binlog::Put(const std::string &item) {
     std::string profile = NewFileName(filename_, pro_num);
     slash::NewWritableFile(profile, &queue_);
     writer_ = new BinlogWriter(queue_);
-    writer_->Load();
     version_->Save(pro_num, 0);
   }
  
@@ -451,28 +463,28 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
   slash::MutexLock l(&mutex_);
 
   // offset smaller than the first header
-  if (pro_offset < 4) {
+  if (pro_offset < kHeaderSize) {
     pro_offset = 0;
   }
+  
+  // Avoid to append any blank content into binlog
+  uint32_t cur_num = 0;
+  uint64_t cur_offset = 0;
+  version_->Fetch(&cur_num, &cur_offset);
+  if (cur_num != pro_num) {
+    delete queue_;
+    delete writer_;
 
-  delete queue_;
-  delete writer_;
-
-  std::string init_profile = NewFileName(filename_, 0);
-  if (slash::FileExists(init_profile)) {
-    slash::DeleteFile(init_profile);
+    std::string profile = NewFileName(filename_, pro_num);
+    slash::NewWritableFile(profile, &queue_);
+    writer_ = new BinlogWriter(queue_);
+    pro_offset = 0;
+  }
+  pro_offset = (pro_offset > cur_offset) ? cur_offset : pro_offset;
+  Status s = writer_->Fallback(pro_offset);
+  if (s.ok()) {
+    version_->Save(pro_num, pro_offset);
   }
 
-  std::string profile = NewFileName(filename_, pro_num);
-  if (slash::FileExists(profile)) {
-    slash::DeleteFile(profile);
-  }
-
-  slash::NewWritableFile(profile, &queue_);
-  writer_ = new BinlogWriter(queue_);
-  writer_->AppendBlank(pro_offset);
-  writer_->Load();
-  version_->Save(pro_num, pro_offset);
-
-  return Status::OK();
+  return s;
 }
