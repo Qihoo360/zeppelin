@@ -56,7 +56,7 @@ Status Cluster::Set(const std::string& table, const std::string& key,
   set_info->set_key(key);
   set_info->set_value(value);
   s = SubmitDataCmd(table, key);
-  if (s.IsIOError()) {
+  if (s.IsIOError() || s.IsCorruption()) {
     return s;
   }
   if (data_res_.code() == client::StatusCode::kOk) {
@@ -74,7 +74,7 @@ Status Cluster::Delete(const std::string& table, const std::string& key) {
   del_info->set_table_name(table);
   del_info->set_key(key);
   s = SubmitDataCmd(table, key);
-  if (s.IsIOError()) {
+  if (s.IsIOError() || s.IsCorruption()) {
     return s;
   }
   if (data_res_.code() == client::StatusCode::kOk) {
@@ -97,7 +97,7 @@ Status Cluster::Get(const std::string& table, const std::string& key,
 
   s = SubmitDataCmd(table, key);
 
-  if (s.IsIOError()) {
+  if (s.IsIOError() || s.IsCorruption()) {
     return s;
   }
   if (data_res_.code() == client::StatusCode::kOk) {
@@ -342,7 +342,7 @@ Status Cluster::InfoQps(const std::string& table, int* qps, int* total_query) {
     data_cmd_.set_type(client::Type::INFOSTATS);
     s = TryDataRpc(*node_iter);
     node_iter++;
-    if (s.IsIOError()) {
+    if (s.IsIOError() || s.IsCorruption()) {
       continue;
     }
     for (int i = 0; i < data_res_.info_stats_size(); i++) {
@@ -366,6 +366,7 @@ Status Cluster::InfoOffset(const Node& node, const std::string& table,
   data_cmd_.set_type(client::Type::INFOPARTITION);
   s = TryDataRpc(node);
 
+  std::cout<<data_res_.info_partition_size()<<std::endl;
   for (int i = 0; i < data_res_.info_partition_size(); i++) {
     std::string name = data_res_.info_partition(i).table_name();
     if (name == table) {
@@ -404,10 +405,11 @@ Status Cluster::InfoSpace(const std::string& table,
     data_cmd_.Clear();
     data_cmd_.set_type(client::Type::INFOCAPACITY);
     s = TryDataRpc(*node_iter);
-    if (s.IsIOError()) {
+    if (s.IsIOError() || s.IsCorruption()) {
       node_iter++;
       continue;
     }
+    std::cout<<data_res_.info_capacity_size()<<std::endl;
     for (int i = 0; i < data_res_.info_capacity_size(); i++) {
       std::string name = data_res_.info_capacity(i).table_name();
       if (name == table) {
@@ -468,7 +470,7 @@ Status Cluster::TryDataRpc(const Node& master, int attempt) {
     }
     if (s.ok()) {
       return s;
-    } else if (s.IsIOError()) {
+    } else if (s.IsIOError() || s.IsCorruption()) {
       data_pool_->RemoveConnection(data_cli);
       if (attempt <= kDataAttempt) {
         return TryDataRpc(master, attempt+1);
@@ -491,7 +493,7 @@ Status Cluster::SubmitMetaCmd(int attempt) {
     }
     if (s.ok()) {
       return s;
-    } else if (s.IsIOError()) {
+    } else if (s.IsIOError() || s.IsCorruption()) {
       meta_pool_->RemoveConnection(meta_cli);
       if (attempt <= kMetaAttempt) {
         return SubmitMetaCmd(attempt+1);
