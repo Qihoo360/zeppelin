@@ -42,10 +42,6 @@ class Table {
   std::string log_path_;
   std::string data_path_;
 
-  //std::string sync_path_;
-  //std::string bgsave_path_;
-  //std::atomic<bool> readonly_;
-
   pthread_rwlock_t partition_rw_;
   std::atomic<int> partition_cnt_;
   std::map<int, Partition*> partitions_;

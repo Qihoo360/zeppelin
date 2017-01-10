@@ -208,8 +208,8 @@ Status ZPBinlogSendTaskPool::RemoveTask(const std::string &name) {
   // Task has been FetchOut should be deleted when Pushback
   if (it->second != tasks_.end()) {
     delete *(it->second);
+    tasks_.erase(it->second);
   }
-  tasks_.erase(it->second);
   task_ptrs_.erase(it);
   return Status::OK();
 }

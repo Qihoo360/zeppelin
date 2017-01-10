@@ -218,12 +218,6 @@ Status ZPDataServer::SendToPeer(const Node &node, const client::SyncRequest &msg
   return Status::OK();
 }
 
-// TODO rm;
-bool ZPDataServer::SetTablePartitionCount(const std::string &table_name, const int count) {
-  Table* table = GetTable(table_name);
-  return table == NULL ? false : table->SetPartitionCount(count);
-}
-
 Table* ZPDataServer::GetOrAddTable(const std::string &table_name) {
   slash::RWLock l(&table_rw_, false);
   auto it = tables_.find(table_name);
