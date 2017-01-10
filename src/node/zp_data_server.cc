@@ -136,9 +136,9 @@ Status ZPDataServer::Start() {
 
   while (!should_exit_) {
     DoTimingTask();
-    int sleep_count = 20;
+    int sleep_count = kNodeCronWaitCount;
     while (!should_exit_ && --sleep_count > 0){
-      sleep(1);
+      usleep(kNodeCronInterval * 1000);
     }
   }
   return Status::OK();

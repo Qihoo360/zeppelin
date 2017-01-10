@@ -15,6 +15,8 @@ Partition::Partition(const std::string &table_name, const int partition_id, cons
   pstate_(ZPMeta::PState::ACTIVE),
   role_(Role::kNodeSingle),
   repl_state_(ReplState::kNoConnect),
+  do_recovery_sync_(false),
+  recover_sync_flag_(0),
   bgsave_engine_(NULL),
   purging_(false),
   purged_index_(0) {
@@ -513,10 +515,11 @@ void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
   slash::RWLock l(&state_rw_, false);
 
   // Check binlog item
-  if (role_ != Role::kNodeSlave) {
+  if (role_ != Role::kNodeSlave || repl_state_ != ReplState::kConnected) {
     LOG(WARNING) << "Discard binlog item from " << from_ip_port
       << ", partition:" << partition_id_
-      << ", since I'm not a slave now, role: " << static_cast<int>(role_);
+      << ", my current role: " << static_cast<int>(role_)
+      << ", my current connection state: " << static_cast<int>(repl_state_);
     return;
   }
 
@@ -530,13 +533,20 @@ void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
   logger_->GetProducerStatus(&cur_filenum, &cur_offset);
-  if (cur_filenum != filenum || cur_offset != offset) {
+  if (filenum != cur_filenum || offset != cur_offset) {
     LOG(WARNING) << "Discard binlog item from " << from_ip_port
       << ", partition:" << partition_id_
       << ", with offset (" << filenum << ", " << offset << ")"
       << ", my current offset: (" << cur_filenum << ", " << cur_offset << ")";
+    if (filenum > cur_filenum ||
+        (filenum == cur_filenum && offset > cur_offset)) {
+      // Under this circumstance, slave has no chance to recovery itself
+      // So Try to schedule a new trysync bg job
+      TryRecoverSync();
+    }
     return;
   }
+  CancelRecoverSync();
 
   // Add read lock for no suspend command
   if (!cmd->is_suspend()) {
@@ -597,6 +607,35 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
 
   if (!cmd->is_suspend()) {
     pthread_rwlock_unlock(&partition_rw_);
+  }
+}
+
+inline void Partition::TryRecoverSync() {
+  do_recovery_sync_ = true;
+}
+
+inline void Partition::CancelRecoverSync() {
+  do_recovery_sync_ = false;
+}
+
+void Partition::MaybeRecoverSync() {
+  if (do_recovery_sync_) {
+    recover_sync_flag_++;
+    if (recover_sync_flag_ > kRecoverSyncDelayCronCount) {
+      slash::RWLock l(&state_rw_, true);
+      BecomeSlave();
+    }
+  }
+}
+
+void Partition::DoTimingTask() {
+  // Maybe trysync
+  MaybeRecoverSync();
+
+  // Purge log
+  if (!PurgeLogs(0, false)) {
+    DLOG(WARNING) << "Auto purge failed";
+    return;
   }
 }
 
@@ -901,13 +940,6 @@ bool Partition::CouldPurge(uint32_t index) {
   }
   purged_index_ = index + 1;
   return true;
-}
-
-void Partition::AutoPurge() {
-  if (!PurgeLogs(0, false)) {
-    DLOG(WARNING) << "Auto purge failed";
-    return;
-  }
 }
 
 void Partition::Dump() {

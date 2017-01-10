@@ -117,8 +117,7 @@ void Table::Dump() {
 void Table::DoTimingTask() {
   slash::RWLock l(&partition_rw_, false);
   for (auto pair : partitions_) {
-    //sleep(1);
-    pair.second->AutoPurge();
+    pair.second->DoTimingTask();
   }
 }
 
