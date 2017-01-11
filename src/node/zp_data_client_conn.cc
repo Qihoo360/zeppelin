@@ -28,7 +28,7 @@ int ZPDataClientConn::DealMessage() {
 // Msg is  [ length (int32) | pb_msg (length bytes) ]
 int ZPDataClientConn::DealMessageInternal() {
   if (!zp_data_server->Availible()) {
-    LOG(WARNING) << "Receive Client command, but the server is not availible yet";
+    LOG(WARNING) << "Receive Client command " << requeset_.type() << " from (" << ip_port() << "), but the server is not availible yet";
     response_.set_type(request_.type());
     response_.set_code(client::StatusCode::kError);
     response_.set_msg("server is not availible yet");

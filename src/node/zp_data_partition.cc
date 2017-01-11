@@ -790,7 +790,7 @@ bool Partition::FlushAll() {
 }
 
 bool Partition::PurgeLogs(uint32_t to, bool manual) {
-  usleep(300000);
+  //usleep(300000);
 
   // Only one thread can go through
   bool expect = false;
@@ -957,8 +957,12 @@ void Partition::Dump() {
       LOG(INFO) << "  +I'm single";
   }
   LOG(INFO) << "     -*State " << static_cast<int>(pstate_);
+  if (pstate_ == ZPMeta::PState::ACTIVE) {
+    LOG(INFO) << "     -*State ACTIVE";
+  } else if (pstate_ == ZPMeta::PState::STUCK) {
+    LOG(INFO) << "     -*State STUCK";
+  }
   LOG(INFO) << "     -*Master node " << master_node_;
-
   for (auto& slave : slave_nodes_) {
     LOG(INFO) << "     -* slave  " <<  slave;
   }
