@@ -52,7 +52,7 @@ const int kMetaPortShiftFY = 100;
 
 
 // TrySync Delay time := kRecoverSyncDelayCronCount * (kNodeCronInterval * kNodeCronWaitCount)
-const int kRecoverSyncDelayCronCount = 5;
+const int kRecoverSyncDelayCronCount = 7;
 const int kTrySyncInterval = 3;
 const int kPingInterval = 3;
 const int kMetacmdInterval = 3;

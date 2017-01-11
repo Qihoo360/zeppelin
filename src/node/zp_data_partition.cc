@@ -622,6 +622,8 @@ void Partition::MaybeRecoverSync() {
   if (do_recovery_sync_) {
     recover_sync_flag_++;
     if (recover_sync_flag_ > kRecoverSyncDelayCronCount) {
+      recover_sync_flag_ = 0;
+      do_recovery_sync_ = false;
       slash::RWLock l(&state_rw_, true);
       BecomeSlave();
     }

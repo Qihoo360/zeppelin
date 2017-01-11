@@ -190,24 +190,21 @@ void SyncCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
     client::CmdResponse_Sync *sync_res = response->mutable_sync();
     sync_res->set_table_name(sync_req.table_name());
     client::SyncOffset *offset = sync_res->mutable_sync_offset();
-    uint32_t fallback_filenum = 0;
-    uint64_t fallback_offset = 0;
     if (s.IsEndFile()) {
       // Peer's offset is larger than me, send fallback offset
-      ptr->GetWinBinlogOffset(&fallback_filenum, &fallback_offset);
+      ptr->GetWinBinlogOffset(&s_filenum, &s_offset);
       DLOG(INFO) << "SyncCmd with offset larger than me, node:"
         << sync_req.node().ip() << ":" << sync_req.node().port();
     } else {
       // Invalid filenum an offset, sen fallback offset
-      ptr->GetBinlogOffset(&fallback_filenum, &fallback_offset);
       DLOG(INFO) << "SyncCmd with offset invalid, node:"
         << sync_req.node().ip() << ":" << sync_req.node().port();
     }
-    offset->set_filenum(fallback_filenum);
-    fallback_offset = BinlogBlockStart(fallback_offset);
-    offset->set_offset(fallback_offset);
+    offset->set_filenum(s_filenum);
+    s_offset = BinlogBlockStart(s_offset);
+    offset->set_offset(s_offset);
     DLOG(INFO) << "Send back fallback binlog point: "
-      << fallback_filenum << ", " << fallback_offset << " To: "
+      << s_filenum << ", " << s_offset << " To: "
       << sync_req.node().ip() << ":" << sync_req.node().port();
   } else if (s.IsIncomplete()) {
     // Slave should wait for db sync
