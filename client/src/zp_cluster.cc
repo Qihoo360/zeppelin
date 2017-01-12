@@ -366,7 +366,6 @@ Status Cluster::InfoOffset(const Node& node, const std::string& table,
   data_cmd_.set_type(client::Type::INFOPARTITION);
   s = TryDataRpc(node);
 
-  std::cout<<data_res_.info_partition_size()<<std::endl;
   for (int i = 0; i < data_res_.info_partition_size(); i++) {
     std::string name = data_res_.info_partition(i).table_name();
     if (name == table) {
@@ -409,7 +408,6 @@ Status Cluster::InfoSpace(const std::string& table,
       node_iter++;
       continue;
     }
-    std::cout<<data_res_.info_capacity_size()<<std::endl;
     for (int i = 0; i < data_res_.info_capacity_size(); i++) {
       std::string name = data_res_.info_capacity(i).table_name();
       if (name == table) {
