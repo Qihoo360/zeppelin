@@ -119,7 +119,6 @@ class ZPDataServer {
   Table* GetOrAddTable(const std::string &table_name);
 
   Table* GetTable(const std::string &table_name);
-  bool SetTablePartitionCount(const std::string &table_name, int count);
   Partition* GetTablePartition(const std::string &table_name, const std::string &key);
   Partition* GetTablePartitionById(const std::string &table_name, const int partition_id);
 

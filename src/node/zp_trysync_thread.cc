@@ -49,6 +49,7 @@ void ZPTrySyncThread::TrySyncTask(Partition* partition) {
   if (!SendTrySync(partition)) {
     // Need one more trysync, since error happenning or waiting for db sync
     sleep(kTrySyncInterval);
+    LOG(INFO) << "SendTrySync ReSchedule for partition:" << partition->partition_id();
     zp_data_server->AddSyncTask(partition);
   }
 }
@@ -169,6 +170,7 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
     RsyncRef();
     // Send && Recv
     if (Send(partition, cli)) {
+      Status s;
       RecvResult res;
       if (Recv(partition, cli, &res)) {
         switch (res.code) {
@@ -177,7 +179,14 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
             RsyncUnref();
             return true;
           case client::StatusCode::kFallback:
-            partition->SetBinlogOffset(res.filenum, res.offset);
+            LOG(INFO) << "Receive sync offset fallback to : "
+              << res.filenum << "_" << res.offset;
+            s = partition->SetBinlogOffset(res.filenum, res.offset);
+            if (!s.ok()) {
+              LOG(WARNING) << "Set sync offset fallback to : "
+                << res.filenum << "_" << res.offset
+                << ", Faliled: " << s.ToString();
+            }
             break;
           case client::StatusCode::kWait:
             RsyncRef(); // Keep the rsync deamon for sync file receive

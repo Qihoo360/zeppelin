@@ -19,7 +19,8 @@ Table* NewTable(const std::string &table_name, const std::string log_path, const
 Table::Table(const std::string& table_name, const std::string &log_path, const std::string &data_path)
   : table_name_(table_name),
   log_path_(log_path),
-  data_path_(data_path) {
+  data_path_(data_path),
+  partition_cnt_(0) {
   if (log_path_.back() != '/') {
     log_path_.push_back('/');
   }
@@ -35,7 +36,7 @@ Table::Table(const std::string& table_name, const std::string &log_path, const s
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
   pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
-  pthread_rwlock_init(&partition_rw_, NULL);
+  pthread_rwlock_init(&partition_rw_, &attr);
 }
 
 Table::~Table() {
@@ -117,8 +118,7 @@ void Table::Dump() {
 void Table::DoTimingTask() {
   slash::RWLock l(&partition_rw_, false);
   for (auto pair : partitions_) {
-    //sleep(1);
-    pair.second->AutoPurge();
+    pair.second->DoTimingTask();
   }
 }
 

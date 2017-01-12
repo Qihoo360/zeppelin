@@ -136,9 +136,9 @@ Status ZPDataServer::Start() {
 
   while (!should_exit_) {
     DoTimingTask();
-    int sleep_count = 20;
-    while (!should_exit_ && --sleep_count > 0){
-      sleep(1);
+    int sleep_count = kNodeCronWaitCount;
+    while (!should_exit_ && sleep_count-- > 0){
+      usleep(kNodeCronInterval * 1000);
     }
   }
   return Status::OK();
@@ -216,12 +216,6 @@ Status ZPDataServer::SendToPeer(const Node &node, const client::SyncRequest &msg
     return Status::Corruption(res.ToString());
   }
   return Status::OK();
-}
-
-// TODO rm;
-bool ZPDataServer::SetTablePartitionCount(const std::string &table_name, const int count) {
-  Table* table = GetTable(table_name);
-  return table == NULL ? false : table->SetPartitionCount(count);
 }
 
 Table* ZPDataServer::GetOrAddTable(const std::string &table_name) {

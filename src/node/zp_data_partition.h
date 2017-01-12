@@ -101,8 +101,8 @@ class Partition {
   void GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) const {
     logger_->GetProducerStatus(filenum, pro_offset);
   }
-  void SetBinlogOffset(uint32_t filenum, uint64_t offset) {
-    logger_->SetProducerStatus(filenum, offset);
+  Status SetBinlogOffset(uint32_t filenum, uint64_t offset) {
+    return logger_->SetProducerStatus(filenum, offset);
   }
   std::string GetBinlogFilename() {
     return logger_->filename();
@@ -156,11 +156,12 @@ class Partition {
   void ClearPurge() {
     purging_ = false;
   }
-  void AutoPurge();
   void Dump();
 
   // State related
   bool GetWinBinlogOffset(uint32_t* filenum, uint64_t* offset);
+  
+  void DoTimingTask();
 
  private:
   //TODO define PartitionOption if needed
@@ -198,6 +199,13 @@ class Partition {
   // DoCommand related
   slash::RecordMutex mutex_record_;
   pthread_rwlock_t partition_rw_; // Some command use partition_rw to suspend others
+
+  // Recover sync related
+  std::atomic<bool> do_recovery_sync_;
+  int recover_sync_flag_;
+  void TryRecoverSync();
+  void CancelRecoverSync();
+  void MaybeRecoverSync();
 
   // BGSave related
   slash::Mutex bgsave_protector_;

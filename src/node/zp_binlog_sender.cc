@@ -208,8 +208,8 @@ Status ZPBinlogSendTaskPool::RemoveTask(const std::string &name) {
   // Task has been FetchOut should be deleted when Pushback
   if (it->second != tasks_.end()) {
     delete *(it->second);
+    tasks_.erase(it->second);
   }
-  tasks_.erase(it->second);
   task_ptrs_.erase(it);
   return Status::OK();
 }
@@ -316,35 +316,36 @@ void* ZPBinlogSendThread::ThreadMain() {
     // Fetched one task, process it
     gettimeofday(&begin, NULL);
     while (!should_exit_) {
+      Status item_s = Status::OK();
       // Record offset of current binlog item for sending later
       if (task->send_next) {
         // Process ProcessTask
-        s = task->ProcessTask();
-        if (s.IsEndFile()) {
+        item_s = task->ProcessTask();
+        if (item_s.IsEndFile()) {
           //LOG(INFO) << "No more binlog item for table: " << task->table_name()
           //  << " parititon: " << task->partition_id();
           pool_->PutBack(task);
           break;
-        } else if (!s.ok()) {
-          LOG(WARNING) << "BinlogSender Parse error, " << s.ToString();
+        } else if (!item_s.ok()) {
+          LOG(WARNING) << "BinlogSender Parse error, " << item_s.ToString();
           sleep(1);
         }
       }
 
       // Send binlog
-      if (s.ok()) {
+      if (item_s.ok()) {
         client::SyncRequest sreq;
         assert(!(task->pre_content().empty()));
         BuildSyncRequest(task->pre_filenum(), task->pre_offset(), task->pre_content(), &sreq);
-        std::string text_format;
-        google::protobuf::TextFormat::PrintToString(sreq, &text_format);
-        DLOG(INFO) << "SyncRequest to be sent: [" << text_format << "]";
-        s = zp_data_server->SendToPeer(task->node(), sreq);
-        if (!s.ok()) {
+        //std::string text_format;
+        //google::protobuf::TextFormat::PrintToString(sreq, &text_format);
+        //DLOG(INFO) << "SyncRequest to be sent to: " << task->node() << ": [" << text_format << "]";
+        item_s = zp_data_server->SendToPeer(task->node(), sreq);
+        if (!item_s.ok()) {
           LOG(ERROR) << "Failed to send to peer " << task->node()
             << ", table:" << task->table_name() << ", partition:" << task->partition_id()
-            << ", filenum:" << task->filenum() << ", offset:" << task->offset()
-            << ", Error: " << s.ToString();
+            << ", filenum:" << task->pre_filenum() << ", offset:" << task->pre_offset()
+            << ", Error: " << item_s.ToString();
           task->send_next = false;
           sleep(1);
         } else {
