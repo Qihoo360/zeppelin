@@ -138,12 +138,12 @@ void StartRepl(libzp::Cluster* cluster) {
       std::cout << "current table info:" << std::endl;
       cluster->DebugDumpTable(table_name);
 
-    } else if (!strncasecmp(line, "DUMP TABLE ", 11)) {
-      if (line_args.size() != 3) {
+    } else if (!strncasecmp(line, "DUMP ", 5)) {
+      if (line_args.size() != 2) {
         std::cout << "arg num wrong" << std::endl;
         continue;
       }
-      std::string table_name = line_args[2];
+      std::string table_name = line_args[1];
       cluster->DebugDumpTable(table_name);
 
     } else if (!strncasecmp(line, "LOCATE ", 5)) {

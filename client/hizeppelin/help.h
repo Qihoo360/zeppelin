@@ -69,6 +69,11 @@ struct CommandHelp {
   1,
   "get space info for a table"},
 
+  { "DUMP",
+  "table",
+  1,
+  "get space info for a table"},
+
   { "LOCATE",
   "table key",
   2,
