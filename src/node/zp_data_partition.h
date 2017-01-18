@@ -52,9 +52,32 @@ struct PartitionBinlogOffset {
   uint64_t offset;
 };
 
+struct PartitionSyncOption {
+  client::SyncType type;
+  std::string table_name;
+  uint32_t partition_id;
+  std::string from_node;
+  uint32_t filenum;
+  uint64_t offset;
+  PartitionSyncOption(
+      client::SyncType t,
+      std::string table,
+      uint32_t id,
+      const std::string& from,
+      uint32_t arg_filenum,
+      uint64_t arg_offset)
+    : type(t),
+    table_name(table),
+    partition_id(id),
+    from_node(from),
+    filenum(arg_filenum),
+    offset(arg_offset) {}
+};
+
 class Partition {
   public:
-  Partition(const std::string &table_name, const int partition_id, const std::string &log_path, const std::string &data_path);
+  Partition(const std::string &table_name, const int partition_id,
+      const std::string &log_path, const std::string &data_path);
   ~Partition();
 
   int partition_id() const {
@@ -80,10 +103,11 @@ class Partition {
   }
 
   // Command related
-  void DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
-      const std::string &from_ip_port, uint32_t filenum, uint64_t offset);
+  void DoBinlogCommand(const PartitionSyncOption& option,
+      const Cmd* cmd, const client::CmdRequest &req);
   void DoCommand(const Cmd* cmd, const client::CmdRequest &req,
       client::CmdResponse &res);
+  void DoBinlogSkip(const PartitionSyncOption& option, uint64_t gap);
 
   // Status related
   bool ShouldTrySync();
@@ -164,8 +188,6 @@ class Partition {
   void DoTimingTask();
 
  private:
-  //TODO define PartitionOption if needed
-
   std::string table_name_;
   int partition_id_;
   std::string log_path_;
@@ -188,6 +210,7 @@ class Partition {
   void BecomeMaster();
   void BecomeSlave();
   ZPMeta::PState UpdateState(ZPMeta::PState state);
+  bool CheckSyncOption(const PartitionSyncOption& option);
 
   // DB related
   std::shared_ptr<nemo::Nemo> db_;

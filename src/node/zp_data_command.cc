@@ -9,7 +9,8 @@
 
 extern ZPDataServer *zp_data_server;
 
-void SetCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+void SetCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
   const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
@@ -17,18 +18,21 @@ void SetCmd::Do(const google::protobuf::Message *req, google::protobuf::Message 
   response->Clear();
   response->set_type(client::Type::SET);
 
-  nemo::Status s = ptr->db()->Set(request->set().key(), request->set().value());
+  nemo::Status s = ptr->db()->Set(request->set().key(),
+      request->set().value());
   if (!s.ok()) {
     response->set_code(client::StatusCode::kError);
     response->set_msg(s.ToString());
     LOG(ERROR) << "command failed: Set, caz " << s.ToString();
   } else {
     response->set_code(client::StatusCode::kOk);
-    DLOG(INFO) << "Set key(" << request->set().key() << ") at " << ptr->table_name() << "_" << ptr->partition_id() << " ok";
+    DLOG(INFO) << "Set key(" << request->set().key() << ") at "
+      << ptr->table_name() << "_" << ptr->partition_id() << " ok";
   }
 }
 
-void GetCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+void GetCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
   const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
@@ -42,18 +46,24 @@ void GetCmd::Do(const google::protobuf::Message *req, google::protobuf::Message 
   if (s.ok()) {
     response->set_code(client::StatusCode::kOk);
     get_res->set_value(value);
-    DLOG(INFO) << "Get key(" << request->get().key() << ") at " << ptr->table_name() << "_" << ptr->partition_id() << " ok, value is (" << value << ")";
+    DLOG(INFO) << "Get key(" << request->get().key()
+      << ") at " << ptr->table_name() << "_" << ptr->partition_id()
+      << " ok, value is (" << value << ")";
   } else if (s.IsNotFound()) {
     response->set_code(client::StatusCode::kNotFound);
-    DLOG(INFO) << "Get key(" << request->get().key() << ") at " << ptr->table_name() << "_" << ptr->partition_id() << " not found!";
+    DLOG(INFO) << "Get key(" << request->get().key() <<
+      ") at " << ptr->table_name() << "_" << ptr->partition_id() << " not found!";
   } else {
     response->set_code(client::StatusCode::kError);
     response->set_msg(s.ToString());
-    LOG(ERROR) << "command failed: Get at " << ptr->table_name() << "_"  << ptr->partition_id() << ", caz " << s.ToString();
+    LOG(ERROR) << "command failed: Get at "
+      << ptr->table_name() << "_"  << ptr->partition_id()
+      << ", caz " << s.ToString();
   }
 }
 
-void DelCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+void DelCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
   const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
@@ -69,11 +79,13 @@ void DelCmd::Do(const google::protobuf::Message *req, google::protobuf::Message 
     LOG(ERROR) << "command failed: Del, caz " << s.ToString();
   } else {
     response->set_code(client::StatusCode::kOk);
-    DLOG(INFO) << "Del key(" << request->del().key() << ") at Partition: " << ptr->partition_id() << " ok";
+    DLOG(INFO) << "Del key(" << request->del().key()
+      << ") at Partition: " << ptr->partition_id() << " ok";
   }
 }
 
-void InfoCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* p) const {
+void InfoCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* p) const {
   const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
 
@@ -155,7 +167,8 @@ void InfoCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
 
 
 // Sync between nodes
-void SyncCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+void SyncCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
   const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
@@ -177,8 +190,10 @@ void SyncCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
 
   uint32_t s_filenum = sync_req.sync_offset().filenum();
   uint64_t s_offset = sync_req.sync_offset().offset();
-  LOG(INFO) << "SyncCmd with a new node (" << ptr->table_name() << "_"  << ptr->partition_id()
-      << "_" << node.ip << ":" << node.port << ", " << s_filenum << ", " << s_offset << ")";
+  LOG(INFO) << "SyncCmd with a new node ("
+    << ptr->table_name() << "_"  << ptr->partition_id()
+    << "_" << node.ip << ":" << node.port << ", "
+    << s_filenum << ", " << s_offset << ")";
   s = ptr->SlaveAskSync(node, s_filenum, s_offset);
 
   if (s.ok()) {

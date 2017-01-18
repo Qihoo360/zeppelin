@@ -82,9 +82,10 @@ int ZPDataClientConn::DealMessageInternal() {
 
   // Single Partition related Cmds
   Partition* partition = NULL;
-  if (request_.type() ==  client::Type::SYNC) {
+  int partition_id = cmd->ExtractPartition(&request_);
+  if (partition_id >= 0) {
     partition = zp_data_server->GetTablePartitionById(cmd->ExtractTable(&request_),
-        request_.sync().sync_offset().partition());
+        partition_id);
   } else {
     partition = zp_data_server->GetTablePartition(cmd->ExtractTable(&request_),
         cmd->ExtractKey(&request_));

@@ -46,6 +46,12 @@ void Version::Fetch(uint32_t *num, uint64_t *offset) {
   *offset = pro_offset_;
 }
 
+inline void Version::Inc(uint64_t go_head) {
+  slash::RWLock(&rwlock_, true);
+  pro_offset_ += go_head;
+  StableSave();
+}
+
 Status Version::StableLoad() {
   Status s;
   if (save_->GetData() != NULL) {
@@ -168,40 +174,34 @@ Status BinlogWriter::EmitPhysicalRecord(RecordType t, const char *ptr, size_t n,
     return s;
 }
 
-Status BinlogWriter::AppendBlank(uint64_t len) {
+Status BinlogWriter::AppendBlank(uint64_t len, int64_t* write_size) {
+  Status s;
   if (len < kHeaderSize) {
-    return Status::OK();
+    return Status::InvalidArgument("Blank len too small");
   }
 
-  uint64_t pos = 0;
+  size_t left = len;
 
-  std::string blank(kBlockSize, ' ');
-  for (; pos + kBlockSize < len; pos += kBlockSize) {
-    queue_->Append(Slice(blank.data(), blank.size()));
-  }
-
-  // Append a msg which occupy the remain part of the last block
-  // We simply increase the remain length to kHeaderSize when remain part < kHeaderSize
-  uint32_t n;
-  if (len % kBlockSize < kHeaderSize) {
-    n = 0;
-  } else {
-    n = (uint32_t) ((len % kBlockSize) - kHeaderSize);
-  }
-
-  char buf[kBlockSize];
-  buf[0] = static_cast<char>(n & 0xff);
-  buf[1] = static_cast<char>((n & 0xff00) >> 8);
-  buf[2] = static_cast<char>(n >> 16);
-  buf[3] = static_cast<char>(kFullType);
-
-  Status s = queue_->Append(Slice(buf, kHeaderSize));
-  if (s.ok()) {
-    s = queue_->Append(Slice(blank.data(), n));
-    if (s.ok()) {
-      s = queue_->Flush();
+  *write_size = 0;
+  char tmp[kBlockSize] = {'\x00'};
+  do {
+    const int leftover = static_cast<int>(kBlockSize) - block_offset_;
+    assert(leftover >= 0);
+    if (static_cast<size_t>(leftover) < kHeaderSize) {
+      if (leftover > 0) {
+        queue_->Append(Slice("\x00\x00\x00\x00\x00\x00\x00", leftover));
+        *write_size += leftover;
+      }
+      block_offset_ = 0;
     }
-  }
+
+    const size_t avail = kBlockSize - block_offset_ - kHeaderSize;
+    const size_t fragment_length = (left < avail) ? left : avail;
+
+    s = EmitPhysicalRecord(kEmptyType, tmp, fragment_length, write_size);
+    left -= fragment_length;
+  } while (s.ok() && left > 0);
+
   return s;
 }
 
@@ -213,64 +213,76 @@ BinlogReader::BinlogReader(slash::SequentialFile *queue)
   :queue_(queue),
   backing_store_(new char[kBlockSize]),
   buffer_(),
-  last_record_offset_(0),
-  last_error_happened_(false) {
+  last_record_offset_(0) {
   }
 
 BinlogReader::~BinlogReader() {
   delete [] backing_store_;
 }
 
+void BinlogReader::SkipNextBlock(uint64_t* size) {
+  int leftover = kBlockSize - last_record_offset_;
+  queue_->Skip(leftover);
+  *size += leftover;
+  last_record_offset_ = 0;
+}
+
+// Comsume one record to scratch
+// size show how many byte moving forward
+// Return OK if success
+//        Incomplete: miss record begin or end
+//        EndFile
+//        IOError: data corruption or unknown type
 Status BinlogReader::Consume(uint64_t* size, std::string* scratch) {
   assert(size != NULL);
-  if (last_error_happened_) {
-    // BadRecord happend, skip to the next Block
-    LOG(WARNING) << "Skip to the next Block since the BadRecord the last time";
-    int leftover = kBlockSize - last_record_offset_;
-    queue_->Skip(leftover);
-    *size += leftover;
-    last_record_offset_ = 0;
-    last_error_happened_ = false;
-  }
 
   Status s;
+  bool inside_record = false;
   slash::Slice fragment;
   while (true) {
     const uint32_t record_type = ReadPhysicalRecord(size, &fragment);
 
     switch (record_type) {
       case kFullType:
+        if (inside_record) {
+          return Status::Incomplete("Not found end item");
+        }
         *scratch = std::string(fragment.data(), fragment.size());
-        s = Status::OK();
-        break;
+        return Status::OK();
       case kFirstType:
+        if (inside_record) {
+          return Status::Incomplete("Not found end item");
+        }
+        inside_record = true;
         scratch->assign(fragment.data(), fragment.size());
-        s = Status::NotFound("Middle Status");
         break;
       case kMiddleType:
+        if (!inside_record) {
+          return Status::Incomplete("Not found first item");
+        }
         scratch->append(fragment.data(), fragment.size());
-        s = Status::NotFound("Middle Status");
         break;
       case kLastType:
+        if (!inside_record) {
+          return Status::Incomplete("Not found first item");
+        }
         scratch->append(fragment.data(), fragment.size());
-        s = Status::OK();
-        break;
+        return Status::OK();
       case kEof:
         return Status::EndFile("Eof");
       case kBadRecord:
-        last_error_happened_ = true;
         return Status::IOError("Data Corruption");
+      case kEmptyType:
+        return Status::Incomplete("Not found whole item");
       default:
-        last_error_happened_ = true;
         return Status::IOError("Unknow reason");
-    }
-    if (s.ok()) {
-      break;
     }
   }
   return Status::OK();
 }
 
+// Seek to the nearest item begin before offset
+// pre_item_offset record the nearest item begin
 // Seek to a offset larger than the filesize will return Status::EOF
 Status BinlogReader::Seek(uint64_t offset) {
   uint64_t start_block = BinlogBlockStart(offset);
@@ -284,9 +296,12 @@ Status BinlogReader::Seek(uint64_t offset) {
     uint64_t size = 0;
     std::string tmp;
     s = Consume(&size, &tmp);
-    if (!s.ok()) {
-      LOG(INFO) << "Consume Error BinlogReaderSeek consume size, " << size << ", block_offset, " << block_offset << " content : " << tmp;
-      return s;
+    if (s.ok() || s.IsIncomplete()) {
+      // Do nothing
+    } else if (s.IsEndFile()) {
+      return Status::InvalidArgument("Binlog offset beyond enf of file");
+    } else {
+      SkipNextBlock(&size);
     }
     block_offset -= size;
   }
@@ -306,13 +321,20 @@ unsigned int BinlogReader::ReadPhysicalRecord(uint64_t *size, slash::Slice *resu
     *size += leftover;
     last_record_offset_ = 0;
   }
+
   buffer_.clear();
+  // TODO wk slash may return the actual read bytes
+  //uint64_t actual_read = 0;
+  //s = queue_->Read(kHeaderSize, &buffer_, backing_store_, &actual_read);
+  //*size += actual_read;
   s = queue_->Read(kHeaderSize, &buffer_, backing_store_);
   if (s.IsEndFile()) {
     return kEof;
   } else if (!s.ok()) {
     return kBadRecord;
   }
+  *size += kHeaderSize;
+  last_record_offset_ += kHeaderSize;
 
   const char* header = buffer_.data();
   const uint32_t a = static_cast<uint32_t>(header[0]) & 0xff;
@@ -322,6 +344,8 @@ unsigned int BinlogReader::ReadPhysicalRecord(uint64_t *size, slash::Slice *resu
   const uint32_t length = a | (b << 8) | (c << 16);
 
   buffer_.clear();
+  //s = queue_->Read(length, &buffer_, backing_store_, &actual_read);
+  //*size += actual_read;
   s = queue_->Read(length, &buffer_, backing_store_);
   *result = slash::Slice(buffer_.data(), buffer_.size());
   if (s.IsEndFile()) {
@@ -329,9 +353,9 @@ unsigned int BinlogReader::ReadPhysicalRecord(uint64_t *size, slash::Slice *resu
   } else if (!s.ok()) {
     return kBadRecord;
   }
+  *size += length;
+  last_record_offset_ += length;
 
-  last_record_offset_ += kHeaderSize + length;
-  *size += kHeaderSize + length;
   return type;
 }
 
@@ -430,9 +454,8 @@ Binlog::~Binlog() {
   delete manifest_;
 }
 
-Status Binlog::Put(const std::string &item) {
-  slash::MutexLock l(&mutex_);
-  Status s;
+// Required hold mutex_
+void Binlog::MaybeRoll() {
   /* Check to roll log file */
   uint64_t filesize = queue_->Filesize();
   if (filesize > file_size_) {
@@ -445,16 +468,31 @@ Status Binlog::Put(const std::string &item) {
     writer_ = new BinlogWriter(queue_);
     version_->Save(pro_num, 0);
   }
- 
+}
+
+Status Binlog::Put(const std::string &item) {
+  slash::MutexLock l(&mutex_);
+  MaybeRoll();
+
   int64_t go_ahead = 0;
-  s = writer_->Produce(Slice(item.data(), item.size()), &go_ahead);
-  if (s.ok()) {
-    uint32_t filenum = 0;
-    uint64_t offset = 0;
-    version_->Fetch(&filenum, &offset);
-    version_->Save(filenum, offset + go_ahead);
-  } else {
+  Status s = writer_->Produce(Slice(item.data(), item.size()), &go_ahead);
+  version_->Inc(go_ahead);
+  if (!s.ok()) {
     LOG(WARNING) << "Binlog write failed: " << s.ToString();
+  }
+  return s;
+}
+
+// Fill binlog with emtpy record whose length is len
+Status Binlog::PutBlank(uint64_t len) {
+  slash::MutexLock l(&mutex_);
+  MaybeRoll();
+  
+  int64_t go_ahead = 0;
+  Status s = writer_->AppendBlank(len, &go_ahead);
+  version_->Inc(go_ahead);
+  if (!s.ok()) {
+    LOG(WARNING) << "Binlog write blank failed: " << s.ToString();
   }
   return s;
 }

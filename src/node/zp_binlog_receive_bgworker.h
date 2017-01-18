@@ -1,20 +1,25 @@
 #ifndef ZP_BINLOG_RECEIVE_BGWORKER
 #define ZP_BINLOG_RECEIVE_BGWORKER
 #include "bg_thread.h"
+#include "client.pb.h"
 #include "zp_command.h"
 
 struct ZPBinlogReceiveTask {
-  uint32_t partition_id;
+  PartitionSyncOption option;
   const Cmd* cmd;
   client::CmdRequest request;
-  std::string from_node;
-  uint32_t filenum;
-  uint64_t offset;
-  ZPBinlogReceiveTask(uint32_t id, const Cmd* c, const client::CmdRequest &req,
-      const std::string& from, uint32_t arg_filenum, uint64_t arg_offset)
-    : partition_id(id), cmd(c),
-    request(req), from_node(from),
-    filenum(arg_filenum), offset(arg_offset) {}
+  uint64_t gap;
+
+  ZPBinlogReceiveTask(const PartitionSyncOption &opt,
+      const Cmd* c, const client::CmdRequest &req)
+    : option(opt),
+    cmd(c),
+    request(req) {}
+
+  ZPBinlogReceiveTask(const PartitionSyncOption &opt,
+      uint64_t g)
+    : option(opt),
+    gap(g) {}
 };
 
 class ZPBinlogReceiveBgWorker {

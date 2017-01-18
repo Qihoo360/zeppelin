@@ -144,8 +144,8 @@ class ZPDataServer {
       int32_t filenum, int64_t offset);
   Status RemoveBinlogSendTask(const std::string &table, int parititon_id, const Node& node);
   int32_t GetBinlogSendFilenum(const std::string &table, int partition_id, const Node& node);
-  //void DispatchBinlogBGWorker(const Cmd* cmd, const client::CmdRequest &req);
-  void DispatchBinlogBGWorker(const std::string& table_name, const std::string& key, ZPBinlogReceiveTask *task);
+  void DispatchBinlogBGWorker(ZPBinlogReceiveTask *task);
+
 
   // Command related
   Cmd* CmdGet(const int op) {

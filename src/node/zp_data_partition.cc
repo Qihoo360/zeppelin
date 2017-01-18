@@ -509,44 +509,53 @@ Partition* NewPartition(const std::string &table_name,
   return partition;
 }
 
-// Keep binlog order outside
-void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
-    const std::string &from_ip_port, uint32_t filenum, uint64_t offset) {
-  slash::RWLock l(&state_rw_, false);
-
-  // Check binlog item
+// Required: hold read mutex of status_rw_
+bool Partition::CheckSyncOption(const PartitionSyncOption& option) {
+  // Check current status
   if (role_ != Role::kNodeSlave || repl_state_ != ReplState::kConnected) {
-    LOG(WARNING) << "Discard binlog item from " << from_ip_port
+    LOG(WARNING) << "Discard binlog item from " << option.from_node
       << ", partition:" << partition_id_
       << ", my current role: " << static_cast<int>(role_)
       << ", my current connection state: " << static_cast<int>(repl_state_);
-    return;
+    return false;
   }
 
-  if (from_ip_port != slash::IpPortString(master_node_.ip, master_node_.port)) {
-    LOG(WARNING) << "Discard binlog item from " << from_ip_port
+  // Check from node
+  if (option.from_node != slash::IpPortString(master_node_.ip, master_node_.port)) {
+    LOG(WARNING) << "Discard binlog item from " << option.from_node
       << ", partition:" << partition_id_
       << ", current my master is " << master_node_;
-    return;
+    return false;
   }
 
+  // Check offset
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
   logger_->GetProducerStatus(&cur_filenum, &cur_offset);
-  if (filenum != cur_filenum || offset != cur_offset) {
-    LOG(WARNING) << "Discard binlog item from " << from_ip_port
+  if (option.filenum != cur_filenum || option.offset != cur_offset) {
+    LOG(WARNING) << "Discard binlog item from " << option.from_node
       << ", partition:" << partition_id_
-      << ", with offset (" << filenum << ", " << offset << ")"
+      << ", with offset (" << option.filenum << ", " << option.offset << ")"
       << ", my current offset: (" << cur_filenum << ", " << cur_offset << ")";
-    if (filenum > cur_filenum ||
-        (filenum == cur_filenum && offset > cur_offset)) {
+    if (option.filenum > cur_filenum ||
+        (option.filenum == cur_filenum && option.offset > cur_offset)) {
       // Under this circumstance, slave has no chance to recovery itself
       // So Try to schedule a new trysync bg job
       TryRecoverSync();
     }
-    return;
+    return false;
   }
   CancelRecoverSync();
+  return true;
+}
+
+// Keep binlog order outside
+void Partition::DoBinlogCommand(const PartitionSyncOption& option,
+    const Cmd* cmd, const client::CmdRequest &req) {
+  slash::RWLock l(&state_rw_, false);
+  if (!CheckSyncOption(option)) {
+    return;
+  }
 
   // Add read lock for no suspend command
   if (!cmd->is_suspend()) {
@@ -558,10 +567,33 @@ void Partition::DoBinlogCommand(const Cmd* cmd, const client::CmdRequest &req,
 
   std::string raw;
   req.SerializeToString(&raw);
-  logger_->Put(raw);
+  Status s = logger_->Put(raw);
+  if (!s.ok()) {
+    LOG(WARNING) << "Binlog Put failed : " << s.ToString()
+      << ", table: " << table_name_
+      << ", partition: " << partition_id_
+      << ", content: [" << raw << "]";
+  }
 
   if (!cmd->is_suspend()) {
     pthread_rwlock_unlock(&partition_rw_);
+  }
+}
+
+// Keep binlog order outside
+void Partition::DoBinlogSkip(const PartitionSyncOption& option,
+    uint64_t gap) {
+  slash::RWLock l(&state_rw_, false);
+  if (!CheckSyncOption(option)) {
+    return;
+  }
+
+  Status s = logger_->PutBlank(gap);
+  if (!s.ok()) {
+    LOG(WARNING) << "Binlog PutBlank failed : " << s.ToString()
+      << ", table: " << table_name_
+      << ", partition: " << partition_id_
+      << ", gap: " << gap;
   }
 }
 

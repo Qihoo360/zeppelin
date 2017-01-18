@@ -74,6 +74,10 @@ class SyncCmd : public Cmd {
     const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
     return request->sync().table_name();
   }
+  virtual int ExtractPartition(const google::protobuf::Message *req) const {
+    const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
+    return request->sync().sync_offset().partition();
+  }
 };
 
 #endif

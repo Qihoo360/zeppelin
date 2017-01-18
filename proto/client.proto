@@ -10,6 +10,11 @@ enum Type {
   INFOPARTITION = 6;
 }
 
+enum SyncType {
+  CMD = 0;
+  SKIP = 1;
+}
+
 enum StatusCode {
   kOk = 0;
   kNotFound = 1;
@@ -67,6 +72,7 @@ message CmdRequest {
     optional string table_name = 1; 
   }
   optional Info info = 6;
+
 }
 
 message CmdResponse {
@@ -111,9 +117,17 @@ message CmdResponse {
   repeated InfoPartition info_partition = 9;
 }
 
+message BinlogSkip {
+  required string table_name = 1; 
+  required int32 partition_id = 2; 
+  required int64 gap = 3;
+}
+
 message SyncRequest {
-  required int64 epoch = 1;
-  required Node from = 2;
-  required SyncOffset sync_offset = 3;
-  required CmdRequest request = 4;
+  required SyncType sync_type = 1;
+  required int64 epoch = 2;
+  required Node from = 3;
+  required SyncOffset sync_offset = 4;
+  optional CmdRequest request = 5;
+  optional BinlogSkip binlog_skip = 6;
 }

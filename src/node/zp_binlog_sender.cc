@@ -9,20 +9,6 @@
 
 extern ZPDataServer* zp_data_server;
 
-static void BuildSyncRequest(uint32_t filenum, uint64_t offset,
-    const std::string& content, client::SyncRequest *msg) {
-  client::CmdRequest req;
-  req.ParseFromString(content);
-  msg->set_epoch(zp_data_server->meta_epoch());
-  client::Node *node = msg->mutable_from();
-  node->set_ip(zp_data_server->local_ip());
-  node->set_port(zp_data_server->local_port());
-  client::SyncOffset *sync_offset = msg->mutable_sync_offset();
-  sync_offset->set_filenum(filenum);
-  sync_offset->set_offset(offset);
-  client::CmdRequest *req_ptr = msg->mutable_request();
-  req_ptr->CopyFrom(req);
-} 
 
 std::string ZPBinlogSendTaskName(const std::string& table, int32_t id, const Node& target) {
   char buf[256];
@@ -57,7 +43,8 @@ ZPBinlogSendTask::ZPBinlogSendTask(const std::string &table, int32_t id, const N
   filenum_(ifilenum),
   offset_(ioffset),
   pre_filenum_(0),
-  pre_offset_(0) {
+  pre_offset_(0),
+  pre_has_content_(false) {
     name_ = ZPBinlogSendTaskName(table, partition_id_, target);
     pre_content_.reserve(1024 * 1024);
   }
@@ -79,8 +66,9 @@ Status ZPBinlogSendTask::Init() {
     return Status::IOError("ZPBinlogSendTask Init new sequtial file failed");
   }
   reader_ = new BinlogReader(queue_);
-  if (!(reader_->Seek(offset_).ok())) {
-    return Status::InvalidArgument("Invalid binlog offset");
+  Status s = reader_->Seek(offset_);
+  if (!s.ok()) {
+    return s;
   }
   return Status::OK();
 }
@@ -130,18 +118,55 @@ Status ZPBinlogSendTask::ProcessTask() {
       filenum_++;
       offset_ = 0;
       return ProcessTask();
+    } else {
+      LOG(WARNING) << "Read end of binlog file, but no next binlog exist:"
+        << (filenum_ + 1);
     }
     // Return EndFile
+  } else if (s.IsIncomplete()) {
+    LOG(WARNING) << "ZPBinlogSendTask Consume Incomplete record: " << s.ToString()
+      << ", table: " << table_name_ << ", partition:" << partition_id_;
   } else if (!s.ok()) {
-    LOG(WARNING) << "ZPBinlogSendTask failed to Consume: " << s.ToString(); 
+    LOG(WARNING) << "ZPBinlogSendTask failed to Consume: " << s.ToString()
+      << ", table: " << table_name_ << ", partition:" << partition_id_
+      << ", skip to next block";
+    reader_->SkipNextBlock(&consume_len);
     // Return Error
   }
 
-  if (s.ok()) {
-    offset_ += consume_len;
-  }
+  pre_has_content_ = s.ok();
+
+  offset_ += consume_len;
   return s;
 }
+
+// Build SyncRequest by ZPBinlogSendTask
+void ZPBinlogSendTask::BuildSyncRequest(client::SyncRequest *msg) const {
+  // Common part
+  msg->set_epoch(zp_data_server->meta_epoch());
+  client::Node *node = msg->mutable_from();
+  node->set_ip(zp_data_server->local_ip());
+  node->set_port(zp_data_server->local_port());
+  client::SyncOffset *sync_offset = msg->mutable_sync_offset();
+  sync_offset->set_filenum(filenum_);
+  sync_offset->set_offset(offset_);
+
+  // Different part
+  if (pre_has_content_) {
+    msg->set_sync_type(client::SyncType::CMD);
+    client::CmdRequest *req_ptr = msg->mutable_request();
+    client::CmdRequest req;
+    assert(!pre_content_.empty());
+    req.ParseFromString(pre_content_);
+    req_ptr->CopyFrom(req);
+  } else {
+    msg->set_sync_type(client::SyncType::SKIP);
+    client::BinlogSkip* skip = msg->mutable_binlog_skip();
+    skip->set_table_name(table_name_);
+    skip->set_partition_id(partition_id_);
+    skip->set_gap(offset_ - pre_offset_);
+  }
+} 
 
 /**
  * ZPBinlogSendTaskPool
@@ -308,7 +333,6 @@ void* ZPBinlogSendThread::ThreadMain() {
     ZPBinlogSendTask* task = NULL;
     Status s = pool_->FetchOut(&task);
     if (!s.ok()) {
-      // TODO change to condition
       //LOG(INFO) << "No task to be processed";
       continue;
     }
@@ -326,20 +350,25 @@ void* ZPBinlogSendThread::ThreadMain() {
           //  << " parititon: " << task->partition_id();
           pool_->PutBack(task);
           break;
-        } else if (!item_s.ok()) {
-          LOG(WARNING) << "BinlogSender Parse error, " << item_s.ToString();
-          sleep(1);
         }
       }
 
-      // Send binlog
-      if (item_s.ok()) {
-        client::SyncRequest sreq;
-        assert(!(task->pre_content().empty()));
-        BuildSyncRequest(task->pre_filenum(), task->pre_offset(), task->pre_content(), &sreq);
-        //std::string text_format;
-        //google::protobuf::TextFormat::PrintToString(sreq, &text_format);
-        //DLOG(INFO) << "SyncRequest to be sent to: " << task->node() << ": [" << text_format << "]";
+      // Construct SyncRequest
+      client::SyncRequest sreq;
+      task->BuildSyncRequest(&sreq);
+
+      // Send SyncRequest
+      if (!sreq.IsInitialized()) {
+        std::string text_format;
+        google::protobuf::TextFormat::PrintToString(sreq, &text_format);
+        DLOG(WARNING) << "Ignore error SyncRequest to be sent to: "
+          << task->node() << ": [" << text_format << "]"
+          << ", table:" << task->table_name() << ", partition:" << task->partition_id()
+          << ", filenum:" << task->pre_filenum() << ", offset:" << task->pre_offset()
+          << ", next filenum:" << task->filenum() << ", next offset:" << task->offset();
+        task->send_next = false;
+        sleep(1);
+      } else {
         item_s = zp_data_server->SendToPeer(task->node(), sreq);
         if (!item_s.ok()) {
           LOG(ERROR) << "Failed to send to peer " << task->node()

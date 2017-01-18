@@ -33,6 +33,7 @@ enum RecordType {
   kLastType = 4,
   kEof = 5,
   kBadRecord = 6,
+  kEmptyType = 7,
 };
 
 /**
@@ -50,6 +51,7 @@ class Version {
 
   void Save(uint32_t num, uint64_t offset);
   void Fetch(uint32_t *num, uint64_t *offset);
+  void Inc(uint64_t go_head);
 
   void Debug();
 
@@ -81,13 +83,13 @@ public:
   ~BinlogWriter(); 
   Status Fallback(uint64_t offset);
   Status Produce(const Slice &item, int64_t *write_size);
+  Status AppendBlank(uint64_t len, int64_t* write_size);
 
 private:
   slash::WritableFile *queue_;
   int block_offset_;
   Status EmitPhysicalRecord(RecordType t,
       const char *ptr, size_t n, int64_t *write_size);
-  Status AppendBlank(uint64_t len);
   void Load();
 
   // No copying allowed
@@ -106,6 +108,7 @@ public:
   ~BinlogReader(); 
   Status Seek(uint64_t offset);
   Status Consume(uint64_t *size, std::string *item);
+  void SkipNextBlock(uint64_t* size);
 
 private:
   slash::SequentialFile *queue_;
@@ -141,6 +144,7 @@ public:
   }
 
   Status Put(const std::string &item);
+  Status PutBlank(uint64_t len);
 
   void GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset) const {
     version_->Fetch(filenum, pro_offset);
@@ -159,6 +163,7 @@ private:
   BinlogWriter* writer_;
 
   Status Init();
+  void MaybeRoll();
   
   
   // No copying allowed

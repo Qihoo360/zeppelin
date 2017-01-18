@@ -48,6 +48,7 @@ class CmdResponse_Get;
 class CmdResponse_InfoStats;
 class CmdResponse_InfoCapacity;
 class CmdResponse_InfoPartition;
+class BinlogSkip;
 class SyncRequest;
 
 enum Type {
@@ -73,6 +74,25 @@ inline bool Type_Parse(
     const ::std::string& name, Type* value) {
   return ::google::protobuf::internal::ParseNamedEnum<Type>(
     Type_descriptor(), name, value);
+}
+enum SyncType {
+  CMD = 0,
+  SKIP = 1
+};
+bool SyncType_IsValid(int value);
+const SyncType SyncType_MIN = CMD;
+const SyncType SyncType_MAX = SKIP;
+const int SyncType_ARRAYSIZE = SyncType_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* SyncType_descriptor();
+inline const ::std::string& SyncType_Name(SyncType value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    SyncType_descriptor(), value);
+}
+inline bool SyncType_Parse(
+    const ::std::string& name, SyncType* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<SyncType>(
+    SyncType_descriptor(), name, value);
 }
 enum StatusCode {
   kOk = 0,
@@ -1697,6 +1717,113 @@ class CmdResponse : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class BinlogSkip : public ::google::protobuf::Message {
+ public:
+  BinlogSkip();
+  virtual ~BinlogSkip();
+
+  BinlogSkip(const BinlogSkip& from);
+
+  inline BinlogSkip& operator=(const BinlogSkip& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const BinlogSkip& default_instance();
+
+  void Swap(BinlogSkip* other);
+
+  // implements Message ----------------------------------------------
+
+  BinlogSkip* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const BinlogSkip& from);
+  void MergeFrom(const BinlogSkip& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string table_name = 1;
+  inline bool has_table_name() const;
+  inline void clear_table_name();
+  static const int kTableNameFieldNumber = 1;
+  inline const ::std::string& table_name() const;
+  inline void set_table_name(const ::std::string& value);
+  inline void set_table_name(const char* value);
+  inline void set_table_name(const char* value, size_t size);
+  inline ::std::string* mutable_table_name();
+  inline ::std::string* release_table_name();
+  inline void set_allocated_table_name(::std::string* table_name);
+
+  // required int32 partition_id = 2;
+  inline bool has_partition_id() const;
+  inline void clear_partition_id();
+  static const int kPartitionIdFieldNumber = 2;
+  inline ::google::protobuf::int32 partition_id() const;
+  inline void set_partition_id(::google::protobuf::int32 value);
+
+  // required int64 gap = 3;
+  inline bool has_gap() const;
+  inline void clear_gap();
+  static const int kGapFieldNumber = 3;
+  inline ::google::protobuf::int64 gap() const;
+  inline void set_gap(::google::protobuf::int64 value);
+
+  // @@protoc_insertion_point(class_scope:client.BinlogSkip)
+ private:
+  inline void set_has_table_name();
+  inline void clear_has_table_name();
+  inline void set_has_partition_id();
+  inline void clear_has_partition_id();
+  inline void set_has_gap();
+  inline void clear_has_gap();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* table_name_;
+  ::google::protobuf::int64 gap_;
+  ::google::protobuf::int32 partition_id_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static BinlogSkip* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class SyncRequest : public ::google::protobuf::Message {
  public:
   SyncRequest();
@@ -1751,42 +1878,60 @@ class SyncRequest : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required int64 epoch = 1;
+  // required .client.SyncType sync_type = 1;
+  inline bool has_sync_type() const;
+  inline void clear_sync_type();
+  static const int kSyncTypeFieldNumber = 1;
+  inline ::client::SyncType sync_type() const;
+  inline void set_sync_type(::client::SyncType value);
+
+  // required int64 epoch = 2;
   inline bool has_epoch() const;
   inline void clear_epoch();
-  static const int kEpochFieldNumber = 1;
+  static const int kEpochFieldNumber = 2;
   inline ::google::protobuf::int64 epoch() const;
   inline void set_epoch(::google::protobuf::int64 value);
 
-  // required .client.Node from = 2;
+  // required .client.Node from = 3;
   inline bool has_from() const;
   inline void clear_from();
-  static const int kFromFieldNumber = 2;
+  static const int kFromFieldNumber = 3;
   inline const ::client::Node& from() const;
   inline ::client::Node* mutable_from();
   inline ::client::Node* release_from();
   inline void set_allocated_from(::client::Node* from);
 
-  // required .client.SyncOffset sync_offset = 3;
+  // required .client.SyncOffset sync_offset = 4;
   inline bool has_sync_offset() const;
   inline void clear_sync_offset();
-  static const int kSyncOffsetFieldNumber = 3;
+  static const int kSyncOffsetFieldNumber = 4;
   inline const ::client::SyncOffset& sync_offset() const;
   inline ::client::SyncOffset* mutable_sync_offset();
   inline ::client::SyncOffset* release_sync_offset();
   inline void set_allocated_sync_offset(::client::SyncOffset* sync_offset);
 
-  // required .client.CmdRequest request = 4;
+  // optional .client.CmdRequest request = 5;
   inline bool has_request() const;
   inline void clear_request();
-  static const int kRequestFieldNumber = 4;
+  static const int kRequestFieldNumber = 5;
   inline const ::client::CmdRequest& request() const;
   inline ::client::CmdRequest* mutable_request();
   inline ::client::CmdRequest* release_request();
   inline void set_allocated_request(::client::CmdRequest* request);
 
+  // optional .client.BinlogSkip binlog_skip = 6;
+  inline bool has_binlog_skip() const;
+  inline void clear_binlog_skip();
+  static const int kBinlogSkipFieldNumber = 6;
+  inline const ::client::BinlogSkip& binlog_skip() const;
+  inline ::client::BinlogSkip* mutable_binlog_skip();
+  inline ::client::BinlogSkip* release_binlog_skip();
+  inline void set_allocated_binlog_skip(::client::BinlogSkip* binlog_skip);
+
   // @@protoc_insertion_point(class_scope:client.SyncRequest)
  private:
+  inline void set_has_sync_type();
+  inline void clear_has_sync_type();
   inline void set_has_epoch();
   inline void clear_has_epoch();
   inline void set_has_from();
@@ -1795,6 +1940,8 @@ class SyncRequest : public ::google::protobuf::Message {
   inline void clear_has_sync_offset();
   inline void set_has_request();
   inline void clear_has_request();
+  inline void set_has_binlog_skip();
+  inline void clear_has_binlog_skip();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -1802,9 +1949,11 @@ class SyncRequest : public ::google::protobuf::Message {
   ::client::Node* from_;
   ::client::SyncOffset* sync_offset_;
   ::client::CmdRequest* request_;
+  ::client::BinlogSkip* binlog_skip_;
+  int sync_type_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -3967,17 +4116,158 @@ CmdResponse::mutable_info_partition() {
 
 // -------------------------------------------------------------------
 
-// SyncRequest
+// BinlogSkip
 
-// required int64 epoch = 1;
-inline bool SyncRequest::has_epoch() const {
+// required string table_name = 1;
+inline bool BinlogSkip::has_table_name() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void SyncRequest::set_has_epoch() {
+inline void BinlogSkip::set_has_table_name() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void SyncRequest::clear_has_epoch() {
+inline void BinlogSkip::clear_has_table_name() {
   _has_bits_[0] &= ~0x00000001u;
+}
+inline void BinlogSkip::clear_table_name() {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    table_name_->clear();
+  }
+  clear_has_table_name();
+}
+inline const ::std::string& BinlogSkip::table_name() const {
+  return *table_name_;
+}
+inline void BinlogSkip::set_table_name(const ::std::string& value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void BinlogSkip::set_table_name(const char* value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void BinlogSkip::set_table_name(const char* value, size_t size) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* BinlogSkip::mutable_table_name() {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  return table_name_;
+}
+inline ::std::string* BinlogSkip::release_table_name() {
+  clear_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = table_name_;
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void BinlogSkip::set_allocated_table_name(::std::string* table_name) {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    delete table_name_;
+  }
+  if (table_name) {
+    set_has_table_name();
+    table_name_ = table_name;
+  } else {
+    clear_has_table_name();
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required int32 partition_id = 2;
+inline bool BinlogSkip::has_partition_id() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void BinlogSkip::set_has_partition_id() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void BinlogSkip::clear_has_partition_id() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void BinlogSkip::clear_partition_id() {
+  partition_id_ = 0;
+  clear_has_partition_id();
+}
+inline ::google::protobuf::int32 BinlogSkip::partition_id() const {
+  return partition_id_;
+}
+inline void BinlogSkip::set_partition_id(::google::protobuf::int32 value) {
+  set_has_partition_id();
+  partition_id_ = value;
+}
+
+// required int64 gap = 3;
+inline bool BinlogSkip::has_gap() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void BinlogSkip::set_has_gap() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void BinlogSkip::clear_has_gap() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void BinlogSkip::clear_gap() {
+  gap_ = GOOGLE_LONGLONG(0);
+  clear_has_gap();
+}
+inline ::google::protobuf::int64 BinlogSkip::gap() const {
+  return gap_;
+}
+inline void BinlogSkip::set_gap(::google::protobuf::int64 value) {
+  set_has_gap();
+  gap_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// SyncRequest
+
+// required .client.SyncType sync_type = 1;
+inline bool SyncRequest::has_sync_type() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void SyncRequest::set_has_sync_type() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void SyncRequest::clear_has_sync_type() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void SyncRequest::clear_sync_type() {
+  sync_type_ = 0;
+  clear_has_sync_type();
+}
+inline ::client::SyncType SyncRequest::sync_type() const {
+  return static_cast< ::client::SyncType >(sync_type_);
+}
+inline void SyncRequest::set_sync_type(::client::SyncType value) {
+  assert(::client::SyncType_IsValid(value));
+  set_has_sync_type();
+  sync_type_ = value;
+}
+
+// required int64 epoch = 2;
+inline bool SyncRequest::has_epoch() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void SyncRequest::set_has_epoch() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void SyncRequest::clear_has_epoch() {
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline void SyncRequest::clear_epoch() {
   epoch_ = GOOGLE_LONGLONG(0);
@@ -3991,15 +4281,15 @@ inline void SyncRequest::set_epoch(::google::protobuf::int64 value) {
   epoch_ = value;
 }
 
-// required .client.Node from = 2;
+// required .client.Node from = 3;
 inline bool SyncRequest::has_from() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
+  return (_has_bits_[0] & 0x00000004u) != 0;
 }
 inline void SyncRequest::set_has_from() {
-  _has_bits_[0] |= 0x00000002u;
+  _has_bits_[0] |= 0x00000004u;
 }
 inline void SyncRequest::clear_has_from() {
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline void SyncRequest::clear_from() {
   if (from_ != NULL) from_->::client::Node::Clear();
@@ -4029,15 +4319,15 @@ inline void SyncRequest::set_allocated_from(::client::Node* from) {
   }
 }
 
-// required .client.SyncOffset sync_offset = 3;
+// required .client.SyncOffset sync_offset = 4;
 inline bool SyncRequest::has_sync_offset() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
+  return (_has_bits_[0] & 0x00000008u) != 0;
 }
 inline void SyncRequest::set_has_sync_offset() {
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000008u;
 }
 inline void SyncRequest::clear_has_sync_offset() {
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline void SyncRequest::clear_sync_offset() {
   if (sync_offset_ != NULL) sync_offset_->::client::SyncOffset::Clear();
@@ -4067,15 +4357,15 @@ inline void SyncRequest::set_allocated_sync_offset(::client::SyncOffset* sync_of
   }
 }
 
-// required .client.CmdRequest request = 4;
+// optional .client.CmdRequest request = 5;
 inline bool SyncRequest::has_request() const {
-  return (_has_bits_[0] & 0x00000008u) != 0;
+  return (_has_bits_[0] & 0x00000010u) != 0;
 }
 inline void SyncRequest::set_has_request() {
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000010u;
 }
 inline void SyncRequest::clear_has_request() {
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000010u;
 }
 inline void SyncRequest::clear_request() {
   if (request_ != NULL) request_->::client::CmdRequest::Clear();
@@ -4105,6 +4395,44 @@ inline void SyncRequest::set_allocated_request(::client::CmdRequest* request) {
   }
 }
 
+// optional .client.BinlogSkip binlog_skip = 6;
+inline bool SyncRequest::has_binlog_skip() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+inline void SyncRequest::set_has_binlog_skip() {
+  _has_bits_[0] |= 0x00000020u;
+}
+inline void SyncRequest::clear_has_binlog_skip() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline void SyncRequest::clear_binlog_skip() {
+  if (binlog_skip_ != NULL) binlog_skip_->::client::BinlogSkip::Clear();
+  clear_has_binlog_skip();
+}
+inline const ::client::BinlogSkip& SyncRequest::binlog_skip() const {
+  return binlog_skip_ != NULL ? *binlog_skip_ : *default_instance_->binlog_skip_;
+}
+inline ::client::BinlogSkip* SyncRequest::mutable_binlog_skip() {
+  set_has_binlog_skip();
+  if (binlog_skip_ == NULL) binlog_skip_ = new ::client::BinlogSkip;
+  return binlog_skip_;
+}
+inline ::client::BinlogSkip* SyncRequest::release_binlog_skip() {
+  clear_has_binlog_skip();
+  ::client::BinlogSkip* temp = binlog_skip_;
+  binlog_skip_ = NULL;
+  return temp;
+}
+inline void SyncRequest::set_allocated_binlog_skip(::client::BinlogSkip* binlog_skip) {
+  delete binlog_skip_;
+  binlog_skip_ = binlog_skip;
+  if (binlog_skip) {
+    set_has_binlog_skip();
+  } else {
+    clear_has_binlog_skip();
+  }
+}
+
 
 // @@protoc_insertion_point(namespace_scope)
 
@@ -4117,6 +4445,10 @@ namespace protobuf {
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::client::Type>() {
   return ::client::Type_descriptor();
+}
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::client::SyncType>() {
+  return ::client::SyncType_descriptor();
 }
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::client::StatusCode>() {

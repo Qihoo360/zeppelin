@@ -15,13 +15,6 @@
 
 using slash::Status;
 
-//Kv
-const std::string kCmdNameSet = "set";
-const std::string kCmdNameGet = "get";
-const std::string kCmdNameDel = "del";
-//Sync
-const std::string kCmdNameSync = "sync";
-
 enum CmdFlagsMask {
   kCmdFlagsMaskRW               = 1,
   kCmdFlagsMaskType             = 14,
@@ -56,6 +49,9 @@ class Cmd {
   virtual void Do(const google::protobuf::Message *request, google::protobuf::Message *response, void* partition = NULL) const = 0;
   virtual std::string ExtractTable(const google::protobuf::Message *request) const {
     return "";
+  }
+  virtual int ExtractPartition(const google::protobuf::Message *request) const {
+    return -1;
   }
   virtual std::string ExtractKey(const google::protobuf::Message *request) const {
     return "";

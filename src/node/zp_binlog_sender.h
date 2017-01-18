@@ -11,6 +11,7 @@
 #include "slash_mutex.h"
 #include "pink_thread.h"
 
+#include "client.pb.h"
 #include "zp_meta_utils.h"
 #include "zp_binlog.h"
 
@@ -28,6 +29,7 @@ public:
   static Status Create(const std::string &table_name, int32_t id,
       const Node& target, uint32_t ifilenum,uint64_t ioffset,
       ZPBinlogSendTask** tptr);
+
   ZPBinlogSendTask(const std::string &table_name, int32_t id, const Node& target,
     uint32_t ifilenum, uint64_t ioffset);
   ~ZPBinlogSendTask();
@@ -63,6 +65,7 @@ public:
   }
 
   Status ProcessTask();
+  void BuildSyncRequest(client::SyncRequest *msg) const;
 
 private:
   std::string name_; // Name of the task
@@ -76,6 +79,7 @@ private:
   uint32_t pre_filenum_;
   uint64_t pre_offset_;
   std::string pre_content_;
+  bool pre_has_content_;
   std::string binlog_filename_; // Name of the binlog file
   slash::SequentialFile *queue_;
   BinlogReader *reader_;

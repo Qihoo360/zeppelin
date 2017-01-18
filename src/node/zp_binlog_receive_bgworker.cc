@@ -23,22 +23,29 @@ void ZPBinlogReceiveBgWorker::AddTask(ZPBinlogReceiveTask *task) {
 
 void ZPBinlogReceiveBgWorker::DoBinlogReceiveTask(void* task) {
   ZPBinlogReceiveTask *task_ptr = static_cast<ZPBinlogReceiveTask*>(task);
-  uint32_t partition_id = task_ptr->partition_id;
-  const Cmd *cmd = task_ptr->cmd;
+  PartitionSyncOption option = task_ptr->option;
+  std::string table_name = option.table_name;
+  uint32_t partition_id = option.partition_id;
 
-  Partition* partition = zp_data_server->GetTablePartitionById(cmd->ExtractTable(&task_ptr->request), partition_id);
+  Partition* partition = zp_data_server->GetTablePartitionById(
+      table_name, partition_id);
   if (partition == NULL) {
     LOG(WARNING) << "No partition found for binlog receive bgworker, Partition: "
-      << partition->partition_id();
+      << partition_id;
     return;
   }
-  if (partition->role() != Role::kNodeSlave) {
-    LOG(WARNING) << "Not a slave, ignore the binlog request, Partition: "
-      << partition->partition_id();
-    return;
+
+  switch (option.type) {
+    case client::SyncType::CMD:
+      partition->DoBinlogCommand(
+          option,
+          task_ptr->cmd, task_ptr->request);
+    case client::SyncType::SKIP:
+      partition->DoBinlogSkip(
+          option,
+          task_ptr->gap);
   }
-  partition->DoBinlogCommand(cmd, task_ptr->request, task_ptr->from_node,
-      task_ptr->filenum, task_ptr->offset);
+
   delete task_ptr;
 }
 
