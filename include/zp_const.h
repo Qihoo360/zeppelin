@@ -63,7 +63,7 @@ const int kMetaWorkerCronInterval = 1000;
 const int kBinlogReceiverCronInterval = 6000;
 // Server cron wait kNodeCronInterval * kNodeCronWaitCount every time
 const int kNodeCronInterval = 1000;
-const int kNodeCronWaitCount = 1;
+const int kNodeCronWaitCount = 2;
 //const int kBinlogReceiverCronInterval = 1000;
 const int kBinlogReceiveBgWorkerCount = 4;
 const int kBinlogReceiveBgWorkerFull = 100;

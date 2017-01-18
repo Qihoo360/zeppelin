@@ -571,6 +571,7 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
 
   slash::RWLock l(&state_rw_, false);
   if (cmd->is_write() && readonly_) {
+    res.set_type(req.type());
     res.set_code(client::StatusCode::kError);
     res.set_msg("readonly mode");
 
@@ -831,7 +832,7 @@ bool Partition::PurgeFiles(uint32_t to, bool manual)
   int remain_expire_num = binlogs.size() - kBinlogRemainMaxCount;
   std::map<uint32_t, std::string>::iterator it;
 
-  DLOG(INFO) << "partition " << table_name_ << "_" << partition_id_ << " PugeFiles remain_expire_num is " << remain_expire_num;
+  //DLOG(INFO) << "partition " << table_name_ << "_" << partition_id_ << " PugeFiles remain_expire_num is " << remain_expire_num;
 
   for (it = binlogs.begin(); it != binlogs.end(); ++it) {
     if ((manual && it->first <= to) ||           // Argument bound
@@ -958,7 +959,6 @@ void Partition::Dump() {
     default:
       LOG(INFO) << "  +I'm single";
   }
-  LOG(INFO) << "     -*State " << static_cast<int>(pstate_);
   if (pstate_ == ZPMeta::PState::ACTIVE) {
     LOG(INFO) << "     -*State ACTIVE";
   } else if (pstate_ == ZPMeta::PState::STUCK) {
