@@ -31,7 +31,9 @@ Node& Node::operator = (const Node& other) {
 }
 
 bool Node::operator < (const Node& other) const {
-  if (port < other.port) {
+  std::string my_val = ip + std::to_string(port);
+  std::string other_val = other.ip + std::to_string(other.port);
+  if (my_val < other_val) {
     return true;
   }
   return false;
