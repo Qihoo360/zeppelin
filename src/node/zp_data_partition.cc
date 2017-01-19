@@ -389,7 +389,8 @@ void Partition::BecomeMaster() {
 
 // Requeired: hold write lock of state_rw_
 void Partition::BecomeSlave() {
-  LOG(INFO) << " Partition " << partition_id_ << " BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
+  LOG(INFO) << " Partition " << partition_id_
+    << " BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
   role_ = Role::kNodeSlave;
   repl_state_ = ReplState::kShouldConnect;
   readonly_ = true;
@@ -658,7 +659,10 @@ inline void Partition::TryRecoverSync() {
 }
 
 inline void Partition::CancelRecoverSync() {
+  // no mutex protect this two together
+  // since we can tolerant the inconsistence
   do_recovery_sync_ = false;
+  recover_sync_flag_ = 0;
 }
 
 void Partition::MaybeRecoverSync() {
@@ -670,6 +674,8 @@ void Partition::MaybeRecoverSync() {
       slash::RWLock l(&state_rw_, true);
       BecomeSlave();
     }
+  } else {
+      recover_sync_flag_ = 0;
   }
 }
 

@@ -223,7 +223,7 @@ class Partition {
 
   // Recover sync related
   std::atomic<bool> do_recovery_sync_;
-  int recover_sync_flag_;
+  std::atomic<int> recover_sync_flag_;
   void TryRecoverSync();
   void CancelRecoverSync();
   void MaybeRecoverSync();
