@@ -148,8 +148,8 @@ void ZPBinlogSendTask::BuildSyncRequest(client::SyncRequest *msg) const {
   node->set_ip(zp_data_server->local_ip());
   node->set_port(zp_data_server->local_port());
   client::SyncOffset *sync_offset = msg->mutable_sync_offset();
-  sync_offset->set_filenum(filenum_);
-  sync_offset->set_offset(offset_);
+  sync_offset->set_filenum(pre_filenum_);
+  sync_offset->set_offset(pre_offset_);
 
   // Different part
   if (pre_has_content_) {

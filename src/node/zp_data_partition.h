@@ -125,9 +125,7 @@ class Partition {
   void GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) const {
     logger_->GetProducerStatus(filenum, pro_offset);
   }
-  Status SetBinlogOffset(uint32_t filenum, uint64_t offset) {
-    return logger_->SetProducerStatus(filenum, offset);
-  }
+  Status SetBinlogOffset(uint32_t filenum, uint64_t offset);
   std::string GetBinlogFilename() {
     return logger_->filename();
   }

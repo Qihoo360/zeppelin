@@ -118,7 +118,7 @@ Status BinlogWriter::Produce(const Slice &item, int64_t *write_size) {
   do {
     const int leftover = static_cast<int>(kBlockSize) - block_offset_;
     assert(leftover >= 0);
-    if (static_cast<size_t>(leftover) < kHeaderSize) {
+    if (static_cast<size_t>(leftover) <= kHeaderSize) {
       if (leftover > 0) {
         queue_->Append(Slice("\x00\x00\x00\x00\x00\x00\x00", leftover));
         *write_size += leftover;
@@ -180,14 +180,14 @@ Status BinlogWriter::AppendBlank(uint64_t len, int64_t* write_size) {
     return Status::InvalidArgument("Blank len too small");
   }
 
-  size_t left = len;
+  size_t left = len - kHeaderSize;
 
   *write_size = 0;
   char tmp[kBlockSize] = {'\x00'};
   do {
     const int leftover = static_cast<int>(kBlockSize) - block_offset_;
     assert(leftover >= 0);
-    if (static_cast<size_t>(leftover) < kHeaderSize) {
+    if (static_cast<size_t>(leftover) <= kHeaderSize) {
       if (leftover > 0) {
         queue_->Append(Slice("\x00\x00\x00\x00\x00\x00\x00", leftover));
         *write_size += leftover;
@@ -497,7 +497,12 @@ Status Binlog::PutBlank(uint64_t len) {
   return s;
 }
 
-Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
+// Set binlog to point pro_num pro_offset
+// Actual offset may small than pro_offset
+// since we don't want to append any blank content into binlog
+// instead of that, this could be fill by the subsequence sync
+Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset,
+    uint64_t* actual_offset) {
   slash::MutexLock l(&mutex_);
 
   // offset smaller than the first header
@@ -516,13 +521,14 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
     std::string profile = NewFileName(filename_, pro_num);
     slash::NewWritableFile(profile, &queue_);
     writer_ = new BinlogWriter(queue_);
-    pro_offset = 0;
+    cur_offset = 0;
   }
   pro_offset = (pro_offset > cur_offset) ? cur_offset : pro_offset;
   Status s = writer_->Fallback(pro_offset);
   if (s.ok()) {
     version_->Save(pro_num, pro_offset);
   }
+  *actual_offset = pro_offset;
 
   return s;
 }

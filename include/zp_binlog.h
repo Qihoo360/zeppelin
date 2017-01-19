@@ -149,7 +149,8 @@ public:
   void GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset) const {
     version_->Fetch(filenum, pro_offset);
   }
-  Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset);
+  Status SetProducerStatus(uint32_t pro_num, uint64_t pro_offset,
+      uint64_t* actual_offset);
 
 private:
   slash::Mutex mutex_;

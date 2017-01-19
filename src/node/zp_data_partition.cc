@@ -509,6 +509,16 @@ Partition* NewPartition(const std::string &table_name,
   return partition;
 }
 
+Status Partition::SetBinlogOffset(uint32_t filenum, uint64_t offset) {
+  uint64_t actual = 0;
+  Status s = logger_->SetProducerStatus(filenum, offset, &actual);
+  if (offset != actual) {
+    LOG(WARNING) << "SetBinlogOffset actual small than expected"
+      << ", expect:" << offset << ", actual:" << actual;
+  }
+  return s;
+}
+
 // Required: hold read mutex of status_rw_
 bool Partition::CheckSyncOption(const PartitionSyncOption& option) {
   // Check current status

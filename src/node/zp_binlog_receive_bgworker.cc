@@ -40,10 +40,14 @@ void ZPBinlogReceiveBgWorker::DoBinlogReceiveTask(void* task) {
       partition->DoBinlogCommand(
           option,
           task_ptr->cmd, task_ptr->request);
+      break;
     case client::SyncType::SKIP:
       partition->DoBinlogSkip(
           option,
           task_ptr->gap);
+      break;
+    default:
+      LOG(WARNING) << "Unknown binlog sync type: " << static_cast<int>(option.type);
   }
 
   delete task_ptr;

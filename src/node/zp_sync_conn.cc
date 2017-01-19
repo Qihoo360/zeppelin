@@ -112,7 +112,7 @@ int ZPSyncConn::DealMessage() {
         cmd,
         crequest);
   } else {
-    LOG(ERROR) << "Unknow Sync Request Type: " << request_.sync_type();
+    LOG(ERROR) << "Unknow Sync Request Type: " << static_cast<int>(request_.sync_type());
     return -1;
   }
 
