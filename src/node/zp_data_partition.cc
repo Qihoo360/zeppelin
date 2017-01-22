@@ -325,7 +325,19 @@ bool Partition::TryUpdateMasterOffset() {
   return true;
 }
 
+// Try to be master of node
+// Return EndFile when the sync offset is larger than current one
+// Return InvalidArgument when the offset is invalid
+// Return Incomplete when neet sync db
 Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset) {
+  // Check role
+  slash::RWLock l(&state_rw_, false);
+  if (role_ != Role::kNodeMaster) {
+    DLOG(INFO) << "I'm not master for partition: " << partition_id_
+      << ", but receive sync from:" << node;
+    return Status::Corruption("Current node is not master");
+  }
+
   // Sanity check
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
@@ -364,6 +376,8 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
 // Requeired: hold write lock of state_rw_
 void Partition::CleanSlaves(const std::set<Node> &old_slaves) {
   for (auto& old : old_slaves) {
+    LOG(INFO) << "Delete BinlogSendTask for Table " << table_name_ << " Partition " << partition_id_ << " To "
+      << old.ip << ":" << old.port + kPortShiftSync;
     zp_data_server->RemoveBinlogSendTask(table_name_, partition_id_, old);
   }
 }

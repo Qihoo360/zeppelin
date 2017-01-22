@@ -97,10 +97,6 @@ class Partition {
     slash::RWLock l(&state_rw_, false);
     return master_node_;
   }
-  Role role() {
-    slash::RWLock l(&state_rw_, false);
-    return role_;
-  }
 
   // Command related
   void DoBinlogCommand(const PartitionSyncOption& option,

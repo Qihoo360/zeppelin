@@ -180,14 +180,6 @@ void SyncCmd::Do(const google::protobuf::Message *req,
   Node node(sync_req.node().ip(), sync_req.node().port());
   response->set_type(client::Type::SYNC);
 
-  if (ptr->role() != Role::kNodeMaster) {
-    response->set_code(client::StatusCode::kError);
-    response->set_msg("Current node is not master");
-    DLOG(INFO) << "I'm not master for partition: " << ptr->partition_id()
-      << ", but receive sync from:" << node;
-    return;
-  }
-
   uint32_t s_filenum = sync_req.sync_offset().filenum();
   uint64_t s_offset = sync_req.sync_offset().offset();
   LOG(INFO) << "SyncCmd with a new node ("
