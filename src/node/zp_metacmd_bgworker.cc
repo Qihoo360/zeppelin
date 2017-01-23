@@ -97,10 +97,17 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(const ZPMeta::MetaCmdResponse 
   ZPMeta::MetaCmdResponse_Pull pull = response.pull();
 
   DLOG(INFO) << "receive Pull message, will handle " << pull.info_size() << " Tables.";
+  std::set<std::string> miss_tables; // Tables I response for before but will not any more
+  zp_data_server->GetAllTableName(miss_tables);
+
   for (int i = 0; i < pull.info_size(); i++) {
     const ZPMeta::Table& table_info = pull.info(i);
     DLOG(INFO) << " - handle Table " << table_info.name();
 
+    // Record tables no longer response for
+    miss_tables.erase(table_info.name());
+
+    // Add or Update table info
     Table* table = zp_data_server->GetOrAddTable(table_info.name());
     assert(table != NULL);
 
@@ -127,6 +134,15 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(const ZPMeta::MetaCmdResponse 
       }
     }
   }
+
+  // Delete expired tables
+  for (auto miss : miss_tables) {
+    // TODO wangkang Maybe we could support Delete Table later
+    Table* table = zp_data_server->GetOrAddTable(miss);
+    assert(table != NULL);
+    table->LeaveAllPartition();
+  }
+  
   // Print partitioin info
   zp_data_server->DumpTablePartitions();
   return pink::Status::OK();

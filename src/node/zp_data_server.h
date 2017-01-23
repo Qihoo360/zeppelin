@@ -112,11 +112,8 @@ class ZPDataServer {
   }
   
   // Table related
-  //bool UpdateOrAddPartition(const int partition_id, const Node& master, const std::vector<Node>& nodes);
-  //Partition* GetPartition(const std::string &key);
-  //Partition* GetPartitionById(const int partition_id);
-
   Table* GetOrAddTable(const std::string &table_name);
+  void DeleteTable(const std::string &table_name);
 
   Table* GetTable(const std::string &table_name);
   Partition* GetTablePartition(const std::string &table_name, const std::string &key);
@@ -155,7 +152,7 @@ class ZPDataServer {
                               std::unordered_map<std::string, std::vector<PartitionBinlogOffset>> &all_offset);
 
   // Statistic related
-  bool GetAllTableName(std::vector<std::string>& table_names);
+  bool GetAllTableName(std::set<std::string>& table_names);
   bool GetTableStat(const std::string& table_name, std::vector<Statistic>& stats);
   bool GetTableCapacity(const std::string& table_name, std::vector<Statistic>& capacity_stats);
 

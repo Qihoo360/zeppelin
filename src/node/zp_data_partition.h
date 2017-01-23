@@ -115,6 +115,7 @@ class Partition {
 
   // Partition node related
   void Update(ZPMeta::PState state, const Node& master, const std::set<Node> &slaves);
+  void Leave();
 
   // Binlog related
   Status SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset);

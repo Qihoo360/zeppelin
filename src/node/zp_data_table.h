@@ -29,6 +29,7 @@ class Table {
   Partition* GetPartitionById(const int partition_id);
   bool UpdateOrAddPartition(int partition_id, ZPMeta::PState state,
       const Node& master, const std::set<Node>& slaves);
+  void LeaveAllPartition();
   
   uint32_t KeyToPartition(const std::string &key);
 

@@ -332,10 +332,12 @@ bool Partition::TryUpdateMasterOffset() {
 Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset) {
   // Check role
   slash::RWLock l(&state_rw_, false);
-  if (role_ != Role::kNodeMaster) {
-    DLOG(INFO) << "I'm not master for partition: " << partition_id_
-      << ", but receive sync from:" << node;
-    return Status::Corruption("Current node is not master");
+  if (role_ != Role::kNodeMaster
+      || slave_nodes_.find(node) == slave_nodes_.end()) {
+    DLOG(INFO) << "I'm not the master for :" << node
+      << ", table: " << table_name_
+      << ", partition: " << partition_id_;
+    return Status::Corruption("Current node is not the master");
   }
 
   // Sanity check
@@ -359,15 +361,18 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
   Status s = zp_data_server->AddBinlogSendTask(table_name_, partition_id_,
       Node(node.ip, node.port + kPortShiftSync), filenum, offset);
   if (s.ok()) {
-    LOG(INFO) << "Success AddBinlogSendTask for Table " << table_name_ << " Partition " << partition_id_ << " To "
-      << node.ip << ":" << node.port + kPortShiftSync << " at " << filenum << ", " << offset;
+    LOG(INFO) << "Success AddBinlogSendTask for Table " << table_name_
+      << " Partition " << partition_id_ << " To "
+      << node.ip << ":" << node.port << " at " << filenum << ", " << offset;
   } else if (s.IsInvalidArgument()) {
     // Invalid filenum and offset
-    LOG(INFO) << "Failed AddBinlogSendTask for Table " << table_name_ << " Partition " << partition_id_ << " To "
-      << node.ip << ":" << node.port + kPortShiftSync << " Since the Invalid Offset : " << filenum << ", " << offset;
+    LOG(INFO) << "Failed AddBinlogSendTask for Table " << table_name_
+      << " Partition " << partition_id_ << " To " << node.ip << ":" << node.port
+      << " Since the Invalid Offset : " << filenum << ", " << offset;
   } else {
-    LOG(WARNING) << "Failed AddBinlogSendTask for Table " << table_name_ << " Partition " << partition_id_ << " To "
-      << node.ip << ":" << node.port + kPortShiftSync << " at " << filenum << ", " << offset << ", Error:" << s.ToString()
+    LOG(WARNING) << "Failed AddBinlogSendTask for Table " << table_name_
+      << " Partition " << partition_id_ << " To " << node.ip << ":" << node.port
+      << " at " << filenum << ", " << offset << ", Error:" << s.ToString()
       << ", cur filenum:" << cur_filenum << ", cur offset" << cur_offset;
   }
   return s;
@@ -376,9 +381,11 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
 // Requeired: hold write lock of state_rw_
 void Partition::CleanSlaves(const std::set<Node> &old_slaves) {
   for (auto& old : old_slaves) {
-    LOG(INFO) << "Delete BinlogSendTask for Table " << table_name_ << " Partition " << partition_id_ << " To "
+    LOG(INFO) << "Delete BinlogSendTask for Table " << table_name_
+      << " Partition " << partition_id_ << " To "
       << old.ip << ":" << old.port + kPortShiftSync;
-    zp_data_server->RemoveBinlogSendTask(table_name_, partition_id_, old);
+    zp_data_server->RemoveBinlogSendTask(table_name_,
+        partition_id_, Node(old.ip, old.port + kPortShiftSync));
   }
 }
 
@@ -436,7 +443,8 @@ ZPMeta::PState Partition::UpdateState(ZPMeta::PState state) {
   return pstate_;
 }
 
-void Partition::Update(ZPMeta::PState state, const Node &master, const std::set<Node> &slaves) {
+void Partition::Update(ZPMeta::PState state, const Node &master,
+    const std::set<Node> &slaves) {
   slash::RWLock l(&state_rw_, true);
 
   // Check Status first
@@ -500,6 +508,16 @@ void Partition::Update(ZPMeta::PState state, const Node &master, const std::set<
     // Change master
     BecomeSlave();
   }
+}
+
+void Partition::Leave() {
+  slash::RWLock l(&state_rw_, true);
+  slave_nodes_.erase(Node(zp_data_server->local_ip(),
+        zp_data_server->local_port()));
+  if (role_ == Role::kNodeMaster) {
+    CleanSlaves(slave_nodes_);
+  }
+  BecomeSingle();
 }
 
 std::string NewPartitionPath(const std::string& name, const uint32_t current) {

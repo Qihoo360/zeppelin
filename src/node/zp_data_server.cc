@@ -230,6 +230,18 @@ Table* ZPDataServer::GetOrAddTable(const std::string &table_name) {
   return table;
 }
 
+void ZPDataServer::DeleteTable(const std::string &table_name) {
+  // TODO wangkang delete table
+  // Before which all partition point outside should become invalid
+  return;
+  slash::RWLock l(&table_rw_, true);
+  auto it = tables_.find(table_name);
+  if (it != tables_.end()) {
+    delete it->second;
+  }
+  tables_.erase(table_name);
+}
+
 // Note: table pointer 
 Table* ZPDataServer::GetTable(const std::string &table_name) {
   slash::RWLock l(&table_rw_, false);
@@ -332,20 +344,20 @@ void ZPDataServer::DispatchBinlogBGWorker(ZPBinlogReceiveTask *task) {
 }
 
 // Statistic related
-bool ZPDataServer::GetAllTableName(std::vector<std::string>& table_names) {
+bool ZPDataServer::GetAllTableName(std::set<std::string>& table_names) {
   slash::RWLock l(&table_rw_, false);
   for (auto iter = tables_.begin(); iter != tables_.end(); iter++) {
-    table_names.push_back(iter->first);
+    table_names.insert(iter->first);
   }
   return true;
 }
 
 bool ZPDataServer::GetTableStat(const std::string& table_name, std::vector<Statistic>& stats) {
-  std::vector<std::string> stat_tables;
+  std::set<std::string> stat_tables;
   if (table_name.empty()) {
     GetAllTableName(stat_tables);
   } else {
-    stat_tables.push_back(table_name);
+    stat_tables.insert(table_name);
   }
 
   for (auto it = stat_tables.begin(); it != stat_tables.end(); it++) {

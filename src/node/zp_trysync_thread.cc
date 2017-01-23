@@ -49,7 +49,7 @@ void ZPTrySyncThread::TrySyncTask(Partition* partition) {
   if (!SendTrySync(partition)) {
     // Need one more trysync, since error happenning or waiting for db sync
     sleep(kTrySyncInterval);
-    LOG(INFO) << "SendTrySync ReSchedule for partition:" << partition->partition_id();
+    LOG(WARNING) << "SendTrySync ReSchedule for partition:" << partition->partition_id();
     zp_data_server->AddSyncTask(partition);
   }
 }
@@ -154,6 +154,7 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
   }
 
   if (!partition->ShouldTrySync()) {
+    // Return true so than the trysync will not be reschedule
     return true;
   }
 

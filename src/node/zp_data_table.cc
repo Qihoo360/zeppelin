@@ -99,6 +99,13 @@ bool Table::UpdateOrAddPartition(const int partition_id,
   return true;
 }
 
+void Table::LeaveAllPartition() {
+  slash::RWLock l(&partition_rw_, false);
+  for (auto iter : partitions_) {
+    (iter.second)->Leave();
+  }
+}
+
 uint32_t Table::KeyToPartition(const std::string &key) {
   assert(partition_cnt_ != 0);
   return std::hash<std::string>()(key) % partition_cnt_;
