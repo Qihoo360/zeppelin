@@ -19,11 +19,11 @@ std::string ZPBinlogSendTaskName(const std::string& table, int32_t id, const Nod
 /**
  * ZPBinlogSendTask
  */
-Status ZPBinlogSendTask::Create(const std::string &table, int32_t id, const Node& target,
-      uint32_t ifilenum, uint64_t ioffset,
-      ZPBinlogSendTask** tptr) {
+Status ZPBinlogSendTask::Create(uint64_t seq, const std::string &table,
+    int32_t id, const Node& target, uint32_t ifilenum, uint64_t ioffset,
+    ZPBinlogSendTask** tptr) {
   *tptr = NULL;
-  ZPBinlogSendTask* task = new ZPBinlogSendTask(table, id, target,
+  ZPBinlogSendTask* task = new ZPBinlogSendTask(seq, table, id, target,
       ifilenum, ioffset);
   Status s = task->Init();
   if (s.ok()) {
@@ -34,9 +34,10 @@ Status ZPBinlogSendTask::Create(const std::string &table, int32_t id, const Node
   return s;
 }
 
-ZPBinlogSendTask::ZPBinlogSendTask(const std::string &table, int32_t id, const Node& target,
-    uint32_t ifilenum, uint64_t ioffset) :
+ZPBinlogSendTask::ZPBinlogSendTask(uint64_t seq, const std::string &table,
+    int32_t id, const Node& target, uint32_t ifilenum, uint64_t ioffset) :
   send_next(true),
+  sequence_(seq),
   table_name_(table),
   partition_id_(id),
   node_(target),
@@ -171,7 +172,8 @@ void ZPBinlogSendTask::BuildSyncRequest(client::SyncRequest *msg) const {
 /**
  * ZPBinlogSendTaskPool
  */
-ZPBinlogSendTaskPool::ZPBinlogSendTaskPool() {
+ZPBinlogSendTaskPool::ZPBinlogSendTaskPool()
+  : next_sequence_(0) {
   pthread_rwlock_init(&tasks_rwlock_, NULL);
   task_ptrs_.reserve(1000);
   LOG(INFO) << "size: " << tasks_.size();
@@ -194,10 +196,11 @@ bool ZPBinlogSendTaskPool::TaskExist(const std::string& task_name) {
 }
 
 // Create and add a new Task
-Status ZPBinlogSendTaskPool::AddNewTask(const std::string &table_name, int32_t id, const Node& target,
-    uint32_t ifilenum, uint64_t ioffset, bool force) {
+Status ZPBinlogSendTaskPool::AddNewTask(const std::string &table_name, int32_t id,
+    const Node& target, uint32_t ifilenum, uint64_t ioffset, bool force) {
   ZPBinlogSendTask* task_ptr = NULL;
-  Status s = ZPBinlogSendTask::Create(table_name, id, target, ifilenum, ioffset, &task_ptr);
+  Status s = ZPBinlogSendTask::Create(next_sequence_++,
+      table_name, id, target, ifilenum, ioffset, &task_ptr);
   if (!s.ok()) {
     return s;
   }
@@ -219,8 +222,9 @@ Status ZPBinlogSendTaskPool::AddTask(ZPBinlogSendTask* task) {
   }
   tasks_.push_back(task);
   // index point to the last one just push back
-  task_ptrs_[task->name()] = tasks_.end();
-  --(task_ptrs_[task->name()]);
+  task_ptrs_[task->name()].iter = tasks_.end();
+  --(task_ptrs_[task->name()].iter);
+  task_ptrs_[task->name()].sequence = task->sequence();
   return Status::OK();
 }
 
@@ -231,9 +235,9 @@ Status ZPBinlogSendTaskPool::RemoveTask(const std::string &name) {
     return Status::NotFound("Task not exist");
   }
   // Task has been FetchOut should be deleted when Pushback
-  if (it->second != tasks_.end()) {
-    delete *(it->second);
-    tasks_.erase(it->second);
+  if (it->second.iter != tasks_.end()) {
+    delete *(it->second.iter);
+    tasks_.erase(it->second.iter);
   }
   task_ptrs_.erase(it);
   return Status::OK();
@@ -248,11 +252,11 @@ int32_t ZPBinlogSendTaskPool::TaskFilenum(const std::string &name) {
   if (it == task_ptrs_.end()) {
     return -1;
   }
-  if (it->second == tasks_.end()) {
+  if (it->second.iter == tasks_.end()) {
     // The task is processing by some thread
     return std::numeric_limits<int32_t>::max();
   }
-  return (*(it->second))->filenum();
+  return (*(it->second.iter))->filenum();
 }
 
 // Fetch one task out from the front of tasks_ list
@@ -267,7 +271,7 @@ Status ZPBinlogSendTaskPool::FetchOut(ZPBinlogSendTask** task_ptr) {
   tasks_.pop_front();
   // Do not remove from the task_ptrs_ map
   // When the same task put back we need to know it is a old one
-  task_ptrs_[(*task_ptr)->name()] = tasks_.end();
+  task_ptrs_[(*task_ptr)->name()].iter = tasks_.end();
   return Status::OK();
 }
 
@@ -278,13 +282,14 @@ Status ZPBinlogSendTaskPool::PutBack(ZPBinlogSendTask* task) {
   slash::RWLock l(&tasks_rwlock_, true);
   ZPBinlogSendTaskIndex::iterator it = task_ptrs_.find(task->name());
   if (it == task_ptrs_.end()              // task has been removed
-      || it->second != tasks_.end()) {    // task belong to same partition has beed added
+      || (it->second.iter != tasks_.end() ||
+        it->second.sequence != task->sequence())) {    // task belong to same partition has beed added
     delete task;
     return Status::NotFound("Task may have been deleted");
   }
   tasks_.push_back(task);
-  it->second = tasks_.end();
-  --(it->second);
+  it->second.iter = tasks_.end();
+  --(it->second.iter);
   return Status::OK();
 }
 
@@ -293,10 +298,11 @@ void ZPBinlogSendTaskPool::Dump() {
   ZPBinlogSendTaskIndex::iterator it = task_ptrs_.begin();
   LOG(INFO) << "----------------------------";
   for (; it != task_ptrs_.end(); ++it) {
-    std::list<ZPBinlogSendTask*>::iterator tptr = it->second;
+    std::list<ZPBinlogSendTask*>::iterator tptr = it->second.iter;
     LOG(INFO) << "----------------------------";
     LOG(INFO) << "+Binlog Send Task" << it->first;
     if (tptr != tasks_.end()) {
+      LOG(INFO) << "  +Sequence  " << it->second.sequence;
       LOG(INFO) << "  +Table  " << (*tptr)->table_name();
       LOG(INFO) << "  +Partition  " << (*tptr)->partition_id();
       LOG(INFO) << "  +Node  " << (*tptr)->node();

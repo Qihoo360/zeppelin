@@ -17,7 +17,15 @@
 
 using slash::Status;
 using slash::Slice;
-#define ZPBinlogSendTaskIndex std::unordered_map< std::string, std::list< ZPBinlogSendTask* >::iterator >
+
+class ZPBinlogSendTask;
+struct ZPBinlogSendTaskHandle {
+  std::list< ZPBinlogSendTask* >::iterator iter;
+  uint64_t sequence; // use squence to distinguish task with same name
+};
+
+typedef std::unordered_map< std::string,
+        ZPBinlogSendTaskHandle > ZPBinlogSendTaskIndex;
 
 std::string ZPBinlogSendTaskName(const std::string& table, int32_t id, const Node& target);
 
@@ -26,16 +34,19 @@ std::string ZPBinlogSendTaskName(const std::string& table, int32_t id, const Nod
  */
 class ZPBinlogSendTask {
 public:
-  static Status Create(const std::string &table_name, int32_t id,
+  static Status Create(uint64_t seq, const std::string &table_name, int32_t id,
       const Node& target, uint32_t ifilenum,uint64_t ioffset,
       ZPBinlogSendTask** tptr);
 
-  ZPBinlogSendTask(const std::string &table_name, int32_t id, const Node& target,
-    uint32_t ifilenum, uint64_t ioffset);
+  ZPBinlogSendTask(uint64_t seq, const std::string &table_name, int32_t id,
+      const Node& target, uint32_t ifilenum, uint64_t ioffset);
   ~ZPBinlogSendTask();
 
   bool send_next;
 
+  uint64_t sequence() const {
+    return sequence_;
+  }
   std::string name() const {
     return name_;
   }
@@ -68,6 +79,7 @@ public:
   void BuildSyncRequest(client::SyncRequest *msg) const;
 
 private:
+  uint64_t sequence_;
   std::string name_; // Name of the task
   const std::string table_name_; // Name of its table
   const int32_t partition_id_;
@@ -117,6 +129,7 @@ public:
 
 private:
   pthread_rwlock_t tasks_rwlock_;
+  uint64_t next_sequence_; // Give every task a unique sequence
   ZPBinlogSendTaskIndex task_ptrs_;
   std::list<ZPBinlogSendTask*> tasks_;
   Status AddTask(ZPBinlogSendTask* task);
