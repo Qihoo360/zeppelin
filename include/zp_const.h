@@ -54,6 +54,8 @@ const int kMetaPortShiftFY = 100;
 // TrySync Delay time := kRecoverSyncDelayCronCount * (kNodeCronInterval * kNodeCronWaitCount)
 const int kRecoverSyncDelayCronCount = 7;
 const int kTrySyncInterval = 3;
+const int kBinlogSendInterval = 2;
+const int kBinlogTimeSlice = 10; //should larger than kBinlogSendInterval
 const int kPingInterval = 3;
 const int kMetacmdInterval = 3;
 const int kDispatchCronInterval = 5000;
@@ -125,6 +127,5 @@ const std::string kMetaVersion = "##version";
 // timeout between node and meta server, the one for meta should large than node
 const int kNodeMetaTimeoutN = 10;
 const int kNodeMetaTimeoutM= 15;
-const int kBinlogTimeSlice = 5;
 
 #endif

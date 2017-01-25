@@ -332,10 +332,14 @@ ZPBinlogSendThread::~ZPBinlogSendThread() {
   }
 
 void* ZPBinlogSendThread::ThreadMain() {
-  struct timeval begin, now;
+  // Wait until the server is availible
+  while (!should_exit_ && !zp_data_server->Availible()) {
+    sleep(kBinlogSendInterval);
+  }
 
+  struct timeval begin, now;
   while (!should_exit_) {
-    sleep(1);
+    sleep(kBinlogSendInterval);
     ZPBinlogSendTask* task = NULL;
     Status s = pool_->FetchOut(&task);
     if (!s.ok()) {
@@ -373,7 +377,7 @@ void* ZPBinlogSendThread::ThreadMain() {
           << ", filenum:" << task->pre_filenum() << ", offset:" << task->pre_offset()
           << ", next filenum:" << task->filenum() << ", next offset:" << task->offset();
         task->send_next = false;
-        sleep(1);
+        sleep(kBinlogSendInterval);
       } else {
         item_s = zp_data_server->SendToPeer(task->node(), sreq);
         if (!item_s.ok()) {
@@ -382,7 +386,7 @@ void* ZPBinlogSendThread::ThreadMain() {
             << ", filenum:" << task->pre_filenum() << ", offset:" << task->pre_offset()
             << ", Error: " << item_s.ToString();
           task->send_next = false;
-          sleep(1);
+          sleep(kBinlogSendInterval);
         } else {
           task->send_next = true;
         }
