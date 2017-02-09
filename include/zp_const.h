@@ -91,7 +91,7 @@ const std::string kManifest = "manifest";
 //
 // The size of Binlogfile
 //
-//uint64_t kBinlogSize = 128; 
+//const uint64_t kBinlogSize = 128; 
 //const uint64_t kBinlogSize = 256;
 const uint64_t kBinlogSize = 1024 * 1024 * 100;
 

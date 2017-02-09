@@ -74,6 +74,7 @@ Status ZPBinlogSendTask::Init() {
   return Status::OK();
 }
 
+// Return Status::OK if has something to be send
 Status ZPBinlogSendTask::ProcessTask() {
   if (reader_ == NULL || queue_ == NULL) {
     return Status::InvalidArgument("Error Task");
@@ -111,7 +112,7 @@ Status ZPBinlogSendTask::ProcessTask() {
 
       s = slash::NewSequentialFile(confile, &(queue_));
       if (!s.ok()) {
-        LOG(WARNING) << "Failed to roo to next binlog file:" << (filenum_ + 1)
+        LOG(WARNING) << "Failed to roll to next binlog file:" << (filenum_ + 1)
           << " Error:" << s.ToString(); 
         return s;
       }
@@ -122,8 +123,8 @@ Status ZPBinlogSendTask::ProcessTask() {
     } else {
       LOG(WARNING) << "Read end of binlog file, but no next binlog exist:"
         << (filenum_ + 1);
+      return s;
     }
-    // Return EndFile
   } else if (s.IsIncomplete()) {
     LOG(WARNING) << "ZPBinlogSendTask Consume Incomplete record: " << s.ToString()
       << ", table: " << table_name_ << ", partition:" << partition_id_;
@@ -132,13 +133,16 @@ Status ZPBinlogSendTask::ProcessTask() {
       << ", table: " << table_name_ << ", partition:" << partition_id_
       << ", skip to next block";
     reader_->SkipNextBlock(&consume_len);
-    // Return Error
   }
 
   pre_has_content_ = s.ok();
 
   offset_ += consume_len;
-  return s;
+
+  // Return OK even Incomplete or something wrong when consume
+  // So that the caller could do the later sendtopeer
+  // pre_has_content_ could distinguish this from the consume success situation
+  return Status::OK();
 }
 
 // Build SyncRequest by ZPBinlogSendTask
@@ -244,17 +248,17 @@ Status ZPBinlogSendTaskPool::RemoveTask(const std::string &name) {
 }
 
 // Return the task filenum indicated by id and node
-// -1 when the task is not exist
-// max() when the task is exist but is processing now
+// max() when the task is not exist
+// -1 when the task is exist but is processing now
 int32_t ZPBinlogSendTaskPool::TaskFilenum(const std::string &name) {
   slash::RWLock l(&tasks_rwlock_, false);
   ZPBinlogSendTaskIndex::iterator it = task_ptrs_.find(name);
   if (it == task_ptrs_.end()) {
-    return -1;
+    return std::numeric_limits<int32_t>::max();
   }
   if (it->second.iter == tasks_.end()) {
     // The task is processing by some thread
-    return std::numeric_limits<int32_t>::max();
+    return -1;
   }
   return (*(it->second.iter))->filenum();
 }
@@ -355,9 +359,10 @@ void* ZPBinlogSendThread::ThreadMain() {
       if (task->send_next) {
         // Process ProcessTask
         item_s = task->ProcessTask();
-        if (item_s.IsEndFile()) {
-          //LOG(INFO) << "No more binlog item for table: " << task->table_name()
-          //  << " parititon: " << task->partition_id();
+        if (!item_s.ok()) {
+          //LOG(INFO) << "Error happened when process task: " << task->table_name()
+          //  << " parititon: " << task->partition_id()
+          //  << ", status:" << item_s.ToString(); 
           pool_->PutBack(task);
           break;
         }

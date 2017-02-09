@@ -418,7 +418,7 @@ void ZPDataServer::InitClientCmdTable() {
   Cmd* infopartitionptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOPARTITION), infopartitionptr));
   // SyncCmd
-  Cmd* syncptr = new SyncCmd(kCmdFlagsRead | kCmdFlagsAdmin);
+  Cmd* syncptr = new SyncCmd(kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SYNC), syncptr));
 }
 

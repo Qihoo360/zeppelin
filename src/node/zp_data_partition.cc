@@ -739,6 +739,7 @@ void Partition::TryDBSync(const std::string& ip, int port, int32_t top) {
     // Need Bgsave first
     Bgsave();
   }
+
   DBSync(ip, port);
 }
 
@@ -1016,8 +1017,12 @@ bool Partition::CouldPurge(uint32_t index) {
   std::set<Node>::iterator it;
   slash::RWLock l(&state_rw_, false);
   for (it = slave_nodes_.begin(); it != slave_nodes_.end(); ++it) {
-    int32_t filenum = zp_data_server->GetBinlogSendFilenum(table_name_, partition_id_, *it);
-    if (index >= static_cast<uint32_t>(filenum)) { 
+    int32_t filenum = zp_data_server->GetBinlogSendFilenum(table_name_,
+        partition_id_, Node((*it).ip, (*it).port + kPortShiftSync));
+    //LOG(WARNING) << "slave node : " << Node((*it).ip, (*it).port + kPortShiftSync)
+    //  << "filenum : " << filenum 
+    //  << "index : " << index << index;
+    if (filenum < 0 || index >= static_cast<uint32_t>(filenum)) { 
       return false;
     }
   }

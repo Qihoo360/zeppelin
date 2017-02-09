@@ -472,11 +472,11 @@ void Binlog::MaybeRoll() {
 
 Status Binlog::Put(const std::string &item) {
   slash::MutexLock l(&mutex_);
-  MaybeRoll();
 
   int64_t go_ahead = 0;
   Status s = writer_->Produce(Slice(item.data(), item.size()), &go_ahead);
   version_->Inc(go_ahead);
+  MaybeRoll();
   if (!s.ok()) {
     LOG(WARNING) << "Binlog write failed: " << s.ToString();
   }
@@ -486,11 +486,11 @@ Status Binlog::Put(const std::string &item) {
 // Fill binlog with emtpy record whose length is len
 Status Binlog::PutBlank(uint64_t len) {
   slash::MutexLock l(&mutex_);
-  MaybeRoll();
   
   int64_t go_ahead = 0;
   Status s = writer_->AppendBlank(len, &go_ahead);
   version_->Inc(go_ahead);
+  MaybeRoll();
   if (!s.ok()) {
     LOG(WARNING) << "Binlog write blank failed: " << s.ToString();
   }
