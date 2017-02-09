@@ -45,6 +45,8 @@ Partition::Partition(const std::string &table_name, const int partition_id, cons
     pthread_rwlockattr_init(&attr);
     pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
     pthread_rwlock_init(&partition_rw_, &attr);
+    
+    pthread_rwlock_init(&purged_index_rw_, NULL);
 
     // Create db handle
     nemo::Options option; //TODO anan  option args
@@ -62,6 +64,7 @@ Partition::~Partition() {
   delete logger_;
   db_.reset();
   delete bgsave_engine_;
+  pthread_rwlock_destroy(&purged_index_rw_);
   pthread_rwlock_destroy(&partition_rw_);
   pthread_rwlock_destroy(&state_rw_);
   LOG(INFO) << " Partition " << table_name_ << "_" << partition_id_ << " exit!!!";
@@ -331,7 +334,7 @@ bool Partition::TryUpdateMasterOffset() {
 // Return Incomplete when neet sync db
 Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset) {
   // Check role
-  slash::RWLock l(&state_rw_, false);
+  slash::RWLock ls(&state_rw_, false);
   if (role_ != Role::kNodeMaster
       || slave_nodes_.find(node) == slave_nodes_.end()) {
     DLOG(INFO) << "I'm not the master for :" << node
@@ -352,6 +355,7 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
   LOG(INFO) << "Partition:" << table_name_ << "_" << partition_id_
     << ", We " << (purged_index_ > filenum ? "will" : "won't")
     << " TryDBSync, purged_index_=" << purged_index_ << ", filenum=" << filenum;
+  slash::RWLock lp(&purged_index_rw_, false);
   if (purged_index_ > filenum) {
     TryDBSync(node.ip, node.port + kPortShiftRsync, cur_filenum);
     return Status::Incomplete("Bgsaving and DBSync first");
@@ -970,7 +974,10 @@ bool Partition::CheckBinlogFiles() {
     }
   }
   std::set<uint32_t>::iterator num_it = binlog_nums.begin(), pre_num_it = binlog_nums.begin();
-  purged_index_ = *num_it++; // update the purged_index_
+  {
+    slash::RWLock lp(&purged_index_rw_, true);
+    purged_index_ = *num_it++; // update the purged_index_
+  }
   DLOG(INFO) << "Partition: " << partition_id_ << " Update purged index to " << purged_index_; 
   for (; num_it != binlog_nums.end(); ++num_it, ++pre_num_it) {
     if (*num_it != *pre_num_it + 1) {
@@ -1015,7 +1022,9 @@ bool Partition::CouldPurge(uint32_t index) {
   }
 
   std::set<Node>::iterator it;
-  slash::RWLock l(&state_rw_, false);
+  slash::RWLock ls(&state_rw_, false);
+
+  slash::RWLock lp(&purged_index_rw_, true);
   for (it = slave_nodes_.begin(); it != slave_nodes_.end(); ++it) {
     int32_t filenum = zp_data_server->GetBinlogSendFilenum(table_name_,
         partition_id_, Node((*it).ip, (*it).port + kPortShiftSync));

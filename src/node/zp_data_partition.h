@@ -256,6 +256,9 @@ class Partition {
 
   // Purge binlog related
   std::atomic<bool> purging_;
+  // protect purge index between purge thread and trysync command
+  // Notice purged_index_rw_ should lock after state_rw_
+  pthread_rwlock_t purged_index_rw_; 
   uint32_t purged_index_; // binlog before which has or will be purged
   bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
   static void DoPurgeLogs(void* arg);
