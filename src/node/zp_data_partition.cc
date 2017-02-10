@@ -48,17 +48,30 @@ Partition::Partition(const std::string &table_name, const int partition_id, cons
     
     pthread_rwlock_init(&purged_index_rw_, NULL);
 
-    // Create db handle
-    nemo::Options option; //TODO anan  option args
-    db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(data_path_, option));
-    assert(db_);
-
-    // Binlog
-    Status s = Binlog::Create(log_path_, kBinlogSize, &logger_);
-    if (!s.ok()) {
-      LOG(ERROR) << "Create binlog failed: " << s.ToString();
-    }
   }
+
+Status Partition::Init() {
+  // Create db handle
+  nemo::Options option; //TODO anan  option args
+  db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(data_path_, option));
+  if (!db_) {
+    return Status::Corruption("create db failed!");
+  }
+
+  // Binlog
+  Status s = Binlog::Create(log_path_, kBinlogSize, &logger_);
+  if (!s.ok()) {
+    LOG(ERROR) << "Create binlog failed: " << s.ToString();
+    return s;
+  }
+
+  // Check and update purged_index_
+  if (!CheckBinlogFiles()) {
+    // Binlog unavailable
+    return Status::Corruption("Check binlog file failed!");
+  }
+  return s;
+}
 
 Partition::~Partition() {
   delete logger_;
@@ -73,8 +86,8 @@ Partition::~Partition() {
 bool Partition::ShouldWaitDBSync() {
   slash::RWLock l(&state_rw_, false);
   DLOG(INFO) << " Partition: " << table_name_ << "_" << partition_id_ << " ShouldWaitDBSync " 
-      << (repl_state_ == ReplState::kWaitDBSync ? "true" : "false")
-      << ", repl_state: " << ReplStateMsg[repl_state_] << " role: " << RoleMsg[role_];
+    << (repl_state_ == ReplState::kWaitDBSync ? "true" : "false")
+    << ", repl_state: " << ReplStateMsg[repl_state_] << " role: " << RoleMsg[role_];
   return repl_state_ == ReplState::kWaitDBSync;
 }
 
@@ -127,7 +140,7 @@ bool Partition::ChangeDb(const std::string& new_path) {
     LOG(WARNING) << "Failed to rename db path when change db, error: " << strerror(errno);
     return false;
   }
- 
+
   if (0 != slash::RenameFile(new_path.c_str(), data_path_.c_str())) {
     DLOG(INFO) << "Rename (" << new_path.c_str() << ", " << data_path_.c_str();
     LOG(WARNING) << "Failed to rename new db path when change db, error: " << strerror(errno);
@@ -190,10 +203,20 @@ bool Partition::InitBgsaveEngine() {
   return true;
 }
 
-bool Partition::RunBgsaveEngine(const std::string path) {
+bool Partition::RunBgsaveEngine() {
+  // Prepare for Bgsaving
+  if (!InitBgsaveEnv() || !InitBgsaveEngine()) {
+    ClearBgsave();
+    return false;
+  }
+  
+  BGSaveInfo info = bgsave_info();
+  DLOG(INFO) << "   bgsave_info: path=" << info.path << ",  filenum=" << info.filenum
+      << ", offset=" << info.offset;
+  
   // Backup to tmp dir
-  nemo::Status result = bgsave_engine_->CreateNewBackup(path);
-  DLOG(INFO) << "Create new backup finished, path is " << path;
+  nemo::Status result = bgsave_engine_->CreateNewBackup(info.path);
+  DLOG(INFO) << "Create new backup finished, path is " << info.path;
   
   if (!result.ok()) {
     LOG(WARNING) << "backup failed :" << result.ToString();
@@ -213,25 +236,17 @@ void Partition::Bgsave() {
     bgsave_info_.bgsaving = true;
   }
   
-  // Prepare for Bgsaving
-  if (!InitBgsaveEnv() || !InitBgsaveEngine()) {
-    ClearBgsave();
-    return;
-  }
-  LOG(INFO) << " BGsave start";
-  DLOG(INFO) << "   bgsave_info: path=" << bgsave_info_.path << ",  filenum=" << bgsave_info_.filenum
-      << ", offset=" << bgsave_info_.offset;
 
   zp_data_server->BGSaveTaskSchedule(&DoBgsave, static_cast<void*>(this));
 }
 
 void Partition::DoBgsave(void* arg) {
   Partition* p = static_cast<Partition*>(arg);
-  BGSaveInfo info = p->bgsave_info();
 
   // Do bgsave
-  bool ok = p->RunBgsaveEngine(info.path);
+  bool ok = p->RunBgsaveEngine();
 
+  BGSaveInfo info = p->bgsave_info();
   DLOG(INFO) << "DoBGSave info file " << zp_data_server->local_ip() << ":" << zp_data_server->local_port() << " filenum=" << info.filenum << " offset=" << info.offset;
   // Some output
   std::ofstream out;
@@ -535,13 +550,11 @@ Partition* NewPartition(const std::string &table_name,
     const int partition_id, const Node& master, const std::set<Node> &slaves) {
   Partition* partition = new Partition(table_name, partition_id, log_path, data_path);
 
-  // Check and update purged_index_
-  if (!partition->CheckBinlogFiles()) {
-    // Binlog unavailable
+  Status s = partition->Init();
+  if (!s.ok()) {
     delete partition;
     return NULL;
   }
-  partition->Update(ZPMeta::PState::ACTIVE, master, slaves);
 
   return partition;
 }
@@ -981,7 +994,8 @@ bool Partition::CheckBinlogFiles() {
   DLOG(INFO) << "Partition: " << partition_id_ << " Update purged index to " << purged_index_; 
   for (; num_it != binlog_nums.end(); ++num_it, ++pre_num_it) {
     if (*num_it != *pre_num_it + 1) {
-      LOG(ERROR) << "Partiton : " << partition_id_ << " There is a hole among the binglogs between " <<  *num_it << *pre_num_it; 
+      LOG(ERROR) << "Partiton : " << partition_id_
+        << " There is a hole among the binglogs between " <<  *num_it << " and "  << *pre_num_it; 
       // there is a hole
       return false;
     }

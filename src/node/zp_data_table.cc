@@ -94,6 +94,8 @@ bool Table::UpdateOrAddPartition(const int partition_id,
   Partition* partition = NewPartition(table_name_,
       log_path_, data_path_, partition_id, master, slaves);
   assert(partition != NULL);
+
+  partition->Update(ZPMeta::PState::ACTIVE, master, slaves);
   partitions_[partition_id] = partition;
 
   return true;
