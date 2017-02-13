@@ -98,6 +98,8 @@ class Partition {
     return master_node_;
   }
 
+  Status Init();
+
   // Command related
   void DoBinlogCommand(const PartitionSyncOption& option,
       const Cmd* cmd, const client::CmdRequest &req);
@@ -126,7 +128,6 @@ class Partition {
   std::string GetBinlogFilename() {
     return logger_->filename();
   }
-  bool CheckBinlogFiles(); // Check binlog availible and update purge_index_
 
   // BGSave related
   struct BGSaveInfo {
@@ -144,7 +145,7 @@ class Partition {
       offset = 0;
     }
   };
-  bool RunBgsaveEngine(const std::string path);
+  bool RunBgsaveEngine();
   void FinishBgsave() {
     slash::MutexLock l(&bgsave_protector_);
     bgsave_info_.bgsaving = false;
@@ -189,6 +190,7 @@ class Partition {
   std::string data_path_;
   std::string sync_path_;
   std::string bgsave_path_;
+
   
   // State related
   pthread_rwlock_t state_rw_; //protect partition status below
@@ -213,6 +215,7 @@ class Partition {
 
   // Binlog related
   Binlog* logger_;
+  bool CheckBinlogFiles(); // Check binlog availible and update purge_index_
 
   // DoCommand related
   slash::RecordMutex mutex_record_;
