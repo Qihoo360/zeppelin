@@ -43,7 +43,7 @@ ZPDataServer::ZPDataServer()
 
     // TODO anan  configable
     // debug
-    worker_num_ = 4;
+    worker_num_ = 4;//from config
     for (int i = 0; i < worker_num_; i++) {
       zp_worker_thread_[i] = new ZPDataWorkerThread(kWorkerCronInterval);
     }
@@ -219,7 +219,7 @@ Status ZPDataServer::SendToPeer(const Node &node, const client::SyncRequest &msg
 }
 
 Table* ZPDataServer::GetOrAddTable(const std::string &table_name) {
-  slash::RWLock l(&table_rw_, false);
+  slash::RWLock l(&table_rw_, true);
   auto it = tables_.find(table_name);
   if (it != tables_.end()) {
     return it->second;
