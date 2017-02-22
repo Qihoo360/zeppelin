@@ -506,14 +506,14 @@ class CmdRequest_Set : public ::google::protobuf::Message {
   inline ::std::string* release_key();
   inline void set_allocated_key(::std::string* key);
 
-  // required string value = 3;
+  // required bytes value = 3;
   inline bool has_value() const;
   inline void clear_value();
   static const int kValueFieldNumber = 3;
   inline const ::std::string& value() const;
   inline void set_value(const ::std::string& value);
   inline void set_value(const char* value);
-  inline void set_value(const char* value, size_t size);
+  inline void set_value(const void* value, size_t size);
   inline ::std::string* mutable_value();
   inline ::std::string* release_value();
   inline void set_allocated_value(::std::string* value);
@@ -1182,14 +1182,14 @@ class CmdResponse_Get : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // optional string value = 1;
+  // optional bytes value = 1;
   inline bool has_value() const;
   inline void clear_value();
   static const int kValueFieldNumber = 1;
   inline const ::std::string& value() const;
   inline void set_value(const ::std::string& value);
   inline void set_value(const char* value);
-  inline void set_value(const char* value, size_t size);
+  inline void set_value(const void* value, size_t size);
   inline ::std::string* mutable_value();
   inline ::std::string* release_value();
   inline void set_allocated_value(::std::string* value);
@@ -2425,7 +2425,7 @@ inline void CmdRequest_Set::set_allocated_key(::std::string* key) {
   }
 }
 
-// required string value = 3;
+// required bytes value = 3;
 inline bool CmdRequest_Set::has_value() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
@@ -2458,7 +2458,7 @@ inline void CmdRequest_Set::set_value(const char* value) {
   }
   value_->assign(value);
 }
-inline void CmdRequest_Set::set_value(const char* value, size_t size) {
+inline void CmdRequest_Set::set_value(const void* value, size_t size) {
   set_has_value();
   if (value_ == &::google::protobuf::internal::kEmptyString) {
     value_ = new ::std::string;
@@ -3400,7 +3400,7 @@ inline void CmdResponse_Sync::set_allocated_sync_offset(::client::SyncOffset* sy
 
 // CmdResponse_Get
 
-// optional string value = 1;
+// optional bytes value = 1;
 inline bool CmdResponse_Get::has_value() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -3433,7 +3433,7 @@ inline void CmdResponse_Get::set_value(const char* value) {
   }
   value_->assign(value);
 }
-inline void CmdResponse_Get::set_value(const char* value, size_t size) {
+inline void CmdResponse_Get::set_value(const void* value, size_t size) {
   set_has_value();
   if (value_ == &::google::protobuf::internal::kEmptyString) {
     value_ = new ::std::string;

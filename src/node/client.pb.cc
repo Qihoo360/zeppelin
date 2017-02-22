@@ -464,7 +464,7 @@ void protobuf_AddDesc_client_2eproto() {
     "nc\022\032\n\004node\030\001 \002(\0132\014.client.Node\022\022\n\ntable_"
     "name\030\002 \002(\t\022\'\n\013sync_offset\030\003 \002(\0132\022.client"
     ".SyncOffset\032C\n\003Set\022\022\n\ntable_name\030\001 \002(\t\022\013"
-    "\n\003key\030\002 \002(\t\022\r\n\005value\030\003 \002(\t\022\014\n\004uuid\030\004 \001(\t"
+    "\n\003key\030\002 \002(\t\022\r\n\005value\030\003 \002(\014\022\014\n\004uuid\030\004 \001(\t"
     "\0324\n\003Get\022\022\n\ntable_name\030\001 \002(\t\022\013\n\003key\030\002 \002(\t"
     "\022\014\n\004uuid\030\003 \001(\t\0324\n\003Del\022\022\n\ntable_name\030\001 \002("
     "\t\022\013\n\003key\030\002 \002(\t\022\014\n\004uuid\030\003 \001(\t\032\032\n\004Info\022\022\n\n"
@@ -479,7 +479,7 @@ void protobuf_AddDesc_client_2eproto() {
     "acity\0229\n\016info_partition\030\t \003(\0132!.client.C"
     "mdResponse.InfoPartition\032C\n\004Sync\022\022\n\ntabl"
     "e_name\030\001 \002(\t\022\'\n\013sync_offset\030\002 \002(\0132\022.clie"
-    "nt.SyncOffset\032\024\n\003Get\022\r\n\005value\030\001 \001(\t\032B\n\tI"
+    "nt.SyncOffset\032\024\n\003Get\022\r\n\005value\030\001 \001(\014\032B\n\tI"
     "nfoStats\022\022\n\ntable_name\030\001 \002(\t\022\024\n\014total_qu"
     "erys\030\002 \002(\003\022\013\n\003qps\030\003 \002(\005\032@\n\014InfoCapacity\022"
     "\022\n\ntable_name\030\001 \002(\t\022\014\n\004used\030\002 \002(\003\022\016\n\006rem"
@@ -1609,16 +1609,13 @@ bool CmdRequest_Set::MergePartialFromCodedStream(
         break;
       }
 
-      // required string value = 3;
+      // required bytes value = 3;
       case 3: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
          parse_value:
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
                 input, this->mutable_value()));
-          ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-            this->value().data(), this->value().length(),
-            ::google::protobuf::internal::WireFormat::PARSE);
         } else {
           goto handle_uninterpreted;
         }
@@ -1679,12 +1676,9 @@ void CmdRequest_Set::SerializeWithCachedSizes(
       2, this->key(), output);
   }
 
-  // required string value = 3;
+  // required bytes value = 3;
   if (has_value()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->value().data(), this->value().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
-    ::google::protobuf::internal::WireFormatLite::WriteString(
+    ::google::protobuf::internal::WireFormatLite::WriteBytes(
       3, this->value(), output);
   }
 
@@ -1725,13 +1719,10 @@ void CmdRequest_Set::SerializeWithCachedSizes(
         2, this->key(), target);
   }
 
-  // required string value = 3;
+  // required bytes value = 3;
   if (has_value()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->value().data(), this->value().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
     target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
         3, this->value(), target);
   }
 
@@ -1770,10 +1761,10 @@ int CmdRequest_Set::ByteSize() const {
           this->key());
     }
 
-    // required string value = 3;
+    // required bytes value = 3;
     if (has_value()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::StringSize(
+        ::google::protobuf::internal::WireFormatLite::BytesSize(
           this->value());
     }
 
@@ -3574,15 +3565,12 @@ bool CmdResponse_Get::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional string value = 1;
+      // optional bytes value = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
-          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
                 input, this->mutable_value()));
-          ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-            this->value().data(), this->value().length(),
-            ::google::protobuf::internal::WireFormat::PARSE);
         } else {
           goto handle_uninterpreted;
         }
@@ -3608,12 +3596,9 @@ bool CmdResponse_Get::MergePartialFromCodedStream(
 
 void CmdResponse_Get::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // optional string value = 1;
+  // optional bytes value = 1;
   if (has_value()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->value().data(), this->value().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
-    ::google::protobuf::internal::WireFormatLite::WriteString(
+    ::google::protobuf::internal::WireFormatLite::WriteBytes(
       1, this->value(), output);
   }
 
@@ -3625,13 +3610,10 @@ void CmdResponse_Get::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* CmdResponse_Get::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // optional string value = 1;
+  // optional bytes value = 1;
   if (has_value()) {
-    ::google::protobuf::internal::WireFormat::VerifyUTF8String(
-      this->value().data(), this->value().length(),
-      ::google::protobuf::internal::WireFormat::SERIALIZE);
     target =
-      ::google::protobuf::internal::WireFormatLite::WriteStringToArray(
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
         1, this->value(), target);
   }
 
@@ -3646,10 +3628,10 @@ int CmdResponse_Get::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // optional string value = 1;
+    // optional bytes value = 1;
     if (has_value()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::StringSize(
+        ::google::protobuf::internal::WireFormatLite::BytesSize(
           this->value());
     }
 

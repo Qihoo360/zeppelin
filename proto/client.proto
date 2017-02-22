@@ -48,7 +48,7 @@ message CmdRequest {
   message Set {
     required string table_name = 1;
     required string key = 2;
-    required string value = 3;
+    required bytes value = 3;
     optional string uuid = 4;
   }
   optional Set set = 3;
@@ -87,7 +87,7 @@ message CmdResponse {
   optional Sync sync = 4;
 
   message Get {
-    optional string value = 1;
+    optional bytes value = 1;
   }
   optional Get get = 5;
   
