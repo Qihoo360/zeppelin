@@ -1,0 +1,13 @@
+// $Id$
+// vim:ft=javascript
+
+// If your extension references something external, use ARG_WITH
+// ARG_WITH("zeppelin", "for zeppelin support", "no");
+
+// Otherwise, use ARG_ENABLE
+// ARG_ENABLE("zeppelin", "enable zeppelin support", "no");
+
+if (PHP_ZEPPELIN != "no") {
+	EXTENSION("zeppelin", "zeppelin.c");
+}
+
