@@ -86,6 +86,7 @@ class ZPMetaServer {
   Status GetAllNodes(ZPMeta::MetaCmdResponse_ListNode *nodes);
   Status Distribute(const std::string &table, int num);
   void UpdateOffset(const ZPMeta::MetaCmd_Ping &ping);
+  Status DropTable(const std::string &table);
   Status InitVersionIfNeeded();
 
   // Leader related
@@ -144,9 +145,11 @@ private:
   Status GetTableInfo(const std::string &table, ZPMeta::Table *table_info);
   bool FindNode(const ZPMeta::Nodes &nodes, const std::string &ip, int port);
   void RestoreNodeAlive(const std::vector<ZPMeta::NodeStatus> &alive_nodes);
+  Status RemoveTableFromTableList(const std::string &name);
   Status GetTableList(std::vector<std::string> *tables);
   Status UpdateTableList(const std::string &name);
   Status SetTable(const ZPMeta::Table &table);
+  Status DeleteTable(const std::string &name);
   Status SetNodes(const ZPMeta::Nodes &nodes);
   Status GetAllNodes(ZPMeta::Nodes *nodes);
   Status InitVersion();

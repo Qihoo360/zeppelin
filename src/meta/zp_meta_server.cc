@@ -136,7 +136,7 @@ Status ZPMetaServer::DoUpdate(ZPMetaUpdateTaskDeque task_deque) {
  * Step 2. Apply every update task on every Table
  */
   bool should_update_version = false;
-  bool should_update_table_set = false;
+//  bool should_update_table_set = false;
 
   for (auto it = tables.begin(); it != tables.end(); it++) {
     table_info.Clear();
@@ -609,6 +609,41 @@ void ZPMetaServer::UpdateOffset(const ZPMeta::MetaCmd_Ping &ping) {
   }
 }
 
+Status ZPMetaServer::DropTable(const std::string &name) {
+  slash::MutexLock l(&node_mutex_);
+  std::string value;
+  Status s;
+
+  s = DeleteTable(name);
+  if (!s.ok()) {
+    LOG(ERROR) << "DeleteTable error in DropTable, error: " << s.ToString();
+    return s;
+  }
+
+  s = RemoveTableFromTableList(name);
+  if (!s.ok()) {
+    LOG(ERROR) << "RemoveTableFromTableList error: " << s.ToString();
+    return s;
+  }
+
+  s = Set(kMetaVersion, std::to_string(version_+1));
+  if (s.ok()) {
+    version_++; 
+    LOG(INFO) << "Set version in DropTable : " << version_;
+  } else {
+    LOG(ERROR) << "Set version error in DropTable, error: " << s.ToString();
+    return s;
+  }
+
+  for (auto iter = nodes_.begin(); iter != nodes_.end(); iter++) {
+    iter->second.erase(name);
+  }
+
+  DebugNodes();
+
+  return Status::OK();
+}
+
 Status ZPMetaServer::InitVersionIfNeeded() {
   std::string value;
   int version = -1;
@@ -761,6 +796,10 @@ void ZPMetaServer::InitClientCmdTable() {
   //ListNode Command
   Cmd* listmetaptr = new ListMetaCmd(kCmdFlagsWrite);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTMETA), listmetaptr));
+
+  //DropTable Command
+  Cmd* droptableptr = new DropTableCmd(kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::DROPTABLE), droptableptr));
 }
 
 bool ZPMetaServer::ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque, const ZPMeta::Nodes &nodes, ZPMeta::Table *table_info, bool *should_update_version) {
@@ -1204,6 +1243,35 @@ void ZPMetaServer::RestoreNodeAlive(const std::vector<ZPMeta::NodeStatus> &alive
   }
 }
 
+Status ZPMetaServer::RemoveTableFromTableList(const std::string &name) {
+  std::string value;
+  ZPMeta::TableName table_name;
+  ZPMeta::TableName new_table_name;
+  Status s = Get(kMetaTables, value);
+  if (s.ok() || s.IsNotFound()) {
+    if (!table_name.ParseFromString(value)) {
+      LOG(ERROR) << "Deserialization table_name failed, error: " << value;
+      return slash::Status::Corruption("Parse failed");
+    }
+    for (int i = 0; i < table_name.name_size(); ++i) {
+      if (table_name.name(i) != name) {
+        new_table_name.add_name(table_name.name(i));
+      }
+    }
+
+    std::string text_format;
+    google::protobuf::TextFormat::PrintToString(new_table_name, &text_format);
+    LOG(INFO) << "Tables : [" << text_format << "]";
+
+    if (!new_table_name.SerializeToString(&value)) {
+      LOG(ERROR) << "Serialization new_table_name failed, value: " <<  value;
+      return Status::Corruption("Serialize error");
+    }
+    return Set(kMetaTables, value);
+  }
+  return s;
+}
+
 Status ZPMetaServer::GetTableList(std::vector<std::string> *tables) {
   std::string value;
   ZPMeta::TableName table_name;
@@ -1251,6 +1319,10 @@ Status ZPMetaServer::SetTable(const ZPMeta::Table &table) {
     return Status::Corruption("Serialize error");
   }
   return Set(table.name(), new_value);
+}
+
+Status ZPMetaServer::DeleteTable(const std::string &name) {
+  return Delete(name);
 }
 
 Status ZPMetaServer::SetNodes(const ZPMeta::Nodes &nodes) {

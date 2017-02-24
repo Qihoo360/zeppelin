@@ -66,4 +66,11 @@ class ListMetaCmd : public Cmd {
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
+class DropTableCmd : public Cmd {
+ public:
+  DropTableCmd(int flag) : Cmd(flag) {}
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition = NULL) const;
+};
+
 #endif

@@ -214,3 +214,21 @@ void ListMetaCmd::Do(const google::protobuf::Message *req, google::protobuf::Mes
     response->set_msg(s.ToString());
   }
 }
+
+void DropTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+
+  response->set_type(ZPMeta::Type::DROPTABLE);
+
+  std::string table_name = request->drop_table().name();
+  Status s = g_meta_server->DropTable(table_name);
+
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("DropTable OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
+}

@@ -16,6 +16,7 @@ enum Type {
   LISTTABLE = 7;
   LISTNODE = 8;
   LISTMETA = 9;
+  DROPTABLE = 10;
 }
 
 enum PState {
@@ -111,6 +112,11 @@ message MetaCmd {
     required BasicCmdUnit basic = 1;
   }
   optional RemoveSlave remove_slave = 7;
+
+  message DropTable {
+    required string name = 1;
+  }
+  optional DropTable drop_table = 8;
 }
 
 message MetaCmdResponse {

@@ -50,6 +50,7 @@ class MetaCmd_Init;
 class MetaCmd_SetMaster;
 class MetaCmd_AddSlave;
 class MetaCmd_RemoveSlave;
+class MetaCmd_DropTable;
 class MetaCmdResponse;
 class MetaCmdResponse_Ping;
 class MetaCmdResponse_Pull;
@@ -86,11 +87,12 @@ enum Type {
   REMOVESLAVE = 6,
   LISTTABLE = 7,
   LISTNODE = 8,
-  LISTMETA = 9
+  LISTMETA = 9,
+  DROPTABLE = 10
 };
 bool Type_IsValid(int value);
 const Type Type_MIN = PING;
-const Type Type_MAX = LISTMETA;
+const Type Type_MAX = DROPTABLE;
 const int Type_ARRAYSIZE = Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Type_descriptor();
@@ -1584,6 +1586,93 @@ class MetaCmd_RemoveSlave : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class MetaCmd_DropTable : public ::google::protobuf::Message {
+ public:
+  MetaCmd_DropTable();
+  virtual ~MetaCmd_DropTable();
+
+  MetaCmd_DropTable(const MetaCmd_DropTable& from);
+
+  inline MetaCmd_DropTable& operator=(const MetaCmd_DropTable& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const MetaCmd_DropTable& default_instance();
+
+  void Swap(MetaCmd_DropTable* other);
+
+  // implements Message ----------------------------------------------
+
+  MetaCmd_DropTable* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const MetaCmd_DropTable& from);
+  void MergeFrom(const MetaCmd_DropTable& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string name = 1;
+  inline bool has_name() const;
+  inline void clear_name();
+  static const int kNameFieldNumber = 1;
+  inline const ::std::string& name() const;
+  inline void set_name(const ::std::string& value);
+  inline void set_name(const char* value);
+  inline void set_name(const char* value, size_t size);
+  inline ::std::string* mutable_name();
+  inline ::std::string* release_name();
+  inline void set_allocated_name(::std::string* name);
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd.DropTable)
+ private:
+  inline void set_has_name();
+  inline void clear_has_name();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* name_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static MetaCmd_DropTable* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class MetaCmd : public ::google::protobuf::Message {
  public:
   MetaCmd();
@@ -1642,6 +1731,7 @@ class MetaCmd : public ::google::protobuf::Message {
   typedef MetaCmd_SetMaster SetMaster;
   typedef MetaCmd_AddSlave AddSlave;
   typedef MetaCmd_RemoveSlave RemoveSlave;
+  typedef MetaCmd_DropTable DropTable;
 
   // accessors -------------------------------------------------------
 
@@ -1706,6 +1796,15 @@ class MetaCmd : public ::google::protobuf::Message {
   inline ::ZPMeta::MetaCmd_RemoveSlave* release_remove_slave();
   inline void set_allocated_remove_slave(::ZPMeta::MetaCmd_RemoveSlave* remove_slave);
 
+  // optional .ZPMeta.MetaCmd.DropTable drop_table = 8;
+  inline bool has_drop_table() const;
+  inline void clear_drop_table();
+  static const int kDropTableFieldNumber = 8;
+  inline const ::ZPMeta::MetaCmd_DropTable& drop_table() const;
+  inline ::ZPMeta::MetaCmd_DropTable* mutable_drop_table();
+  inline ::ZPMeta::MetaCmd_DropTable* release_drop_table();
+  inline void set_allocated_drop_table(::ZPMeta::MetaCmd_DropTable* drop_table);
+
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd)
  private:
   inline void set_has_type();
@@ -1722,6 +1821,8 @@ class MetaCmd : public ::google::protobuf::Message {
   inline void clear_has_add_slave();
   inline void set_has_remove_slave();
   inline void clear_has_remove_slave();
+  inline void set_has_drop_table();
+  inline void clear_has_drop_table();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -1731,10 +1832,11 @@ class MetaCmd : public ::google::protobuf::Message {
   ::ZPMeta::MetaCmd_SetMaster* set_master_;
   ::ZPMeta::MetaCmd_AddSlave* add_slave_;
   ::ZPMeta::MetaCmd_RemoveSlave* remove_slave_;
+  ::ZPMeta::MetaCmd_DropTable* drop_table_;
   int type_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(8 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -3562,6 +3664,80 @@ inline void MetaCmd_RemoveSlave::set_allocated_basic(::ZPMeta::BasicCmdUnit* bas
 
 // -------------------------------------------------------------------
 
+// MetaCmd_DropTable
+
+// required string name = 1;
+inline bool MetaCmd_DropTable::has_name() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void MetaCmd_DropTable::set_has_name() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void MetaCmd_DropTable::clear_has_name() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void MetaCmd_DropTable::clear_name() {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    name_->clear();
+  }
+  clear_has_name();
+}
+inline const ::std::string& MetaCmd_DropTable::name() const {
+  return *name_;
+}
+inline void MetaCmd_DropTable::set_name(const ::std::string& value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
+}
+inline void MetaCmd_DropTable::set_name(const char* value) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(value);
+}
+inline void MetaCmd_DropTable::set_name(const char* value, size_t size) {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* MetaCmd_DropTable::mutable_name() {
+  set_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    name_ = new ::std::string;
+  }
+  return name_;
+}
+inline ::std::string* MetaCmd_DropTable::release_name() {
+  clear_has_name();
+  if (name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = name_;
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void MetaCmd_DropTable::set_allocated_name(::std::string* name) {
+  if (name_ != &::google::protobuf::internal::kEmptyString) {
+    delete name_;
+  }
+  if (name) {
+    set_has_name();
+    name_ = name;
+  } else {
+    clear_has_name();
+    name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// -------------------------------------------------------------------
+
 // MetaCmd
 
 // required .ZPMeta.Type type = 1;
@@ -3812,6 +3988,44 @@ inline void MetaCmd::set_allocated_remove_slave(::ZPMeta::MetaCmd_RemoveSlave* r
     set_has_remove_slave();
   } else {
     clear_has_remove_slave();
+  }
+}
+
+// optional .ZPMeta.MetaCmd.DropTable drop_table = 8;
+inline bool MetaCmd::has_drop_table() const {
+  return (_has_bits_[0] & 0x00000080u) != 0;
+}
+inline void MetaCmd::set_has_drop_table() {
+  _has_bits_[0] |= 0x00000080u;
+}
+inline void MetaCmd::clear_has_drop_table() {
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline void MetaCmd::clear_drop_table() {
+  if (drop_table_ != NULL) drop_table_->::ZPMeta::MetaCmd_DropTable::Clear();
+  clear_has_drop_table();
+}
+inline const ::ZPMeta::MetaCmd_DropTable& MetaCmd::drop_table() const {
+  return drop_table_ != NULL ? *drop_table_ : *default_instance_->drop_table_;
+}
+inline ::ZPMeta::MetaCmd_DropTable* MetaCmd::mutable_drop_table() {
+  set_has_drop_table();
+  if (drop_table_ == NULL) drop_table_ = new ::ZPMeta::MetaCmd_DropTable;
+  return drop_table_;
+}
+inline ::ZPMeta::MetaCmd_DropTable* MetaCmd::release_drop_table() {
+  clear_has_drop_table();
+  ::ZPMeta::MetaCmd_DropTable* temp = drop_table_;
+  drop_table_ = NULL;
+  return temp;
+}
+inline void MetaCmd::set_allocated_drop_table(::ZPMeta::MetaCmd_DropTable* drop_table) {
+  delete drop_table_;
+  drop_table_ = drop_table;
+  if (drop_table) {
+    set_has_drop_table();
+  } else {
+    clear_has_drop_table();
   }
 }
 
