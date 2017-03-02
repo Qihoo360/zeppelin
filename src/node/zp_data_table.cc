@@ -60,7 +60,10 @@ Partition* Table::GetPartition(const std::string &key) {
   slash::RWLock l(&partition_rw_, false);
   if (partition_cnt_ > 0) {
     int partition_id = std::hash<std::string>()(key) % partition_cnt_;
-    return partitions_[partition_id]; 
+    auto it = partitions_.find(partition_id);
+    if (it != partitions_.end()) {
+      return it->second;
+    }
   }
   return NULL;
 }
@@ -68,7 +71,6 @@ Partition* Table::GetPartition(const std::string &key) {
 Partition* Table::GetPartitionById(const int partition_id) {
   slash::RWLock l(&partition_rw_, false);
   auto it = partitions_.find(partition_id);
-  //std::map<int, Partition*>::const_iterator it = partitions_.find(partition_id);
   if (it != partitions_.end()) {
     return it->second;
   }
