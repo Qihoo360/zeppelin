@@ -87,11 +87,11 @@ ZEND_GET_MODULE(zeppelin)
 
 static void zeppelin_destructor_zeppelin_client(zend_rsrc_list_entry * rsrc TSRMLS_DC)
 {
-	libzp::Cluster *zp = (libzp::Cluster *) rsrc->ptr;
+	libzp::Client *zp = (libzp::Client *) rsrc->ptr;
     delete zp;
 }
 
-int zeppelin_client_get(zval *id, libzp::Cluster **zeppelin_sock TSRMLS_DC, int no_throw)
+int zeppelin_client_get(zval *id, libzp::Client **zeppelin_sock TSRMLS_DC, int no_throw)
 {
     zval **socket;
     int resource_type;
@@ -101,7 +101,7 @@ int zeppelin_client_get(zval *id, libzp::Cluster **zeppelin_sock TSRMLS_DC, int 
         return -1;
     }
 
-    *zeppelin_sock = (libzp::Cluster *) zend_list_find(Z_LVAL_PP(socket), &resource_type);
+    *zeppelin_sock = (libzp::Client *) zend_list_find(Z_LVAL_PP(socket), &resource_type);
 
     if (!*zeppelin_sock || resource_type != le_zeppelin) {
         return -1;
@@ -175,19 +175,21 @@ PHP_MINFO_FUNCTION(zeppelin)
 
 PHP_METHOD(Zeppelin, __construct)
 {
-	char *ip   = NULL;
-	int ip_len   = 0;
+	char *ip = NULL;
+	int ip_len = 0;
 	int port = 0;
+	char *table = NULL;
+	int table_len = 0;
 	zval *self;
 	zval *object;
 	int id;
 
-	libzp::Cluster *zp = NULL;
-	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Osl",
-				&object, zeppelin_client_ext, &ip, &ip_len, &port) == FAILURE) {
+	libzp::Client *zp = NULL;
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Osls",
+				&object, zeppelin_client_ext, &ip, &ip_len, &port, &table, &table_len) == FAILURE) {
 		RETURN_FALSE;
 	}
-	zp = new libzp::Cluster(std::string(ip, ip_len), port);
+	zp = new libzp::Client(std::string(ip, ip_len), port, std::string(table, table_len));
 
 #if PHP_VERSION_ID >= 50400
 	id = zend_list_insert(zp, le_zeppelin TSRMLS_CC);
@@ -219,25 +221,23 @@ PHP_FUNCTION(confirm_zeppelin_compiled)
 
 PHP_METHOD(Zeppelin, set)
 {
-	char *table = NULL;
     char *key   = NULL;
     char *value = NULL;
     int argc = ZEND_NUM_ARGS();
-	int table_len = 0;
     int key_len   = 0;
     int value_len = 0;
     zval *object;
-    if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Osss",
-                &object, zeppelin_client_ext, &table, &table_len, &key, &key_len, &value, &value_len) == FAILURE) {
+    if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Oss",
+                &object, zeppelin_client_ext, &key, &key_len, &value, &value_len) == FAILURE) {
         return;
     }
     
-	libzp::Cluster *zp;
+	libzp::Client *zp;
     if(zeppelin_client_get(object, &zp TSRMLS_CC, 0) < 0) {
         RETURN_FALSE;
     }
    
-	libzp::Status s = zp->Set(std::string(table, table_len), std::string(key, key_len), std::string(value, value_len));
+	libzp::Status s = zp->Set(std::string(key, key_len), std::string(value, value_len));
     if (s.ok()) {
         RETVAL_TRUE;
     } else {
@@ -249,51 +249,45 @@ PHP_METHOD(Zeppelin, get)
 {
     struct timeval tv;
     char *key   = NULL;
-	char *table = NULL;
     int argc = ZEND_NUM_ARGS();
     int key_len   = 0;
-	int table_len = 0;
     zval *object;
-    if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Oss",
-                &object, zeppelin_client_ext, &table, &table_len, &key, &key_len) == FAILURE) {
+    if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Os",
+                &object, zeppelin_client_ext, &key, &key_len) == FAILURE) {
         return;
     }
     
-	libzp::Cluster *zp;
+	libzp::Client *zp;
     if(zeppelin_client_get(object, &zp TSRMLS_CC, 0) < 0) {
         RETURN_FALSE;
     }
     
     std::string val;
-	libzp::Status s = zp->Get(std::string(table, table_len), std::string(key, key_len), &val);
-    if (s.IsNotFound()) {
-        RETVAL_NULL();
-    } else if (s.ok()) {
+	libzp::Status s = zp->Get(std::string(key, key_len), &val);
+	if (s.ok()) {
         RETVAL_STRINGL((char *)val.data(), val.size(), 1);
-    } else {
+	} else {
         RETVAL_FALSE;
-    }
+	}
 }
 
 PHP_METHOD(Zeppelin, delete)
 {
     char *key   = NULL;
-	char *table = NULL;
     int argc = ZEND_NUM_ARGS();
     int key_len   = 0;
-	int table_len = 0;
     zval *object;
-    if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Oss",
-                &object, zeppelin_client_ext, &table, &table_len, &key, &key_len) == FAILURE) {
+    if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "Os",
+                &object, zeppelin_client_ext, &key, &key_len) == FAILURE) {
         return;
     }
     
-	libzp::Cluster *zp;
+	libzp::Client *zp;
     if(zeppelin_client_get(object, &zp TSRMLS_CC, 0) < 0) {
         RETURN_FALSE;
     }
     
-	libzp::Status s = zp->Delete(std::string(table, table_len), std::string(key, key_len));
+	libzp::Status s = zp->Delete(std::string(key, key_len));
     if (s.ok()) {
         RETVAL_TRUE;
     } else {
