@@ -204,6 +204,8 @@ Status ZPDataServer::SendToPeer(const Node &node, const client::SyncRequest &msg
       delete cli;
       return Status::Corruption(res.ToString());
     }
+    cli->set_send_timeout(1000);
+    cli->set_recv_timeout(1000);
     iter = (peers_.insert(std::pair<std::string, ZPPbCli*>(ip_port, cli))).first;
   }
   

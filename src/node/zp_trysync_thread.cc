@@ -122,6 +122,8 @@ pink::PbCli* ZPTrySyncThread::GetConnection(const Node& node) {
       LOG(WARNING) << "Connect failed caz" << s.ToString();
       return NULL;
     }
+    cli->set_send_timeout(1000);
+    cli->set_recv_timeout(1000);
     client_pool_[ip_port] = cli;
   } else {
     cli = iter->second;
