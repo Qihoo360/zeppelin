@@ -1163,13 +1163,15 @@ void ZPMetaServer::Reorganize(const std::vector<ZPMeta::NodeStatus> &t_alive_nod
 
   int msize = m.size();
   int empty_count = 0;
-  while (true) {
-    if (empty_count == msize) {
-      break;
-    }
+  bool done = false;
+  while (!done) {
     for (auto iter_m = m.begin(); iter_m != m.end(); iter_m++) {
       if (iter_m->second.empty()) {
         empty_count++;
+        if (empty_count == msize) {
+          done = true;
+          break;
+        }
         continue;
       } else {
         LOG(INFO) << "PUSH " << iter_m->second.back().node().ip() << ":" << iter_m->second.back().node().port();
