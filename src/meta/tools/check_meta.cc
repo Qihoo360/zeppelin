@@ -44,7 +44,7 @@ int main(int argc, char* argv[]){
     } else if (it->key().ToString() == "##version") {
       std::cout << "----------------------------------------------" << std::endl;
       std::cout << "Print Version ====> " << std::endl << std::endl;
-      std::cout << atoi(it->value().data()) << std::endl;
+      std::cout << std::stoi(it->value().ToString()) << std::endl;
     } else if (it->key().ToString() == "##nodes") {
       if(!nodes.ParseFromString(it->value().ToString())) {
         std::cout << "Parse Nodes Error" << std::endl;
@@ -88,6 +88,7 @@ int main(int argc, char* argv[]){
     std::cout << " Try to repair Done..." << std::endl;
   } else {
     std::cout << "----------------------------------------------" << std::endl;
+    std::cout << "Table nums: " << table_num << std::endl;
     std::cout << "Check Successfully" << std::endl;
   }
   assert(it->status().ok());  // Check for any errors found during the scan

@@ -654,6 +654,7 @@ Status ZPMetaServer::InitVersionIfNeeded() {
     LOG(ERROR) << "InitVersionIfNeeded error when get version key from floyd: " << fs.ToString();
   }
 
+  slash::MutexLock l(&node_mutex_);
   if (version != version_) {
     return InitVersion();
   }
@@ -1366,21 +1367,22 @@ Status ZPMetaServer::InitVersion() {
   floyd::Status fs;
   std::string ip_port;
 
+  int tmp_version = -1;
+
 // Get Version
   fs = floyd_->Read(kMetaVersion, value);
   if (fs.ok()) {
     if (value == "") {
-      version_ = -1;
+      tmp_version = -1;
     } else {
-      version_ = std::stoi(value);
+      tmp_version = std::stoi(value);
     }
-    LOG(INFO) << "Got version " << version_;
   } else {
     LOG(ERROR) << "Read floyd version failed in InitVersion: " << fs.ToString() << ", try again";
     return Status::Corruption("Read Version error");
   }
 
-// Get nodes_
+// Update nodes_
   fs = floyd_->Read(kMetaTables, value);
   LOG(INFO) << "InitVersion read tables, ret: " << fs.ToString();
   if (fs.ok()) {
@@ -1389,7 +1391,8 @@ Status ZPMetaServer::InitVersion() {
         LOG(ERROR) << "Deserialization table failed, error: " << value;
         return Status::Corruption("Parse failed");
       }
-      slash::MutexLock l(&node_mutex_);
+      
+      //node_mutex_ have already been hold in InitVersionIfNeeded
       nodes_.clear();
       for (int i = 0; i < tables.name_size(); i++) {
         fs = floyd_->Read(tables.name(i), value);
@@ -1436,6 +1439,10 @@ Status ZPMetaServer::InitVersion() {
     LOG(ERROR) << "Read floyd tables failed in InitVersion: " << fs.ToString() << ", try again";
     return Status::Corruption("Read tables error");
   }
+
+  // Update Version
+  version_ = tmp_version;
+  LOG(INFO) << "Got version " << version_;
   
   return Status::OK();
 }
