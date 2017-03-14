@@ -99,7 +99,7 @@ class Partition {
     return table_name_;
   }
 
-  const rocksdb::DBNemo* db() const {
+  rocksdb::DBNemo* db() const {
     return db_;
   }
   Node master_node() {
