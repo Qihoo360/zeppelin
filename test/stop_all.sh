@@ -4,7 +4,7 @@
 #DIR=`dirname $0`
 DIR=`pwd`
 
-ps aux| grep zp | grep zhaoanan | awk '{print $2}' | xargs kill -9
+ps aux| grep zp- | awk '{print $2}' | xargs kill -9
 
 if [ $1'x' = 'clean''x' ] ; then 
   echo "Clean files"

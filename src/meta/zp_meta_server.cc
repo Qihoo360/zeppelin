@@ -10,13 +10,23 @@ ZPMetaServer::ZPMetaServer()
   : should_exit_(false), started_(false), version_(-1), worker_num_(6), leader_cli_(NULL), leader_first_time_(true), leader_ip_(""), leader_cmd_port_(0) {
 
   floyd::Options fy_options;
-  local_ip_ = fy_options.local_ip = g_zp_conf->local_ip();
-  seed_ip_ = fy_options.seed_ip = g_zp_conf->seed_ip();
-  local_port_ = fy_options.local_port = g_zp_conf->local_port() + kMetaPortShiftFY;
-  seed_port_ = fy_options.seed_port = g_zp_conf->seed_port() + kMetaPortShiftFY;
+
+  // We should replace ip/port to ip:port along with the PortShift;
+  fy_options.members = g_zp_conf->meta_addr();
+  for (auto it = fy_options.members.begin(); it != fy_options.members.end(); it++) {
+    std::replace(it->begin(), it->end(), '/', ':');
+    std::string ip;
+    int port;
+    slash::ParseIpPortString(*it, ip, port);
+    *it = slash::IpPortString(ip, port + kMetaPortShiftFY);
+  }
+  fy_options.local_ip = g_zp_conf->local_ip();
+  fy_options.local_port = g_zp_conf->local_port() + kMetaPortShiftFY;
   fy_options.data_path = g_zp_conf->data_path();
   fy_options.log_path = g_zp_conf->log_path();
-  fy_options.log_type = "FileLog";
+
+  // TODO anan test
+  //fy_options.Dump();
 
   floyd_ = new floyd::Floyd(fy_options);
 
@@ -43,10 +53,11 @@ ZPMetaServer::~ZPMetaServer() {
 }
 
 void ZPMetaServer::Start() {
-  LOG(INFO) << "ZPMetaServer started on port:" << g_zp_conf->local_port() << ", seed is " << g_zp_conf->seed_ip().c_str() << ":" <<g_zp_conf->seed_port();
-  floyd::Status fs = floyd_->Start();
-  if (!fs.ok()) {
-    LOG(ERROR) << "Start floyd failed: " << fs.ToString();
+  LOG(INFO) << "ZPMetaServer started on port:" << g_zp_conf->local_port();
+
+  Status s = floyd_->Start();
+  if (!s.ok()) {
+    LOG(ERROR) << "Start floyd failed: " << s.ToString();
     return;
   }
   std::string leader_ip;
@@ -56,7 +67,7 @@ void ZPMetaServer::Start() {
     // Wait leader election
     sleep(1);
   }
-  Status s;
+
   if (!should_exit_) {
     LOG(INFO) << "Got Leader: " << leader_ip << ":" << leader_port;
     while (!should_exit_) {
@@ -647,7 +658,7 @@ Status ZPMetaServer::DropTable(const std::string &name) {
 Status ZPMetaServer::InitVersionIfNeeded() {
   std::string value;
   int version = -1;
-  floyd::Status fs = floyd_->DirtyRead(kMetaVersion, value);
+  Status fs = floyd_->DirtyRead(kMetaVersion, value);
   if (fs.ok()) {
     version = std::stoi(value);
   } else {
@@ -1206,7 +1217,7 @@ void ZPMetaServer::GetAllAliveNode(const ZPMeta::Nodes &nodes, std::vector<ZPMet
 
 Status ZPMetaServer::GetTableInfo(const std::string &table, ZPMeta::Table *table_info) {
   std::string value;
-  floyd::Status fs = floyd_->DirtyRead(table, value);
+  Status fs = floyd_->DirtyRead(table, value);
   if (fs.ok()) {
     table_info->Clear();
     if (!table_info->ParseFromString(value)) {
@@ -1340,7 +1351,7 @@ Status ZPMetaServer::SetNodes(const ZPMeta::Nodes &nodes) {
 Status ZPMetaServer::GetAllNodes(ZPMeta::Nodes *nodes) {
   // Load from Floyd
   std::string value;
-  floyd::Status fs = floyd_->DirtyRead(kMetaNodes, value);
+  Status fs = floyd_->DirtyRead(kMetaNodes, value);
   nodes->Clear();
   if (fs.ok()) {
     // Deserialization
@@ -1363,7 +1374,7 @@ Status ZPMetaServer::InitVersion() {
   ZPMeta::Table table_info;
   ZPMeta::Partitions partition;
   ZPMeta::Node node;
-  floyd::Status fs;
+  Status fs;
   std::string ip_port;
 
 // Get Version
@@ -1453,7 +1464,7 @@ Status ZPMetaServer::AddVersion() {
 }
 
 Status ZPMetaServer::Set(const std::string &key, const std::string &value) {
-  floyd::Status fs = floyd_->Write(key, value);
+  Status fs = floyd_->Write(key, value);
   if (fs.ok()) {
     return Status::OK();
   } else {
@@ -1463,7 +1474,7 @@ Status ZPMetaServer::Set(const std::string &key, const std::string &value) {
 }
 
 Status ZPMetaServer::Get(const std::string &key, std::string &value) {
-  floyd::Status fs = floyd_->DirtyRead(key, value);
+  Status fs = floyd_->DirtyRead(key, value);
   if (fs.ok()) {
     return Status::OK();
   } else if (fs.IsNotFound()) {
@@ -1475,7 +1486,7 @@ Status ZPMetaServer::Get(const std::string &key, std::string &value) {
 }
 
 Status ZPMetaServer::Delete(const std::string &key) {
-  floyd::Status fs = floyd_->Delete(key);
+  Status fs = floyd_->Delete(key);
   if (fs.ok()) {
     return Status::OK();
   } else {
