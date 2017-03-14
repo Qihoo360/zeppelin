@@ -15,11 +15,11 @@ endif
 
 CXX = g++
 
-ifeq ($(__REL), 1)
+ifeq ($(__PERF), 1)
 #CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -Wno-unused-function -std=c++11
-	CXXFLAGS = -O2 -g -pipe -fPIC -W -DNDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wno-unused-parameter -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -gdwarf-2 -Wno-redundant-decls
+	CXXFLAGS = -O0 -g -pipe -fPIC -W -DNDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wno-unused-parameter -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -gdwarf-2 -Wno-redundant-decls
 else
-	CXXFLAGS = -O0 -g -gstabs+ -pg -pipe -fPIC -W -DDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wno-unused-parameter -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -Wno-redundant-decls
+	CXXFLAGS = -O2 -g -gstabs+ -pg -pipe -fPIC -W -DDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wno-unused-parameter -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -Wno-redundant-decls
 endif
 
 COMMON_SRC_PATH = ./src/common
@@ -119,16 +119,16 @@ $(OBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) $(INCLUDE_PATH) -c $< -o $@  
 
 $(FLOYD):
-	make -C $(THIRD_PATH)/floyd/
+	make -C $(THIRD_PATH)/floyd/ __PERF=$(__PERF)
 
 $(NEMO):
-	make -C $(THIRD_PATH)/nemo/
+	make -C $(THIRD_PATH)/nemo/ __PERF=$(__PERF)
 
 $(SLASH):
-	make -C $(THIRD_PATH)/slash/
+	make -C $(THIRD_PATH)/slash/ __PERF=$(__PERF)
 
 $(PINK):
-	make -C $(THIRD_PATH)/pink/
+	make -C $(THIRD_PATH)/pink/ __PERF=$(__PERF)
 
 $(GLOG):
 	#if [ -d $(THIRD_PATH)/glog/.libs ]; then 
@@ -143,16 +143,10 @@ clean:
 	rm -rf $(NODE_SRC_PATH)/*.o
 	rm -rf $(OUTPUT)
 
-distclean: 
+distclean: clean
 	make -C $(THIRD_PATH)/pink/ clean
 	make -C $(THIRD_PATH)/slash/ clean
 	make -C $(THIRD_PATH)/nemo/ clean
 	make -C $(THIRD_PATH)/nemo/3rdparty/rocksdb clean
-	make -C $(THIRD_PATH)/floyd/third/pink clean
-	make -C $(THIRD_PATH)/floyd/third/slash clean
-	make -C $(THIRD_PATH)/floyd/ clean
-	rm -rf $(COMMON_SRC_PATH)/*.o
-	rm -rf $(META_SRC_PATH)/*.o
-	rm -rf $(NODE_SRC_PATH)/*.o
-	rm -rf $(OUTPUT)
+	make -C $(THIRD_PATH)/floyd/ distclean
 
