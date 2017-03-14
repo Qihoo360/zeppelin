@@ -145,6 +145,7 @@ private:
   Status GetTableInfo(const std::string &table, ZPMeta::Table *table_info);
   bool FindNode(const ZPMeta::Nodes &nodes, const std::string &ip, int port);
   void RestoreNodeAlive(const std::vector<ZPMeta::NodeStatus> &alive_nodes);
+  Status ExistInTableList(const std::string &name, bool *found);
   Status RemoveTableFromTableList(const std::string &name);
   Status GetTableList(std::vector<std::string> *tables);
   Status UpdateTableList(const std::string &name);
