@@ -924,6 +924,11 @@ bool Partition::PurgeFiles(uint32_t to, bool manual)
     LOG(WARNING) << "Could not get binlog files!";
     return false;
   }
+  
+  if (binlogs.size() <= kBinlogRemainMinCount) {
+    // No neet purge
+    return true;
+  }
 
   int delete_num = 0;
   struct stat file_stat;
@@ -940,7 +945,7 @@ bool Partition::PurgeFiles(uint32_t to, bool manual)
     {
       // We check this every time to avoid lock when we do file deletion
       if (!CouldPurge(it->first)) {
-        LOG(WARNING) << "Could not purge "<< (it->first) << ", since it is already be used";
+        //LOG(WARNING) << "Could not purge "<< (it->first) << ", since it is already be used";
         return false;
       }
 
