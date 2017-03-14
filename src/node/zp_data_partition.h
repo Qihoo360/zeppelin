@@ -9,9 +9,8 @@
 #include "pb_conn.h"
 #include "pb_cli.h"
 #include "holy_thread.h"
-#include "nemo.h"
-#include "nemo_backupable.h"
-
+#include "include/db_nemo_impl.h"
+#include "include/db_nemo_checkpoint.h"
 
 #include "zp_const.h"
 #include "client.pb.h"
@@ -74,6 +73,16 @@ struct PartitionSyncOption {
     offset(arg_offset) {}
 };
 
+struct CheckpointContent {
+  std::vector<std::string> live_files;
+  rocksdb::VectorLogPtr live_wal_files;
+  uint64_t manifest_file_size;
+  uint64_t sequence_number;
+  CheckpointContent():
+    manifest_file_size(0),
+    sequence_number(0) {}
+};
+
 class Partition {
   public:
   Partition(const std::string &table_name, const int partition_id,
@@ -90,7 +99,7 @@ class Partition {
     return table_name_;
   }
 
-  const std::shared_ptr<nemo::Nemo> db() const {
+  const rocksdb::DBNemo* db() const {
     return db_;
   }
   Node master_node() {
@@ -145,10 +154,14 @@ class Partition {
       offset = 0;
     }
   };
-  bool RunBgsaveEngine();
+  bool RunBgsave();
   void FinishBgsave() {
     slash::MutexLock l(&bgsave_protector_);
     bgsave_info_.bgsaving = false;
+  }
+  void ClearBgsave() {
+    slash::MutexLock l(&bgsave_protector_);
+    bgsave_info_.Clear();
   }
   BGSaveInfo bgsave_info() {
     slash::MutexLock l(&bgsave_protector_);
@@ -210,7 +223,7 @@ class Partition {
   bool CheckSyncOption(const PartitionSyncOption& option);
 
   // DB related
-  std::shared_ptr<nemo::Nemo> db_;
+  rocksdb::DBNemo *db_;
   bool FlushAll();
 
   // Binlog related
@@ -230,17 +243,12 @@ class Partition {
 
   // BGSave related
   slash::Mutex bgsave_protector_;
-  nemo::BackupEngine *bgsave_engine_;
   BGSaveInfo bgsave_info_;
   void Bgsave();
-  bool Bgsaveoff();
   static void DoBgsave(void* arg);
   bool InitBgsaveEnv();
-  bool InitBgsaveEngine();
-  void ClearBgsave() {
-    slash::MutexLock l(&bgsave_protector_);
-    bgsave_info_.Clear();
-  }
+  bool InitBgsaveContent(rocksdb::DBNemoCheckpoint* cp,
+    CheckpointContent* content);
   bool bgsaving() {
     slash::MutexLock l(&bgsave_protector_);
     return bgsave_info_.bgsaving;

@@ -40,7 +40,6 @@ class ZPTrySyncThread {
 
   // Rsync related
   int rsync_flag_;
-  void PrepareRsync(Partition *partition);
   void RsyncRef();
   void RsyncUnref();
   

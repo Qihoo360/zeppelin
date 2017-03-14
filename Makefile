@@ -17,9 +17,9 @@ CXX = g++
 
 ifeq ($(__PERF), 1)
 #CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -Wno-unused-function -std=c++11
-	CXXFLAGS = -O0 -g -pipe -fPIC -W -DNDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wno-unused-parameter -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -gdwarf-2 -Wno-redundant-decls
+	CXXFLAGS = -O0 -g -pipe -fPIC -W -DNDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wno-unused-parameter -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -gdwarf-2 -Wno-redundant-decls -DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX -DOS_LINUX
 else
-	CXXFLAGS = -O2 -g -gstabs+ -pg -pipe -fPIC -W -DDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wno-unused-parameter -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -Wno-redundant-decls
+	CXXFLAGS = -O2 -g -gstabs+ -pg -pipe -fPIC -W -DDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wno-unused-parameter -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -Wno-redundant-decls -DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX -DOS_LINUX
 endif
 
 COMMON_SRC_PATH = ./src/common
@@ -49,7 +49,9 @@ OBJS = $(COMMON_OBJS) $(META_OBJS) $(NODE_OBJS)
 
 INCLUDE_PATH = -I./include/ \
 			   -I$(THIRD_PATH)/glog/src/ \
-			   -I$(THIRD_PATH)/nemo/output/include/ \
+			   -I$(THIRD_PATH)/nemo-rocksdb/ \
+			   -I$(THIRD_PATH)/nemo-rocksdb/rocksdb \
+			   -I$(THIRD_PATH)/nemo-rocksdb/rocksdb/include/ \
 			   -I$(THIRD_PATH)/slash/output/include/ \
 			   -I$(THIRD_PATH)/pink/output/include/ \
 			   -I$(THIRD_PATH)/pink/output/ \
@@ -58,7 +60,7 @@ INCLUDE_PATH = -I./include/ \
 
 LIB_PATH = -L./ \
 		   -L$(THIRD_PATH)/floyd/output/lib/ \
-		   -L$(THIRD_PATH)/nemo/output/lib/ \
+		   -L$(THIRD_PATH)/nemo-rocksdb/output/lib/ \
 		   -L$(THIRD_PATH)/slash/output/lib/ \
 		   -L$(THIRD_PATH)/pink/output/lib/ \
 		   -L$(THIRD_PATH)/glog/.libs/
@@ -77,11 +79,11 @@ LIBS = -lpthread \
 METALIBS = -lfloyd \
      -lleveldb
 
-NODELIBS = -lnemo \
+NODELIBS = -lnemodb \
      -lrocksdb
 
 FLOYD = $(THIRD_PATH)/floyd/output/lib/libfloyd.a
-NEMO = $(THIRD_PATH)/nemo/output/lib/libnemo.a
+NEMODB = $(THIRD_PATH)/nemo-rocksdb/output/lib/libnemodb.a
 GLOG = $(THIRD_PATH)/glog/.libs/libglog.so.0
 PINK = $(THIRD_PATH)/pink/output/lib/libpink.a
 SLASH = $(THIRD_PATH)/slash/output/lib/libslash.a
@@ -112,7 +114,7 @@ all: $(ZP_META) $(ZP_NODE)
 $(ZP_META): $(FLOYD) $(GLOG) $(PINK) $(SLASH) $(COMMON_OBJS) $(META_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJS) $(META_OBJS) $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(METALIBS) $(LIBS) 
 
-$(ZP_NODE): $(NEMO) $(GLOG) $(PINK) $(SLASH) $(COMMON_OBJS) $(NODE_OBJS)
+$(ZP_NODE): $(NEMODB) $(GLOG) $(PINK) $(SLASH) $(COMMON_OBJS) $(NODE_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJS) $(NODE_OBJS) $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(NODELIBS) $(LIBS) 
 
 $(OBJS): %.o : %.cc
@@ -121,8 +123,8 @@ $(OBJS): %.o : %.cc
 $(FLOYD):
 	make -C $(THIRD_PATH)/floyd/ __PERF=$(__PERF)
 
-$(NEMO):
-	make -C $(THIRD_PATH)/nemo/ __PERF=$(__PERF)
+$(NEMODB):
+	make -C $(THIRD_PATH)/nemo-rocksdb/
 
 $(SLASH):
 	make -C $(THIRD_PATH)/slash/ __PERF=$(__PERF)
@@ -146,7 +148,6 @@ clean:
 distclean: clean
 	make -C $(THIRD_PATH)/pink/ clean
 	make -C $(THIRD_PATH)/slash/ clean
-	make -C $(THIRD_PATH)/nemo/ clean
-	make -C $(THIRD_PATH)/nemo/3rdparty/rocksdb clean
+	make -C $(THIRD_PATH)/nemo-rocksdb/ clean
 	make -C $(THIRD_PATH)/floyd/ distclean
 

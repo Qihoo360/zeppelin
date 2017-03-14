@@ -17,7 +17,6 @@ Partition::Partition(const std::string &table_name, const int partition_id, cons
   repl_state_(ReplState::kNoConnect),
   do_recovery_sync_(false),
   recover_sync_flag_(0),
-  bgsave_engine_(NULL),
   purging_(false),
   purged_index_(0) {
     // Partition related path
@@ -52,10 +51,10 @@ Partition::Partition(const std::string &table_name, const int partition_id, cons
 
 Status Partition::Init() {
   // Create db handle
-  nemo::Options option; //TODO anan  option args
-  db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(data_path_, option));
-  if (!db_) {
-    return Status::Corruption("create db failed!");
+  rocksdb::Status rs = rocksdb::DBNemo::Open(*(zp_data_server->db_options()),
+      data_path_, &db_);
+  if (!rs.ok()) {
+    return Status::Corruption(rs.ToString());
   }
 
   // Binlog
@@ -75,8 +74,7 @@ Status Partition::Init() {
 
 Partition::~Partition() {
   delete logger_;
-  db_.reset();
-  delete bgsave_engine_;
+  delete db_;
   pthread_rwlock_destroy(&purged_index_rw_);
   pthread_rwlock_destroy(&partition_rw_);
   pthread_rwlock_destroy(&state_rw_);
@@ -122,11 +120,6 @@ void Partition::TrySyncDone() {
 }
 
 bool Partition::ChangeDb(const std::string& new_path) {
-  nemo::Options option;
-  // TODO anan set options
-  //option.write_buffer_size = g_pika_conf->write_buffer_size();
-  //option.target_file_size_base = g_pika_conf->target_file_size_base();
-
   std::string tmp_path(data_path_);
   if (tmp_path.back() == '/') {
     tmp_path.resize(tmp_path.size() - 1);
@@ -135,7 +128,7 @@ bool Partition::ChangeDb(const std::string& new_path) {
   slash::DeleteDirIfExist(tmp_path);
   slash::RWLock l(&partition_rw_, true);
   DLOG(INFO) << "Prepare change db from: " << tmp_path;
-  db_.reset();
+  delete db_;
   if (0 != slash::RenameFile(data_path_.c_str(), tmp_path)) {
     LOG(WARNING) << "Failed to rename db path when change db, error: " << strerror(errno);
     return false;
@@ -146,8 +139,11 @@ bool Partition::ChangeDb(const std::string& new_path) {
     LOG(WARNING) << "Failed to rename new db path when change db, error: " << strerror(errno);
     return false;
   }
-  db_.reset(new nemo::Nemo(data_path_, option));
-  assert(db_);
+  rocksdb::Status s = rocksdb::DBNemo::Open(*(zp_data_server->db_options()),
+      data_path_, &db_);
+  if (!s.ok()) {
+    LOG(WARNING) << "Failed to change to new db error: " << s.ToString();
+  }
   slash::DeleteDirIfExist(tmp_path);
   LOG(INFO) << "Change Parition " << table_name_ << "_" << partition_id_ << " db success";
   return true;
@@ -156,7 +152,7 @@ bool Partition::ChangeDb(const std::string& new_path) {
 
 ////// BGSave //////
 
-// Prepare engine
+// Prepare env
 bool Partition::InitBgsaveEnv() {
   slash::MutexLock l(&bgsave_protector_);
   // Prepare for bgsave dir
@@ -180,33 +176,40 @@ bool Partition::InitBgsaveEnv() {
 }
 
 // Prepare bgsave env
-bool Partition::InitBgsaveEngine() {
-  delete bgsave_engine_;
-  nemo::Status result = nemo::BackupEngine::Open(db_.get(), &bgsave_engine_);
-  if (!result.ok()) {
-    LOG(WARNING) << "Open backup engine failed " << result.ToString() << " Partition:" << partition_id_;
-    return false;
-  }
-
+bool Partition::InitBgsaveContent(rocksdb::DBNemoCheckpoint* cp,
+    CheckpointContent* content) {
+  rocksdb::Status s;
   {
     slash::RWLock l(&partition_rw_, true);
     {
       slash::MutexLock l(&bgsave_protector_);
       logger_->GetProducerStatus(&bgsave_info_.filenum, &bgsave_info_.offset);
     }
-    result = bgsave_engine_->SetBackupContent();
-    if (!result.ok()){
-      LOG(WARNING) << "set backup content failed " << result.ToString();
+    s = cp->GetCheckpointFiles(content->live_files,
+        content->live_wal_files,
+        content->manifest_file_size,
+        content->sequence_number);
+    if (!s.ok()){
+      LOG(WARNING) << "set backup content failed " << s.ToString();
       return false;
     }
   }
   return true;
 }
 
-bool Partition::RunBgsaveEngine() {
+bool Partition::RunBgsave() {
+  // Create new checkpoint
+  CheckpointContent content;
+  rocksdb::DBNemoCheckpoint* cp;
+  rocksdb::Status s = rocksdb::DBNemoCheckpoint::Create(db_, &cp);
+  if (!s.ok()) {
+    LOG(WARNING) << "Create DBNemoCheckpoint failed :" << s.ToString();
+    return false;
+  }
+
   // Prepare for Bgsaving
-  if (!InitBgsaveEnv() || !InitBgsaveEngine()) {
-    ClearBgsave();
+  if (!InitBgsaveEnv() || !InitBgsaveContent(cp, &content)) {
+    delete cp;
     return false;
   }
   
@@ -215,11 +218,16 @@ bool Partition::RunBgsaveEngine() {
       << ", offset=" << info.offset;
   
   // Backup to tmp dir
-  nemo::Status result = bgsave_engine_->CreateNewBackup(info.path);
+  s = cp->CreateCheckpointWithFiles(info.path,
+      content.live_files,
+      content.live_wal_files,
+      content.manifest_file_size,
+      content.sequence_number);
   DLOG(INFO) << "Create new backup finished, path is " << info.path;
   
-  if (!result.ok()) {
-    LOG(WARNING) << "backup failed :" << result.ToString();
+  delete cp;
+  if (!s.ok()) {
+    LOG(WARNING) << "backup failed :" << s.ToString();
     return false;
   }
   return true;
@@ -244,7 +252,7 @@ void Partition::DoBgsave(void* arg) {
   Partition* p = static_cast<Partition*>(arg);
 
   // Do bgsave
-  bool ok = p->RunBgsaveEngine();
+  bool ok = p->RunBgsave();
 
   BGSaveInfo info = p->bgsave_info();
   DLOG(INFO) << "DoBGSave info file " << zp_data_server->local_ip() << ":" << zp_data_server->local_port() << " filenum=" << info.filenum << " offset=" << info.offset;
@@ -262,23 +270,10 @@ void Partition::DoBgsave(void* arg) {
   if (!ok) {
     std::string fail_path = info.path + "_FAILED";
     slash::RenameFile(info.path.c_str(), fail_path.c_str());
+    p->ClearBgsave();
   }
   p->FinishBgsave();
 }
-
-bool Partition::Bgsaveoff() {
-  {
-    slash::MutexLock l(&bgsave_protector_);
-    if (!bgsave_info_.bgsaving) {
-      return false;
-    }
-  }
-  if (bgsave_engine_ != NULL) {
-    bgsave_engine_->StopBackup();
-  }
-  return true;
-}
-
 
 bool Partition::TryUpdateMasterOffset() {
   // Check dbsync finished
@@ -835,11 +830,7 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
   //DLOG(INFO) << "      RsyncSendClearTarget("  << bg_path << "/[kv|hash], " << target_dir << "/[kv|hash])";
   // TODO clear sync_path if needed
   // Clear target path
-  slash::RsyncSendClearTarget(bg_path + "/kv", target_dir + "/kv", remote);
-  slash::RsyncSendClearTarget(bg_path + "/hash", target_dir + "/hash", remote);
-  slash::RsyncSendClearTarget(bg_path + "/list", target_dir + "/list", remote);
-  slash::RsyncSendClearTarget(bg_path + "/set", target_dir + "/set", remote);
-  slash::RsyncSendClearTarget(bg_path + "/zset", target_dir + "/zset", remote);
+  slash::RsyncSendClearTarget(bg_path, target_dir, remote);
 
   // Send info file at last
   if (0 == ret) {
@@ -875,16 +866,18 @@ bool Partition::FlushAll() {
   dbpath.append("/deleting");
 
   LOG(INFO) << "Delete old db...";
-  db_.reset();
+  delete db_;
   if (slash::RenameFile(data_path_, dbpath.c_str()) != 0) {
     LOG(WARNING) << "Failed to rename db path when flushall, error: " << strerror(errno);
     return false;
   }
  
   LOG(INFO) << "Prepare open new db...";
-  nemo::Options option;
-  db_.reset(new nemo::Nemo(data_path_, option));
-  assert(db_);
+  rocksdb::Status s = rocksdb::DBNemo::Open(*(zp_data_server->db_options()),
+      data_path_, &db_);
+  if (!s.ok()) {
+    LOG(WARNING) << "Failed to open new db error: " << s.ToString();
+  }
   LOG(INFO) << "open new db success";
   // TODO PurgeDir(dbpath);
   return true; 

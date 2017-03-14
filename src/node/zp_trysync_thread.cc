@@ -169,7 +169,7 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
     cli->set_send_timeout(1000);
     cli->set_recv_timeout(1000);
 
-    PrepareRsync(partition);
+    slash::CreatePath(partition->sync_path());
     RsyncRef();
     // Send && Recv
     if (Send(partition, cli)) {
@@ -220,15 +220,6 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
       << "_" << master_node.ip << ":" << master_node.port << ")";
   }
   return false;
-}
-
-void ZPTrySyncThread::PrepareRsync(Partition *partition) {
-  std::string p_sync_path = partition->sync_path() + "/";
-  slash::CreatePath(p_sync_path + "kv");
-  slash::CreatePath(p_sync_path + "hash");
-  slash::CreatePath(p_sync_path + "list");
-  slash::CreatePath(p_sync_path + "set");
-  slash::CreatePath(p_sync_path + "zset");
 }
 
 void ZPTrySyncThread::RsyncRef() {
