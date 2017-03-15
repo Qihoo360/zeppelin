@@ -192,6 +192,7 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
             }
             break;
           case client::StatusCode::kWait:
+            LOG(INFO) << "Receive wait dbsync wait";
             RsyncRef(); // Keep the rsync deamon for sync file receive
             partition->SetWaitDBSync();
             break;

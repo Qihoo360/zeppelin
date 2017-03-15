@@ -160,12 +160,14 @@ bool Partition::InitBgsaveEnv() {
   char s_time[32];
   int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
   bgsave_info_.s_start_time.assign(s_time, len);
-  bgsave_info_.path = bgsave_path_ + bgsave_prefix() + std::string(s_time, 8);
+  bgsave_info_.path = bgsave_path_ + bgsave_prefix();
   if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
     LOG(WARNING) << "Remove exist bgsave dir failed, Partition:" << partition_id_;
     return false;
   }
-  slash::CreatePath(bgsave_info_.path, 0755);
+  slash::CreatePath(bgsave_info_.path, 0755); // create parent directory
+  bgsave_info_.path += std::string(s_time, 8);
+
   // Prepare for failed dir
   if (!slash::DeleteDirIfExist(bgsave_info_.path + "_FAILED")) {
     LOG(WARNING) << "remove exist fail bgsave dir failed, Partition:" << partition_id_;
