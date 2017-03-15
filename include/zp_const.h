@@ -113,6 +113,7 @@ const uint32_t kDBSyncSpeedLimit = 126; //MBPS
 const std::string kBgsaveInfoFile = "info";
 
 // Purge binlog
+const uint32_t kBinlogRemainMinCount = 3;
 const uint32_t kBinlogRemainMaxCount = 20;
 const uint32_t kBinlogRemainMaxDay = 7;
 

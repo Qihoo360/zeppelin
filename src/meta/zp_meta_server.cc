@@ -505,9 +505,15 @@ Status ZPMetaServer::Distribute(const std::string &name, int num) {
   slash::MutexLock l(&node_mutex_);
   std::string value;
   Status s;
-  s = Get(name, value);
-  if (s.ok()) {
-    return Status::Corruption("Already Created");
+
+  bool found_in_table_list = false;
+  s = ExistInTableList(name, &found_in_table_list);
+  if (!s.ok()) {
+    return Status::Corruption("Get TableList in Floyd Error");
+  }
+
+  if (found_in_table_list) {
+    return Status::Corruption("Already Exist");
   }
  
   ZPMeta::Nodes nodes;
@@ -1255,6 +1261,29 @@ void ZPMetaServer::RestoreNodeAlive(const std::vector<ZPMeta::NodeStatus> &alive
     node_alive_[slash::IpPortString(iter->node().ip(), iter->node().port())] = now;
     iter++;
   }
+}
+
+Status ZPMetaServer::ExistInTableList(const std::string &name, bool *found) {
+  std::string value;
+  ZPMeta::TableName table_name;
+  *found = false;
+  Status s = Get(kMetaTables, value);
+  if (s.ok()) {
+    if (!table_name.ParseFromString(value)) {
+      LOG(ERROR) << "Deserialization table_name failed, error: " << value;
+      return slash::Status::Corruption("Parse failed");
+    }
+    for (int i = 0; i < table_name.name_size(); i++) {
+      if (table_name.name(i) == name) {
+        *found = true;
+        break;
+      }
+    }
+    return Status::OK();
+  } else if (s.IsNotFound()) {
+    return Status::OK();
+  }
+  return s;
 }
 
 Status ZPMetaServer::RemoveTableFromTableList(const std::string &name) {

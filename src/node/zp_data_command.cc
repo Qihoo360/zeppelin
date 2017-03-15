@@ -2,10 +2,10 @@
 
 #include <google/protobuf/text_format.h>
 #include <glog/logging.h>
+#include "include/db_nemo_impl.h"
 #include "zp_data_server.h"
 
 #include "slash_string.h"
-#include "nemo.h"
 
 extern ZPDataServer *zp_data_server;
 
@@ -18,7 +18,8 @@ void SetCmd::Do(const google::protobuf::Message *req,
   response->Clear();
   response->set_type(client::Type::SET);
 
-  nemo::Status s = ptr->db()->Set(request->set().key(),
+  rocksdb::Status s = ptr->db()->Put(rocksdb::WriteOptions(),
+      request->set().key(),
       request->set().value());
   if (!s.ok()) {
     response->set_code(client::StatusCode::kError);
@@ -42,7 +43,9 @@ void GetCmd::Do(const google::protobuf::Message *req,
   response->set_type(client::Type::GET);
 
   std::string value;
-  nemo::Status s = ptr->db()->Get(request->get().key(), &value);
+  rocksdb::Status s = ptr->db()->Get(rocksdb::ReadOptions(),
+      request->get().key(),
+      &value);
   if (s.ok()) {
     response->set_code(client::StatusCode::kOk);
     get_res->set_value(value);
@@ -71,8 +74,8 @@ void DelCmd::Do(const google::protobuf::Message *req,
   response->Clear();
   response->set_type(client::Type::DEL);
 
-  int64_t count;
-  nemo::Status s = ptr->db()->Del(request->del().key(), &count);
+  rocksdb::Status s = ptr->db()->Delete(rocksdb::WriteOptions(),
+      request->del().key());
   if (!s.ok()) {
     response->set_code(client::StatusCode::kError);
     response->set_msg(s.ToString());

@@ -15,9 +15,6 @@
 #include "slash_status.h"
 #include "slash_mutex.h"
 
-#include "nemo.h"
-#include "nemo_backupable.h"
-
 #include "zp_data_command.h"
 #include "zp_conf.h"
 #include "zp_binlog.h"
@@ -77,6 +74,10 @@ class ZPDataServer {
 
   std::string bgsave_path() {
     return g_zp_conf->data_path() + "/dump/";
+  }
+  
+  const rocksdb::Options* db_options() const {
+    return &db_options_;
   }
 
   void Exit() {
@@ -203,6 +204,9 @@ class ZPDataServer {
   slash::Mutex bgpurge_thread_protector_;
   pink::BGThread bgpurge_thread_;
   void DoTimingTask();
+
+  rocksdb::Options db_options_;
+  void InitDBOptions();
 };
 
 #endif
