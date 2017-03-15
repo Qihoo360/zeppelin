@@ -8,7 +8,7 @@ CXXFLAGS = -O0 -g -pg -pipe -fPIC -D__XDEBUG__ -W -Wwrite-strings -Wpointer-arit
 #	CXXFLAGS = -O2 -pipe -fPIC -W -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -gdwarf-2 -Wno-unused-variable
 	# CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ 
 #endif
-OBJECT = zp_manager zp_client zp_benchmark
+OBJECT = zp_manager zp_client zp_benchmark zp_create_table 
 SRC_DIR = ./
 OUTPUT = ./output
 THIRD_PATH = ../../third
@@ -58,6 +58,9 @@ zp_manager: zp_manager.cc
 	$(CXX) $(CXXFLAGS) -o $@ $^ ../third/linenoise/linenoise.o $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(LIBS)
 
 zp_client: zp_client.cc
+	$(CXX) $(CXXFLAGS) -o $@ $^  $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(LIBS)
+
+zp_create_table: zp_create_table.cc
 	$(CXX) $(CXXFLAGS) -o $@ $^  $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(LIBS)
 
 zp_benchmark: zp_benchmark.cc
