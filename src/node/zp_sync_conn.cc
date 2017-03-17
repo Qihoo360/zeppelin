@@ -43,7 +43,10 @@ int ZPSyncConn::DealMessage() {
     return -1;
   }
 
-  request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+  if (!request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_)) {
+    LOG(WARNING) << "Receive Binlog command, but parse error";
+    return -1;
+  }
   
   // Check request
   if (request_.epoch() < zp_data_server->meta_epoch()) {

@@ -89,7 +89,7 @@ bool ZPBinlogReceiverThread::GetTotalStat(Statistic& stat) {
   return true;
 }
 
-bool ZPBinlogReceiverThread::AccessHandle(std::string& ip) {
+bool ZPBinlogReceiverThread::AccessHandle(std::string& ip_port) {
 //  if (ip == "127.0.0.1") {
 //    ip = zp_data_server->host();
 //  }

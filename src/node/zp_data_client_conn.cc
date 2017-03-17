@@ -35,7 +35,11 @@ int ZPDataClientConn::DealMessageInternal() {
     response_.set_msg("server is not availible yet");
     return -1;
   }
-  request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+
+  if (!request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_)) {
+    LOG(WARNING) << "Receive Client command, but parse error";
+    return -1;
+  }
 
   // TODO test only
   switch (request_.type()) {
