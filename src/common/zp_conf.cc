@@ -37,13 +37,15 @@ void ZpConf::Dump() const {
     fprintf(stderr, "    Config.meta_addr   : %s\n", iter->c_str());
     iter++;
   }
-  fprintf(stderr, "    Config.seed_ip     : %s\n", seed_ip_.c_str());
-  fprintf(stderr, "    Config.seed_port   : %d\n", seed_port_);
-  fprintf(stderr, "    Config.local_ip    : %s\n", local_ip_.c_str());
-  fprintf(stderr, "    Config.local_port  : %d\n", local_port_);
-  fprintf(stderr, "    Config.data_path   : %s\n", data_path_.c_str());
-  fprintf(stderr, "    Config.log_path    : %s\n", log_path_.c_str());
-  fprintf(stderr, "    Config.daemonize    : %s\n", daemonize_? "true":"false");
+  //fprintf (stderr, "    Config.seed_ip     : %s\n", seed_ip_.c_str());
+  //fprintf (stderr, "    Config.seed_port   : %d\n", seed_port_);
+  fprintf (stderr, "    Config.local_ip    : %s\n", local_ip_.c_str());
+  fprintf (stderr, "    Config.local_port  : %d\n", local_port_);
+  fprintf (stderr, "    Config.data_path   : %s\n", data_path_.c_str());
+  fprintf (stderr, "    Config.log_path    : %s\n", log_path_.c_str());
+  fprintf (stderr, "    Config.daemonize    : %s\n", daemonize_? "true":"false");
+  fprintf (stderr, "    Config.pid_file    : %s\n", pid_file_.c_str());
+  fprintf (stderr, "    Config.lock_file    : %s\n", lock_file_.c_str());
 }
 
 int ZpConf::Load(const std::string& path) {
@@ -54,8 +56,8 @@ int ZpConf::Load(const std::string& path) {
   }
 
   bool ret = false;
-  READCONF(conf_reader, seed_ip, seed_ip_, STR);
-  READCONF(conf_reader, seed_port, seed_port_, INT);
+  //READCONF(conf_reader, seed_ip, seed_ip_, STR);
+  //READCONF(conf_reader, seed_port, seed_port_, INT);
   READCONF(conf_reader, local_ip, local_ip_, STR);
   READCONF(conf_reader, local_port, local_port_, INT);
   READCONF(conf_reader, data_path, data_path_, STR);

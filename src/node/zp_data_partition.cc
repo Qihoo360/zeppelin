@@ -54,6 +54,7 @@ Status Partition::Init() {
   rocksdb::Status rs = rocksdb::DBNemo::Open(*(zp_data_server->db_options()),
       data_path_, &db_);
   if (!rs.ok()) {
+    LOG(ERROR) << "DBNemo open failed: " << rs.ToString();
     return Status::Corruption(rs.ToString());
   }
 
@@ -67,6 +68,7 @@ Status Partition::Init() {
   // Check and update purged_index_
   if (!CheckBinlogFiles()) {
     // Binlog unavailable
+    LOG(ERROR) << "CheckBinlogFiles failed: " << s.ToString();
     return Status::Corruption("Check binlog file failed!");
   }
   return s;
