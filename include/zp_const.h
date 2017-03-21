@@ -3,9 +3,8 @@
 
 #include <string>
 
-const int kMaxWorkerThread = 100;
+const int kMaxDataWorkerThread = 100;
 const int kMaxMetaWorkerThread = 16;
-const int kNumBinlogSendThread = 6;
 
 const std::string kZPVersion = "0.0.1";
 const std::string kZpPidFile = "zp.pid";
@@ -67,7 +66,6 @@ const int kBinlogReceiverCronInterval = 6000;
 const int kNodeCronInterval = 1000;
 const int kNodeCronWaitCount = 2;
 //const int kBinlogReceiverCronInterval = 1000;
-const int kBinlogReceiveBgWorkerCount = 4;
 const int kBinlogReceiveBgWorkerFull = 100;
 
 

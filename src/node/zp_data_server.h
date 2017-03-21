@@ -175,8 +175,7 @@ class ZPDataServer {
   std::vector<ZPBinlogSendThread*> binlog_send_workers_;
 
   // Server related
-  int worker_num_;
-  ZPDataWorkerThread* zp_worker_thread_[kMaxWorkerThread];
+  ZPDataWorkerThread* zp_worker_thread_[kMaxDataWorkerThread];
   ZPDataDispatchThread* zp_dispatch_thread_;
   ZPPingThread* zp_ping_thread_;
   ZPMetacmdBGWorker* zp_metacmd_bgworker_;

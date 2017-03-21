@@ -76,6 +76,31 @@ class ZpConf {
     return meta_addr_;
   }
 
+  int meta_thread_num() {
+    RWLock l(&rwlock_, false);
+    return meta_thread_num_;
+  }
+  int data_thread_num() {
+    RWLock l(&rwlock_, false);
+    return data_thread_num_;
+  }
+  int sync_recv_thread_num() {
+    RWLock l(&rwlock_, false);
+    return sync_recv_thread_num_;
+  }
+  int sync_send_thread_num() {
+    RWLock l(&rwlock_, false);
+    return sync_send_thread_num_;
+  }
+  int max_background_flushes() {
+    RWLock l(&rwlock_, false);
+    return max_background_flushes_;
+  }
+  int max_background_compactions() {
+    RWLock l(&rwlock_, false);
+    return max_background_compactions_;
+  }
+
  private:
   // copy disallowded
   ZpConf(const ZpConf& options);
@@ -93,6 +118,13 @@ class ZpConf {
   bool daemonize_;
   std::string pid_file_;
   std::string lock_file_;
+
+  int meta_thread_num_;
+  int data_thread_num_;
+  int sync_recv_thread_num_;
+  int sync_send_thread_num_;
+  int max_background_flushes_;
+  int max_background_compactions_;
   pthread_rwlock_t rwlock_;
 };
 

@@ -30,24 +30,22 @@ ZPDataServer::ZPDataServer()
     zp_trysync_thread_ = new ZPTrySyncThread();
 
     // Binlog related
-    for (int j = 0; j < kBinlogReceiveBgWorkerCount; j++) {
+    for (int j = 0; j < g_zp_conf->sync_recv_thread_num(); j++) {
       zp_binlog_receive_bgworkers_.push_back(
           new ZPBinlogReceiveBgWorker(kBinlogReceiveBgWorkerFull));
     }
-    zp_binlog_receiver_thread_ = new ZPBinlogReceiverThread(g_zp_conf->local_port() + kPortShiftSync, kBinlogReceiverCronInterval);
-    //binlog_send_pool_ = new ZPBinlogSendTaskPool();
-    for (int i = 0; i < kNumBinlogSendThread; ++i) {
+    zp_binlog_receiver_thread_ = new ZPBinlogReceiverThread(g_zp_conf->local_port() + kPortShiftSync,
+        kBinlogReceiverCronInterval);
+    for (int i = 0; i < g_zp_conf->sync_send_thread_num(); ++i) {
       ZPBinlogSendThread *thread = new ZPBinlogSendThread(&binlog_send_pool_);
       binlog_send_workers_.push_back(thread);
     }
 
-    // TODO anan  configable
-    // debug
-    worker_num_ = 4;//from config
-    for (int i = 0; i < worker_num_; i++) {
+    for (int i = 0; i < g_zp_conf->data_thread_num(); i++) {
       zp_worker_thread_[i] = new ZPDataWorkerThread(kWorkerCronInterval);
     }
-    zp_dispatch_thread_ = new ZPDataDispatchThread(g_zp_conf->local_port(), worker_num_, zp_worker_thread_, kDispatchCronInterval);
+    zp_dispatch_thread_ = new ZPDataDispatchThread(g_zp_conf->local_port(),
+        g_zp_conf->data_thread_num(), zp_worker_thread_, kDispatchCronInterval);
 
     zp_ping_thread_ = new ZPPingThread();
 
@@ -67,7 +65,7 @@ ZPDataServer::~ZPDataServer() {
   // 4, binlog send thread should before binlog send pool
   delete zp_ping_thread_;
   delete zp_dispatch_thread_;
-  for (int i = 0; i < worker_num_; i++) {
+  for (int i = 0; i < g_zp_conf->data_thread_num(); i++) {
     delete zp_worker_thread_[i];
   }
 
@@ -155,8 +153,8 @@ void ZPDataServer::InitDBOptions() {
   db_options_.table_factory.reset(
       NewBlockBasedTableFactory(block_based_table_options));
   
-  db_options_.max_background_flushes = 24;
-  db_options_.max_background_compactions = 24;
+  db_options_.max_background_flushes = g_zp_conf->max_background_flushes();
+  db_options_.max_background_compactions = g_zp_conf->max_background_compactions();
   
   db_options_.create_if_missing = true;
 }
@@ -410,17 +408,11 @@ bool ZPDataServer::GetTableStat(const std::string& table_name, std::vector<Stati
   for (auto it = stat_tables.begin(); it != stat_tables.end(); it++) {
     Statistic sum;
     sum.table_name = *it;
-    for (int i = 0; i < worker_num_; i++) {
+    for (int i = 0; i < g_zp_conf->data_thread_num(); i++) {
       Statistic tmp;
       zp_worker_thread_[i]->GetStat(*it, tmp);
       sum.Add(tmp);
-      // TODO anan debug
-      //DLOG(INFO) << "TableStat --worker " << i << ":";
-      //tmp.Dump();
     }
-    // TODO anan debug
-    //DLOG(INFO) << "TableStat sum of " << sum.table_name << " is :";
-    //sum.Dump();
     stats.push_back(sum);
   }
   return true;

@@ -7,7 +7,7 @@
 #include "zp_meta.pb.h"
 
 ZPMetaServer::ZPMetaServer()
-  : should_exit_(false), started_(false), version_(-1), worker_num_(6), leader_cli_(NULL), leader_first_time_(true), leader_ip_(""), leader_cmd_port_(0) {
+  : should_exit_(false), started_(false), version_(-1), leader_cli_(NULL), leader_first_time_(true), leader_ip_(""), leader_cmd_port_(0) {
 
   floyd::Options fy_options;
 
@@ -25,24 +25,22 @@ ZPMetaServer::ZPMetaServer()
   fy_options.data_path = g_zp_conf->data_path();
   fy_options.log_path = g_zp_conf->log_path();
 
-  // TODO anan test
-  //fy_options.Dump();
-
   floyd_ = new floyd::Floyd(fy_options);
 
   cmds_.reserve(300);
   InitClientCmdTable();  
 
-  for (int i = 0; i < worker_num_ ; ++i) {
+  for (int i = 0; i < g_zp_conf->meta_thread_num() ; ++i) {
     zp_meta_worker_thread_[i] = new ZPMetaWorkerThread(kMetaWorkerCronInterval);
   }
-  zp_meta_dispatch_thread_ = new ZPMetaDispatchThread(g_zp_conf->local_port() + kMetaPortShiftCmd, worker_num_, zp_meta_worker_thread_, kMetaDispathCronInterval);
+  zp_meta_dispatch_thread_ = new ZPMetaDispatchThread(g_zp_conf->local_port() + kMetaPortShiftCmd,
+      g_zp_conf->meta_thread_num(), zp_meta_worker_thread_, kMetaDispathCronInterval);
   update_thread_ = new ZPMetaUpdateThread();
 }
 
 ZPMetaServer::~ZPMetaServer() {
   delete zp_meta_dispatch_thread_;
-  for (int i = 0; i < worker_num_; ++i) {
+  for (int i = 0; i < g_zp_conf->meta_thread_num(); ++i) {
     delete zp_meta_worker_thread_[i];
   }
   DestoryCmdTable(cmds_);

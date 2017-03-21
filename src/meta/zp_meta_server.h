@@ -111,7 +111,6 @@ private:
   slash::Mutex server_mutex_;
   std::atomic<bool> started_;
   std::atomic<int> version_;
-  int worker_num_;
 
   // Cmd related
   void InitClientCmdTable();
