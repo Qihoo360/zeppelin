@@ -9,9 +9,10 @@ extern ZPMetaServer* g_meta_server;
 
 ZPMetaDispatchThread::ZPMetaDispatchThread(int port, int work_num, ZPMetaWorkerThread** worker_thread, int cron_interval)
   : DispatchThread::DispatchThread(port, work_num,
-                                   reinterpret_cast<pink::WorkerThread<ZPMetaClientConn>**>(worker_thread),
-                                   cron_interval) {
-}
+      reinterpret_cast<pink::WorkerThread<ZPMetaClientConn>**>(worker_thread),
+      cron_interval) {
+    set_thread_name("ZPMetaDispatchThread");
+  }
 
 ZPMetaDispatchThread::~ZPMetaDispatchThread() {
   LOG(INFO) << "Dispatch thread " << thread_id() << " exit!!!";

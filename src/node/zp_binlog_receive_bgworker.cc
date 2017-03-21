@@ -8,6 +8,7 @@ extern ZPDataServer* zp_data_server;
 
 ZPBinlogReceiveBgWorker::ZPBinlogReceiveBgWorker(int full) {
   bg_thread_ = new pink::BGThread(full);
+  bg_thread_->set_thread_name("ZPBinlogReceiveBgWorker");
 }
 
 ZPBinlogReceiveBgWorker::~ZPBinlogReceiveBgWorker() {

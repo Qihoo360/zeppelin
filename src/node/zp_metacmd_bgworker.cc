@@ -12,6 +12,7 @@ ZPMetacmdBGWorker::ZPMetacmdBGWorker() {
     cli_ = new pink::PbCli();
     cli_->set_connect_timeout(1500);
     bg_thread_ = new pink::BGThread();
+    bg_thread_->set_thread_name("ZPMetacmdBGWorker");
   }
 
 ZPMetacmdBGWorker::~ZPMetacmdBGWorker() {

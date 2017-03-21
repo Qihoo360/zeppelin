@@ -9,8 +9,9 @@ extern ZPDataServer* zp_data_server;
 
 ZPDataDispatchThread::ZPDataDispatchThread(int port, int work_num, ZPDataWorkerThread** worker_thread, int cron_interval)
   : DispatchThread::DispatchThread(port, work_num,
-                                   reinterpret_cast<pink::WorkerThread<ZPDataClientConn>**>(worker_thread),
-                                   cron_interval) {
+      reinterpret_cast<pink::WorkerThread<ZPDataClientConn>**>(worker_thread),
+      cron_interval) {
+    set_thread_name("ZPDataDispatchThread");
 }
 
 ZPDataDispatchThread::~ZPDataDispatchThread() {

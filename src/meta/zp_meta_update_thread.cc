@@ -7,6 +7,7 @@
 extern ZPMetaServer* g_meta_server;
 
 ZPMetaUpdateThread::ZPMetaUpdateThread() {
+  worker_.set_thread_name("ZPMetaUpdateThread");
 }
 
 ZPMetaUpdateThread::~ZPMetaUpdateThread() {
