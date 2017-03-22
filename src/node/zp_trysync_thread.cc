@@ -11,7 +11,7 @@ ZPTrySyncThread::ZPTrySyncThread():
   should_exit_(false),
   rsync_flag_(0) {
     bg_thread_ = new pink::BGThread();
-    bg_thread_->set_thread_name("ZPTrySyncThread");
+    bg_thread_->set_thread_name("ZPDataTrySync");
 }
 
 ZPTrySyncThread::~ZPTrySyncThread() {

@@ -8,7 +8,7 @@ extern ZPDataServer* zp_data_server;
 ZPBinlogReceiverThread::ZPBinlogReceiverThread(int port, int cron_interval)
   : HolyThread::HolyThread(port, cron_interval),
     last_time_us_(slash::NowMicros()) {
-      set_thread_name("ZPBinlogReceiverThread");
+      set_thread_name("ZPDataSyncDisp");
       DLOG(INFO) << "BinlogReceiver thread start at port:" << port;
 }
 

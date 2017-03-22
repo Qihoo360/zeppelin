@@ -9,7 +9,7 @@ ZPMetaWorkerThread::ZPMetaWorkerThread(int cron_interval)
     last_thread_querynum_(0),
     last_time_us_(slash::NowMicros()),
     last_sec_thread_querynum_(0) {
-      set_thread_name("ZPMetaWorkerThread");
+      set_thread_name("ZPMetaWorker");
 }
 
 ZPMetaWorkerThread::~ZPMetaWorkerThread() {

@@ -11,7 +11,7 @@ ZPMetaDispatchThread::ZPMetaDispatchThread(int port, int work_num, ZPMetaWorkerT
   : DispatchThread::DispatchThread(port, work_num,
       reinterpret_cast<pink::WorkerThread<ZPMetaClientConn>**>(worker_thread),
       cron_interval) {
-    set_thread_name("ZPMetaDispatchThread");
+    set_thread_name("ZPMetaDispatch");
   }
 
 ZPMetaDispatchThread::~ZPMetaDispatchThread() {

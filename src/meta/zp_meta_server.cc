@@ -75,7 +75,11 @@ void ZPMetaServer::Start() {
       }
       sleep(1);
     }
-    zp_meta_dispatch_thread_->StartThread();
+
+    if (pink::RetCode::kSuccess != zp_meta_dispatch_thread_->StartThread()) {
+      LOG(INFO) << "Disptch thread start failed";
+      return;
+    }
 
     server_mutex_.Lock();
     started_ = true;

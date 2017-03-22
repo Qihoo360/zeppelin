@@ -5,7 +5,7 @@
 ZPDataWorkerThread::ZPDataWorkerThread(int cron_interval)
   : WorkerThread::WorkerThread(cron_interval),
     last_time_us_(slash::NowMicros()) {
-      set_thread_name("ZPDataWorkerThread");
+      set_thread_name("ZPDataWorker");
     }
 
 ZPDataWorkerThread::~ZPDataWorkerThread() {

@@ -11,7 +11,7 @@ ZPDataDispatchThread::ZPDataDispatchThread(int port, int work_num, ZPDataWorkerT
   : DispatchThread::DispatchThread(port, work_num,
       reinterpret_cast<pink::WorkerThread<ZPDataClientConn>**>(worker_thread),
       cron_interval) {
-    set_thread_name("ZPDataDispatchThread");
+    set_thread_name("ZPDataDispatch");
 }
 
 ZPDataDispatchThread::~ZPDataDispatchThread() {

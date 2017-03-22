@@ -327,7 +327,7 @@ void ZPBinlogSendTaskPool::Dump() {
 ZPBinlogSendThread::ZPBinlogSendThread(ZPBinlogSendTaskPool *pool)
   : pink::Thread::Thread(),
   pool_(pool) {
-    set_thread_name("ZPBinlogSendThread");
+    set_thread_name("ZPDataSyncSender");
   }
 
 ZPBinlogSendThread::~ZPBinlogSendThread() {

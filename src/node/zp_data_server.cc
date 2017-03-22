@@ -160,13 +160,28 @@ void ZPDataServer::InitDBOptions() {
 }
 
 Status ZPDataServer::Start() {
-  zp_dispatch_thread_->StartThread();
-  zp_binlog_receiver_thread_->StartThread();
-  zp_ping_thread_->StartThread();
+  if (pink::RetCode::kSuccess != zp_dispatch_thread_->StartThread()) {
+    LOG(INFO) << "Dispatch thread start failed";
+    return Status::Corruption("Dispatch thread start failed!");
+  }
+
+  if (pink::RetCode::kSuccess != zp_binlog_receiver_thread_->StartThread()) {
+    LOG(INFO) << "Binlog receiver thread start failed";
+    return Status::Corruption("Binlog receiver thread start failed!");
+  }
+
+  if (pink::RetCode::kSuccess != zp_ping_thread_->StartThread()) {
+    LOG(INFO) << "Ping thread start failed";
+    return Status::Corruption("Ping thread start failed!");
+  }
+
   std::vector<ZPBinlogSendThread*>::iterator bsit = binlog_send_workers_.begin();
   for (; bsit != binlog_send_workers_.end(); ++bsit) {
     LOG(INFO) << "Start one binlog send worker thread";
-    (*bsit)->StartThread();
+    if (pink::RetCode::kSuccess != (*bsit)->StartThread()) {
+      LOG(INFO) << "Binlog send worker start failed";
+      return Status::Corruption("Binlog send worker start failed!");
+    }
   }
 
   // TEST 
