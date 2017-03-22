@@ -38,6 +38,7 @@ ZpConf::ZpConf() {
   sync_send_thread_num_ = 4;
   max_background_flushes_ = 24;
   max_background_compactions_ = 24;
+  slowlog_slower_than_ = -1;
 }
 
 ZpConf::~ZpConf() {
@@ -63,6 +64,7 @@ void ZpConf::Dump() const {
   fprintf (stderr, "    Config.sync_send_thread_num   : %d\n", sync_send_thread_num_);
   fprintf (stderr, "    Config.max_background_flushes    : %d\n", max_background_flushes_);
   fprintf (stderr, "    Config.max_background_compactions   : %d\n", max_background_compactions_);
+  fprintf (stderr, "    Config.slowlog_slower_than   : %d\n", slowlog_slower_than_);
 }
 
 int ZpConf::Load(const std::string& path) {
@@ -85,6 +87,7 @@ int ZpConf::Load(const std::string& path) {
   READCONF(conf_reader, sync_send_thread_num, sync_send_thread_num_, INT);
   READCONF(conf_reader, max_background_flushes, max_background_flushes_, INT);
   READCONF(conf_reader, max_background_compactions, max_background_compactions_, INT);
+  READCONF(conf_reader, slowlog_slower_than, slowlog_slower_than_, INT);
   std::string lock_path = log_path_;
   if (lock_path.back() != '/') {
     lock_path.append("/");
@@ -98,5 +101,6 @@ int ZpConf::Load(const std::string& path) {
   sync_send_thread_num_ = BoundaryLimit(sync_send_thread_num_, 1, 100);
   max_background_flushes_ = BoundaryLimit(max_background_flushes_, 10, 100);
   max_background_compactions_ = BoundaryLimit(max_background_compactions_, 10, 100);
+  slowlog_slower_than_ = BoundaryLimit(slowlog_slower_than_, -1, 10000000);
   return res;
 }

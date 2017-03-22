@@ -41,30 +41,6 @@ int ZPDataClientConn::DealMessageInternal() {
     return -1;
   }
 
-  // TODO test only
-  switch (request_.type()) {
-    case client::Type::SET: {
-      DLOG(INFO) << "Receive Set cmd, table=" << request_.set().table_name() << " key=" << request_.set().key();
-      break;
-    }
-    case client::Type::GET: {
-      DLOG(INFO) << "Receive Get cmd, table=" << request_.get().table_name() << " key=" << request_.get().key();
-      break;
-    }
-    case client::Type::DEL: {
-      DLOG(INFO) << "Receive Del cmd, table=" << request_.del().table_name() << " key=" << request_.del().key();
-      break;
-    }
-    case client::Type::SYNC: {
-      DLOG(INFO) << "Receive Sync cmd";
-      break;
-    }
-    default: {
-      DLOG(INFO) << "Receive Info cmd " << static_cast<int>(request_.type());
-      break;
-    }
-  }
-
   Cmd* cmd = zp_data_server->CmdGet(static_cast<int>(request_.type()));
   if (cmd == NULL) {
     response_.set_type(request_.type());
@@ -73,6 +49,10 @@ int ZPDataClientConn::DealMessageInternal() {
     LOG(ERROR) << "unsupported type: " << (int)request_.type();
     return -1;
   }
+
+  DLOG(INFO) << "Receive client cmd: " << cmd->name()
+    << ", table=" << cmd->ExtractTable(&request_)
+    << " key=" << cmd->ExtractKey(&request_);
 
   self_thread_->PlusStat(cmd->ExtractTable(&request_));
 

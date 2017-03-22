@@ -7,6 +7,9 @@
 class SetCmd : public Cmd {
  public:
   SetCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "Set"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition) const;
   virtual std::string ExtractTable(const google::protobuf::Message *req) const {
@@ -22,6 +25,9 @@ class SetCmd : public Cmd {
 class GetCmd : public Cmd {
  public:
   GetCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "Get"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition) const;
   virtual std::string ExtractTable(const google::protobuf::Message *req) const {
@@ -37,6 +43,9 @@ class GetCmd : public Cmd {
 class DelCmd : public Cmd {
  public:
   DelCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "Del"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition) const;
   virtual std::string ExtractTable(const google::protobuf::Message *req) const {
@@ -53,6 +62,9 @@ class DelCmd : public Cmd {
 class InfoCmd : public Cmd {
  public:
   InfoCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "Info"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* parition = NULL) const;
   virtual std::string ExtractTable(const google::protobuf::Message *req) const {
@@ -68,6 +80,9 @@ class InfoCmd : public Cmd {
 class SyncCmd : public Cmd {
  public:
   SyncCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "Sync"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition) const;
   virtual std::string ExtractTable(const google::protobuf::Message *req) const {

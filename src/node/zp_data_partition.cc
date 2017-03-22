@@ -616,6 +616,11 @@ void Partition::DoBinlogCommand(const PartitionSyncOption& option,
     return;
   }
 
+  uint64_t start_us = 0;
+  if (g_zp_conf->slowlog_slower_than() >= 0) {
+    start_us = slash::NowMicros();
+  }
+
   // Add read lock for no suspend command
   if (!cmd->is_suspend()) {
     pthread_rwlock_rdlock(&partition_rw_);
@@ -636,6 +641,14 @@ void Partition::DoBinlogCommand(const PartitionSyncOption& option,
 
   if (!cmd->is_suspend()) {
     pthread_rwlock_unlock(&partition_rw_);
+  }
+
+  if (g_zp_conf->slowlog_slower_than() >= 0) {
+    int64_t duration = slash::NowMicros() - start_us;
+    if (duration > g_zp_conf->slowlog_slower_than()) {
+      LOG(WARNING) << "slow sync command:" << cmd->name()
+        << ", duration(us): " << duration;
+    }
   }
 }
 
@@ -675,6 +688,11 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
     return;
   }
 
+  uint64_t start_us = 0;
+  if (g_zp_conf->slowlog_slower_than() >= 0) {
+    start_us = slash::NowMicros();
+  }
+
   // Add read lock for no suspend command
   if (!cmd->is_suspend()) {
     pthread_rwlock_rdlock(&partition_rw_);
@@ -699,6 +717,14 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
 
   if (!cmd->is_suspend()) {
     pthread_rwlock_unlock(&partition_rw_);
+  }
+
+  if (g_zp_conf->slowlog_slower_than() >= 0) {
+    int64_t duration = slash::NowMicros() - start_us;
+    if (duration > g_zp_conf->slowlog_slower_than()) {
+      LOG(WARNING) << "slow client command:" << cmd->name()
+        << ", duration(us): " << duration;
+    }
   }
 }
 

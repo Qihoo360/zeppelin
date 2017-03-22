@@ -6,6 +6,9 @@
 class PingCmd : public Cmd {
  public:
   PingCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "Ping"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
@@ -13,6 +16,9 @@ class PingCmd : public Cmd {
 class PullCmd : public Cmd {
  public:
   PullCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "Pull"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
@@ -20,6 +26,9 @@ class PullCmd : public Cmd {
 class InitCmd : public Cmd {
  public:
   InitCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "Init"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
@@ -27,6 +36,9 @@ class InitCmd : public Cmd {
 class SetMasterCmd : public Cmd {
  public:
   SetMasterCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "SetMaster"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
@@ -34,6 +46,9 @@ class SetMasterCmd : public Cmd {
 class AddSlaveCmd : public Cmd {
  public:
   AddSlaveCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "AddSlave"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
@@ -41,6 +56,9 @@ class AddSlaveCmd : public Cmd {
 class RemoveSlaveCmd : public Cmd {
  public:
   RemoveSlaveCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "RemoveSlave"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
@@ -48,6 +66,9 @@ class RemoveSlaveCmd : public Cmd {
 class ListTableCmd : public Cmd {
  public:
   ListTableCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "ListTable"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
@@ -55,6 +76,9 @@ class ListTableCmd : public Cmd {
 class ListNodeCmd : public Cmd {
  public:
   ListNodeCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "ListNode"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
@@ -62,6 +86,9 @@ class ListNodeCmd : public Cmd {
 class ListMetaCmd : public Cmd {
  public:
   ListMetaCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "ListMeta"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
@@ -69,6 +96,9 @@ class ListMetaCmd : public Cmd {
 class DropTableCmd : public Cmd {
  public:
   DropTableCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "DropTable"; 
+  }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };

@@ -100,31 +100,39 @@ class ZpConf {
     RWLock l(&rwlock_, false);
     return max_background_compactions_;
   }
+  int slowlog_slower_than() {
+    RWLock l(&rwlock_, false);
+    return slowlog_slower_than_;
+  }
 
  private:
   // copy disallowded
   ZpConf(const ZpConf& options);
 
+  // Env
   std::vector<std::string> meta_addr_;
-
   std::string seed_ip_;
   int seed_port_;
   std::string local_ip_;
   int local_port_;
   int64_t timeout_;
-
   std::string data_path_;
   std::string log_path_;
   bool daemonize_;
   std::string pid_file_;
   std::string lock_file_;
 
+  // Thread Num
   int meta_thread_num_;
   int data_thread_num_;
   int sync_recv_thread_num_;
   int sync_send_thread_num_;
   int max_background_flushes_;
   int max_background_compactions_;
+
+  // Feature
+  int slowlog_slower_than_;
+
   pthread_rwlock_t rwlock_;
 };
 
