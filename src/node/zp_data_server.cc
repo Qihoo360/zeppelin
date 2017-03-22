@@ -148,7 +148,7 @@ void ZPDataServer::InitDBOptions() {
    * 使用512K的block size，修改block_size主要是为了减少index block的大小
    * 但鉴于本例中单条value很大，其实效果不明显，所以这个可改可不改
  */
-  block_based_table_options.block_size = 512 * 1024 * 1024;
+  block_based_table_options.block_size = 512 * 1024;
 
   db_options_.table_factory.reset(
       NewBlockBasedTableFactory(block_based_table_options));
