@@ -22,7 +22,10 @@ ZPMetaClientConn::~ZPMetaClientConn() {
 int ZPMetaClientConn::DealMessage() {
   response_.Clear();
   bool need_redirect = true;
-  request_.ParseFromArray(rbuf_ + 4, header_len_);
+  bool ret = request_.ParseFromArray(rbuf_ + 4, header_len_);
+  if (!ret) {
+    LOG(INFO) << "DealMessage, Invalid pb message";
+  }
   // TODO test only
   ZPMeta::Type response_type;
   switch (request_.type()) {
