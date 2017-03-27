@@ -11,6 +11,7 @@ class ZPPingThread : public pink::Thread {
   ZPPingThread() {
         cli_ = new pink::PbCli();
         cli_->set_connect_timeout(1500);
+        set_thread_name("ZPDataPing");
       }
   virtual ~ZPPingThread();
 

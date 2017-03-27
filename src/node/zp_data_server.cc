@@ -141,17 +141,17 @@ void ZPDataServer::InitDBOptions() {
    * 每一个实例差不多有2048个，所以配置table_cache的capacity
    * 为2048
    */
-  db_options_.max_open_files = 2048;
+  //db_options_.max_open_files = 2048;
 
   rocksdb::BlockBasedTableOptions block_based_table_options;
   /*
    * 使用512K的block size，修改block_size主要是为了减少index block的大小
    * 但鉴于本例中单条value很大，其实效果不明显，所以这个可改可不改
  */
-  block_based_table_options.block_size = 512 * 1024;
+  block_based_table_options.block_size = 16 * 1024;
 
   db_options_.table_factory.reset(
-      NewBlockBasedTableFactory(block_based_table_options));
+     NewBlockBasedTableFactory(block_based_table_options));
   
   db_options_.max_background_flushes = g_zp_conf->max_background_flushes();
   db_options_.max_background_compactions = g_zp_conf->max_background_compactions();
