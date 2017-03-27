@@ -192,6 +192,14 @@ Status ZPMetaServer::DoUpdate(ZPMetaUpdateTaskDeque task_deque) {
 }
 
 Status ZPMetaServer::AddNodeAlive(const std::string& ip_port) {
+
+  std::string ip;
+  int port;
+  if (!slash::ParseIpPortString(ip_port, ip, port)) {
+    LOG(INFO) << "AddNodeAlive Error, invalid ip_port: " << ip_port;
+    return Status::Corruption("parse ip_port error");
+  }
+
   bool should_add = false;
   {
   struct timeval now;
@@ -205,12 +213,6 @@ Status ZPMetaServer::AddNodeAlive(const std::string& ip_port) {
 
   if (!should_add) {
     return Status::OK();
-  }
-
-  std::string ip;
-  int port;
-  if (!slash::ParseIpPortString(ip_port, ip, port)) {
-    return Status::Corruption("parse ip_port error");
   }
 
   LOG(INFO) << "Add Node Alive " << ip_port;
