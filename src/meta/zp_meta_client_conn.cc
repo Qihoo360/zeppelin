@@ -25,6 +25,7 @@ int ZPMetaClientConn::DealMessage() {
   bool ret = request_.ParseFromArray(rbuf_ + 4, header_len_);
   if (!ret) {
     LOG(INFO) << "DealMessage, Invalid pb message";
+    return -1;
   }
   // TODO test only
   ZPMeta::Type response_type;
