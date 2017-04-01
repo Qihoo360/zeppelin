@@ -85,6 +85,11 @@ void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::INIT);
+  if (table == "") {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg("TableName cannot be NULL");
+    return;
+  }
 
   Status s = g_meta_server->Distribute(table, request->init().num());
 
