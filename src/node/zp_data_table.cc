@@ -117,12 +117,12 @@ uint32_t Table::KeyToPartition(const std::string &key) {
 
 void Table::Dump() {
   slash::RWLock l(&partition_rw_, false);
-  DLOG(INFO) << "=========================";
-  DLOG(INFO) << "    Table : " << table_name_;
+  LOG(INFO) << "=========================";
+  LOG(INFO) << "    Table : " << table_name_;
   for (auto iter = partitions_.begin(); iter != partitions_.end(); iter++) {
     iter->second->Dump();
   }
-  DLOG(INFO) << "--------------------------";
+  LOG(INFO) << "--------------------------";
 }
 
 

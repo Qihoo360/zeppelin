@@ -102,6 +102,9 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(const ZPMeta::MetaCmdResponse 
 
   for (int i = 0; i < pull.info_size(); i++) {
     const ZPMeta::Table& table_info = pull.info(i);
+    if (table_info.name().empty()) {
+      continue; // table name not null
+    }
     DLOG(INFO) << " - handle Table " << table_info.name();
 
     // Record tables no longer response for

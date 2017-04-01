@@ -46,7 +46,8 @@ class Node {
     return (ip != rhs.ip || port != rhs.port);
   }
   bool operator< (const Node& rhs) const {
-    return (ip < rhs.ip || port < rhs.port);
+    return (ip < rhs.ip ||
+        (ip == rhs.ip && port < rhs.port));
   }
 
   friend std::ostream& operator<< (std::ostream& stream, const Node& node) {

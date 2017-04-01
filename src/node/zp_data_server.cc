@@ -213,7 +213,7 @@ void ZPDataServer::TryUpdateEpoch(int64_t epoch) {
 
 void ZPDataServer::FinishPullMeta(int64_t epoch) {
   slash::MutexLock l(&mutex_epoch_);
-  DLOG(INFO) <<  "UpdateEpoch (" << meta_epoch_ << "->" << epoch << ") ok...";
+  LOG(INFO) <<  "UpdateEpoch (" << meta_epoch_ << "->" << epoch << ") ok...";
   meta_epoch_ = epoch;
   should_pull_meta_ = false;
 }
@@ -242,11 +242,11 @@ void ZPDataServer::PickMeta() {
 void ZPDataServer::DumpTablePartitions() {
   slash::RWLock l(&table_rw_, false);
 
-  DLOG(INFO) << "TablePartition==========================";
+  LOG(INFO) << "TablePartition==========================";
   for (auto iter = tables_.begin(); iter != tables_.end(); iter++) {
     iter->second->Dump();
   }
-  DLOG(INFO) << "TablePartition--------------------------";
+  LOG(INFO) << "TablePartition--------------------------";
 }
 
 Status ZPDataServer::SendToPeer(const Node &node, const client::SyncRequest &msg) {
