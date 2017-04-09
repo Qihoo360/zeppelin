@@ -16,28 +16,31 @@
 using slash::Status;
 
 enum CmdFlagsMask {
-  kCmdFlagsMaskRW               = 1,
-  kCmdFlagsMaskType             = 14,
-  kCmdFlagsMaskLocal            = 16,
-  kCmdFlagsMaskSuspend          = 32,
-  kCmdFlagsMaskPrior            = 64,
-  kCmdFlagsMaskAdminRequire     = 128
+  kCmdFlagsMaskRW                  = 1,
+  kCmdFlagsMaskType                = 14,
+  kCmdFlagsMaskLocal               = 16,
+  kCmdFlagsMaskSuspend             = 32,
+  kCmdFlagsMaskPrior               = 64,
+  kCmdFlagsMaskAdminRequire        = 128,
+  kCmdFlagsMaskSinglePartition     = 256,
 };
 
 enum CmdFlags {
-  kCmdFlagsRead           = 0, //default rw
-  kCmdFlagsWrite          = 1,
-  kCmdFlagsKv             = 2,
-  kCmdFlagsAdmin          = 4, 
-  // kCmdFlagsBit            = 12,
-  kCmdFlagsNoLocal        = 0, //default nolocal
-  kCmdFlagsLocal          = 16,
-  kCmdFlagsNoSuspend      = 0, //default nosuspend
-  kCmdFlagsSuspend        = 32,
-  kCmdFlagsNoPrior        = 0, //default noprior
-  kCmdFlagsPrior          = 64,
-  kCmdFlagsNoAdminRequire = 0, //default no need admin
-  kCmdFlagsAdminRequire   = 128
+  kCmdFlagsRead              = 0, //default rw
+  kCmdFlagsWrite             = 1,
+  kCmdFlagsKv                = 2,
+  kCmdFlagsAdmin             = 4, 
+  // kCmdFlagsBit               = 12,
+  kCmdFlagsNoLocal           = 0, //default nolocal
+  kCmdFlagsLocal             = 16,
+  kCmdFlagsNoSuspend         = 0, //default nosuspend
+  kCmdFlagsSuspend           = 32,
+  kCmdFlagsNoPrior           = 0, //default noprior
+  kCmdFlagsPrior             = 64,
+  kCmdFlagsNoAdminRequire    = 0, //default no need admin
+  kCmdFlagsAdminRequire      = 128,
+  kCmdFlagsSinglePartition   = 0, //default single partition
+  kCmdFlagsMultiPartition    = 256,
 };
 
 
@@ -46,7 +49,8 @@ class Cmd {
   Cmd(int flag) : flag_(flag) {}
   virtual ~Cmd() {}
 
-  virtual void Do(const google::protobuf::Message *request, google::protobuf::Message *response, void* partition = NULL) const = 0;
+  virtual void Do(const google::protobuf::Message *request,
+      google::protobuf::Message *response, void* partition = NULL) const = 0;
   virtual std::string name() const = 0;
   virtual std::string ExtractTable(const google::protobuf::Message *request) const {
     return "";
@@ -73,6 +77,10 @@ class Cmd {
   // Others need to be suspended when a suspend command run
   bool is_suspend() const {
     return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend);
+  }
+
+  bool is_single_paritition() const {
+    return ((flag_ & kCmdFlagsMaskSinglePartition) == kCmdFlagsSinglePartition);
   }
 
  private:

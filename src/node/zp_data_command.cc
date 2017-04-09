@@ -87,6 +87,45 @@ void DelCmd::Do(const google::protobuf::Message *req,
   }
 }
 
+void MgetCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* ptr) const {
+  const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
+  client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+  response->Clear();
+  response->set_type(client::Type::MGET);
+
+  // One error all error
+  Cmd* sub_cmd = zp_data_server->CmdGet(client::Type::GET);
+  client::CmdRequest sub_req;
+  sub_req.set_type(client::Type::GET);
+  client::CmdResponse sub_res;
+  sub_res.set_type(client::Type::GET);
+  for (auto& key : request->mget().keys()) {
+    Partition* partition = zp_data_server->GetTablePartition(request->mget().table_name(),
+        key);
+    if (partition == NULL) {
+      response->set_code(client::StatusCode::kError);
+      response->set_msg("no partition" + key);
+      return;
+    }
+
+    // convert to multi sub command, then execute
+    client::CmdRequest_Get* get = sub_req.mutable_get();
+    get->set_table_name(request->mget().table_name());
+    get->set_key(key);
+    partition->DoCommand(sub_cmd, sub_req, sub_res);
+    if (sub_res.code() != client::StatusCode::kOk) {
+      response->set_code(sub_res.code());
+      response->set_msg(sub_res.msg());
+      return;
+    }
+    client::CmdResponse_Mget* mget = response->add_mget();
+    mget->set_key(key);
+    mget->set_value(sub_res.get().value());
+  }
+  response->set_code(client::StatusCode::kOk);
+}
+
 void InfoCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* p) const {
   const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);

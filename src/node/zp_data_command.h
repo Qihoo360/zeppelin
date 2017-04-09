@@ -95,4 +95,18 @@ class SyncCmd : public Cmd {
   }
 };
 
+class MgetCmd : public Cmd {
+ public:
+  MgetCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "Mget"; 
+  }
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition) const;
+  virtual std::string ExtractTable(const google::protobuf::Message *req) const {
+    const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
+    return request->mget().table_name();
+  }
+};
+
 #endif

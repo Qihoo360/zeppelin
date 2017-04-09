@@ -42,12 +42,14 @@ class CmdRequest_Set;
 class CmdRequest_Get;
 class CmdRequest_Del;
 class CmdRequest_Info;
+class CmdRequest_Mget;
 class CmdResponse;
 class CmdResponse_Sync;
 class CmdResponse_Get;
 class CmdResponse_InfoStats;
 class CmdResponse_InfoCapacity;
 class CmdResponse_InfoPartition;
+class CmdResponse_Mget;
 class BinlogSkip;
 class SyncRequest;
 
@@ -58,11 +60,12 @@ enum Type {
   DEL = 3,
   INFOSTATS = 4,
   INFOCAPACITY = 5,
-  INFOPARTITION = 6
+  INFOPARTITION = 6,
+  MGET = 7
 };
 bool Type_IsValid(int value);
 const Type Type_MIN = SYNC;
-const Type Type_MAX = INFOPARTITION;
+const Type Type_MAX = MGET;
 const int Type_ARRAYSIZE = Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Type_descriptor();
@@ -881,6 +884,110 @@ class CmdRequest_Info : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class CmdRequest_Mget : public ::google::protobuf::Message {
+ public:
+  CmdRequest_Mget();
+  virtual ~CmdRequest_Mget();
+
+  CmdRequest_Mget(const CmdRequest_Mget& from);
+
+  inline CmdRequest_Mget& operator=(const CmdRequest_Mget& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const CmdRequest_Mget& default_instance();
+
+  void Swap(CmdRequest_Mget* other);
+
+  // implements Message ----------------------------------------------
+
+  CmdRequest_Mget* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const CmdRequest_Mget& from);
+  void MergeFrom(const CmdRequest_Mget& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string table_name = 1;
+  inline bool has_table_name() const;
+  inline void clear_table_name();
+  static const int kTableNameFieldNumber = 1;
+  inline const ::std::string& table_name() const;
+  inline void set_table_name(const ::std::string& value);
+  inline void set_table_name(const char* value);
+  inline void set_table_name(const char* value, size_t size);
+  inline ::std::string* mutable_table_name();
+  inline ::std::string* release_table_name();
+  inline void set_allocated_table_name(::std::string* table_name);
+
+  // repeated string keys = 2;
+  inline int keys_size() const;
+  inline void clear_keys();
+  static const int kKeysFieldNumber = 2;
+  inline const ::std::string& keys(int index) const;
+  inline ::std::string* mutable_keys(int index);
+  inline void set_keys(int index, const ::std::string& value);
+  inline void set_keys(int index, const char* value);
+  inline void set_keys(int index, const char* value, size_t size);
+  inline ::std::string* add_keys();
+  inline void add_keys(const ::std::string& value);
+  inline void add_keys(const char* value);
+  inline void add_keys(const char* value, size_t size);
+  inline const ::google::protobuf::RepeatedPtrField< ::std::string>& keys() const;
+  inline ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_keys();
+
+  // @@protoc_insertion_point(class_scope:client.CmdRequest.Mget)
+ private:
+  inline void set_has_table_name();
+  inline void clear_has_table_name();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* table_name_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> keys_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static CmdRequest_Mget* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class CmdRequest : public ::google::protobuf::Message {
  public:
   CmdRequest();
@@ -938,6 +1045,7 @@ class CmdRequest : public ::google::protobuf::Message {
   typedef CmdRequest_Get Get;
   typedef CmdRequest_Del Del;
   typedef CmdRequest_Info Info;
+  typedef CmdRequest_Mget Mget;
 
   // accessors -------------------------------------------------------
 
@@ -993,6 +1101,15 @@ class CmdRequest : public ::google::protobuf::Message {
   inline ::client::CmdRequest_Info* release_info();
   inline void set_allocated_info(::client::CmdRequest_Info* info);
 
+  // optional .client.CmdRequest.Mget mget = 7;
+  inline bool has_mget() const;
+  inline void clear_mget();
+  static const int kMgetFieldNumber = 7;
+  inline const ::client::CmdRequest_Mget& mget() const;
+  inline ::client::CmdRequest_Mget* mutable_mget();
+  inline ::client::CmdRequest_Mget* release_mget();
+  inline void set_allocated_mget(::client::CmdRequest_Mget* mget);
+
   // @@protoc_insertion_point(class_scope:client.CmdRequest)
  private:
   inline void set_has_type();
@@ -1007,6 +1124,8 @@ class CmdRequest : public ::google::protobuf::Message {
   inline void clear_has_del();
   inline void set_has_info();
   inline void clear_has_info();
+  inline void set_has_mget();
+  inline void clear_has_mget();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -1015,10 +1134,11 @@ class CmdRequest : public ::google::protobuf::Message {
   ::client::CmdRequest_Get* get_;
   ::client::CmdRequest_Del* del_;
   ::client::CmdRequest_Info* info_;
+  ::client::CmdRequest_Mget* mget_;
   int type_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -1529,6 +1649,108 @@ class CmdResponse_InfoPartition : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class CmdResponse_Mget : public ::google::protobuf::Message {
+ public:
+  CmdResponse_Mget();
+  virtual ~CmdResponse_Mget();
+
+  CmdResponse_Mget(const CmdResponse_Mget& from);
+
+  inline CmdResponse_Mget& operator=(const CmdResponse_Mget& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const CmdResponse_Mget& default_instance();
+
+  void Swap(CmdResponse_Mget* other);
+
+  // implements Message ----------------------------------------------
+
+  CmdResponse_Mget* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const CmdResponse_Mget& from);
+  void MergeFrom(const CmdResponse_Mget& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string key = 1;
+  inline bool has_key() const;
+  inline void clear_key();
+  static const int kKeyFieldNumber = 1;
+  inline const ::std::string& key() const;
+  inline void set_key(const ::std::string& value);
+  inline void set_key(const char* value);
+  inline void set_key(const char* value, size_t size);
+  inline ::std::string* mutable_key();
+  inline ::std::string* release_key();
+  inline void set_allocated_key(::std::string* key);
+
+  // required bytes value = 2;
+  inline bool has_value() const;
+  inline void clear_value();
+  static const int kValueFieldNumber = 2;
+  inline const ::std::string& value() const;
+  inline void set_value(const ::std::string& value);
+  inline void set_value(const char* value);
+  inline void set_value(const void* value, size_t size);
+  inline ::std::string* mutable_value();
+  inline ::std::string* release_value();
+  inline void set_allocated_value(::std::string* value);
+
+  // @@protoc_insertion_point(class_scope:client.CmdResponse.Mget)
+ private:
+  inline void set_has_key();
+  inline void clear_has_key();
+  inline void set_has_value();
+  inline void clear_has_value();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* key_;
+  ::std::string* value_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static CmdResponse_Mget* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class CmdResponse : public ::google::protobuf::Message {
  public:
   CmdResponse();
@@ -1586,6 +1808,7 @@ class CmdResponse : public ::google::protobuf::Message {
   typedef CmdResponse_InfoStats InfoStats;
   typedef CmdResponse_InfoCapacity InfoCapacity;
   typedef CmdResponse_InfoPartition InfoPartition;
+  typedef CmdResponse_Mget Mget;
 
   // accessors -------------------------------------------------------
 
@@ -1678,6 +1901,18 @@ class CmdResponse : public ::google::protobuf::Message {
   inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoPartition >*
       mutable_info_partition();
 
+  // repeated .client.CmdResponse.Mget mget = 10;
+  inline int mget_size() const;
+  inline void clear_mget();
+  static const int kMgetFieldNumber = 10;
+  inline const ::client::CmdResponse_Mget& mget(int index) const;
+  inline ::client::CmdResponse_Mget* mutable_mget(int index);
+  inline ::client::CmdResponse_Mget* add_mget();
+  inline const ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_Mget >&
+      mget() const;
+  inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_Mget >*
+      mutable_mget();
+
   // @@protoc_insertion_point(class_scope:client.CmdResponse)
  private:
   inline void set_has_type();
@@ -1704,9 +1939,10 @@ class CmdResponse : public ::google::protobuf::Message {
   ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoStats > info_stats_;
   ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoCapacity > info_capacity_;
   ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoPartition > info_partition_;
+  ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_Mget > mget_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(9 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(10 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -3069,6 +3305,124 @@ inline void CmdRequest_Info::set_allocated_table_name(::std::string* table_name)
 
 // -------------------------------------------------------------------
 
+// CmdRequest_Mget
+
+// required string table_name = 1;
+inline bool CmdRequest_Mget::has_table_name() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void CmdRequest_Mget::set_has_table_name() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void CmdRequest_Mget::clear_has_table_name() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void CmdRequest_Mget::clear_table_name() {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    table_name_->clear();
+  }
+  clear_has_table_name();
+}
+inline const ::std::string& CmdRequest_Mget::table_name() const {
+  return *table_name_;
+}
+inline void CmdRequest_Mget::set_table_name(const ::std::string& value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdRequest_Mget::set_table_name(const char* value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdRequest_Mget::set_table_name(const char* value, size_t size) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CmdRequest_Mget::mutable_table_name() {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  return table_name_;
+}
+inline ::std::string* CmdRequest_Mget::release_table_name() {
+  clear_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = table_name_;
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CmdRequest_Mget::set_allocated_table_name(::std::string* table_name) {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    delete table_name_;
+  }
+  if (table_name) {
+    set_has_table_name();
+    table_name_ = table_name;
+  } else {
+    clear_has_table_name();
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// repeated string keys = 2;
+inline int CmdRequest_Mget::keys_size() const {
+  return keys_.size();
+}
+inline void CmdRequest_Mget::clear_keys() {
+  keys_.Clear();
+}
+inline const ::std::string& CmdRequest_Mget::keys(int index) const {
+  return keys_.Get(index);
+}
+inline ::std::string* CmdRequest_Mget::mutable_keys(int index) {
+  return keys_.Mutable(index);
+}
+inline void CmdRequest_Mget::set_keys(int index, const ::std::string& value) {
+  keys_.Mutable(index)->assign(value);
+}
+inline void CmdRequest_Mget::set_keys(int index, const char* value) {
+  keys_.Mutable(index)->assign(value);
+}
+inline void CmdRequest_Mget::set_keys(int index, const char* value, size_t size) {
+  keys_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CmdRequest_Mget::add_keys() {
+  return keys_.Add();
+}
+inline void CmdRequest_Mget::add_keys(const ::std::string& value) {
+  keys_.Add()->assign(value);
+}
+inline void CmdRequest_Mget::add_keys(const char* value) {
+  keys_.Add()->assign(value);
+}
+inline void CmdRequest_Mget::add_keys(const char* value, size_t size) {
+  keys_.Add()->assign(reinterpret_cast<const char*>(value), size);
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+CmdRequest_Mget::keys() const {
+  return keys_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+CmdRequest_Mget::mutable_keys() {
+  return &keys_;
+}
+
+// -------------------------------------------------------------------
+
 // CmdRequest
 
 // required .client.Type type = 1;
@@ -3281,6 +3635,44 @@ inline void CmdRequest::set_allocated_info(::client::CmdRequest_Info* info) {
     set_has_info();
   } else {
     clear_has_info();
+  }
+}
+
+// optional .client.CmdRequest.Mget mget = 7;
+inline bool CmdRequest::has_mget() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+inline void CmdRequest::set_has_mget() {
+  _has_bits_[0] |= 0x00000040u;
+}
+inline void CmdRequest::clear_has_mget() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline void CmdRequest::clear_mget() {
+  if (mget_ != NULL) mget_->::client::CmdRequest_Mget::Clear();
+  clear_has_mget();
+}
+inline const ::client::CmdRequest_Mget& CmdRequest::mget() const {
+  return mget_ != NULL ? *mget_ : *default_instance_->mget_;
+}
+inline ::client::CmdRequest_Mget* CmdRequest::mutable_mget() {
+  set_has_mget();
+  if (mget_ == NULL) mget_ = new ::client::CmdRequest_Mget;
+  return mget_;
+}
+inline ::client::CmdRequest_Mget* CmdRequest::release_mget() {
+  clear_has_mget();
+  ::client::CmdRequest_Mget* temp = mget_;
+  mget_ = NULL;
+  return temp;
+}
+inline void CmdRequest::set_allocated_mget(::client::CmdRequest_Mget* mget) {
+  delete mget_;
+  mget_ = mget;
+  if (mget) {
+    set_has_mget();
+  } else {
+    clear_has_mget();
   }
 }
 
@@ -3807,6 +4199,150 @@ CmdResponse_InfoPartition::mutable_sync_offset() {
 
 // -------------------------------------------------------------------
 
+// CmdResponse_Mget
+
+// required string key = 1;
+inline bool CmdResponse_Mget::has_key() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void CmdResponse_Mget::set_has_key() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void CmdResponse_Mget::clear_has_key() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void CmdResponse_Mget::clear_key() {
+  if (key_ != &::google::protobuf::internal::kEmptyString) {
+    key_->clear();
+  }
+  clear_has_key();
+}
+inline const ::std::string& CmdResponse_Mget::key() const {
+  return *key_;
+}
+inline void CmdResponse_Mget::set_key(const ::std::string& value) {
+  set_has_key();
+  if (key_ == &::google::protobuf::internal::kEmptyString) {
+    key_ = new ::std::string;
+  }
+  key_->assign(value);
+}
+inline void CmdResponse_Mget::set_key(const char* value) {
+  set_has_key();
+  if (key_ == &::google::protobuf::internal::kEmptyString) {
+    key_ = new ::std::string;
+  }
+  key_->assign(value);
+}
+inline void CmdResponse_Mget::set_key(const char* value, size_t size) {
+  set_has_key();
+  if (key_ == &::google::protobuf::internal::kEmptyString) {
+    key_ = new ::std::string;
+  }
+  key_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CmdResponse_Mget::mutable_key() {
+  set_has_key();
+  if (key_ == &::google::protobuf::internal::kEmptyString) {
+    key_ = new ::std::string;
+  }
+  return key_;
+}
+inline ::std::string* CmdResponse_Mget::release_key() {
+  clear_has_key();
+  if (key_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = key_;
+    key_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CmdResponse_Mget::set_allocated_key(::std::string* key) {
+  if (key_ != &::google::protobuf::internal::kEmptyString) {
+    delete key_;
+  }
+  if (key) {
+    set_has_key();
+    key_ = key;
+  } else {
+    clear_has_key();
+    key_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required bytes value = 2;
+inline bool CmdResponse_Mget::has_value() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void CmdResponse_Mget::set_has_value() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void CmdResponse_Mget::clear_has_value() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void CmdResponse_Mget::clear_value() {
+  if (value_ != &::google::protobuf::internal::kEmptyString) {
+    value_->clear();
+  }
+  clear_has_value();
+}
+inline const ::std::string& CmdResponse_Mget::value() const {
+  return *value_;
+}
+inline void CmdResponse_Mget::set_value(const ::std::string& value) {
+  set_has_value();
+  if (value_ == &::google::protobuf::internal::kEmptyString) {
+    value_ = new ::std::string;
+  }
+  value_->assign(value);
+}
+inline void CmdResponse_Mget::set_value(const char* value) {
+  set_has_value();
+  if (value_ == &::google::protobuf::internal::kEmptyString) {
+    value_ = new ::std::string;
+  }
+  value_->assign(value);
+}
+inline void CmdResponse_Mget::set_value(const void* value, size_t size) {
+  set_has_value();
+  if (value_ == &::google::protobuf::internal::kEmptyString) {
+    value_ = new ::std::string;
+  }
+  value_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CmdResponse_Mget::mutable_value() {
+  set_has_value();
+  if (value_ == &::google::protobuf::internal::kEmptyString) {
+    value_ = new ::std::string;
+  }
+  return value_;
+}
+inline ::std::string* CmdResponse_Mget::release_value() {
+  clear_has_value();
+  if (value_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = value_;
+    value_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CmdResponse_Mget::set_allocated_value(::std::string* value) {
+  if (value_ != &::google::protobuf::internal::kEmptyString) {
+    delete value_;
+  }
+  if (value) {
+    set_has_value();
+    value_ = value;
+  } else {
+    clear_has_value();
+    value_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// -------------------------------------------------------------------
+
 // CmdResponse
 
 // required .client.Type type = 1;
@@ -4112,6 +4648,31 @@ CmdResponse::info_partition() const {
 inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoPartition >*
 CmdResponse::mutable_info_partition() {
   return &info_partition_;
+}
+
+// repeated .client.CmdResponse.Mget mget = 10;
+inline int CmdResponse::mget_size() const {
+  return mget_.size();
+}
+inline void CmdResponse::clear_mget() {
+  mget_.Clear();
+}
+inline const ::client::CmdResponse_Mget& CmdResponse::mget(int index) const {
+  return mget_.Get(index);
+}
+inline ::client::CmdResponse_Mget* CmdResponse::mutable_mget(int index) {
+  return mget_.Mutable(index);
+}
+inline ::client::CmdResponse_Mget* CmdResponse::add_mget() {
+  return mget_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_Mget >&
+CmdResponse::mget() const {
+  return mget_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_Mget >*
+CmdResponse::mutable_mget() {
+  return &mget_;
 }
 
 // -------------------------------------------------------------------

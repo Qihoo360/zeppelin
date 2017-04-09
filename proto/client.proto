@@ -8,6 +8,7 @@ enum Type {
   INFOSTATS = 4;
   INFOCAPACITY = 5;
   INFOPARTITION = 6;
+  MGET = 7;
 }
 
 enum SyncType {
@@ -73,6 +74,12 @@ message CmdRequest {
   }
   optional Info info = 6;
 
+  message Mget {
+    required string table_name = 1;
+    repeated string keys = 2;
+  }
+  optional Mget mget = 7;
+
 }
 
 message CmdResponse {
@@ -115,6 +122,13 @@ message CmdResponse {
     repeated SyncOffset sync_offset = 2; 
   }
   repeated InfoPartition info_partition = 9;
+
+  // Mget
+  message Mget {
+    required string key = 1;
+    required bytes value = 2; 
+  }
+  repeated Mget mget = 10;
 }
 
 message BinlogSkip {

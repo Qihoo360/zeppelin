@@ -56,11 +56,7 @@ int ZPDataClientConn::DealMessageInternal() {
 
   self_thread_->PlusStat(cmd->ExtractTable(&request_));
 
-  // Note: We treat 3 kinds of InfoCmds as 1 InfoCmd;
-  // we just run InfoCmd here.
-  if (request_.type() == client::Type::INFOSTATS
-      || request_.type() == client::Type::INFOCAPACITY
-      || request_.type() == client::Type::INFOPARTITION) {
+  if (!cmd->is_single_paritition()) {
     cmd->Do(&request_, &response_);
     return 0;
   }

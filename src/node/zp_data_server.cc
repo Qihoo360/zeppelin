@@ -19,7 +19,7 @@ ZPDataServer::ZPDataServer()
     pthread_rwlockattr_t attr;
     pthread_rwlockattr_init(&attr);
     pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
-    pthread_rwlock_init(&table_rw_, NULL);
+    pthread_rwlock_init(&table_rw_, &attr);
 
     // Command table
     cmds_.reserve(300);
@@ -433,7 +433,8 @@ bool ZPDataServer::GetTableStat(const std::string& table_name, std::vector<Stati
   return true;
 }
 
-bool ZPDataServer::GetTableCapacity(const std::string& table_name, std::vector<Statistic>& capacity_stats) {
+bool ZPDataServer::GetTableCapacity(const std::string& table_name,
+    std::vector<Statistic>& capacity_stats) {
   slash::RWLock l(&table_rw_, false);
   if (table_name.empty()) {
     for (auto& item : tables_) {
@@ -465,15 +466,18 @@ void ZPDataServer::InitClientCmdTable() {
   Cmd* delptr = new DelCmd(kCmdFlagsKv | kCmdFlagsWrite);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::DEL), delptr));
   // One InfoCmd handle many type queries;
-  Cmd* infostatsptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead);
+  Cmd* infostatsptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOSTATS), infostatsptr));
-  Cmd* infocapacityptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead);
+  Cmd* infocapacityptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOCAPACITY), infocapacityptr));
-  Cmd* infopartitionptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead);
+  Cmd* infopartitionptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOPARTITION), infopartitionptr));
   // SyncCmd
-  Cmd* syncptr = new SyncCmd(kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
+  Cmd* syncptr = new SyncCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsSuspend);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SYNC), syncptr));
+  // MgetCmd
+  Cmd* mgetptr = new MgetCmd(kCmdFlagsKv | kCmdFlagsRead | kCmdFlagsMultiPartition);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::MGET), mgetptr));
 }
 
 void ZPDataServer::DoTimingTask() {
