@@ -104,17 +104,21 @@ void MgetCmd::Do(const google::protobuf::Message *req,
     Partition* partition = zp_data_server->GetTablePartition(request->mget().table_name(),
         key);
     if (partition == NULL) {
+      LOG(WARNING) << "command failed: Mget, no partition for key:" << key;
       response->set_code(client::StatusCode::kError);
       response->set_msg("no partition" + key);
       return;
     }
 
     // convert to multi sub command, then execute
+    sub_req.Clear();
+    sub_res.Clear();
     client::CmdRequest_Get* get = sub_req.mutable_get();
     get->set_table_name(request->mget().table_name());
     get->set_key(key);
     partition->DoCommand(sub_cmd, sub_req, sub_res);
     if (sub_res.code() != client::StatusCode::kOk) {
+      LOG(WARNING) << "command failed: Mget, key:" << key << ", error:" << sub_res.msg();
       response->set_code(sub_res.code());
       response->set_msg(sub_res.msg());
       return;

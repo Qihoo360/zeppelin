@@ -39,6 +39,8 @@ class Cluster {
   Status Get(const std::string& table, const std::string& key,
       std::string* value);
   Status Delete(const std::string& table, const std::string& key);
+  Status Mget(const std::string& table, const std::vector<std::string>& keys,
+      std::map<std::string, std::string>* values);
 
   // meta cmd
   Status CreateTable(const std::string& table_name, int partition_num);
@@ -71,8 +73,10 @@ class Cluster {
 
   void InitParam();
   Node GetRandomMetaAddr();
-  Status GetDataMaster(const std::string& table,
+  Status TryGetDataMaster(const std::string& table,
       const std::string& key, Node* master);
+  Status GetDataMaster(const std::string& table,
+      const std::string& key, Node* master, bool has_pull = false);
 
   Status SubmitDataCmd(const std::string& table,
       const std::string& key, bool has_pull = false);
@@ -108,7 +112,8 @@ class Client {
   Status Set(const std::string& key, const std::string& value);
   Status Get(const std::string& key, std::string* value);
   Status Delete(const std::string& key);
-
+  Status Mget(const std::vector<std::string>& keys,
+      std::map<std::string, std::string>* values);
 
  private :
   Cluster* cluster_;
