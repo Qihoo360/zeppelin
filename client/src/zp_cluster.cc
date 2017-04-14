@@ -186,6 +186,24 @@ Status Cluster::CreateTable(const std::string& table_name,
   }
 }
 
+Status Cluster::DropTable(const std::string& table_name) {
+  meta_cmd_.Clear();
+  meta_cmd_.set_type(ZPMeta::Type::DROPTABLE);
+  ZPMeta::MetaCmd_DropTable* drop_table = meta_cmd_.mutable_drop_table();
+  drop_table->set_name(table_name);
+
+  pink::Status ret = SubmitMetaCmd();
+
+  if (!ret.ok()) {
+    return pink::Status::IOError(meta_res_.msg());
+  }
+  if (meta_res_.code() != ZPMeta::StatusCode::OK) {
+    return Status::NotSupported(meta_res_.msg());
+  } else {
+    return Status::OK();
+  }
+}
+
 
 // TODO(all) pull meta_info from data
 Status Cluster::Connect() {

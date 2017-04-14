@@ -44,6 +44,7 @@ class Cluster {
 
   // meta cmd
   Status CreateTable(const std::string& table_name, int partition_num);
+  Status DropTable(const std::string& table_name);
   Status Pull(const std::string& table);
   Status SetMaster(const std::string& table, const int partition,
       const Node& ip_port);
