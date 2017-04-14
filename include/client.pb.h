@@ -533,6 +533,13 @@ class CmdRequest_Set : public ::google::protobuf::Message {
   inline ::std::string* release_uuid();
   inline void set_allocated_uuid(::std::string* uuid);
 
+  // optional int32 ttl = 5;
+  inline bool has_ttl() const;
+  inline void clear_ttl();
+  static const int kTtlFieldNumber = 5;
+  inline ::google::protobuf::int32 ttl() const;
+  inline void set_ttl(::google::protobuf::int32 value);
+
   // @@protoc_insertion_point(class_scope:client.CmdRequest.Set)
  private:
   inline void set_has_table_name();
@@ -543,6 +550,8 @@ class CmdRequest_Set : public ::google::protobuf::Message {
   inline void clear_has_value();
   inline void set_has_uuid();
   inline void clear_has_uuid();
+  inline void set_has_ttl();
+  inline void clear_has_ttl();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -550,9 +559,10 @@ class CmdRequest_Set : public ::google::protobuf::Message {
   ::std::string* key_;
   ::std::string* value_;
   ::std::string* uuid_;
+  ::google::protobuf::int32 ttl_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -2799,6 +2809,28 @@ inline void CmdRequest_Set::set_allocated_uuid(::std::string* uuid) {
     clear_has_uuid();
     uuid_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   }
+}
+
+// optional int32 ttl = 5;
+inline bool CmdRequest_Set::has_ttl() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void CmdRequest_Set::set_has_ttl() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void CmdRequest_Set::clear_has_ttl() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void CmdRequest_Set::clear_ttl() {
+  ttl_ = 0;
+  clear_has_ttl();
+}
+inline ::google::protobuf::int32 CmdRequest_Set::ttl() const {
+  return ttl_;
+}
+inline void CmdRequest_Set::set_ttl(::google::protobuf::int32 value) {
+  set_has_ttl();
+  ttl_ = value;
 }
 
 // -------------------------------------------------------------------

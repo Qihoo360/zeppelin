@@ -19,9 +19,18 @@ void SetCmd::Do(const google::protobuf::Message *req,
   response->Clear();
   response->set_type(client::Type::SET);
 
-  rocksdb::Status s = ptr->db()->Put(rocksdb::WriteOptions(),
-      request->set().key(),
-      request->set().value());
+  rocksdb::Status s;
+  if (request->set().has_ttl()) {
+    s = ptr->db()->Put(rocksdb::WriteOptions(),
+        request->set().key(),
+        request->set().value(),
+        request->set().ttl());
+  } else {
+    s = ptr->db()->Put(rocksdb::WriteOptions(),
+        request->set().key(),
+        request->set().value());
+  }
+
   if (!s.ok()) {
     response->set_code(client::StatusCode::kError);
     response->set_msg(s.ToString());
@@ -102,8 +111,8 @@ void MgetCmd::Do(const google::protobuf::Message *req,
   client::CmdResponse sub_res;
   sub_res.set_type(client::Type::GET);
   for (auto& key : request->mget().keys()) {
-    std::shared_ptr<Partition> partition = zp_data_server->GetTablePartition(request->mget().table_name(),
-        key);
+    std::shared_ptr<Partition> partition = zp_data_server->GetTablePartition(
+        request->mget().table_name(), key);
     if (partition == NULL) {
       LOG(WARNING) << "command failed: Mget, no partition for key:" << key;
       response->set_code(client::StatusCode::kError);

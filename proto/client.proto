@@ -51,6 +51,7 @@ message CmdRequest {
     required string key = 2;
     required bytes value = 3;
     optional string uuid = 4;
+    optional int32 ttl = 5;
   }
   optional Set set = 3;
 

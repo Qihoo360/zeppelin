@@ -159,11 +159,12 @@ void protobuf_AssignDesc_client_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(CmdRequest_Sync));
   CmdRequest_Set_descriptor_ = CmdRequest_descriptor_->nested_type(1);
-  static const int CmdRequest_Set_offsets_[4] = {
+  static const int CmdRequest_Set_offsets_[5] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest_Set, table_name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest_Set, key_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest_Set, value_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest_Set, uuid_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest_Set, ttl_),
   };
   CmdRequest_Set_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -503,7 +504,7 @@ void protobuf_AddDesc_client_2eproto() {
     "\n\014client.proto\022\006client\" \n\004Node\022\n\n\002ip\030\001 \002"
     "(\t\022\014\n\004port\030\002 \002(\005\"@\n\nSyncOffset\022\017\n\007filenu"
     "m\030\001 \002(\005\022\016\n\006offset\030\002 \002(\003\022\021\n\tpartition\030\003 \001"
-    "(\005\"\344\004\n\nCmdRequest\022\032\n\004type\030\001 \002(\0162\014.client"
+    "(\005\"\361\004\n\nCmdRequest\022\032\n\004type\030\001 \002(\0162\014.client"
     ".Type\022%\n\004sync\030\002 \001(\0132\027.client.CmdRequest."
     "Sync\022#\n\003set\030\003 \001(\0132\026.client.CmdRequest.Se"
     "t\022#\n\003get\030\004 \001(\0132\026.client.CmdRequest.Get\022#"
@@ -512,44 +513,44 @@ void protobuf_AddDesc_client_2eproto() {
     "et\030\007 \001(\0132\027.client.CmdRequest.Mget\032_\n\004Syn"
     "c\022\032\n\004node\030\001 \002(\0132\014.client.Node\022\022\n\ntable_n"
     "ame\030\002 \002(\t\022\'\n\013sync_offset\030\003 \002(\0132\022.client."
-    "SyncOffset\032C\n\003Set\022\022\n\ntable_name\030\001 \002(\t\022\013\n"
-    "\003key\030\002 \002(\t\022\r\n\005value\030\003 \002(\014\022\014\n\004uuid\030\004 \001(\t\032"
-    "4\n\003Get\022\022\n\ntable_name\030\001 \002(\t\022\013\n\003key\030\002 \002(\t\022"
-    "\014\n\004uuid\030\003 \001(\t\0324\n\003Del\022\022\n\ntable_name\030\001 \002(\t"
-    "\022\013\n\003key\030\002 \002(\t\022\014\n\004uuid\030\003 \001(\t\032\032\n\004Info\022\022\n\nt"
-    "able_name\030\001 \001(\t\032(\n\004Mget\022\022\n\ntable_name\030\001 "
-    "\002(\t\022\014\n\004keys\030\002 \003(\t\"\350\005\n\013CmdResponse\022\032\n\004typ"
-    "e\030\001 \002(\0162\014.client.Type\022 \n\004code\030\002 \002(\0162\022.cl"
-    "ient.StatusCode\022\013\n\003msg\030\003 \001(\t\022&\n\004sync\030\004 \001"
-    "(\0132\030.client.CmdResponse.Sync\022$\n\003get\030\005 \001("
-    "\0132\027.client.CmdResponse.Get\022\036\n\010redirect\030\006"
-    " \001(\0132\014.client.Node\0221\n\ninfo_stats\030\007 \003(\0132\035"
-    ".client.CmdResponse.InfoStats\0227\n\rinfo_ca"
-    "pacity\030\010 \003(\0132 .client.CmdResponse.InfoCa"
-    "pacity\0229\n\016info_partition\030\t \003(\0132!.client."
-    "CmdResponse.InfoPartition\022&\n\004mget\030\n \003(\0132"
-    "\030.client.CmdResponse.Mget\032C\n\004Sync\022\022\n\ntab"
-    "le_name\030\001 \002(\t\022\'\n\013sync_offset\030\002 \002(\0132\022.cli"
-    "ent.SyncOffset\032\024\n\003Get\022\r\n\005value\030\001 \001(\014\032B\n\t"
-    "InfoStats\022\022\n\ntable_name\030\001 \002(\t\022\024\n\014total_q"
-    "uerys\030\002 \002(\003\022\013\n\003qps\030\003 \002(\005\032@\n\014InfoCapacity"
-    "\022\022\n\ntable_name\030\001 \002(\t\022\014\n\004used\030\002 \002(\003\022\016\n\006re"
-    "main\030\003 \002(\003\032L\n\rInfoPartition\022\022\n\ntable_nam"
-    "e\030\001 \002(\t\022\'\n\013sync_offset\030\002 \003(\0132\022.client.Sy"
-    "ncOffset\032\"\n\004Mget\022\013\n\003key\030\001 \002(\t\022\r\n\005value\030\002"
-    " \002(\014\"C\n\nBinlogSkip\022\022\n\ntable_name\030\001 \002(\t\022\024"
-    "\n\014partition_id\030\002 \002(\005\022\013\n\003gap\030\003 \002(\003\"\324\001\n\013Sy"
-    "ncRequest\022#\n\tsync_type\030\001 \002(\0162\020.client.Sy"
-    "ncType\022\r\n\005epoch\030\002 \002(\003\022\032\n\004from\030\003 \002(\0132\014.cl"
-    "ient.Node\022\'\n\013sync_offset\030\004 \002(\0132\022.client."
-    "SyncOffset\022#\n\007request\030\005 \001(\0132\022.client.Cmd"
-    "Request\022\'\n\013binlog_skip\030\006 \001(\0132\022.client.Bi"
-    "nlogSkip*i\n\004Type\022\010\n\004SYNC\020\000\022\007\n\003SET\020\001\022\007\n\003G"
-    "ET\020\002\022\007\n\003DEL\020\003\022\r\n\tINFOSTATS\020\004\022\020\n\014INFOCAPA"
-    "CITY\020\005\022\021\n\rINFOPARTITION\020\006\022\010\n\004MGET\020\007*\035\n\010S"
-    "yncType\022\007\n\003CMD\020\000\022\010\n\004SKIP\020\001*J\n\nStatusCode"
-    "\022\007\n\003kOk\020\000\022\r\n\tkNotFound\020\001\022\t\n\005kWait\020\002\022\n\n\006k"
-    "Error\020\003\022\r\n\tkFallback\020\004", 1982);
+    "SyncOffset\032P\n\003Set\022\022\n\ntable_name\030\001 \002(\t\022\013\n"
+    "\003key\030\002 \002(\t\022\r\n\005value\030\003 \002(\014\022\014\n\004uuid\030\004 \001(\t\022"
+    "\013\n\003ttl\030\005 \001(\005\0324\n\003Get\022\022\n\ntable_name\030\001 \002(\t\022"
+    "\013\n\003key\030\002 \002(\t\022\014\n\004uuid\030\003 \001(\t\0324\n\003Del\022\022\n\ntab"
+    "le_name\030\001 \002(\t\022\013\n\003key\030\002 \002(\t\022\014\n\004uuid\030\003 \001(\t"
+    "\032\032\n\004Info\022\022\n\ntable_name\030\001 \001(\t\032(\n\004Mget\022\022\n\n"
+    "table_name\030\001 \002(\t\022\014\n\004keys\030\002 \003(\t\"\350\005\n\013CmdRe"
+    "sponse\022\032\n\004type\030\001 \002(\0162\014.client.Type\022 \n\004co"
+    "de\030\002 \002(\0162\022.client.StatusCode\022\013\n\003msg\030\003 \001("
+    "\t\022&\n\004sync\030\004 \001(\0132\030.client.CmdResponse.Syn"
+    "c\022$\n\003get\030\005 \001(\0132\027.client.CmdResponse.Get\022"
+    "\036\n\010redirect\030\006 \001(\0132\014.client.Node\0221\n\ninfo_"
+    "stats\030\007 \003(\0132\035.client.CmdResponse.InfoSta"
+    "ts\0227\n\rinfo_capacity\030\010 \003(\0132 .client.CmdRe"
+    "sponse.InfoCapacity\0229\n\016info_partition\030\t "
+    "\003(\0132!.client.CmdResponse.InfoPartition\022&"
+    "\n\004mget\030\n \003(\0132\030.client.CmdResponse.Mget\032C"
+    "\n\004Sync\022\022\n\ntable_name\030\001 \002(\t\022\'\n\013sync_offse"
+    "t\030\002 \002(\0132\022.client.SyncOffset\032\024\n\003Get\022\r\n\005va"
+    "lue\030\001 \001(\014\032B\n\tInfoStats\022\022\n\ntable_name\030\001 \002"
+    "(\t\022\024\n\014total_querys\030\002 \002(\003\022\013\n\003qps\030\003 \002(\005\032@\n"
+    "\014InfoCapacity\022\022\n\ntable_name\030\001 \002(\t\022\014\n\004use"
+    "d\030\002 \002(\003\022\016\n\006remain\030\003 \002(\003\032L\n\rInfoPartition"
+    "\022\022\n\ntable_name\030\001 \002(\t\022\'\n\013sync_offset\030\002 \003("
+    "\0132\022.client.SyncOffset\032\"\n\004Mget\022\013\n\003key\030\001 \002"
+    "(\t\022\r\n\005value\030\002 \002(\014\"C\n\nBinlogSkip\022\022\n\ntable"
+    "_name\030\001 \002(\t\022\024\n\014partition_id\030\002 \002(\005\022\013\n\003gap"
+    "\030\003 \002(\003\"\324\001\n\013SyncRequest\022#\n\tsync_type\030\001 \002("
+    "\0162\020.client.SyncType\022\r\n\005epoch\030\002 \002(\003\022\032\n\004fr"
+    "om\030\003 \002(\0132\014.client.Node\022\'\n\013sync_offset\030\004 "
+    "\002(\0132\022.client.SyncOffset\022#\n\007request\030\005 \001(\013"
+    "2\022.client.CmdRequest\022\'\n\013binlog_skip\030\006 \001("
+    "\0132\022.client.BinlogSkip*i\n\004Type\022\010\n\004SYNC\020\000\022"
+    "\007\n\003SET\020\001\022\007\n\003GET\020\002\022\007\n\003DEL\020\003\022\r\n\tINFOSTATS\020"
+    "\004\022\020\n\014INFOCAPACITY\020\005\022\021\n\rINFOPARTITION\020\006\022\010"
+    "\n\004MGET\020\007*\035\n\010SyncType\022\007\n\003CMD\020\000\022\010\n\004SKIP\020\001*"
+    "J\n\nStatusCode\022\007\n\003kOk\020\000\022\r\n\tkNotFound\020\001\022\t\n"
+    "\005kWait\020\002\022\n\n\006kError\020\003\022\r\n\tkFallback\020\004", 1995);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "client.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -1533,6 +1534,7 @@ const int CmdRequest_Set::kTableNameFieldNumber;
 const int CmdRequest_Set::kKeyFieldNumber;
 const int CmdRequest_Set::kValueFieldNumber;
 const int CmdRequest_Set::kUuidFieldNumber;
+const int CmdRequest_Set::kTtlFieldNumber;
 #endif  // !_MSC_VER
 
 CmdRequest_Set::CmdRequest_Set()
@@ -1555,6 +1557,7 @@ void CmdRequest_Set::SharedCtor() {
   key_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   value_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   uuid_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  ttl_ = 0;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -1622,6 +1625,7 @@ void CmdRequest_Set::Clear() {
         uuid_->clear();
       }
     }
+    ttl_ = 0;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
@@ -1693,6 +1697,22 @@ bool CmdRequest_Set::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
+        if (input->ExpectTag(40)) goto parse_ttl;
+        break;
+      }
+
+      // optional int32 ttl = 5;
+      case 5: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_ttl:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &ttl_)));
+          set_has_ttl();
+        } else {
+          goto handle_uninterpreted;
+        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -1748,6 +1768,11 @@ void CmdRequest_Set::SerializeWithCachedSizes(
       4, this->uuid(), output);
   }
 
+  // optional int32 ttl = 5;
+  if (has_ttl()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(5, this->ttl(), output);
+  }
+
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -1793,6 +1818,11 @@ void CmdRequest_Set::SerializeWithCachedSizes(
         4, this->uuid(), target);
   }
 
+  // optional int32 ttl = 5;
+  if (has_ttl()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(5, this->ttl(), target);
+  }
+
   if (!unknown_fields().empty()) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         unknown_fields(), target);
@@ -1830,6 +1860,13 @@ int CmdRequest_Set::ByteSize() const {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
           this->uuid());
+    }
+
+    // optional int32 ttl = 5;
+    if (has_ttl()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->ttl());
     }
 
   }
@@ -1871,6 +1908,9 @@ void CmdRequest_Set::MergeFrom(const CmdRequest_Set& from) {
     if (from.has_uuid()) {
       set_uuid(from.uuid());
     }
+    if (from.has_ttl()) {
+      set_ttl(from.ttl());
+    }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
@@ -1899,6 +1939,7 @@ void CmdRequest_Set::Swap(CmdRequest_Set* other) {
     std::swap(key_, other->key_);
     std::swap(value_, other->value_);
     std::swap(uuid_, other->uuid_);
+    std::swap(ttl_, other->ttl_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);
