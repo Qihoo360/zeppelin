@@ -56,7 +56,8 @@ ZPBinlogSendTask::~ZPBinlogSendTask() {
 }
 
 Status ZPBinlogSendTask::Init() {
-  Partition* partition = zp_data_server->GetTablePartitionById(table_name_, partition_id_);
+  std::shared_ptr<Partition> partition =
+    zp_data_server->GetTablePartitionById(table_name_, partition_id_);
   if (partition == NULL) {
     return Status::NotFound("partiiton not exist");
   }
@@ -83,8 +84,8 @@ Status ZPBinlogSendTask::ProcessTask() {
   // Check task position
   uint32_t curnum = 0;
   uint64_t curoffset = 0;
-  Partition* partition = zp_data_server->GetTablePartitionById(table_name_,
-      partition_id_);
+  std::shared_ptr<Partition> partition =
+    zp_data_server->GetTablePartitionById(table_name_,partition_id_);
   if (partition == NULL) {
     return Status::InvalidArgument("Error Task with nono exist partition");
   }

@@ -95,8 +95,9 @@ int ZPSyncConn::DealMessage() {
 
     std::string table_name = cmd->ExtractTable(&crequest);
     self_thread_->PlusStat(table_name);
-    Table* table = zp_data_server->GetTable(table_name);
-    if (table == NULL) {
+    
+    int partition_id = zp_data_server->KeyToPartition(table_name, cmd->ExtractKey(&crequest));
+    if (partition_id < 0) {
       LOG(ERROR) << "SyncConn Receive unknow table: " << table_name;
       return -1;
     }
@@ -105,8 +106,7 @@ int ZPSyncConn::DealMessage() {
         request_.sync_type(),
         cmd->ExtractTable(&crequest),
         ((cmd->ExtractPartition(&crequest) >= 0 )
-         ? cmd->ExtractPartition(&crequest)
-         : table->KeyToPartition(cmd->ExtractKey(&crequest))),
+         ? cmd->ExtractPartition(&crequest) : partition_id),
         slash::IpPortString(request_.from().ip(), request_.from().port()),
         request_.sync_offset().filenum(),
         request_.sync_offset().offset());

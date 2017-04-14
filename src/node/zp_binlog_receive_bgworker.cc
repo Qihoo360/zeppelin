@@ -28,7 +28,7 @@ void ZPBinlogReceiveBgWorker::DoBinlogReceiveTask(void* task) {
   std::string table_name = option.table_name;
   uint32_t partition_id = option.partition_id;
 
-  Partition* partition = zp_data_server->GetTablePartitionById(
+  std::shared_ptr<Partition> partition = zp_data_server->GetTablePartitionById(
       table_name, partition_id);
   if (partition == NULL) {
     LOG(WARNING) << "No partition found for binlog receive bgworker, Partition: "

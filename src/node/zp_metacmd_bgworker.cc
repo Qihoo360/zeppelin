@@ -47,9 +47,11 @@ void ZPMetacmdBGWorker::MetaUpdateTask(void* task) {
 pink::Status ZPMetacmdBGWorker::Send() {
   ZPMeta::MetaCmd request;
 
-  DLOG(INFO) << "MetacmdThread send pull to MetaServer(" << zp_data_server->meta_ip() << ":"
+  DLOG(INFO) << "MetacmdThread send pull to MetaServer("
+    << zp_data_server->meta_ip() << ":"
     << zp_data_server->meta_port() + kMetaPortShiftCmd
-    << ") with local("<< zp_data_server->local_ip() << ":" << zp_data_server->local_port() << ")";
+    << ") with local("<< zp_data_server->local_ip() << ":"
+    << zp_data_server->local_port() << ")";
 
   request.set_type(ZPMeta::Type::PULL);
   ZPMeta::MetaCmd_Pull* pull = request.mutable_pull();
@@ -72,10 +74,13 @@ pink::Status ZPMetacmdBGWorker::Recv(int64_t &receive_epoch) {
   int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;
   result = cli_->Recv(&response); 
   if (result.ok()) {
-    DLOG(INFO) << "succ MetacmdThread recv from MetaServer(" << meta_ip << ":" << meta_port;
+    DLOG(INFO) << "succ MetacmdThread recv from MetaServer("
+      << meta_ip << ":" << meta_port;
     std::string text_format;
     google::protobuf::TextFormat::PrintToString(response, &text_format);
-    DLOG(INFO) << "Receive from meta(" << meta_ip << ":" << meta_port << "), size: " << response.pull().info().size() << " Response:[" << text_format << "]";
+    DLOG(INFO) << "Receive from meta(" << meta_ip << ":" << meta_port
+      << "), size: " << response.pull().info().size()
+      << " Response:[" << text_format << "]";
 
     switch (response.type()) {
       case ZPMeta::Type::PULL:
@@ -88,7 +93,8 @@ pink::Status ZPMetacmdBGWorker::Recv(int64_t &receive_epoch) {
   return result;
 }
 
-pink::Status ZPMetacmdBGWorker::ParsePullResponse(const ZPMeta::MetaCmdResponse &response, int64_t &receive_epoch) {
+pink::Status ZPMetacmdBGWorker::ParsePullResponse(
+    const ZPMeta::MetaCmdResponse &response, int64_t &receive_epoch) {
   if (response.code() != ZPMeta::StatusCode::OK) {
     return pink::Status::IOError(response.msg());
   }
@@ -96,7 +102,8 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(const ZPMeta::MetaCmdResponse 
   receive_epoch = response.pull().version();
   ZPMeta::MetaCmdResponse_Pull pull = response.pull();
 
-  DLOG(INFO) << "receive Pull message, will handle " << pull.info_size() << " Tables.";
+  DLOG(INFO) << "receive Pull message, will handle "
+    << pull.info_size() << " Tables.";
   std::set<std::string> miss_tables; // Tables I response for before but will not any more
   zp_data_server->GetAllTableName(miss_tables);
 
@@ -111,14 +118,15 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(const ZPMeta::MetaCmdResponse 
     miss_tables.erase(table_info.name());
 
     // Add or Update table info
-    Table* table = zp_data_server->GetOrAddTable(table_info.name());
+    std::shared_ptr<Table> table = zp_data_server->GetOrAddTable(table_info.name());
     assert(table != NULL);
 
     table->SetPartitionCount(table_info.partitions_size());
     for (int j = 0; j < table_info.partitions_size(); j++) {
       const ZPMeta::Partitions& partition = table_info.partitions(j);
-      DLOG(INFO) << " - - handle Partition " << partition.id() << 
-          ": master is " << partition.master().ip() << ":" << partition.master().port();
+      DLOG(INFO) << " - - handle Partition " << partition.id()
+        << ": master is " << partition.master().ip()
+        << ":" << partition.master().port();
 
       Node master_node(partition.master().ip(), partition.master().port());
       if (master_node.empty()) {
@@ -127,23 +135,24 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(const ZPMeta::MetaCmdResponse 
       }
       std::set<Node> slave_nodes;
       for (int j = 0; j < partition.slaves_size(); j++) {
-        slave_nodes.insert(Node(partition.slaves(j).ip(), partition.slaves(j).port()));
+        slave_nodes.insert(Node(partition.slaves(j).ip(),
+              partition.slaves(j).port()));
       }
 
-      bool result = table->UpdateOrAddPartition(partition.id(), partition.state(), master_node, slave_nodes);
+      bool result = table->UpdateOrAddPartition(partition.id(),
+          partition.state(), master_node, slave_nodes);
       if (!result) {
-        LOG(WARNING) << "Failed to AddPartition " << partition.id() << ", State: " << static_cast<int>(partition.state())
-          << ", partition master is " << partition.master().ip() << ":" << partition.master().port() ;
+        LOG(WARNING) << "Failed to AddPartition " << partition.id()
+          << ", State: " << static_cast<int>(partition.state())
+          << ", partition master is " << partition.master().ip()
+          << ":" << partition.master().port() ;
       }
     }
   }
 
   // Delete expired tables
   for (auto miss : miss_tables) {
-    // TODO wangkang Maybe we could support Delete Table later
-    Table* table = zp_data_server->GetOrAddTable(miss);
-    assert(table != NULL);
-    table->LeaveAllPartition();
+    zp_data_server->DeleteTable(miss);
   }
   
   // Print partitioin info

@@ -22,7 +22,7 @@
 
 class Partition;
 std::string NewPartitionPath(const std::string& name, const uint32_t current);
-Partition* NewPartition(const std::string &table_name, const std::string& log_path, const std::string& data_path,
+std::shared_ptr<Partition> NewPartition(const std::string &table_name, const std::string& log_path, const std::string& data_path,
                         const int partition_id, const Node& master, const std::set<Node> &slaves);
 
 // Slave item
@@ -170,17 +170,17 @@ class Partition {
 
   // DBSync related
   struct DBSyncArg {
-    Partition *p;
+    Partition* p;
     std::string ip;
     int port;
-    DBSyncArg(Partition *_p, const std::string& _ip, int &_port)
+    DBSyncArg(Partition* _p, const std::string& _ip, int &_port)
       : p(_p), ip(_ip), port(_port) {}
   };
   void DBSyncSendFile(const std::string& ip, int port);
   
   // Purge binlog related
   struct PurgeArg {
-    Partition *p;
+    Partition* p;
     uint32_t to;
     bool manual;
   };

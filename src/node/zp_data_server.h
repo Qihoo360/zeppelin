@@ -113,19 +113,12 @@ class ZPDataServer {
   }
   
   // Table related
-  Table* GetOrAddTable(const std::string &table_name);
+  std::shared_ptr<Table> GetOrAddTable(const std::string &table_name);
   void DeleteTable(const std::string &table_name);
 
-  Table* GetTable(const std::string &table_name);
-  Partition* GetTablePartition(const std::string &table_name, const std::string &key);
-  Partition* GetTablePartitionById(const std::string &table_name, const int partition_id);
-
-  // TODO 
- // template <class VisitorFunction>
- // void WalkPartitions(VisitorFunction vfn) {
- //   slash::RWLock rl(&table_rw_, false);
- //   for_each(partitions_.begin(), partitions_.end(), vfn);
- // }
+  std::shared_ptr<Partition> GetTablePartition(const std::string &table_name, const std::string &key);
+  std::shared_ptr<Partition> GetTablePartitionById(const std::string &table_name, const int partition_id);
+  int KeyToPartition(const std::string& table_name, const std::string &key);
 
   void DumpTablePartitions();
   void DumpBinlogSendTask();
@@ -136,7 +129,7 @@ class ZPDataServer {
   // Backgroud thread
   void BGSaveTaskSchedule(void (*function)(void*), void* arg);
   void BGPurgeTaskSchedule(void (*function)(void*), void* arg);
-  void AddSyncTask(Partition* partition);
+  void AddSyncTask(const std::string& table, int partition_id);
   void AddMetacmdTask();
   Status AddBinlogSendTask(const std::string &table, int parititon_id, const Node& node,
       int32_t filenum, int64_t offset);
@@ -166,7 +159,8 @@ class ZPDataServer {
   //Note: this lock only protect table map, rather than certain partiton which should keep thread safety itself
   pthread_rwlock_t table_rw_;
   std::atomic<int> table_count_;
-  std::unordered_map<std::string, Table*> tables_;
+  std::unordered_map<std::string, std::shared_ptr<Table>> tables_;
+  std::shared_ptr<Table> GetTable(const std::string &table_name);
 
   // Binlog Send related
   slash::Mutex mutex_peers_;
@@ -206,6 +200,7 @@ class ZPDataServer {
 
   rocksdb::Options db_options_;
   void InitDBOptions();
+
 };
 
 #endif

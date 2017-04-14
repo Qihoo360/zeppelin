@@ -7,8 +7,9 @@
 
 extern ZPDataServer* zp_data_server;
 
-Table* NewTable(const std::string &table_name, const std::string log_path, const std::string data_path) {
-  Table* table = new Table(table_name, log_path, data_path);
+std::shared_ptr<Table> NewTable(const std::string &table_name,
+    const std::string log_path, const std::string data_path) {
+  std::shared_ptr<Table> table(new Table(table_name, log_path, data_path));
   // TODO maybe need check
   return table;
 }
@@ -16,7 +17,8 @@ Table* NewTable(const std::string &table_name, const std::string log_path, const
 //
 // Table
 //
-Table::Table(const std::string& table_name, const std::string &log_path, const std::string &data_path)
+Table::Table(const std::string& table_name, const std::string &log_path,
+    const std::string &data_path)
   : table_name_(table_name),
   log_path_(log_path),
   data_path_(data_path),
@@ -40,12 +42,6 @@ Table::Table(const std::string& table_name, const std::string &log_path, const s
 }
 
 Table::~Table() {
-  {
-    slash::RWLock l(&partition_rw_, true);
-    for (auto iter = partitions_.begin(); iter != partitions_.end(); iter++) {
-      delete iter->second;
-    }
-  }
   pthread_rwlock_destroy(&partition_rw_);
   LOG(INFO) << " Table " << table_name_ << " exit!!!";
 }
@@ -56,7 +52,7 @@ bool Table::SetPartitionCount(const int count) {
   return true;
 }
 
-Partition* Table::GetPartition(const std::string &key) {
+std::shared_ptr<Partition> Table::GetPartition(const std::string &key) {
   slash::RWLock l(&partition_rw_, false);
   if (partition_cnt_ > 0) {
     int partition_id = std::hash<std::string>()(key) % partition_cnt_;
@@ -68,7 +64,7 @@ Partition* Table::GetPartition(const std::string &key) {
   return NULL;
 }
 
-Partition* Table::GetPartitionById(const int partition_id) {
+std::shared_ptr<Partition> Table::GetPartitionById(const int partition_id) {
   slash::RWLock l(&partition_rw_, false);
   auto it = partitions_.find(partition_id);
   if (it != partitions_.end()) {
@@ -93,7 +89,7 @@ bool Table::UpdateOrAddPartition(const int partition_id,
   }
 
   // New Partition
-  Partition* partition = NewPartition(table_name_,
+  std::shared_ptr<Partition> partition = NewPartition(table_name_,
       log_path_, data_path_, partition_id, master, slaves);
   assert(partition != NULL);
 

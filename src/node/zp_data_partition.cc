@@ -434,7 +434,7 @@ void Partition::BecomeSlave() {
   repl_state_ = ReplState::kShouldConnect;
   readonly_ = true;
 
-  zp_data_server->AddSyncTask(this);
+  zp_data_server->AddSyncTask(table_name_, partition_id_);
 }
 
 // Get binlog offset when I win the election
@@ -544,14 +544,14 @@ std::string NewPartitionPath(const std::string& name, const uint32_t current) {
   return std::string(buf);
 }
 
-Partition* NewPartition(const std::string &table_name,
+std::shared_ptr<Partition> NewPartition(const std::string &table_name,
     const std::string& log_path, const std::string& data_path,
     const int partition_id, const Node& master, const std::set<Node> &slaves) {
-  Partition* partition = new Partition(table_name, partition_id, log_path, data_path);
+  std::shared_ptr<Partition> partition(new Partition(table_name,
+      partition_id, log_path, data_path));
 
   Status s = partition->Init();
   if (!s.ok()) {
-    delete partition;
     return NULL;
   }
 

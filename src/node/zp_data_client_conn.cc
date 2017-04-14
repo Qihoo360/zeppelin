@@ -62,7 +62,7 @@ int ZPDataClientConn::DealMessageInternal() {
   }
 
   // Single Partition related Cmds
-  Partition* partition = NULL;
+  std::shared_ptr<Partition> partition;
   int partition_id = cmd->ExtractPartition(&request_);
   if (partition_id >= 0) {
     partition = zp_data_server->GetTablePartitionById(cmd->ExtractTable(&request_),

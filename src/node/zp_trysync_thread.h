@@ -11,8 +11,8 @@ class ZPTrySyncThread {
  public:
   ZPTrySyncThread();
   virtual ~ZPTrySyncThread();
-  void TrySyncTaskSchedule(Partition* partition);
-  void TrySyncTask(Partition* partition);
+  void TrySyncTaskSchedule(const std::string& table, int partition_id);
+  void TrySyncTask(const std::string& table_name, int partition_id);
 
  private:
   bool should_exit_;
@@ -20,15 +20,16 @@ class ZPTrySyncThread {
   // BGThread related
   struct TrySyncTaskArg {
     ZPTrySyncThread* thread;
-    Partition* partition;
-    TrySyncTaskArg(ZPTrySyncThread* t, Partition* ptr)
-        : thread(t), partition(ptr){}
+    std::string table_name;
+    int partition_id;
+    TrySyncTaskArg(ZPTrySyncThread* t, const std::string& table, int id)
+        : thread(t), table_name(table), partition_id(id){}
   };
   slash::Mutex bg_thread_protector_;
   pink::BGThread* bg_thread_;
   static void DoTrySyncTask(void* arg);
-  bool SendTrySync(Partition *partition);
-  bool Send(const Partition* partition, pink::PbCli* cli);
+  bool SendTrySync(const std::string& table_name, int partition_id);
+  bool Send(std::shared_ptr<Partition> partition, pink::PbCli* cli);
   
   struct RecvResult {
     client::StatusCode code;
@@ -36,7 +37,8 @@ class ZPTrySyncThread {
     uint32_t filenum;
     uint64_t offset;
   };
-  bool Recv(Partition* partition, pink::PbCli* cli, RecvResult* res);
+  bool Recv(std::shared_ptr<Partition> partition, pink::PbCli* cli,
+      RecvResult* res);
 
   // Rsync related
   int rsync_flag_;

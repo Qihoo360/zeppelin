@@ -16,7 +16,8 @@ class Table;
 class Partition;
 class PartitionBinlogOffset;
 
-Table* NewTable(const std::string &table_name, const std::string log_path, const std::string data_path);
+std::shared_ptr<Table> NewTable(const std::string &table_name,
+    const std::string log_path, const std::string data_path);
 
 class Table {
  public:
@@ -25,8 +26,8 @@ class Table {
   ~Table();
 
   bool SetPartitionCount(int count);
-  Partition* GetPartition(const std::string &key);
-  Partition* GetPartitionById(const int partition_id);
+  std::shared_ptr<Partition> GetPartition(const std::string &key);
+  std::shared_ptr<Partition> GetPartitionById(const int partition_id);
   bool UpdateOrAddPartition(int partition_id, ZPMeta::PState state,
       const Node& master, const std::set<Node>& slaves);
   void LeaveAllPartition();
@@ -45,7 +46,7 @@ class Table {
 
   pthread_rwlock_t partition_rw_;
   std::atomic<int> partition_cnt_;
-  std::map<int, Partition*> partitions_;
+  std::map<int, std::shared_ptr<Partition>> partitions_;
 
   Table(const Table&);
   void operator=(const Table&);

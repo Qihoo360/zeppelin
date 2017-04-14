@@ -24,20 +24,20 @@ ZPTrySyncThread::~ZPTrySyncThread() {
   LOG(INFO) << " TrySync thread " << pthread_self() << " exit!!!";
 }
 
-void ZPTrySyncThread::TrySyncTaskSchedule(Partition* partition) {
+void ZPTrySyncThread::TrySyncTaskSchedule(const std::string& table, int partition_id) {
   slash::MutexLock l(&bg_thread_protector_);
   bg_thread_->StartIfNeed();
-  TrySyncTaskArg *targ = new TrySyncTaskArg(this, partition);
+  TrySyncTaskArg *targ = new TrySyncTaskArg(this, table, partition_id);
   bg_thread_->Schedule(&DoTrySyncTask, static_cast<void*>(targ));
 }
 
 void ZPTrySyncThread::DoTrySyncTask(void* arg) {
   TrySyncTaskArg* targ = static_cast<TrySyncTaskArg*>(arg);
-  (targ->thread)->TrySyncTask(targ->partition);
+  (targ->thread)->TrySyncTask(targ->table_name, targ->partition_id);
   delete targ;
 }
 
-void ZPTrySyncThread::TrySyncTask(Partition* partition) {
+void ZPTrySyncThread::TrySyncTask(const std::string& table_name, int partition_id) {
   // Wait until the server is availible
   while (!should_exit_ && !zp_data_server->Availible()) {
     sleep(kTrySyncInterval);
@@ -47,15 +47,16 @@ void ZPTrySyncThread::TrySyncTask(Partition* partition) {
   }
 
   // Do try sync
-  if (!SendTrySync(partition)) {
+  if (!SendTrySync(table_name, partition_id)) {
     // Need one more trysync, since error happenning or waiting for db sync
     sleep(kTrySyncInterval);
-    LOG(WARNING) << "SendTrySync ReSchedule for partition:" << partition->partition_id();
-    zp_data_server->AddSyncTask(partition);
+    LOG(WARNING) << "SendTrySync ReSchedule for table:" << table_name
+      << ", partition:" << partition_id;
+    zp_data_server->AddSyncTask(table_name, partition_id);
   }
 }
 
-bool ZPTrySyncThread::Send(const Partition* partition, pink::PbCli* cli) {
+bool ZPTrySyncThread::Send(std::shared_ptr<Partition> partition, pink::PbCli* cli) {
   // Generate Request 
   client::CmdRequest request;
   client::CmdRequest_Sync* sync = request.mutable_sync();
@@ -87,7 +88,7 @@ bool ZPTrySyncThread::Send(const Partition* partition, pink::PbCli* cli) {
   return true;
 }
 
-bool ZPTrySyncThread::Recv(Partition* partition, pink::PbCli* cli, RecvResult* res) {
+bool ZPTrySyncThread::Recv(std::shared_ptr<Partition> partition, pink::PbCli* cli, RecvResult* res) {
   // Recv from client
   client::CmdResponse response;
   pink::Status result = cli->Recv(&response); 
@@ -145,7 +146,14 @@ void ZPTrySyncThread::DropConnection(const Node& node) {
 /*
  * Return false if one more trysync is needed
  */
-bool ZPTrySyncThread::SendTrySync(Partition *partition) {
+bool ZPTrySyncThread::SendTrySync(const std::string& table_name, int partition_id) {
+  std::shared_ptr<Partition> partition =
+    zp_data_server->GetTablePartitionById(table_name, partition_id);
+  if (!partition) {
+    // Partition maybe deleted, no need to rescheule again
+    return true;
+  }
+
   if (partition->ShouldWaitDBSync()) {
     if (!partition->TryUpdateMasterOffset()) {
       return false;
@@ -157,7 +165,7 @@ bool ZPTrySyncThread::SendTrySync(Partition *partition) {
   }
 
   if (!partition->ShouldTrySync()) {
-    // Return true so than the trysync will not be reschedule
+    // Return true so that the trysync will not be reschedule
     return true;
   }
 

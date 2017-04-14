@@ -96,13 +96,6 @@ ZPDataServer::~ZPDataServer() {
   delete zp_trysync_thread_;
   delete zp_metacmd_bgworker_;
 
-  {
-    slash::RWLock l(&table_rw_, true);
-    // TODO
-    for (auto iter = tables_.begin(); iter != tables_.end(); iter++) {
-      delete iter->second;
-    }
-  }
   LOG(INFO) << " All Tables exit!!!";
 
   bgsave_thread_.Stop();
@@ -278,33 +271,30 @@ Status ZPDataServer::SendToPeer(const Node &node, const client::SyncRequest &msg
   return Status::OK();
 }
 
-Table* ZPDataServer::GetOrAddTable(const std::string &table_name) {
+std::shared_ptr<Table> ZPDataServer::GetOrAddTable(const std::string &table_name) {
   slash::RWLock l(&table_rw_, true);
   auto it = tables_.find(table_name);
   if (it != tables_.end()) {
     return it->second;
   }
 
-  Table *table = NewTable(table_name, g_zp_conf->log_path(), g_zp_conf->data_path());
+  std::shared_ptr<Table> table = NewTable(table_name,
+      g_zp_conf->log_path(), g_zp_conf->data_path());
   tables_[table_name] = table;
   return table;
 }
 
 void ZPDataServer::DeleteTable(const std::string &table_name) {
-  // TODO wangkang delete table
-  // Before which all partition point outside should become invalid
-  return;
   slash::RWLock l(&table_rw_, true);
   auto it = tables_.find(table_name);
   if (it != tables_.end()) {
-    delete it->second;
+    it->second->LeaveAllPartition();
   }
   tables_.erase(table_name);
 }
 
-// Note: table pointer 
-Table* ZPDataServer::GetTable(const std::string &table_name) {
-  slash::RWLock l(&table_rw_, false);
+// Required: hold table_rw_
+std::shared_ptr<Table> ZPDataServer::GetTable(const std::string &table_name) {
   auto it = tables_.find(table_name);
   if (it != tables_.end()) {
     return it->second;
@@ -314,14 +304,15 @@ Table* ZPDataServer::GetTable(const std::string &table_name) {
 
 // We will dump all tables when table_name is empty.
 void ZPDataServer::DumpTableBinlogOffsets(const std::string &table_name,
-                                          std::unordered_map<std::string, std::vector<PartitionBinlogOffset>> &all_offset) {
+    std::unordered_map<std::string,
+    std::vector<PartitionBinlogOffset>> &all_offset) {
   slash::RWLock l(&table_rw_, false);
   if (table_name.empty()) {
     for (auto& item : tables_) {
       std::vector<PartitionBinlogOffset> poffset;
       (item.second)->DumpPartitionBinlogOffsets(poffset);
       all_offset.insert(std::pair<std::string,
-                        std::vector<PartitionBinlogOffset>>(item.first, poffset));
+          std::vector<PartitionBinlogOffset>>(item.first, poffset));
     }
   } else {
     auto it = tables_.find(table_name);
@@ -329,25 +320,31 @@ void ZPDataServer::DumpTableBinlogOffsets(const std::string &table_name,
       std::vector<PartitionBinlogOffset> poffset;
       it->second->DumpPartitionBinlogOffsets(poffset);
       all_offset.insert(std::pair<std::string,
-                        std::vector<PartitionBinlogOffset>>(it->first, poffset));
+          std::vector<PartitionBinlogOffset>>(it->first, poffset));
     }
   }
 }
 
-Partition* ZPDataServer::GetTablePartition(const std::string &table_name, const std::string &key) {
-  Table* table = GetTable(table_name);
-  return table == NULL ? NULL : table->GetPartition(key);
+std::shared_ptr<Partition> ZPDataServer::GetTablePartition(
+    const std::string &table_name, const std::string &key) {
+  slash::RWLock l(&table_rw_, false);
+  std::shared_ptr<Table> table = GetTable(table_name);
+  return table ? table->GetPartition(key) : NULL;
 }
 
-Partition* ZPDataServer::GetTablePartitionById(const std::string &table_name, const int partition_id) {
-  Table* table = GetTable(table_name);
-  return table == NULL ? NULL : table->GetPartitionById(partition_id);
+std::shared_ptr<Partition> ZPDataServer::GetTablePartitionById(
+    const std::string &table_name, const int partition_id) {
+  slash::RWLock l(&table_rw_, false);
+  std::shared_ptr<Table> table = GetTable(table_name);
+  return table ? table->GetPartitionById(partition_id) : NULL;
 }
 
-//inline uint32_t ZPDataServer::KeyToPartition(const std::string &key) {
-//  assert(partition_count_ != 0);
-//  return std::hash<std::string>()(key) % partition_count_;
-//}
+int ZPDataServer::KeyToPartition(const std::string& table_name,
+    const std::string &key) {
+  slash::RWLock l(&table_rw_, false);
+  std::shared_ptr<Table> table = GetTable(table_name);
+  return table ? table->KeyToPartition(key) : -1;
+}
 
 void ZPDataServer::BGSaveTaskSchedule(void (*function)(void*), void* arg) {
   slash::MutexLock l(&bgsave_thread_protector_);
@@ -387,8 +384,8 @@ void ZPDataServer::DumpBinlogSendTask() {
   LOG(INFO) << "BinlogSendTask--------------------------";
 }
 
-void ZPDataServer::AddSyncTask(Partition* partition) {
-  zp_trysync_thread_->TrySyncTaskSchedule(partition);
+void ZPDataServer::AddSyncTask(const std::string& table, int partition_id) {
+  zp_trysync_thread_->TrySyncTaskSchedule(table, partition_id);
 }
 
 void ZPDataServer::AddMetacmdTask() {

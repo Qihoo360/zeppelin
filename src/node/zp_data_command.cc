@@ -13,6 +13,7 @@ void SetCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
   const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+  // User raw pointer instead of shared_ptr, since it is surely be existed during this caller
   Partition* ptr = static_cast<Partition*>(partition);
 
   response->Clear();
@@ -101,7 +102,7 @@ void MgetCmd::Do(const google::protobuf::Message *req,
   client::CmdResponse sub_res;
   sub_res.set_type(client::Type::GET);
   for (auto& key : request->mget().keys()) {
-    Partition* partition = zp_data_server->GetTablePartition(request->mget().table_name(),
+    std::shared_ptr<Partition> partition = zp_data_server->GetTablePartition(request->mget().table_name(),
         key);
     if (partition == NULL) {
       LOG(WARNING) << "command failed: Mget, no partition for key:" << key;
