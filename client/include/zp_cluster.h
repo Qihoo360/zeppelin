@@ -35,7 +35,7 @@ class Cluster {
 
   // data cmd
   Status Set(const std::string& table, const std::string& key,
-      const std::string& value);
+      const std::string& value, int32_t ttl = -1);
   Status Get(const std::string& table, const std::string& key,
       std::string* value);
   Status Delete(const std::string& table, const std::string& key);
@@ -110,7 +110,8 @@ class Client {
   Status Connect();
 
   // data cmd
-  Status Set(const std::string& key, const std::string& value);
+  Status Set(const std::string& key, const std::string& value,
+      int32_t ttl = -1);
   Status Get(const std::string& key, std::string* value);
   Status Delete(const std::string& key);
   Status Mget(const std::vector<std::string>& keys,

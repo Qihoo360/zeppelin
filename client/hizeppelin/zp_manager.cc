@@ -170,14 +170,19 @@ void StartRepl(libzp::Cluster* cluster) {
       }
 
     } else if (!strncasecmp(line, "SET ", 4)) {
-      if (line_args.size() != 4) {
+      if (line_args.size() != 4
+          || line_args.size() != 5) {
         std::cout << "arg num wrong" << std::endl;
         continue;
       }
       std::string table_name = line_args[1];
       std::string key = line_args[2];
       std::string value = line_args[3];
-      s = cluster->Set(table_name, key, value);
+      int ttl = -1;
+      if (line_args.size() == 5) {
+        ttl = atoi(line_args[4].c_str());
+      }
+      s = cluster->Set(table_name, key, value, ttl);
       std::cout << s.ToString() << std::endl;
 
     } else if (!strncasecmp(line, "SETMASTER ", 10)) {
@@ -274,6 +279,14 @@ void StartRepl(libzp::Cluster* cluster) {
           std::cout << *iter << std::endl;
           iter++;
         }
+        std::cout << s.ToString() << std::endl;
+
+    } else if (!strncasecmp(line, "DROPTABLE ", 10)) {
+        if (line_args.size() != 2) {
+          std::cout << "arg num wrong" << std::endl;
+          continue;
+        }
+        s = cluster->DropTable(line_args[1]);
         std::cout << s.ToString() << std::endl;
 
     } else if (!strncasecmp(line, "QPS", 3)) {

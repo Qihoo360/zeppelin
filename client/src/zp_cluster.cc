@@ -48,7 +48,7 @@ Cluster::~Cluster() {
 
 
 Status Cluster::Set(const std::string& table, const std::string& key,
-    const std::string& value) {
+    const std::string& value, int32_t ttl) {
   Status s;
 
   data_cmd_.Clear();
@@ -57,6 +57,10 @@ Status Cluster::Set(const std::string& table, const std::string& key,
   set_info->set_table_name(table);
   set_info->set_key(key);
   set_info->set_value(value);
+  if (ttl >= 0) {
+    set_info->set_ttl(ttl);
+  }
+
   s = SubmitDataCmd(table, key);
   if (s.IsIOError() || s.IsCorruption()) {
     return s;
@@ -689,8 +693,9 @@ Status Client::Connect() {
   return s;
 }
 
-Status Client::Set(const std::string& key, const std::string& value) {
-  return cluster_->Set(table_, key, value);
+Status Client::Set(const std::string& key,
+    const std::string& value, int32_t ttl) {
+  return cluster_->Set(table_, key, value, ttl);
 }
 
 Status Client::Get(const std::string& key, std::string* value) {
