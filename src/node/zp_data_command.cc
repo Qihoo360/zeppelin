@@ -20,11 +20,25 @@ void SetCmd::Do(const google::protobuf::Message *req,
   response->set_type(client::Type::SET);
 
   rocksdb::Status s;
-  if (request->set().has_ttl()) {
+  if (request->set().has_expire()) {
+    int base = 0, ttl = request->set().expire().ttl();
+    if (request->set().expire().has_base()) {
+      // Come from sync conn
+      base = request->set().expire().base();
+      ttl -= (time(NULL) - base);
+      if (ttl <= 0) {
+        // Already expire
+        DLOG(INFO) << "Set key(" << request->set().key() << ") at "
+          << ptr->table_name() << "_"
+          << ptr->partition_id() << " already expired";
+        response->set_code(client::StatusCode::kOk);
+        return;
+      }
+    }
     s = ptr->db()->Put(rocksdb::WriteOptions(),
         request->set().key(),
         request->set().value(),
-        request->set().ttl());
+        ttl);
   } else {
     s = ptr->db()->Put(rocksdb::WriteOptions(),
         request->set().key(),
@@ -40,6 +54,17 @@ void SetCmd::Do(const google::protobuf::Message *req,
     DLOG(INFO) << "Set key(" << request->set().key() << ") at "
       << ptr->table_name() << "_" << ptr->partition_id() << " ok";
   }
+}
+
+bool SetCmd::GenerateLog(const google::protobuf::Message *req,
+    std::string* log_raw) const {
+  const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
+  if (request->set().has_expire()) {
+    client::CmdRequest log_req(*request);
+    log_req.mutable_set()->mutable_expire()->set_base(time(NULL));
+    return log_req.SerializeToString(log_raw);
+  }
+  return request->SerializeToString(log_raw);
 }
 
 void GetCmd::Do(const google::protobuf::Message *req,

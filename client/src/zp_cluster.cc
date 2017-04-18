@@ -58,7 +58,7 @@ Status Cluster::Set(const std::string& table, const std::string& key,
   set_info->set_key(key);
   set_info->set_value(value);
   if (ttl >= 0) {
-    set_info->set_ttl(ttl);
+    set_info->mutable_expire()->set_ttl(ttl);
   }
 
   s = SubmitDataCmd(table, key);

@@ -26,6 +26,9 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* SyncOffset_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   SyncOffset_reflection_ = NULL;
+const ::google::protobuf::Descriptor* KeyExpire_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  KeyExpire_reflection_ = NULL;
 const ::google::protobuf::Descriptor* CmdRequest_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   CmdRequest_reflection_ = NULL;
@@ -120,7 +123,23 @@ void protobuf_AssignDesc_client_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(SyncOffset));
-  CmdRequest_descriptor_ = file->message_type(2);
+  KeyExpire_descriptor_ = file->message_type(2);
+  static const int KeyExpire_offsets_[2] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyExpire, base_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyExpire, ttl_),
+  };
+  KeyExpire_reflection_ =
+    new ::google::protobuf::internal::GeneratedMessageReflection(
+      KeyExpire_descriptor_,
+      KeyExpire::default_instance_,
+      KeyExpire_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyExpire, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(KeyExpire, _unknown_fields_),
+      -1,
+      ::google::protobuf::DescriptorPool::generated_pool(),
+      ::google::protobuf::MessageFactory::generated_factory(),
+      sizeof(KeyExpire));
+  CmdRequest_descriptor_ = file->message_type(3);
   static const int CmdRequest_offsets_[7] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest, type_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest, sync_),
@@ -164,7 +183,7 @@ void protobuf_AssignDesc_client_2eproto() {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest_Set, key_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest_Set, value_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest_Set, uuid_),
-    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest_Set, ttl_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest_Set, expire_),
   };
   CmdRequest_Set_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -242,7 +261,7 @@ void protobuf_AssignDesc_client_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(CmdRequest_Mget));
-  CmdResponse_descriptor_ = file->message_type(3);
+  CmdResponse_descriptor_ = file->message_type(4);
   static const int CmdResponse_offsets_[10] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdResponse, type_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdResponse, code_),
@@ -363,7 +382,7 @@ void protobuf_AssignDesc_client_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(CmdResponse_Mget));
-  BinlogSkip_descriptor_ = file->message_type(4);
+  BinlogSkip_descriptor_ = file->message_type(5);
   static const int BinlogSkip_offsets_[3] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BinlogSkip, table_name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(BinlogSkip, partition_id_),
@@ -380,7 +399,7 @@ void protobuf_AssignDesc_client_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(BinlogSkip));
-  SyncRequest_descriptor_ = file->message_type(5);
+  SyncRequest_descriptor_ = file->message_type(6);
   static const int SyncRequest_offsets_[6] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SyncRequest, sync_type_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(SyncRequest, epoch_),
@@ -419,6 +438,8 @@ void protobuf_RegisterTypes(const ::std::string&) {
     Node_descriptor_, &Node::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     SyncOffset_descriptor_, &SyncOffset::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+    KeyExpire_descriptor_, &KeyExpire::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     CmdRequest_descriptor_, &CmdRequest::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
@@ -460,6 +481,8 @@ void protobuf_ShutdownFile_client_2eproto() {
   delete Node_reflection_;
   delete SyncOffset::default_instance_;
   delete SyncOffset_reflection_;
+  delete KeyExpire::default_instance_;
+  delete KeyExpire_reflection_;
   delete CmdRequest::default_instance_;
   delete CmdRequest_reflection_;
   delete CmdRequest_Sync::default_instance_;
@@ -504,7 +527,8 @@ void protobuf_AddDesc_client_2eproto() {
     "\n\014client.proto\022\006client\" \n\004Node\022\n\n\002ip\030\001 \002"
     "(\t\022\014\n\004port\030\002 \002(\005\"@\n\nSyncOffset\022\017\n\007filenu"
     "m\030\001 \002(\005\022\016\n\006offset\030\002 \002(\003\022\021\n\tpartition\030\003 \001"
-    "(\005\"\361\004\n\nCmdRequest\022\032\n\004type\030\001 \002(\0162\014.client"
+    "(\005\"&\n\tKeyExpire\022\014\n\004base\030\001 \002(\005\022\013\n\003ttl\030\002 \002"
+    "(\005\"\207\005\n\nCmdRequest\022\032\n\004type\030\001 \002(\0162\014.client"
     ".Type\022%\n\004sync\030\002 \001(\0132\027.client.CmdRequest."
     "Sync\022#\n\003set\030\003 \001(\0132\026.client.CmdRequest.Se"
     "t\022#\n\003get\030\004 \001(\0132\026.client.CmdRequest.Get\022#"
@@ -513,48 +537,50 @@ void protobuf_AddDesc_client_2eproto() {
     "et\030\007 \001(\0132\027.client.CmdRequest.Mget\032_\n\004Syn"
     "c\022\032\n\004node\030\001 \002(\0132\014.client.Node\022\022\n\ntable_n"
     "ame\030\002 \002(\t\022\'\n\013sync_offset\030\003 \002(\0132\022.client."
-    "SyncOffset\032P\n\003Set\022\022\n\ntable_name\030\001 \002(\t\022\013\n"
+    "SyncOffset\032f\n\003Set\022\022\n\ntable_name\030\001 \002(\t\022\013\n"
     "\003key\030\002 \002(\t\022\r\n\005value\030\003 \002(\014\022\014\n\004uuid\030\004 \001(\t\022"
-    "\013\n\003ttl\030\005 \001(\005\0324\n\003Get\022\022\n\ntable_name\030\001 \002(\t\022"
-    "\013\n\003key\030\002 \002(\t\022\014\n\004uuid\030\003 \001(\t\0324\n\003Del\022\022\n\ntab"
-    "le_name\030\001 \002(\t\022\013\n\003key\030\002 \002(\t\022\014\n\004uuid\030\003 \001(\t"
-    "\032\032\n\004Info\022\022\n\ntable_name\030\001 \001(\t\032(\n\004Mget\022\022\n\n"
-    "table_name\030\001 \002(\t\022\014\n\004keys\030\002 \003(\t\"\350\005\n\013CmdRe"
-    "sponse\022\032\n\004type\030\001 \002(\0162\014.client.Type\022 \n\004co"
-    "de\030\002 \002(\0162\022.client.StatusCode\022\013\n\003msg\030\003 \001("
-    "\t\022&\n\004sync\030\004 \001(\0132\030.client.CmdResponse.Syn"
-    "c\022$\n\003get\030\005 \001(\0132\027.client.CmdResponse.Get\022"
-    "\036\n\010redirect\030\006 \001(\0132\014.client.Node\0221\n\ninfo_"
-    "stats\030\007 \003(\0132\035.client.CmdResponse.InfoSta"
-    "ts\0227\n\rinfo_capacity\030\010 \003(\0132 .client.CmdRe"
-    "sponse.InfoCapacity\0229\n\016info_partition\030\t "
-    "\003(\0132!.client.CmdResponse.InfoPartition\022&"
-    "\n\004mget\030\n \003(\0132\030.client.CmdResponse.Mget\032C"
-    "\n\004Sync\022\022\n\ntable_name\030\001 \002(\t\022\'\n\013sync_offse"
-    "t\030\002 \002(\0132\022.client.SyncOffset\032\024\n\003Get\022\r\n\005va"
-    "lue\030\001 \001(\014\032B\n\tInfoStats\022\022\n\ntable_name\030\001 \002"
-    "(\t\022\024\n\014total_querys\030\002 \002(\003\022\013\n\003qps\030\003 \002(\005\032@\n"
-    "\014InfoCapacity\022\022\n\ntable_name\030\001 \002(\t\022\014\n\004use"
-    "d\030\002 \002(\003\022\016\n\006remain\030\003 \002(\003\032L\n\rInfoPartition"
-    "\022\022\n\ntable_name\030\001 \002(\t\022\'\n\013sync_offset\030\002 \003("
-    "\0132\022.client.SyncOffset\032\"\n\004Mget\022\013\n\003key\030\001 \002"
-    "(\t\022\r\n\005value\030\002 \002(\014\"C\n\nBinlogSkip\022\022\n\ntable"
-    "_name\030\001 \002(\t\022\024\n\014partition_id\030\002 \002(\005\022\013\n\003gap"
-    "\030\003 \002(\003\"\324\001\n\013SyncRequest\022#\n\tsync_type\030\001 \002("
-    "\0162\020.client.SyncType\022\r\n\005epoch\030\002 \002(\003\022\032\n\004fr"
-    "om\030\003 \002(\0132\014.client.Node\022\'\n\013sync_offset\030\004 "
-    "\002(\0132\022.client.SyncOffset\022#\n\007request\030\005 \001(\013"
-    "2\022.client.CmdRequest\022\'\n\013binlog_skip\030\006 \001("
-    "\0132\022.client.BinlogSkip*i\n\004Type\022\010\n\004SYNC\020\000\022"
-    "\007\n\003SET\020\001\022\007\n\003GET\020\002\022\007\n\003DEL\020\003\022\r\n\tINFOSTATS\020"
-    "\004\022\020\n\014INFOCAPACITY\020\005\022\021\n\rINFOPARTITION\020\006\022\010"
-    "\n\004MGET\020\007*\035\n\010SyncType\022\007\n\003CMD\020\000\022\010\n\004SKIP\020\001*"
-    "J\n\nStatusCode\022\007\n\003kOk\020\000\022\r\n\tkNotFound\020\001\022\t\n"
-    "\005kWait\020\002\022\n\n\006kError\020\003\022\r\n\tkFallback\020\004", 1995);
+    "!\n\006expire\030\005 \001(\0132\021.client.KeyExpire\0324\n\003Ge"
+    "t\022\022\n\ntable_name\030\001 \002(\t\022\013\n\003key\030\002 \002(\t\022\014\n\004uu"
+    "id\030\003 \001(\t\0324\n\003Del\022\022\n\ntable_name\030\001 \002(\t\022\013\n\003k"
+    "ey\030\002 \002(\t\022\014\n\004uuid\030\003 \001(\t\032\032\n\004Info\022\022\n\ntable_"
+    "name\030\001 \001(\t\032(\n\004Mget\022\022\n\ntable_name\030\001 \002(\t\022\014"
+    "\n\004keys\030\002 \003(\t\"\350\005\n\013CmdResponse\022\032\n\004type\030\001 \002"
+    "(\0162\014.client.Type\022 \n\004code\030\002 \002(\0162\022.client."
+    "StatusCode\022\013\n\003msg\030\003 \001(\t\022&\n\004sync\030\004 \001(\0132\030."
+    "client.CmdResponse.Sync\022$\n\003get\030\005 \001(\0132\027.c"
+    "lient.CmdResponse.Get\022\036\n\010redirect\030\006 \001(\0132"
+    "\014.client.Node\0221\n\ninfo_stats\030\007 \003(\0132\035.clie"
+    "nt.CmdResponse.InfoStats\0227\n\rinfo_capacit"
+    "y\030\010 \003(\0132 .client.CmdResponse.InfoCapacit"
+    "y\0229\n\016info_partition\030\t \003(\0132!.client.CmdRe"
+    "sponse.InfoPartition\022&\n\004mget\030\n \003(\0132\030.cli"
+    "ent.CmdResponse.Mget\032C\n\004Sync\022\022\n\ntable_na"
+    "me\030\001 \002(\t\022\'\n\013sync_offset\030\002 \002(\0132\022.client.S"
+    "yncOffset\032\024\n\003Get\022\r\n\005value\030\001 \001(\014\032B\n\tInfoS"
+    "tats\022\022\n\ntable_name\030\001 \002(\t\022\024\n\014total_querys"
+    "\030\002 \002(\003\022\013\n\003qps\030\003 \002(\005\032@\n\014InfoCapacity\022\022\n\nt"
+    "able_name\030\001 \002(\t\022\014\n\004used\030\002 \002(\003\022\016\n\006remain\030"
+    "\003 \002(\003\032L\n\rInfoPartition\022\022\n\ntable_name\030\001 \002"
+    "(\t\022\'\n\013sync_offset\030\002 \003(\0132\022.client.SyncOff"
+    "set\032\"\n\004Mget\022\013\n\003key\030\001 \002(\t\022\r\n\005value\030\002 \002(\014\""
+    "C\n\nBinlogSkip\022\022\n\ntable_name\030\001 \002(\t\022\024\n\014par"
+    "tition_id\030\002 \002(\005\022\013\n\003gap\030\003 \002(\003\"\324\001\n\013SyncReq"
+    "uest\022#\n\tsync_type\030\001 \002(\0162\020.client.SyncTyp"
+    "e\022\r\n\005epoch\030\002 \002(\003\022\032\n\004from\030\003 \002(\0132\014.client."
+    "Node\022\'\n\013sync_offset\030\004 \002(\0132\022.client.SyncO"
+    "ffset\022#\n\007request\030\005 \001(\0132\022.client.CmdReque"
+    "st\022\'\n\013binlog_skip\030\006 \001(\0132\022.client.BinlogS"
+    "kip*i\n\004Type\022\010\n\004SYNC\020\000\022\007\n\003SET\020\001\022\007\n\003GET\020\002\022"
+    "\007\n\003DEL\020\003\022\r\n\tINFOSTATS\020\004\022\020\n\014INFOCAPACITY\020"
+    "\005\022\021\n\rINFOPARTITION\020\006\022\010\n\004MGET\020\007*\035\n\010SyncTy"
+    "pe\022\007\n\003CMD\020\000\022\010\n\004SKIP\020\001*J\n\nStatusCode\022\007\n\003k"
+    "Ok\020\000\022\r\n\tkNotFound\020\001\022\t\n\005kWait\020\002\022\n\n\006kError"
+    "\020\003\022\r\n\tkFallback\020\004", 2057);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "client.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
   SyncOffset::default_instance_ = new SyncOffset();
+  KeyExpire::default_instance_ = new KeyExpire();
   CmdRequest::default_instance_ = new CmdRequest();
   CmdRequest_Sync::default_instance_ = new CmdRequest_Sync();
   CmdRequest_Set::default_instance_ = new CmdRequest_Set();
@@ -573,6 +599,7 @@ void protobuf_AddDesc_client_2eproto() {
   SyncRequest::default_instance_ = new SyncRequest();
   Node::default_instance_->InitAsDefaultInstance();
   SyncOffset::default_instance_->InitAsDefaultInstance();
+  KeyExpire::default_instance_->InitAsDefaultInstance();
   CmdRequest::default_instance_->InitAsDefaultInstance();
   CmdRequest_Sync::default_instance_->InitAsDefaultInstance();
   CmdRequest_Set::default_instance_->InitAsDefaultInstance();
@@ -1208,6 +1235,255 @@ void SyncOffset::Swap(SyncOffset* other) {
 // ===================================================================
 
 #ifndef _MSC_VER
+const int KeyExpire::kBaseFieldNumber;
+const int KeyExpire::kTtlFieldNumber;
+#endif  // !_MSC_VER
+
+KeyExpire::KeyExpire()
+  : ::google::protobuf::Message() {
+  SharedCtor();
+}
+
+void KeyExpire::InitAsDefaultInstance() {
+}
+
+KeyExpire::KeyExpire(const KeyExpire& from)
+  : ::google::protobuf::Message() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void KeyExpire::SharedCtor() {
+  _cached_size_ = 0;
+  base_ = 0;
+  ttl_ = 0;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+KeyExpire::~KeyExpire() {
+  SharedDtor();
+}
+
+void KeyExpire::SharedDtor() {
+  if (this != default_instance_) {
+  }
+}
+
+void KeyExpire::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* KeyExpire::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return KeyExpire_descriptor_;
+}
+
+const KeyExpire& KeyExpire::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_client_2eproto();
+  return *default_instance_;
+}
+
+KeyExpire* KeyExpire::default_instance_ = NULL;
+
+KeyExpire* KeyExpire::New() const {
+  return new KeyExpire;
+}
+
+void KeyExpire::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    base_ = 0;
+    ttl_ = 0;
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  mutable_unknown_fields()->Clear();
+}
+
+bool KeyExpire::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // required int32 base = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &base_)));
+          set_has_base();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(16)) goto parse_ttl;
+        break;
+      }
+
+      // required int32 ttl = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_ttl:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &ttl_)));
+          set_has_ttl();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void KeyExpire::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // required int32 base = 1;
+  if (has_base()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->base(), output);
+  }
+
+  // required int32 ttl = 2;
+  if (has_ttl()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->ttl(), output);
+  }
+
+  if (!unknown_fields().empty()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+}
+
+::google::protobuf::uint8* KeyExpire::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
+  // required int32 base = 1;
+  if (has_base()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->base(), target);
+  }
+
+  // required int32 ttl = 2;
+  if (has_ttl()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->ttl(), target);
+  }
+
+  if (!unknown_fields().empty()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  return target;
+}
+
+int KeyExpire::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // required int32 base = 1;
+    if (has_base()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->base());
+    }
+
+    // required int32 ttl = 2;
+    if (has_ttl()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->ttl());
+    }
+
+  }
+  if (!unknown_fields().empty()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void KeyExpire::MergeFrom(const ::google::protobuf::Message& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  const KeyExpire* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const KeyExpire*>(
+      &from);
+  if (source == NULL) {
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+    MergeFrom(*source);
+  }
+}
+
+void KeyExpire::MergeFrom(const KeyExpire& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_base()) {
+      set_base(from.base());
+    }
+    if (from.has_ttl()) {
+      set_ttl(from.ttl());
+    }
+  }
+  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+}
+
+void KeyExpire::CopyFrom(const ::google::protobuf::Message& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void KeyExpire::CopyFrom(const KeyExpire& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool KeyExpire::IsInitialized() const {
+  if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
+
+  return true;
+}
+
+void KeyExpire::Swap(KeyExpire* other) {
+  if (other != this) {
+    std::swap(base_, other->base_);
+    std::swap(ttl_, other->ttl_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    _unknown_fields_.Swap(&other->_unknown_fields_);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::google::protobuf::Metadata KeyExpire::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = KeyExpire_descriptor_;
+  metadata.reflection = KeyExpire_reflection_;
+  return metadata;
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
 const int CmdRequest_Sync::kNodeFieldNumber;
 const int CmdRequest_Sync::kTableNameFieldNumber;
 const int CmdRequest_Sync::kSyncOffsetFieldNumber;
@@ -1534,7 +1810,7 @@ const int CmdRequest_Set::kTableNameFieldNumber;
 const int CmdRequest_Set::kKeyFieldNumber;
 const int CmdRequest_Set::kValueFieldNumber;
 const int CmdRequest_Set::kUuidFieldNumber;
-const int CmdRequest_Set::kTtlFieldNumber;
+const int CmdRequest_Set::kExpireFieldNumber;
 #endif  // !_MSC_VER
 
 CmdRequest_Set::CmdRequest_Set()
@@ -1543,6 +1819,7 @@ CmdRequest_Set::CmdRequest_Set()
 }
 
 void CmdRequest_Set::InitAsDefaultInstance() {
+  expire_ = const_cast< ::client::KeyExpire*>(&::client::KeyExpire::default_instance());
 }
 
 CmdRequest_Set::CmdRequest_Set(const CmdRequest_Set& from)
@@ -1557,7 +1834,7 @@ void CmdRequest_Set::SharedCtor() {
   key_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   value_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   uuid_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  ttl_ = 0;
+  expire_ = NULL;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -1579,6 +1856,7 @@ void CmdRequest_Set::SharedDtor() {
     delete uuid_;
   }
   if (this != default_instance_) {
+    delete expire_;
   }
 }
 
@@ -1625,7 +1903,9 @@ void CmdRequest_Set::Clear() {
         uuid_->clear();
       }
     }
-    ttl_ = 0;
+    if (has_expire()) {
+      if (expire_ != NULL) expire_->::client::KeyExpire::Clear();
+    }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
@@ -1697,19 +1977,17 @@ bool CmdRequest_Set::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(40)) goto parse_ttl;
+        if (input->ExpectTag(42)) goto parse_expire;
         break;
       }
 
-      // optional int32 ttl = 5;
+      // optional .client.KeyExpire expire = 5;
       case 5: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
-            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_ttl:
-          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 input, &ttl_)));
-          set_has_ttl();
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_expire:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_expire()));
         } else {
           goto handle_uninterpreted;
         }
@@ -1768,9 +2046,10 @@ void CmdRequest_Set::SerializeWithCachedSizes(
       4, this->uuid(), output);
   }
 
-  // optional int32 ttl = 5;
-  if (has_ttl()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(5, this->ttl(), output);
+  // optional .client.KeyExpire expire = 5;
+  if (has_expire()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
+      5, this->expire(), output);
   }
 
   if (!unknown_fields().empty()) {
@@ -1818,9 +2097,11 @@ void CmdRequest_Set::SerializeWithCachedSizes(
         4, this->uuid(), target);
   }
 
-  // optional int32 ttl = 5;
-  if (has_ttl()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(5, this->ttl(), target);
+  // optional .client.KeyExpire expire = 5;
+  if (has_expire()) {
+    target = ::google::protobuf::internal::WireFormatLite::
+      WriteMessageNoVirtualToArray(
+        5, this->expire(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -1862,11 +2143,11 @@ int CmdRequest_Set::ByteSize() const {
           this->uuid());
     }
 
-    // optional int32 ttl = 5;
-    if (has_ttl()) {
+    // optional .client.KeyExpire expire = 5;
+    if (has_expire()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
-          this->ttl());
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->expire());
     }
 
   }
@@ -1908,8 +2189,8 @@ void CmdRequest_Set::MergeFrom(const CmdRequest_Set& from) {
     if (from.has_uuid()) {
       set_uuid(from.uuid());
     }
-    if (from.has_ttl()) {
-      set_ttl(from.ttl());
+    if (from.has_expire()) {
+      mutable_expire()->::client::KeyExpire::MergeFrom(from.expire());
     }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
@@ -1930,6 +2211,9 @@ void CmdRequest_Set::CopyFrom(const CmdRequest_Set& from) {
 bool CmdRequest_Set::IsInitialized() const {
   if ((_has_bits_[0] & 0x00000007) != 0x00000007) return false;
 
+  if (has_expire()) {
+    if (!this->expire().IsInitialized()) return false;
+  }
   return true;
 }
 
@@ -1939,7 +2223,7 @@ void CmdRequest_Set::Swap(CmdRequest_Set* other) {
     std::swap(key_, other->key_);
     std::swap(value_, other->value_);
     std::swap(uuid_, other->uuid_);
-    std::swap(ttl_, other->ttl_);
+    std::swap(expire_, other->expire_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

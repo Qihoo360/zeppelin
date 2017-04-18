@@ -50,7 +50,11 @@ class Cmd {
   virtual ~Cmd() {}
 
   virtual void Do(const google::protobuf::Message *request,
-      google::protobuf::Message *response, void* partition = NULL) const = 0;
+      google::protobuf::Message *response, void* arg = NULL) const = 0;
+  virtual bool GenerateLog(const google::protobuf::Message *request,
+      std::string* log_raw) const {
+    return request->SerializeToString(log_raw);
+  }
   virtual std::string name() const = 0;
   virtual std::string ExtractTable(const google::protobuf::Message *request) const {
     return "";

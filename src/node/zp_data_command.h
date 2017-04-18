@@ -12,6 +12,8 @@ class SetCmd : public Cmd {
   }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition) const;
+  virtual bool GenerateLog(const google::protobuf::Message *request,
+      std::string* raw) const override;
   virtual std::string ExtractTable(const google::protobuf::Message *req) const {
     const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
     return request->set().table_name();

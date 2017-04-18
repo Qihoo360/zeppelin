@@ -706,11 +706,12 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
   cmd->Do(&req, &res, this);
 
   if (cmd->is_write()) {
-    if (res.code() == client::StatusCode::kOk  && req.type() != client::Type::SYNC) {
+    if (res.code() == client::StatusCode::kOk) {
       // Restore Message
       std::string raw;
-      req.SerializeToString(&raw);
-      logger_->Put(raw);
+      if(cmd->GenerateLog(&req, &raw)) {
+        logger_->Put(raw);
+      }
     }
     mutex_record_.Unlock(key);
   }

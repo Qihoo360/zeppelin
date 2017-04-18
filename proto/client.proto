@@ -35,6 +35,11 @@ message SyncOffset {
   optional int32 partition = 3;
 }
 
+message KeyExpire {
+  optional int32 base = 1;
+  required int32 ttl = 2;
+}
+
 message CmdRequest {
   required Type type = 1;
 
@@ -51,7 +56,7 @@ message CmdRequest {
     required string key = 2;
     required bytes value = 3;
     optional string uuid = 4;
-    optional int32 ttl = 5;
+    optional KeyExpire expire  = 5;
   }
   optional Set set = 3;
 

@@ -36,6 +36,7 @@ void protobuf_ShutdownFile_client_2eproto();
 
 class Node;
 class SyncOffset;
+class KeyExpire;
 class CmdRequest;
 class CmdRequest_Sync;
 class CmdRequest_Set;
@@ -320,6 +321,98 @@ class SyncOffset : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class KeyExpire : public ::google::protobuf::Message {
+ public:
+  KeyExpire();
+  virtual ~KeyExpire();
+
+  KeyExpire(const KeyExpire& from);
+
+  inline KeyExpire& operator=(const KeyExpire& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const KeyExpire& default_instance();
+
+  void Swap(KeyExpire* other);
+
+  // implements Message ----------------------------------------------
+
+  KeyExpire* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const KeyExpire& from);
+  void MergeFrom(const KeyExpire& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required int32 base = 1;
+  inline bool has_base() const;
+  inline void clear_base();
+  static const int kBaseFieldNumber = 1;
+  inline ::google::protobuf::int32 base() const;
+  inline void set_base(::google::protobuf::int32 value);
+
+  // required int32 ttl = 2;
+  inline bool has_ttl() const;
+  inline void clear_ttl();
+  static const int kTtlFieldNumber = 2;
+  inline ::google::protobuf::int32 ttl() const;
+  inline void set_ttl(::google::protobuf::int32 value);
+
+  // @@protoc_insertion_point(class_scope:client.KeyExpire)
+ private:
+  inline void set_has_base();
+  inline void clear_has_base();
+  inline void set_has_ttl();
+  inline void clear_has_ttl();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::int32 base_;
+  ::google::protobuf::int32 ttl_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static KeyExpire* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class CmdRequest_Sync : public ::google::protobuf::Message {
  public:
   CmdRequest_Sync();
@@ -533,12 +626,14 @@ class CmdRequest_Set : public ::google::protobuf::Message {
   inline ::std::string* release_uuid();
   inline void set_allocated_uuid(::std::string* uuid);
 
-  // optional int32 ttl = 5;
-  inline bool has_ttl() const;
-  inline void clear_ttl();
-  static const int kTtlFieldNumber = 5;
-  inline ::google::protobuf::int32 ttl() const;
-  inline void set_ttl(::google::protobuf::int32 value);
+  // optional .client.KeyExpire expire = 5;
+  inline bool has_expire() const;
+  inline void clear_expire();
+  static const int kExpireFieldNumber = 5;
+  inline const ::client::KeyExpire& expire() const;
+  inline ::client::KeyExpire* mutable_expire();
+  inline ::client::KeyExpire* release_expire();
+  inline void set_allocated_expire(::client::KeyExpire* expire);
 
   // @@protoc_insertion_point(class_scope:client.CmdRequest.Set)
  private:
@@ -550,8 +645,8 @@ class CmdRequest_Set : public ::google::protobuf::Message {
   inline void clear_has_value();
   inline void set_has_uuid();
   inline void clear_has_uuid();
-  inline void set_has_ttl();
-  inline void clear_has_ttl();
+  inline void set_has_expire();
+  inline void clear_has_expire();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -559,7 +654,7 @@ class CmdRequest_Set : public ::google::protobuf::Message {
   ::std::string* key_;
   ::std::string* value_;
   ::std::string* uuid_;
-  ::google::protobuf::int32 ttl_;
+  ::client::KeyExpire* expire_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
@@ -2379,6 +2474,54 @@ inline void SyncOffset::set_partition(::google::protobuf::int32 value) {
 
 // -------------------------------------------------------------------
 
+// KeyExpire
+
+// required int32 base = 1;
+inline bool KeyExpire::has_base() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void KeyExpire::set_has_base() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void KeyExpire::clear_has_base() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void KeyExpire::clear_base() {
+  base_ = 0;
+  clear_has_base();
+}
+inline ::google::protobuf::int32 KeyExpire::base() const {
+  return base_;
+}
+inline void KeyExpire::set_base(::google::protobuf::int32 value) {
+  set_has_base();
+  base_ = value;
+}
+
+// required int32 ttl = 2;
+inline bool KeyExpire::has_ttl() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void KeyExpire::set_has_ttl() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void KeyExpire::clear_has_ttl() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void KeyExpire::clear_ttl() {
+  ttl_ = 0;
+  clear_has_ttl();
+}
+inline ::google::protobuf::int32 KeyExpire::ttl() const {
+  return ttl_;
+}
+inline void KeyExpire::set_ttl(::google::protobuf::int32 value) {
+  set_has_ttl();
+  ttl_ = value;
+}
+
+// -------------------------------------------------------------------
+
 // CmdRequest_Sync
 
 // required .client.Node node = 1;
@@ -2811,26 +2954,42 @@ inline void CmdRequest_Set::set_allocated_uuid(::std::string* uuid) {
   }
 }
 
-// optional int32 ttl = 5;
-inline bool CmdRequest_Set::has_ttl() const {
+// optional .client.KeyExpire expire = 5;
+inline bool CmdRequest_Set::has_expire() const {
   return (_has_bits_[0] & 0x00000010u) != 0;
 }
-inline void CmdRequest_Set::set_has_ttl() {
+inline void CmdRequest_Set::set_has_expire() {
   _has_bits_[0] |= 0x00000010u;
 }
-inline void CmdRequest_Set::clear_has_ttl() {
+inline void CmdRequest_Set::clear_has_expire() {
   _has_bits_[0] &= ~0x00000010u;
 }
-inline void CmdRequest_Set::clear_ttl() {
-  ttl_ = 0;
-  clear_has_ttl();
+inline void CmdRequest_Set::clear_expire() {
+  if (expire_ != NULL) expire_->::client::KeyExpire::Clear();
+  clear_has_expire();
 }
-inline ::google::protobuf::int32 CmdRequest_Set::ttl() const {
-  return ttl_;
+inline const ::client::KeyExpire& CmdRequest_Set::expire() const {
+  return expire_ != NULL ? *expire_ : *default_instance_->expire_;
 }
-inline void CmdRequest_Set::set_ttl(::google::protobuf::int32 value) {
-  set_has_ttl();
-  ttl_ = value;
+inline ::client::KeyExpire* CmdRequest_Set::mutable_expire() {
+  set_has_expire();
+  if (expire_ == NULL) expire_ = new ::client::KeyExpire;
+  return expire_;
+}
+inline ::client::KeyExpire* CmdRequest_Set::release_expire() {
+  clear_has_expire();
+  ::client::KeyExpire* temp = expire_;
+  expire_ = NULL;
+  return temp;
+}
+inline void CmdRequest_Set::set_allocated_expire(::client::KeyExpire* expire) {
+  delete expire_;
+  expire_ = expire;
+  if (expire) {
+    set_has_expire();
+  } else {
+    clear_has_expire();
+  }
 }
 
 // -------------------------------------------------------------------
