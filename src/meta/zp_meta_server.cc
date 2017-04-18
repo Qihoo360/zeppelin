@@ -1,6 +1,8 @@
 #include <glog/logging.h>
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/repeated_field.h>
+#include <cstdlib>
+#include <ctime>
 
 #include "slash_string.h"
 #include "zp_meta_server.h"
@@ -541,17 +543,21 @@ Status ZPMetaServer::Distribute(const std::string &name, int num) {
 
   table.set_name(name);
 
+  std::srand(std::time(0));
+  int rand_pos = (std::rand() % an_num);
+  LOG(INFO) << "Distribute start at " << rand_pos;
+
   for (int i = 0; i < num; i++) {
     ZPMeta::Partitions *p = table.add_partitions();
     p->set_id(i);
     p->set_state(ZPMeta::PState::ACTIVE);
-    p->mutable_master()->CopyFrom(alive_nodes[i % an_num].node());
+    p->mutable_master()->CopyFrom(alive_nodes[(i + rand_pos) % an_num].node());
 
     ZPMeta::Node *slave = p->add_slaves();
-    slave->CopyFrom(alive_nodes[(i + 1) % an_num].node());
+    slave->CopyFrom(alive_nodes[(i + rand_pos + 1) % an_num].node());
 
     slave = p->add_slaves();
-    slave->CopyFrom(alive_nodes[(i + 2) % an_num].node());
+    slave->CopyFrom(alive_nodes[(i + rand_pos + 2) % an_num].node());
   }
 
   s = SetTable(table);
@@ -576,9 +582,10 @@ Status ZPMetaServer::Distribute(const std::string &name, int num) {
   }
 
   std::string ip_port;
-  int pnum = 3+num-1 ;
-  for (auto iter = alive_nodes.begin(); pnum && iter != alive_nodes.end(); iter++) {
-    ip_port = slash::IpPortString(iter->node().ip(), iter->node().port());
+  int pnum = 3+num-1;
+  for (int i = 0; pnum && i < an_num; i++) {
+    ip_port = slash::IpPortString(alive_nodes[(i + rand_pos) % an_num].node().ip(),
+        alive_nodes[(i + rand_pos) % an_num].node().port());
     auto it = nodes_.find(ip_port);
     if (it != nodes_.end()) {
       it->second.insert(name);
