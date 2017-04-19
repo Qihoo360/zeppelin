@@ -375,7 +375,7 @@ class KeyExpire : public ::google::protobuf::Message {
 
   // accessors -------------------------------------------------------
 
-  // required int32 base = 1;
+  // optional int32 base = 1;
   inline bool has_base() const;
   inline void clear_base();
   static const int kBaseFieldNumber = 1;
@@ -2476,7 +2476,7 @@ inline void SyncOffset::set_partition(::google::protobuf::int32 value) {
 
 // KeyExpire
 
-// required int32 base = 1;
+// optional int32 base = 1;
 inline bool KeyExpire::has_base() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }

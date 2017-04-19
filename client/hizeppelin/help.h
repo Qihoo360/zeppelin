@@ -5,7 +5,7 @@ struct CommandHelp {
   char *summary;
 } commandHelp[] = {
   { "SET",
-  "table key value",
+  "table key value [ttl]",
   3,
   "set key"},
 
@@ -43,6 +43,11 @@ struct CommandHelp {
   "",
   0,
   "list all tables"},
+
+  { "DROPTABLE",
+  "table",
+  1,
+  "drop one table"},
 
   { "LISTNODE",
   "",

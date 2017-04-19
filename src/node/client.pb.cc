@@ -527,7 +527,7 @@ void protobuf_AddDesc_client_2eproto() {
     "\n\014client.proto\022\006client\" \n\004Node\022\n\n\002ip\030\001 \002"
     "(\t\022\014\n\004port\030\002 \002(\005\"@\n\nSyncOffset\022\017\n\007filenu"
     "m\030\001 \002(\005\022\016\n\006offset\030\002 \002(\003\022\021\n\tpartition\030\003 \001"
-    "(\005\"&\n\tKeyExpire\022\014\n\004base\030\001 \002(\005\022\013\n\003ttl\030\002 \002"
+    "(\005\"&\n\tKeyExpire\022\014\n\004base\030\001 \001(\005\022\013\n\003ttl\030\002 \002"
     "(\005\"\207\005\n\nCmdRequest\022\032\n\004type\030\001 \002(\0162\014.client"
     ".Type\022%\n\004sync\030\002 \001(\0132\027.client.CmdRequest."
     "Sync\022#\n\003set\030\003 \001(\0132\026.client.CmdRequest.Se"
@@ -1305,7 +1305,7 @@ bool KeyExpire::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required int32 base = 1;
+      // optional int32 base = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -1354,7 +1354,7 @@ bool KeyExpire::MergePartialFromCodedStream(
 
 void KeyExpire::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required int32 base = 1;
+  // optional int32 base = 1;
   if (has_base()) {
     ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->base(), output);
   }
@@ -1372,7 +1372,7 @@ void KeyExpire::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* KeyExpire::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required int32 base = 1;
+  // optional int32 base = 1;
   if (has_base()) {
     target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->base(), target);
   }
@@ -1393,7 +1393,7 @@ int KeyExpire::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required int32 base = 1;
+    // optional int32 base = 1;
     if (has_base()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::Int32Size(
@@ -1457,7 +1457,7 @@ void KeyExpire::CopyFrom(const KeyExpire& from) {
 }
 
 bool KeyExpire::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
+  if ((_has_bits_[0] & 0x00000002) != 0x00000002) return false;
 
   return true;
 }

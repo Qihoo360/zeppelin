@@ -661,13 +661,9 @@ Status Cluster::GetDataMaster(const std::string& table,
 
 Status Cluster::ResetClusterMap(const ZPMeta::MetaCmdResponse_Pull& pull) {
   epoch_ = pull.version();
+  tables_.clear();
   for (int i = 0; i < pull.info_size(); i++) {
     std::cout << "reset table:" << pull.info(i).name() << std::endl;
-    auto it = tables_.find(pull.info(i).name());
-    if (it != tables_.end()) {
-      delete it->second;
-      tables_.erase(it);
-    }
     Table* new_table = new Table(pull.info(i));
     std::string table_name = pull.info(i).name();
     tables_.insert(std::make_pair(pull.info(i).name(), new_table));

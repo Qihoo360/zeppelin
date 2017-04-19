@@ -58,7 +58,7 @@ void PullCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
   ZPMeta::MetaCmdResponse_Pull ms_info;
   Status s = g_meta_server->GetMSInfo(tables, &ms_info);
   LOG(INFO) << "Pull table num: " << ms_info.info_size();
-  if (!s.ok()) {
+  if (!s.ok() && !s.IsNotFound()) {
     ms_info.set_version(-1);
     response->set_code(ZPMeta::StatusCode::ERROR);
     response->set_msg(s.ToString());
