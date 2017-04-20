@@ -9,9 +9,49 @@
 #include<string>
 
 #include "slash_string.h"
+#include "slash_mutex.h"
 
 
 namespace libzp {
+
+struct CmdRpcArg {
+  Cluster* cluster;
+  std::string table;
+  std::string key;
+  client::CmdRequest* request;
+  client::CmdResponse* response;
+  Status result;
+
+  CmdRpcArg(Cluster* c, const std::string& t, const std::string& k)
+    : cluster(c), table(t), key(k),
+    result(Status::Incomplete("Not complete")),
+    cond_(&mu_), done_(false) {
+      request = new client::CmdRequest();
+      response = new client::CmdResponse();
+    }
+  
+  ~CmdRpcArg() {
+    delete request;
+    delete response;
+  }
+
+  void WaitRpcDone() {
+    slash::MutexLock l(&mu_);
+    while (!done_) {
+      cond_.Wait();  
+    }
+  }
+  void RpcDone() {
+    slash::MutexLock l(&mu_);
+    done_ = true;
+    cond_.Signal();
+  }
+
+private:
+  slash::Mutex mu_;
+  slash::CondVar cond_;
+  bool done_;
+};
 
 Cluster::Cluster(const Options& options) {
   meta_addr_ = options.meta_addr;
@@ -37,11 +77,16 @@ void Cluster::InitParam() {
 }
 
 Cluster::~Cluster() {
+  for (auto& bg : cmd_workers_) {
+    delete bg.second;
+  }
+
   std::unordered_map<std::string, Table*>::iterator iter = tables_.begin();
   while (iter != tables_.end()) {
     delete iter->second;
     iter++;
   }
+
   delete meta_pool_;
   delete data_pool_;
 }
@@ -61,7 +106,7 @@ Status Cluster::Set(const std::string& table, const std::string& key,
     set_info->mutable_expire()->set_ttl(ttl);
   }
 
-  s = SubmitDataCmd(table, key);
+  s = SubmitDataCmd(table, key, data_cmd_, &data_res_);
   if (s.IsIOError() || s.IsCorruption()) {
     return s;
   }
@@ -79,7 +124,7 @@ Status Cluster::Delete(const std::string& table, const std::string& key) {
   client::CmdRequest_Del* del_info = data_cmd_.mutable_del();
   del_info->set_table_name(table);
   del_info->set_key(key);
-  s = SubmitDataCmd(table, key);
+  s = SubmitDataCmd(table, key, data_cmd_, &data_res_);
   if (s.IsIOError() || s.IsCorruption()) {
     return s;
   }
@@ -101,7 +146,7 @@ Status Cluster::Get(const std::string& table, const std::string& key,
   get_cmd->set_table_name(table);
   get_cmd->set_key(key);
 
-  s = SubmitDataCmd(table, key);
+  s = SubmitDataCmd(table, key, data_cmd_, &data_res_);
 
   if (s.IsIOError() || s.IsCorruption()) {
     return s;
@@ -127,49 +172,69 @@ Status Cluster::Mget(const std::string& table,
   Status s;
   Node master;
   // Build multi command to nodes: master node -> Command
-  std::unordered_map<std::string, client::CmdRequest*> key_distribute;
+  std::map<Node, CmdRpcArg*> key_distribute;
   for (auto& k : keys) {
     s = GetDataMaster(table, k, &master);
     if (!s.ok()) {
       return s;
     }
 
-    std::string host = slash::IpPortString(master.ip, master.port);
-    if (key_distribute.find(host) == key_distribute.end()) {
-      client::CmdRequest* cptr = new client::CmdRequest(); 
-      cptr->set_type(client::Type::MGET);
-      client::CmdRequest_Mget* new_mget_cmd = cptr->mutable_mget();
+    if (key_distribute.find(master) == key_distribute.end()) {
+      CmdRpcArg* arg = new CmdRpcArg(this, table, k);
+      arg->request->set_type(client::Type::MGET);
+      client::CmdRequest_Mget* new_mget_cmd = arg->request->mutable_mget();
       new_mget_cmd->set_table_name(table);
-      key_distribute.insert(std::pair<std::string, client::CmdRequest*>(
-            host, cptr));
+      key_distribute.insert(std::pair<Node, CmdRpcArg*>(
+            master, arg));
     }
-    key_distribute[host]->mutable_mget()->add_keys(k);
+    key_distribute[master]->request->mutable_mget()->add_keys(k);
   }
 
   // Distribute command
+  DistributeDataRpc(key_distribute);
+
   bool has_error = false;
   for (auto& kd : key_distribute) {
-    data_cmd_.Clear();
-    data_cmd_.CopyFrom(*(kd.second));
-    s = SubmitDataCmd(table, kd.second->mget().keys(0));
-    if (!s.ok()
-        || data_res_.code() != client::StatusCode::kOk ) {
+    client::CmdResponse *res = kd.second->response;
+    if (!kd.second->result.ok()
+        || res->code() != client::StatusCode::kOk ) {
       has_error = true;
-    } else {
-      for (auto& kv : data_res_.mget()) {
-        values->insert(std::pair<std::string, std::string>(kv.key(),
-              kv.value()));
-      }
+    }
+    for (auto& kv : res->mget()) {
+      values->insert(std::pair<std::string, std::string>(kv.key(),
+            kv.value()));
     }
     delete kd.second;
   }
-
   if (has_error) {
-    return Status::Corruption("error happend");
+    return Status::Corruption("mget error happened");
   }
   return Status::OK();
 }
 
+void Cluster::DoSubmitDataCmd(void* arg) {
+  CmdRpcArg *carg = static_cast<CmdRpcArg*>(arg);
+  carg->result = carg->cluster->SubmitDataCmd(carg->table, carg->key,
+      *(carg->request), carg->response);
+  carg->RpcDone();
+}
+
+void Cluster::DistributeDataRpc(
+    const std::map<Node, CmdRpcArg*>& key_distribute) {
+  for (auto& kd : key_distribute) {
+    if (cmd_workers_.find(kd.first) == cmd_workers_.end()) {
+      pink::BGThread* bg = new pink::BGThread();
+      bg->StartIfNeed();
+      cmd_workers_.insert(std::pair<Node, pink::BGThread*>(kd.first, bg));
+    }
+    cmd_workers_[kd.first]->Schedule(DoSubmitDataCmd, kd.second);
+  }
+
+  for (auto& kd : key_distribute) {
+    kd.second->WaitRpcDone();
+  }
+}
+  
 Status Cluster::CreateTable(const std::string& table_name,
     const int partition_num) {
   meta_cmd_.Clear();
@@ -178,10 +243,10 @@ Status Cluster::CreateTable(const std::string& table_name,
   init->set_name(table_name);
   init->set_num(partition_num);
 
-  pink::Status ret = SubmitMetaCmd();
+  Status ret = SubmitMetaCmd();
 
   if (!ret.ok()) {
-    return pink::Status::IOError(meta_res_.msg());
+    return Status::IOError(meta_res_.msg());
   }
   if (meta_res_.code() != ZPMeta::StatusCode::OK) {
     return Status::NotSupported(meta_res_.msg());
@@ -196,10 +261,10 @@ Status Cluster::DropTable(const std::string& table_name) {
   ZPMeta::MetaCmd_DropTable* drop_table = meta_cmd_.mutable_drop_table();
   drop_table->set_name(table_name);
 
-  pink::Status ret = SubmitMetaCmd();
+  Status ret = SubmitMetaCmd();
 
   if (!ret.ok()) {
-    return pink::Status::IOError(meta_res_.msg());
+    return Status::IOError(meta_res_.msg());
   }
   if (meta_res_.code() != ZPMeta::StatusCode::OK) {
     return Status::NotSupported(meta_res_.msg());
@@ -233,7 +298,7 @@ Status Cluster::Pull(const std::string& table) {
   meta_cmd_.set_type(ZPMeta::Type::PULL);
   ZPMeta::MetaCmd_Pull* pull = meta_cmd_.mutable_pull();
   pull->set_name(table);
-  pink::Status ret = SubmitMetaCmd();
+  Status ret = SubmitMetaCmd();
 
   if (!ret.ok()) {
     return ret;
@@ -267,10 +332,10 @@ Status Cluster::SetMaster(const std::string& table_name,
   node->set_ip(ip_port.ip);
   node->set_port(ip_port.port);
 
-  pink::Status ret = SubmitMetaCmd();
+  Status ret = SubmitMetaCmd();
 
   if (!ret.ok()) {
-    return pink::Status::IOError(meta_res_.msg());
+    return Status::IOError(meta_res_.msg());
   }
   if (meta_res_.code() != ZPMeta::StatusCode::OK) {
     return Status::NotSupported(meta_res_.msg());
@@ -290,10 +355,10 @@ Status Cluster::AddSlave(const std::string& table_name,
   node->set_ip(ip_port.ip);
   node->set_port(ip_port.port);
 
-  pink::Status ret = SubmitMetaCmd();
+  Status ret = SubmitMetaCmd();
 
   if (!ret.ok()) {
-    return pink::Status::IOError(meta_res_.msg());
+    return Status::IOError(meta_res_.msg());
   }
   if (meta_res_.code() != ZPMeta::StatusCode::OK) {
     return Status::NotSupported(meta_res_.msg());
@@ -315,10 +380,10 @@ Status Cluster::RemoveSlave(const std::string& table_name,
   node->set_ip(ip_port.ip);
   node->set_port(ip_port.port);
 
-  pink::Status ret = SubmitMetaCmd();
+  Status ret = SubmitMetaCmd();
 
   if (!ret.ok()) {
-    return pink::Status::IOError(meta_res_.msg());
+    return Status::IOError(meta_res_.msg());
   }
   if (meta_res_.code() != ZPMeta::StatusCode::OK) {
     return Status::NotSupported(meta_res_.msg());
@@ -331,10 +396,10 @@ Status Cluster::ListMeta(Node* master, std::vector<Node>* nodes) {
   meta_cmd_.Clear();
   meta_cmd_.set_type(ZPMeta::Type::LISTMETA);
 
-  pink::Status ret = SubmitMetaCmd();
+  Status ret = SubmitMetaCmd();
 
   if (!ret.ok()) {
-    return pink::Status::IOError(meta_res_.msg());
+    return Status::IOError(meta_res_.msg());
   }
   if (meta_res_.code() != ZPMeta::StatusCode::OK) {
     return Status::NotSupported(meta_res_.msg());
@@ -356,10 +421,10 @@ Status Cluster::ListNode(std::vector<Node>* nodes,
   meta_cmd_.Clear();
   meta_cmd_.set_type(ZPMeta::Type::LISTNODE);
 
-  pink::Status ret = SubmitMetaCmd();
+  Status ret = SubmitMetaCmd();
 
   if (!ret.ok()) {
-    return pink::Status::IOError(meta_res_.msg());
+    return Status::IOError(meta_res_.msg());
   }
   if (meta_res_.code() != ZPMeta::StatusCode::OK) {
     return Status::NotSupported(meta_res_.msg());
@@ -383,10 +448,10 @@ Status Cluster::ListTable(std::vector<std::string>* tables) {
   meta_cmd_.Clear();
   meta_cmd_.set_type(ZPMeta::Type::LISTTABLE);
 
-  pink::Status ret = SubmitMetaCmd();
+  Status ret = SubmitMetaCmd();
 
   if (!ret.ok()) {
-    return pink::Status::IOError(meta_res_.msg());
+    return Status::IOError(meta_res_.msg());
   }
   if (meta_res_.code() != ZPMeta::StatusCode::OK) {
     return Status::NotSupported(meta_res_.msg());
@@ -417,7 +482,7 @@ Status Cluster::InfoQps(const std::string& table, int* qps, int* total_query) {
   while (node_iter != related_nodes.end()) {
     data_cmd_.Clear();
     data_cmd_.set_type(client::Type::INFOSTATS);
-    s = TryDataRpc(*node_iter);
+    s = TryDataRpc(*node_iter, data_cmd_, &data_res_);
     node_iter++;
     if (s.IsIOError() || s.IsCorruption()) {
       continue;
@@ -441,7 +506,7 @@ Status Cluster::InfoOffset(const Node& node, const std::string& table,
   Pull(table);
   data_cmd_.Clear();
   data_cmd_.set_type(client::Type::INFOPARTITION);
-  s = TryDataRpc(node);
+  s = TryDataRpc(node, data_cmd_, &data_res_);
 
   for (int i = 0; i < data_res_.info_partition_size(); i++) {
     std::string name = data_res_.info_partition(i).table_name();
@@ -480,7 +545,7 @@ Status Cluster::InfoSpace(const std::string& table,
   while (node_iter != related_nodes.end()) {
     data_cmd_.Clear();
     data_cmd_.set_type(client::Type::INFOCAPACITY);
-    s = TryDataRpc(*node_iter);
+    s = TryDataRpc(*node_iter, data_cmd_, &data_res_);
     if (s.IsIOError() || s.IsCorruption()) {
       node_iter++;
       continue;
@@ -502,6 +567,7 @@ Status Cluster::InfoSpace(const std::string& table,
 }
 
 Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
+    client::CmdRequest& req, client::CmdResponse *res,
     bool has_pull) {
   Status s;
   Node master;
@@ -514,12 +580,12 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
     s = Pull(table);
     has_pull = true;
     if (s.ok()) {
-      return SubmitDataCmd(table, key, has_pull);
+      return SubmitDataCmd(table, key, req, res, has_pull);
     } else {
       return Status::IOError("can't find data node, can't pull either");
     }
   }
-  s =  TryDataRpc(master);
+  s =  TryDataRpc(master, req, res);
   if (!s.ok()) {
     if (has_pull) {
       return Status::IOError("can't connect to data node after pull");
@@ -527,7 +593,7 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
     s = Pull(table);
     has_pull = true;
     if (s.ok()) {
-      return SubmitDataCmd(table, key, has_pull);
+      return SubmitDataCmd(table, key, req, res, has_pull);
     } else {
       return Status::IOError("can't connect to data node, can't pull either");
     }
@@ -535,20 +601,22 @@ Status Cluster::SubmitDataCmd(const std::string& table, const std::string& key,
   return s;
 }
 
-Status Cluster::TryDataRpc(const Node& master, int attempt) {
+Status Cluster::TryDataRpc(const Node& master,
+    client::CmdRequest& req, client::CmdResponse *res,
+    int attempt) {
   ZpCli* data_cli = data_pool_->GetConnection(master);
-  Status s;
+  pink::Status s;
   if (data_cli) {
-    s = data_cli->cli->Send(&data_cmd_);
+    s = data_cli->cli->Send(&req);
     if (s.ok()) {
-      s = data_cli->cli->Recv(&data_res_);
+      s = data_cli->cli->Recv(res);
     }
     if (s.ok()) {
-      return s;
+      return Status::OK();
     } else if (s.IsIOError() || s.IsCorruption()) {
       data_pool_->RemoveConnection(data_cli);
       if (attempt <= kDataAttempt) {
-        return TryDataRpc(master, attempt+1);
+        return TryDataRpc(master, req, res, attempt+1);
       }
       return Status::IOError("data connectin can't work,after attempts");
     }
@@ -557,7 +625,7 @@ Status Cluster::TryDataRpc(const Node& master, int attempt) {
 }
 
 Status Cluster::SubmitMetaCmd(int attempt) {
-  Status s = Status::IOError("got no meta cli");
+  pink::Status s = pink::Status::IOError("got no meta cli");
   Node meta;
   meta = GetRandomMetaAddr();
   ZpCli* meta_cli = meta_pool_->GetConnection(meta);
@@ -567,7 +635,7 @@ Status Cluster::SubmitMetaCmd(int attempt) {
       s = meta_cli->cli->Recv(&meta_res_);
     }
     if (s.ok()) {
-      return s;
+      return Status::OK();
     } else if (s.IsIOError() || s.IsCorruption()) {
       meta_pool_->RemoveConnection(meta_cli);
       if (attempt <= kMetaAttempt) {

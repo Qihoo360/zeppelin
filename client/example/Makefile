@@ -31,7 +31,9 @@ INCLUDE_PATH = -I../ \
 		   -I../third/linenoise/  \
 		   -I../third/  \
 		   -I$(THIRD_PATH)/pink/output/  \
-		   -I$(THIRD_PATH)/pink/output/include/
+		   -I$(THIRD_PATH)/pink/output/include/ \
+		   -I$(THIRD_PATH)/slash/output/  \
+		   -I$(THIRD_PATH)/slash/output/include/
 
 .PHONY: all clean version
 

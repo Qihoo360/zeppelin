@@ -33,12 +33,12 @@ ZpCli::~ZpCli() {
 Status ZpCli::CheckTimeout() {
   uint64_t now = NowMicros();
   if ((now - lastchecktime) > kDataConnTimeout) {
-    Status s = cli->Connect(node.ip, node.port);
+    pink::Status s = cli->Connect(node.ip, node.port);
     if (s.ok()) {
       lastchecktime = now;
       return Status::OK();
     }
-    return s;
+    return Status::Corruption(s.ToString());
   }
   lastchecktime = now;
   return Status::OK();
@@ -70,7 +70,7 @@ ZpCli* ConnectionPool::GetConnection(const Node& node) {
     }
   } else {
     ZpCli* cli = new ZpCli(node);
-    Status s = cli->cli->Connect(node.ip, node.port);
+    pink::Status s = cli->cli->Connect(node.ip, node.port);
     if (s.ok()) {
       conn_pool_.insert(std::make_pair(node, cli));
       return cli;

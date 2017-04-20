@@ -10,6 +10,7 @@
 #include <map>
 
 #include "include/pb_cli.h"
+#include "slash_status.h"
 
 #include "include/zp_meta.pb.h"
 #include "include/zp_table.h"
@@ -17,7 +18,7 @@
 
 namespace libzp {
 
-typedef pink::Status Status;
+typedef slash::Status Status;
 
 struct ZpCli {
  public:

@@ -13,7 +13,9 @@
 #include <unordered_map>
 
 
+#include "slash_status.h"
 #include "include/pb_cli.h"
+#include "include/bg_thread.h"
 
 #include "include/zp_meta.pb.h"
 #include "include/client.pb.h"
@@ -24,6 +26,8 @@
 
 namespace libzp {
 
+typedef slash::Status Status;
+struct CmdRpcArg;
 
 class Cluster {
  public :
@@ -71,6 +75,9 @@ class Cluster {
       const std::string& key);
 
  private :
+  static void DoSubmitDataCmd(void* arg);
+  void DistributeDataRpc(
+      const std::map<Node, CmdRpcArg*>& key_distribute);
 
   void InitParam();
   Node GetRandomMetaAddr();
@@ -79,9 +86,11 @@ class Cluster {
   Status GetDataMaster(const std::string& table,
       const std::string& key, Node* master, bool has_pull = false);
 
-  Status SubmitDataCmd(const std::string& table,
-      const std::string& key, bool has_pull = false);
-  Status TryDataRpc(const Node& node, int attempt = 0);
+  Status SubmitDataCmd(const std::string& table, const std::string& key,
+      client::CmdRequest& req, client::CmdResponse *res, bool has_pull = false);
+  Status TryDataRpc(const Node& master,
+      client::CmdRequest& req, client::CmdResponse *res,
+      int attempt = 0);
   Status SubmitMetaCmd(int attempt = 0);
   Status ResetClusterMap(const ZPMeta::MetaCmdResponse_Pull& pull);
 
@@ -89,6 +98,9 @@ class Cluster {
   int64_t epoch_;
   std::vector<Node> meta_addr_;
   std::unordered_map<std::string, Table*> tables_;
+
+  // BgWorker for executing command concorrent
+  std::map<Node, pink::BGThread*> cmd_workers_;
 
   // connection pool
   ConnectionPool* meta_pool_;
