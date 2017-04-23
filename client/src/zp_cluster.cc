@@ -264,7 +264,7 @@ Status Cluster::DropTable(const std::string& table_name) {
   Status ret = SubmitMetaCmd();
 
   if (!ret.ok()) {
-    return Status::IOError(meta_res_.msg());
+    return Status::IOError(ret.ToString());
   }
   if (meta_res_.code() != ZPMeta::StatusCode::OK) {
     return Status::NotSupported(meta_res_.msg());
@@ -729,6 +729,9 @@ Status Cluster::GetDataMaster(const std::string& table,
 
 Status Cluster::ResetClusterMap(const ZPMeta::MetaCmdResponse_Pull& pull) {
   epoch_ = pull.version();
+  for (auto& table : tables_) {
+    delete table.second;
+  }
   tables_.clear();
   for (int i = 0; i < pull.info_size(); i++) {
     std::cout << "reset table:" << pull.info(i).name() << std::endl;
