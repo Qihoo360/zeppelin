@@ -146,11 +146,12 @@ class ZPDataServer {
                               std::unordered_map<std::string, std::vector<PartitionBinlogOffset>> &all_offset);
 
   // Statistic related
-  bool GetAllTableName(std::set<std::string>& table_names);
+  bool GetAllTableName(std::set<std::string>* table_names);
   bool GetTableStat(const std::string& table_name, std::vector<Statistic>& stats);
   bool GetTableCapacity(const std::string& table_name, std::vector<Statistic>& capacity_stats);
   bool GetTableReplInfo(const std::string& table_name,
       std::unordered_map<std::string, client::CmdResponse_InfoRepl>* info_repls);
+  bool GetServerInfo(client::CmdResponse_InfoServer* info_server);
 
  private:
 

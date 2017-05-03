@@ -401,10 +401,10 @@ void ZPDataServer::DispatchBinlogBGWorker(ZPBinlogReceiveTask *task) {
 }
 
 // Statistic related
-bool ZPDataServer::GetAllTableName(std::set<std::string>& table_names) {
+bool ZPDataServer::GetAllTableName(std::set<std::string>* table_names) {
   slash::RWLock l(&table_rw_, false);
   for (auto iter = tables_.begin(); iter != tables_.end(); iter++) {
-    table_names.insert(iter->first);
+    table_names->insert(iter->first);
   }
   return true;
 }
@@ -412,7 +412,7 @@ bool ZPDataServer::GetAllTableName(std::set<std::string>& table_names) {
 bool ZPDataServer::GetTableStat(const std::string& table_name, std::vector<Statistic>& stats) {
   std::set<std::string> stat_tables;
   if (table_name.empty()) {
-    GetAllTableName(stat_tables);
+    GetAllTableName(&stat_tables);
   } else {
     stat_tables.insert(table_name);
   }
@@ -476,6 +476,24 @@ bool ZPDataServer::GetTableReplInfo(const std::string& table_name,
   return true;
 }
 
+bool ZPDataServer::GetServerInfo(client::CmdResponse_InfoServer* info_server) {
+  info_server->set_epoch(meta_epoch());
+  std::set<std::string> table_names;
+  GetAllTableName(&table_names);
+  for (auto& name : table_names) {
+    info_server->add_table_names(name);
+  }
+
+  {
+  slash::RWLock l(&meta_state_rw_, false);
+  info_server->mutable_cur_meta()->set_ip(meta_ip_);
+  info_server->mutable_cur_meta()->set_port(meta_port_);
+  }
+
+  info_server->set_meta_renewing(ShouldPullMeta());
+  return true;
+}
+
 
 void ZPDataServer::InitClientCmdTable() {
   // SetCmd
@@ -494,6 +512,8 @@ void ZPDataServer::InitClientCmdTable() {
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOCAPACITY), infocapacityptr));
   Cmd* inforepl = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOREPL), inforepl));
+  Cmd* infoserver = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOSERVER), infoserver));
   // SyncCmd
   Cmd* syncptr = new SyncCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsSuspend);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SYNC), syncptr));

@@ -105,7 +105,7 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(
   DLOG(INFO) << "receive Pull message, will handle "
     << pull.info_size() << " Tables.";
   std::set<std::string> miss_tables; // Tables I response for before but will not any more
-  zp_data_server->GetAllTableName(miss_tables);
+  zp_data_server->GetAllTableName(&miss_tables);
 
   for (int i = 0; i < pull.info_size(); i++) {
     const ZPMeta::Table& table_info = pull.info(i);

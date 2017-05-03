@@ -216,8 +216,24 @@ void InfoCmd::Do(const google::protobuf::Message *req,
       response->set_type(client::Type::INFOREPL);
       std::unordered_map<std::string, client::CmdResponse_InfoRepl> info_repls;
       if (!zp_data_server->GetTableReplInfo(table_name, &info_repls)) {
+        response->set_code(client::StatusCode::kError);
+        response->set_msg("unknown table name");
+        LOG(WARNING) << "Failed to GetTableReplInfo: " << table_name;
+        return;
+      }
+
+      for (auto& info_repl : info_repls) {
+        response->add_info_repl()->CopyFrom(info_repl.second);
+      }
+      break;
+    }
+    case client::Type::INFOSERVER: {
+      response->set_type(client::Type::INFOSERVER);
+      client::CmdResponse_InfoServer info_server;
+      if (!zp_data_server->GetServerInfo(&info_server)) {
         LOG(WARNING) << "Failed to GetTableReplInfo: " << table_name;
       }
+      response->mutable_info_server()->CopyFrom(info_server);
       break;
     }
     default: {
