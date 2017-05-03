@@ -38,14 +38,15 @@ class Table {
   void DoTimingTask();
   void DumpPartitionBinlogOffsets(std::vector<PartitionBinlogOffset> &offset);
   void GetCapacity(Statistic *stat);
+  void GetReplInfo(client::CmdResponse_InfoRepl* repl_info);
 
  private:
   std::string table_name_;
   std::string log_path_;
   std::string data_path_;
 
-  pthread_rwlock_t partition_rw_;
   std::atomic<int> partition_cnt_;
+  pthread_rwlock_t partition_rw_;
   std::map<int, std::shared_ptr<Partition>> partitions_;
 
   Table(const Table&);

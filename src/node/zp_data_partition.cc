@@ -1107,3 +1107,23 @@ void Partition::Dump() {
   }
 }
 
+void Partition::GetState(client::PartitionState* state) {
+  state->set_partition_id(partition_id_);
+  slash::RWLock l(&state_rw_, false);
+  state->set_role(RoleMsg[role_]);
+  state->set_repl_state(ReplStateMsg[repl_state_]);
+  state->mutable_master()->set_ip(master_node_.ip);
+  state->mutable_master()->set_port(master_node_.port);
+  for (auto& s : slave_nodes_) {
+    client::Node* slave = state->add_slaves();
+    slave->set_ip(s.ip);
+    slave->set_port(s.port);
+  }
+  client::SyncOffset* sync_offset = state->mutable_sync_offset();
+  uint32_t filenum = 0;
+  uint64_t offset = 0;
+  GetBinlogOffset(&filenum, &offset);
+  sync_offset->set_filenum(filenum);
+  sync_offset->set_offset(offset);
+}
+

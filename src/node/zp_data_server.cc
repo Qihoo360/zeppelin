@@ -452,6 +452,31 @@ bool ZPDataServer::GetTableCapacity(const std::string& table_name,
   return true;
 }
 
+bool ZPDataServer::GetTableReplInfo(const std::string& table_name,
+    std::unordered_map<std::string, client::CmdResponse_InfoRepl>* info_repls) {
+  slash::RWLock l(&table_rw_, false);
+  client::CmdResponse_InfoRepl info_repl;
+  if (!table_name.empty()) {
+    auto it = tables_.find(table_name);
+    if (it == tables_.end()) {
+      return false;
+    }
+    it->second->GetReplInfo(&info_repl);
+    info_repls->insert(std::pair<std::string, client::CmdResponse_InfoRepl>(
+          table_name, info_repl));
+    return true;
+  }
+  
+  // All table
+  for (auto& table : tables_) {
+    table.second->GetReplInfo(&info_repl);
+    info_repls->insert(std::pair<std::string, client::CmdResponse_InfoRepl>(
+          table.first, info_repl));
+  }
+  return true;
+}
+
+
 void ZPDataServer::InitClientCmdTable() {
   // SetCmd
   Cmd* setptr = new SetCmd(kCmdFlagsKv | kCmdFlagsWrite);
@@ -467,8 +492,8 @@ void ZPDataServer::InitClientCmdTable() {
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOSTATS), infostatsptr));
   Cmd* infocapacityptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOCAPACITY), infocapacityptr));
-  Cmd* infopartitionptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOPARTITION), infopartitionptr));
+  Cmd* inforepl = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOREPL), inforepl));
   // SyncCmd
   Cmd* syncptr = new SyncCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsSuspend);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SYNC), syncptr));

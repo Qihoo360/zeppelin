@@ -196,6 +196,8 @@ class Partition {
   
   void DoTimingTask();
 
+  void GetState(client::PartitionState* state);
+
  private:
   std::string table_name_;
   int partition_id_;

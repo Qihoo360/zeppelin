@@ -212,21 +212,11 @@ void InfoCmd::Do(const google::protobuf::Message *req,
       }
       break;
     }
-    case client::Type::INFOPARTITION: {
-      response->set_type(client::Type::INFOPARTITION);
-      std::unordered_map<std::string, std::vector<PartitionBinlogOffset>> table_offsets;
-      zp_data_server->DumpTableBinlogOffsets(table_name, table_offsets);
-      DLOG(INFO) << "InfoPartition with " << table_offsets.size() << " tables in total.";
-
-      for (auto& item : table_offsets) {
-        client::CmdResponse_InfoPartition* info_part = response->add_info_partition();
-        info_part->set_table_name(item.first);
-        for(auto& p : item.second) {
-          client::SyncOffset* offset = info_part->add_sync_offset();
-          offset->set_partition(p.partition_id);
-          offset->set_filenum(p.filenum);
-          offset->set_offset(p.offset);
-        }
+    case client::Type::INFOREPL: {
+      response->set_type(client::Type::INFOREPL);
+      std::unordered_map<std::string, client::CmdResponse_InfoRepl> info_repls;
+      if (!zp_data_server->GetTableReplInfo(table_name, &info_repls)) {
+        LOG(WARNING) << "Failed to GetTableReplInfo: " << table_name;
       }
       break;
     }
@@ -239,13 +229,7 @@ void InfoCmd::Do(const google::protobuf::Message *req,
   }
 
   response->set_code(client::StatusCode::kOk);
-
-  // TODO anan debug;
-  //std::string text_format;
-  //google::protobuf::TextFormat::PrintToString(*response, &text_format);
-  //DLOG(INFO) << "InfoCmd text_format : [" << text_format << "]";
 }
-
 
 // Sync between nodes
 void SyncCmd::Do(const google::protobuf::Message *req,

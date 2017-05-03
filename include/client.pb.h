@@ -37,6 +37,7 @@ void protobuf_ShutdownFile_client_2eproto();
 class Node;
 class SyncOffset;
 class KeyExpire;
+class PartitionState;
 class CmdRequest;
 class CmdRequest_Sync;
 class CmdRequest_Set;
@@ -49,7 +50,8 @@ class CmdResponse_Sync;
 class CmdResponse_Get;
 class CmdResponse_InfoStats;
 class CmdResponse_InfoCapacity;
-class CmdResponse_InfoPartition;
+class CmdResponse_InfoRepl;
+class CmdResponse_InfoServer;
 class CmdResponse_Mget;
 class BinlogSkip;
 class SyncRequest;
@@ -61,8 +63,9 @@ enum Type {
   DEL = 3,
   INFOSTATS = 4,
   INFOCAPACITY = 5,
-  INFOPARTITION = 6,
-  MGET = 7
+  INFOREPL = 6,
+  INFOSERVER = 7,
+  MGET = 8
 };
 bool Type_IsValid(int value);
 const Type Type_MIN = SYNC;
@@ -410,6 +413,155 @@ class KeyExpire : public ::google::protobuf::Message {
 
   void InitAsDefaultInstance();
   static KeyExpire* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class PartitionState : public ::google::protobuf::Message {
+ public:
+  PartitionState();
+  virtual ~PartitionState();
+
+  PartitionState(const PartitionState& from);
+
+  inline PartitionState& operator=(const PartitionState& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const PartitionState& default_instance();
+
+  void Swap(PartitionState* other);
+
+  // implements Message ----------------------------------------------
+
+  PartitionState* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const PartitionState& from);
+  void MergeFrom(const PartitionState& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required int32 partition_id = 1;
+  inline bool has_partition_id() const;
+  inline void clear_partition_id();
+  static const int kPartitionIdFieldNumber = 1;
+  inline ::google::protobuf::int32 partition_id() const;
+  inline void set_partition_id(::google::protobuf::int32 value);
+
+  // required string role = 2;
+  inline bool has_role() const;
+  inline void clear_role();
+  static const int kRoleFieldNumber = 2;
+  inline const ::std::string& role() const;
+  inline void set_role(const ::std::string& value);
+  inline void set_role(const char* value);
+  inline void set_role(const char* value, size_t size);
+  inline ::std::string* mutable_role();
+  inline ::std::string* release_role();
+  inline void set_allocated_role(::std::string* role);
+
+  // required string repl_state = 3;
+  inline bool has_repl_state() const;
+  inline void clear_repl_state();
+  static const int kReplStateFieldNumber = 3;
+  inline const ::std::string& repl_state() const;
+  inline void set_repl_state(const ::std::string& value);
+  inline void set_repl_state(const char* value);
+  inline void set_repl_state(const char* value, size_t size);
+  inline ::std::string* mutable_repl_state();
+  inline ::std::string* release_repl_state();
+  inline void set_allocated_repl_state(::std::string* repl_state);
+
+  // required .client.Node master = 4;
+  inline bool has_master() const;
+  inline void clear_master();
+  static const int kMasterFieldNumber = 4;
+  inline const ::client::Node& master() const;
+  inline ::client::Node* mutable_master();
+  inline ::client::Node* release_master();
+  inline void set_allocated_master(::client::Node* master);
+
+  // repeated .client.Node slaves = 5;
+  inline int slaves_size() const;
+  inline void clear_slaves();
+  static const int kSlavesFieldNumber = 5;
+  inline const ::client::Node& slaves(int index) const;
+  inline ::client::Node* mutable_slaves(int index);
+  inline ::client::Node* add_slaves();
+  inline const ::google::protobuf::RepeatedPtrField< ::client::Node >&
+      slaves() const;
+  inline ::google::protobuf::RepeatedPtrField< ::client::Node >*
+      mutable_slaves();
+
+  // required .client.SyncOffset sync_offset = 6;
+  inline bool has_sync_offset() const;
+  inline void clear_sync_offset();
+  static const int kSyncOffsetFieldNumber = 6;
+  inline const ::client::SyncOffset& sync_offset() const;
+  inline ::client::SyncOffset* mutable_sync_offset();
+  inline ::client::SyncOffset* release_sync_offset();
+  inline void set_allocated_sync_offset(::client::SyncOffset* sync_offset);
+
+  // @@protoc_insertion_point(class_scope:client.PartitionState)
+ private:
+  inline void set_has_partition_id();
+  inline void clear_has_partition_id();
+  inline void set_has_role();
+  inline void clear_has_role();
+  inline void set_has_repl_state();
+  inline void clear_has_repl_state();
+  inline void set_has_master();
+  inline void clear_has_master();
+  inline void set_has_sync_offset();
+  inline void clear_has_sync_offset();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* role_;
+  ::std::string* repl_state_;
+  ::client::Node* master_;
+  ::google::protobuf::RepeatedPtrField< ::client::Node > slaves_;
+  ::client::SyncOffset* sync_offset_;
+  ::google::protobuf::int32 partition_id_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static PartitionState* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -1654,14 +1806,14 @@ class CmdResponse_InfoCapacity : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
-class CmdResponse_InfoPartition : public ::google::protobuf::Message {
+class CmdResponse_InfoRepl : public ::google::protobuf::Message {
  public:
-  CmdResponse_InfoPartition();
-  virtual ~CmdResponse_InfoPartition();
+  CmdResponse_InfoRepl();
+  virtual ~CmdResponse_InfoRepl();
 
-  CmdResponse_InfoPartition(const CmdResponse_InfoPartition& from);
+  CmdResponse_InfoRepl(const CmdResponse_InfoRepl& from);
 
-  inline CmdResponse_InfoPartition& operator=(const CmdResponse_InfoPartition& from) {
+  inline CmdResponse_InfoRepl& operator=(const CmdResponse_InfoRepl& from) {
     CopyFrom(from);
     return *this;
   }
@@ -1675,17 +1827,17 @@ class CmdResponse_InfoPartition : public ::google::protobuf::Message {
   }
 
   static const ::google::protobuf::Descriptor* descriptor();
-  static const CmdResponse_InfoPartition& default_instance();
+  static const CmdResponse_InfoRepl& default_instance();
 
-  void Swap(CmdResponse_InfoPartition* other);
+  void Swap(CmdResponse_InfoRepl* other);
 
   // implements Message ----------------------------------------------
 
-  CmdResponse_InfoPartition* New() const;
+  CmdResponse_InfoRepl* New() const;
   void CopyFrom(const ::google::protobuf::Message& from);
   void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const CmdResponse_InfoPartition& from);
-  void MergeFrom(const CmdResponse_InfoPartition& from);
+  void CopyFrom(const CmdResponse_InfoRepl& from);
+  void MergeFrom(const CmdResponse_InfoRepl& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -1720,37 +1872,168 @@ class CmdResponse_InfoPartition : public ::google::protobuf::Message {
   inline ::std::string* release_table_name();
   inline void set_allocated_table_name(::std::string* table_name);
 
-  // repeated .client.SyncOffset sync_offset = 2;
-  inline int sync_offset_size() const;
-  inline void clear_sync_offset();
-  static const int kSyncOffsetFieldNumber = 2;
-  inline const ::client::SyncOffset& sync_offset(int index) const;
-  inline ::client::SyncOffset* mutable_sync_offset(int index);
-  inline ::client::SyncOffset* add_sync_offset();
-  inline const ::google::protobuf::RepeatedPtrField< ::client::SyncOffset >&
-      sync_offset() const;
-  inline ::google::protobuf::RepeatedPtrField< ::client::SyncOffset >*
-      mutable_sync_offset();
+  // required int64 partition_cnt = 2;
+  inline bool has_partition_cnt() const;
+  inline void clear_partition_cnt();
+  static const int kPartitionCntFieldNumber = 2;
+  inline ::google::protobuf::int64 partition_cnt() const;
+  inline void set_partition_cnt(::google::protobuf::int64 value);
 
-  // @@protoc_insertion_point(class_scope:client.CmdResponse.InfoPartition)
+  // repeated .client.PartitionState partition_state = 3;
+  inline int partition_state_size() const;
+  inline void clear_partition_state();
+  static const int kPartitionStateFieldNumber = 3;
+  inline const ::client::PartitionState& partition_state(int index) const;
+  inline ::client::PartitionState* mutable_partition_state(int index);
+  inline ::client::PartitionState* add_partition_state();
+  inline const ::google::protobuf::RepeatedPtrField< ::client::PartitionState >&
+      partition_state() const;
+  inline ::google::protobuf::RepeatedPtrField< ::client::PartitionState >*
+      mutable_partition_state();
+
+  // @@protoc_insertion_point(class_scope:client.CmdResponse.InfoRepl)
  private:
   inline void set_has_table_name();
   inline void clear_has_table_name();
+  inline void set_has_partition_cnt();
+  inline void clear_has_partition_cnt();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::std::string* table_name_;
-  ::google::protobuf::RepeatedPtrField< ::client::SyncOffset > sync_offset_;
+  ::google::protobuf::int64 partition_cnt_;
+  ::google::protobuf::RepeatedPtrField< ::client::PartitionState > partition_state_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
   friend void protobuf_ShutdownFile_client_2eproto();
 
   void InitAsDefaultInstance();
-  static CmdResponse_InfoPartition* default_instance_;
+  static CmdResponse_InfoRepl* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class CmdResponse_InfoServer : public ::google::protobuf::Message {
+ public:
+  CmdResponse_InfoServer();
+  virtual ~CmdResponse_InfoServer();
+
+  CmdResponse_InfoServer(const CmdResponse_InfoServer& from);
+
+  inline CmdResponse_InfoServer& operator=(const CmdResponse_InfoServer& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const CmdResponse_InfoServer& default_instance();
+
+  void Swap(CmdResponse_InfoServer* other);
+
+  // implements Message ----------------------------------------------
+
+  CmdResponse_InfoServer* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const CmdResponse_InfoServer& from);
+  void MergeFrom(const CmdResponse_InfoServer& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required int64 epoch = 1;
+  inline bool has_epoch() const;
+  inline void clear_epoch();
+  static const int kEpochFieldNumber = 1;
+  inline ::google::protobuf::int64 epoch() const;
+  inline void set_epoch(::google::protobuf::int64 value);
+
+  // repeated string table_names = 2;
+  inline int table_names_size() const;
+  inline void clear_table_names();
+  static const int kTableNamesFieldNumber = 2;
+  inline const ::std::string& table_names(int index) const;
+  inline ::std::string* mutable_table_names(int index);
+  inline void set_table_names(int index, const ::std::string& value);
+  inline void set_table_names(int index, const char* value);
+  inline void set_table_names(int index, const char* value, size_t size);
+  inline ::std::string* add_table_names();
+  inline void add_table_names(const ::std::string& value);
+  inline void add_table_names(const char* value);
+  inline void add_table_names(const char* value, size_t size);
+  inline const ::google::protobuf::RepeatedPtrField< ::std::string>& table_names() const;
+  inline ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_table_names();
+
+  // required .client.Node cur_meta = 3;
+  inline bool has_cur_meta() const;
+  inline void clear_cur_meta();
+  static const int kCurMetaFieldNumber = 3;
+  inline const ::client::Node& cur_meta() const;
+  inline ::client::Node* mutable_cur_meta();
+  inline ::client::Node* release_cur_meta();
+  inline void set_allocated_cur_meta(::client::Node* cur_meta);
+
+  // required bool meta_renewing = 4;
+  inline bool has_meta_renewing() const;
+  inline void clear_meta_renewing();
+  static const int kMetaRenewingFieldNumber = 4;
+  inline bool meta_renewing() const;
+  inline void set_meta_renewing(bool value);
+
+  // @@protoc_insertion_point(class_scope:client.CmdResponse.InfoServer)
+ private:
+  inline void set_has_epoch();
+  inline void clear_has_epoch();
+  inline void set_has_cur_meta();
+  inline void clear_has_cur_meta();
+  inline void set_has_meta_renewing();
+  inline void clear_has_meta_renewing();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::int64 epoch_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> table_names_;
+  ::client::Node* cur_meta_;
+  bool meta_renewing_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static CmdResponse_InfoServer* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -1912,7 +2195,8 @@ class CmdResponse : public ::google::protobuf::Message {
   typedef CmdResponse_Get Get;
   typedef CmdResponse_InfoStats InfoStats;
   typedef CmdResponse_InfoCapacity InfoCapacity;
-  typedef CmdResponse_InfoPartition InfoPartition;
+  typedef CmdResponse_InfoRepl InfoRepl;
+  typedef CmdResponse_InfoServer InfoServer;
   typedef CmdResponse_Mget Mget;
 
   // accessors -------------------------------------------------------
@@ -1994,22 +2278,31 @@ class CmdResponse : public ::google::protobuf::Message {
   inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoCapacity >*
       mutable_info_capacity();
 
-  // repeated .client.CmdResponse.InfoPartition info_partition = 9;
-  inline int info_partition_size() const;
-  inline void clear_info_partition();
-  static const int kInfoPartitionFieldNumber = 9;
-  inline const ::client::CmdResponse_InfoPartition& info_partition(int index) const;
-  inline ::client::CmdResponse_InfoPartition* mutable_info_partition(int index);
-  inline ::client::CmdResponse_InfoPartition* add_info_partition();
-  inline const ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoPartition >&
-      info_partition() const;
-  inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoPartition >*
-      mutable_info_partition();
+  // repeated .client.CmdResponse.InfoRepl info_repl = 9;
+  inline int info_repl_size() const;
+  inline void clear_info_repl();
+  static const int kInfoReplFieldNumber = 9;
+  inline const ::client::CmdResponse_InfoRepl& info_repl(int index) const;
+  inline ::client::CmdResponse_InfoRepl* mutable_info_repl(int index);
+  inline ::client::CmdResponse_InfoRepl* add_info_repl();
+  inline const ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoRepl >&
+      info_repl() const;
+  inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoRepl >*
+      mutable_info_repl();
 
-  // repeated .client.CmdResponse.Mget mget = 10;
+  // optional .client.CmdResponse.InfoServer info_server = 10;
+  inline bool has_info_server() const;
+  inline void clear_info_server();
+  static const int kInfoServerFieldNumber = 10;
+  inline const ::client::CmdResponse_InfoServer& info_server() const;
+  inline ::client::CmdResponse_InfoServer* mutable_info_server();
+  inline ::client::CmdResponse_InfoServer* release_info_server();
+  inline void set_allocated_info_server(::client::CmdResponse_InfoServer* info_server);
+
+  // repeated .client.CmdResponse.Mget mget = 11;
   inline int mget_size() const;
   inline void clear_mget();
-  static const int kMgetFieldNumber = 10;
+  static const int kMgetFieldNumber = 11;
   inline const ::client::CmdResponse_Mget& mget(int index) const;
   inline ::client::CmdResponse_Mget* mutable_mget(int index);
   inline ::client::CmdResponse_Mget* add_mget();
@@ -2032,6 +2325,8 @@ class CmdResponse : public ::google::protobuf::Message {
   inline void clear_has_get();
   inline void set_has_redirect();
   inline void clear_has_redirect();
+  inline void set_has_info_server();
+  inline void clear_has_info_server();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -2043,11 +2338,12 @@ class CmdResponse : public ::google::protobuf::Message {
   ::client::Node* redirect_;
   ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoStats > info_stats_;
   ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoCapacity > info_capacity_;
-  ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoPartition > info_partition_;
+  ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoRepl > info_repl_;
+  ::client::CmdResponse_InfoServer* info_server_;
   ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_Mget > mget_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(10 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(11 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -2518,6 +2814,273 @@ inline ::google::protobuf::int32 KeyExpire::ttl() const {
 inline void KeyExpire::set_ttl(::google::protobuf::int32 value) {
   set_has_ttl();
   ttl_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// PartitionState
+
+// required int32 partition_id = 1;
+inline bool PartitionState::has_partition_id() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void PartitionState::set_has_partition_id() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void PartitionState::clear_has_partition_id() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void PartitionState::clear_partition_id() {
+  partition_id_ = 0;
+  clear_has_partition_id();
+}
+inline ::google::protobuf::int32 PartitionState::partition_id() const {
+  return partition_id_;
+}
+inline void PartitionState::set_partition_id(::google::protobuf::int32 value) {
+  set_has_partition_id();
+  partition_id_ = value;
+}
+
+// required string role = 2;
+inline bool PartitionState::has_role() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void PartitionState::set_has_role() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void PartitionState::clear_has_role() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void PartitionState::clear_role() {
+  if (role_ != &::google::protobuf::internal::kEmptyString) {
+    role_->clear();
+  }
+  clear_has_role();
+}
+inline const ::std::string& PartitionState::role() const {
+  return *role_;
+}
+inline void PartitionState::set_role(const ::std::string& value) {
+  set_has_role();
+  if (role_ == &::google::protobuf::internal::kEmptyString) {
+    role_ = new ::std::string;
+  }
+  role_->assign(value);
+}
+inline void PartitionState::set_role(const char* value) {
+  set_has_role();
+  if (role_ == &::google::protobuf::internal::kEmptyString) {
+    role_ = new ::std::string;
+  }
+  role_->assign(value);
+}
+inline void PartitionState::set_role(const char* value, size_t size) {
+  set_has_role();
+  if (role_ == &::google::protobuf::internal::kEmptyString) {
+    role_ = new ::std::string;
+  }
+  role_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* PartitionState::mutable_role() {
+  set_has_role();
+  if (role_ == &::google::protobuf::internal::kEmptyString) {
+    role_ = new ::std::string;
+  }
+  return role_;
+}
+inline ::std::string* PartitionState::release_role() {
+  clear_has_role();
+  if (role_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = role_;
+    role_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void PartitionState::set_allocated_role(::std::string* role) {
+  if (role_ != &::google::protobuf::internal::kEmptyString) {
+    delete role_;
+  }
+  if (role) {
+    set_has_role();
+    role_ = role;
+  } else {
+    clear_has_role();
+    role_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required string repl_state = 3;
+inline bool PartitionState::has_repl_state() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void PartitionState::set_has_repl_state() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void PartitionState::clear_has_repl_state() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void PartitionState::clear_repl_state() {
+  if (repl_state_ != &::google::protobuf::internal::kEmptyString) {
+    repl_state_->clear();
+  }
+  clear_has_repl_state();
+}
+inline const ::std::string& PartitionState::repl_state() const {
+  return *repl_state_;
+}
+inline void PartitionState::set_repl_state(const ::std::string& value) {
+  set_has_repl_state();
+  if (repl_state_ == &::google::protobuf::internal::kEmptyString) {
+    repl_state_ = new ::std::string;
+  }
+  repl_state_->assign(value);
+}
+inline void PartitionState::set_repl_state(const char* value) {
+  set_has_repl_state();
+  if (repl_state_ == &::google::protobuf::internal::kEmptyString) {
+    repl_state_ = new ::std::string;
+  }
+  repl_state_->assign(value);
+}
+inline void PartitionState::set_repl_state(const char* value, size_t size) {
+  set_has_repl_state();
+  if (repl_state_ == &::google::protobuf::internal::kEmptyString) {
+    repl_state_ = new ::std::string;
+  }
+  repl_state_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* PartitionState::mutable_repl_state() {
+  set_has_repl_state();
+  if (repl_state_ == &::google::protobuf::internal::kEmptyString) {
+    repl_state_ = new ::std::string;
+  }
+  return repl_state_;
+}
+inline ::std::string* PartitionState::release_repl_state() {
+  clear_has_repl_state();
+  if (repl_state_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = repl_state_;
+    repl_state_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void PartitionState::set_allocated_repl_state(::std::string* repl_state) {
+  if (repl_state_ != &::google::protobuf::internal::kEmptyString) {
+    delete repl_state_;
+  }
+  if (repl_state) {
+    set_has_repl_state();
+    repl_state_ = repl_state;
+  } else {
+    clear_has_repl_state();
+    repl_state_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required .client.Node master = 4;
+inline bool PartitionState::has_master() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void PartitionState::set_has_master() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void PartitionState::clear_has_master() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void PartitionState::clear_master() {
+  if (master_ != NULL) master_->::client::Node::Clear();
+  clear_has_master();
+}
+inline const ::client::Node& PartitionState::master() const {
+  return master_ != NULL ? *master_ : *default_instance_->master_;
+}
+inline ::client::Node* PartitionState::mutable_master() {
+  set_has_master();
+  if (master_ == NULL) master_ = new ::client::Node;
+  return master_;
+}
+inline ::client::Node* PartitionState::release_master() {
+  clear_has_master();
+  ::client::Node* temp = master_;
+  master_ = NULL;
+  return temp;
+}
+inline void PartitionState::set_allocated_master(::client::Node* master) {
+  delete master_;
+  master_ = master;
+  if (master) {
+    set_has_master();
+  } else {
+    clear_has_master();
+  }
+}
+
+// repeated .client.Node slaves = 5;
+inline int PartitionState::slaves_size() const {
+  return slaves_.size();
+}
+inline void PartitionState::clear_slaves() {
+  slaves_.Clear();
+}
+inline const ::client::Node& PartitionState::slaves(int index) const {
+  return slaves_.Get(index);
+}
+inline ::client::Node* PartitionState::mutable_slaves(int index) {
+  return slaves_.Mutable(index);
+}
+inline ::client::Node* PartitionState::add_slaves() {
+  return slaves_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::client::Node >&
+PartitionState::slaves() const {
+  return slaves_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::client::Node >*
+PartitionState::mutable_slaves() {
+  return &slaves_;
+}
+
+// required .client.SyncOffset sync_offset = 6;
+inline bool PartitionState::has_sync_offset() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+inline void PartitionState::set_has_sync_offset() {
+  _has_bits_[0] |= 0x00000020u;
+}
+inline void PartitionState::clear_has_sync_offset() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline void PartitionState::clear_sync_offset() {
+  if (sync_offset_ != NULL) sync_offset_->::client::SyncOffset::Clear();
+  clear_has_sync_offset();
+}
+inline const ::client::SyncOffset& PartitionState::sync_offset() const {
+  return sync_offset_ != NULL ? *sync_offset_ : *default_instance_->sync_offset_;
+}
+inline ::client::SyncOffset* PartitionState::mutable_sync_offset() {
+  set_has_sync_offset();
+  if (sync_offset_ == NULL) sync_offset_ = new ::client::SyncOffset;
+  return sync_offset_;
+}
+inline ::client::SyncOffset* PartitionState::release_sync_offset() {
+  clear_has_sync_offset();
+  ::client::SyncOffset* temp = sync_offset_;
+  sync_offset_ = NULL;
+  return temp;
+}
+inline void PartitionState::set_allocated_sync_offset(::client::SyncOffset* sync_offset) {
+  delete sync_offset_;
+  sync_offset_ = sync_offset;
+  if (sync_offset) {
+    set_has_sync_offset();
+  } else {
+    clear_has_sync_offset();
+  }
 }
 
 // -------------------------------------------------------------------
@@ -4291,56 +4854,56 @@ inline void CmdResponse_InfoCapacity::set_remain(::google::protobuf::int64 value
 
 // -------------------------------------------------------------------
 
-// CmdResponse_InfoPartition
+// CmdResponse_InfoRepl
 
 // required string table_name = 1;
-inline bool CmdResponse_InfoPartition::has_table_name() const {
+inline bool CmdResponse_InfoRepl::has_table_name() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void CmdResponse_InfoPartition::set_has_table_name() {
+inline void CmdResponse_InfoRepl::set_has_table_name() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void CmdResponse_InfoPartition::clear_has_table_name() {
+inline void CmdResponse_InfoRepl::clear_has_table_name() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void CmdResponse_InfoPartition::clear_table_name() {
+inline void CmdResponse_InfoRepl::clear_table_name() {
   if (table_name_ != &::google::protobuf::internal::kEmptyString) {
     table_name_->clear();
   }
   clear_has_table_name();
 }
-inline const ::std::string& CmdResponse_InfoPartition::table_name() const {
+inline const ::std::string& CmdResponse_InfoRepl::table_name() const {
   return *table_name_;
 }
-inline void CmdResponse_InfoPartition::set_table_name(const ::std::string& value) {
+inline void CmdResponse_InfoRepl::set_table_name(const ::std::string& value) {
   set_has_table_name();
   if (table_name_ == &::google::protobuf::internal::kEmptyString) {
     table_name_ = new ::std::string;
   }
   table_name_->assign(value);
 }
-inline void CmdResponse_InfoPartition::set_table_name(const char* value) {
+inline void CmdResponse_InfoRepl::set_table_name(const char* value) {
   set_has_table_name();
   if (table_name_ == &::google::protobuf::internal::kEmptyString) {
     table_name_ = new ::std::string;
   }
   table_name_->assign(value);
 }
-inline void CmdResponse_InfoPartition::set_table_name(const char* value, size_t size) {
+inline void CmdResponse_InfoRepl::set_table_name(const char* value, size_t size) {
   set_has_table_name();
   if (table_name_ == &::google::protobuf::internal::kEmptyString) {
     table_name_ = new ::std::string;
   }
   table_name_->assign(reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* CmdResponse_InfoPartition::mutable_table_name() {
+inline ::std::string* CmdResponse_InfoRepl::mutable_table_name() {
   set_has_table_name();
   if (table_name_ == &::google::protobuf::internal::kEmptyString) {
     table_name_ = new ::std::string;
   }
   return table_name_;
 }
-inline ::std::string* CmdResponse_InfoPartition::release_table_name() {
+inline ::std::string* CmdResponse_InfoRepl::release_table_name() {
   clear_has_table_name();
   if (table_name_ == &::google::protobuf::internal::kEmptyString) {
     return NULL;
@@ -4350,7 +4913,7 @@ inline ::std::string* CmdResponse_InfoPartition::release_table_name() {
     return temp;
   }
 }
-inline void CmdResponse_InfoPartition::set_allocated_table_name(::std::string* table_name) {
+inline void CmdResponse_InfoRepl::set_allocated_table_name(::std::string* table_name) {
   if (table_name_ != &::google::protobuf::internal::kEmptyString) {
     delete table_name_;
   }
@@ -4363,29 +4926,181 @@ inline void CmdResponse_InfoPartition::set_allocated_table_name(::std::string* t
   }
 }
 
-// repeated .client.SyncOffset sync_offset = 2;
-inline int CmdResponse_InfoPartition::sync_offset_size() const {
-  return sync_offset_.size();
+// required int64 partition_cnt = 2;
+inline bool CmdResponse_InfoRepl::has_partition_cnt() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void CmdResponse_InfoPartition::clear_sync_offset() {
-  sync_offset_.Clear();
+inline void CmdResponse_InfoRepl::set_has_partition_cnt() {
+  _has_bits_[0] |= 0x00000002u;
 }
-inline const ::client::SyncOffset& CmdResponse_InfoPartition::sync_offset(int index) const {
-  return sync_offset_.Get(index);
+inline void CmdResponse_InfoRepl::clear_has_partition_cnt() {
+  _has_bits_[0] &= ~0x00000002u;
 }
-inline ::client::SyncOffset* CmdResponse_InfoPartition::mutable_sync_offset(int index) {
-  return sync_offset_.Mutable(index);
+inline void CmdResponse_InfoRepl::clear_partition_cnt() {
+  partition_cnt_ = GOOGLE_LONGLONG(0);
+  clear_has_partition_cnt();
 }
-inline ::client::SyncOffset* CmdResponse_InfoPartition::add_sync_offset() {
-  return sync_offset_.Add();
+inline ::google::protobuf::int64 CmdResponse_InfoRepl::partition_cnt() const {
+  return partition_cnt_;
 }
-inline const ::google::protobuf::RepeatedPtrField< ::client::SyncOffset >&
-CmdResponse_InfoPartition::sync_offset() const {
-  return sync_offset_;
+inline void CmdResponse_InfoRepl::set_partition_cnt(::google::protobuf::int64 value) {
+  set_has_partition_cnt();
+  partition_cnt_ = value;
 }
-inline ::google::protobuf::RepeatedPtrField< ::client::SyncOffset >*
-CmdResponse_InfoPartition::mutable_sync_offset() {
-  return &sync_offset_;
+
+// repeated .client.PartitionState partition_state = 3;
+inline int CmdResponse_InfoRepl::partition_state_size() const {
+  return partition_state_.size();
+}
+inline void CmdResponse_InfoRepl::clear_partition_state() {
+  partition_state_.Clear();
+}
+inline const ::client::PartitionState& CmdResponse_InfoRepl::partition_state(int index) const {
+  return partition_state_.Get(index);
+}
+inline ::client::PartitionState* CmdResponse_InfoRepl::mutable_partition_state(int index) {
+  return partition_state_.Mutable(index);
+}
+inline ::client::PartitionState* CmdResponse_InfoRepl::add_partition_state() {
+  return partition_state_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::client::PartitionState >&
+CmdResponse_InfoRepl::partition_state() const {
+  return partition_state_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::client::PartitionState >*
+CmdResponse_InfoRepl::mutable_partition_state() {
+  return &partition_state_;
+}
+
+// -------------------------------------------------------------------
+
+// CmdResponse_InfoServer
+
+// required int64 epoch = 1;
+inline bool CmdResponse_InfoServer::has_epoch() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void CmdResponse_InfoServer::set_has_epoch() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void CmdResponse_InfoServer::clear_has_epoch() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void CmdResponse_InfoServer::clear_epoch() {
+  epoch_ = GOOGLE_LONGLONG(0);
+  clear_has_epoch();
+}
+inline ::google::protobuf::int64 CmdResponse_InfoServer::epoch() const {
+  return epoch_;
+}
+inline void CmdResponse_InfoServer::set_epoch(::google::protobuf::int64 value) {
+  set_has_epoch();
+  epoch_ = value;
+}
+
+// repeated string table_names = 2;
+inline int CmdResponse_InfoServer::table_names_size() const {
+  return table_names_.size();
+}
+inline void CmdResponse_InfoServer::clear_table_names() {
+  table_names_.Clear();
+}
+inline const ::std::string& CmdResponse_InfoServer::table_names(int index) const {
+  return table_names_.Get(index);
+}
+inline ::std::string* CmdResponse_InfoServer::mutable_table_names(int index) {
+  return table_names_.Mutable(index);
+}
+inline void CmdResponse_InfoServer::set_table_names(int index, const ::std::string& value) {
+  table_names_.Mutable(index)->assign(value);
+}
+inline void CmdResponse_InfoServer::set_table_names(int index, const char* value) {
+  table_names_.Mutable(index)->assign(value);
+}
+inline void CmdResponse_InfoServer::set_table_names(int index, const char* value, size_t size) {
+  table_names_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CmdResponse_InfoServer::add_table_names() {
+  return table_names_.Add();
+}
+inline void CmdResponse_InfoServer::add_table_names(const ::std::string& value) {
+  table_names_.Add()->assign(value);
+}
+inline void CmdResponse_InfoServer::add_table_names(const char* value) {
+  table_names_.Add()->assign(value);
+}
+inline void CmdResponse_InfoServer::add_table_names(const char* value, size_t size) {
+  table_names_.Add()->assign(reinterpret_cast<const char*>(value), size);
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+CmdResponse_InfoServer::table_names() const {
+  return table_names_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+CmdResponse_InfoServer::mutable_table_names() {
+  return &table_names_;
+}
+
+// required .client.Node cur_meta = 3;
+inline bool CmdResponse_InfoServer::has_cur_meta() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void CmdResponse_InfoServer::set_has_cur_meta() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void CmdResponse_InfoServer::clear_has_cur_meta() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void CmdResponse_InfoServer::clear_cur_meta() {
+  if (cur_meta_ != NULL) cur_meta_->::client::Node::Clear();
+  clear_has_cur_meta();
+}
+inline const ::client::Node& CmdResponse_InfoServer::cur_meta() const {
+  return cur_meta_ != NULL ? *cur_meta_ : *default_instance_->cur_meta_;
+}
+inline ::client::Node* CmdResponse_InfoServer::mutable_cur_meta() {
+  set_has_cur_meta();
+  if (cur_meta_ == NULL) cur_meta_ = new ::client::Node;
+  return cur_meta_;
+}
+inline ::client::Node* CmdResponse_InfoServer::release_cur_meta() {
+  clear_has_cur_meta();
+  ::client::Node* temp = cur_meta_;
+  cur_meta_ = NULL;
+  return temp;
+}
+inline void CmdResponse_InfoServer::set_allocated_cur_meta(::client::Node* cur_meta) {
+  delete cur_meta_;
+  cur_meta_ = cur_meta;
+  if (cur_meta) {
+    set_has_cur_meta();
+  } else {
+    clear_has_cur_meta();
+  }
+}
+
+// required bool meta_renewing = 4;
+inline bool CmdResponse_InfoServer::has_meta_renewing() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void CmdResponse_InfoServer::set_has_meta_renewing() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void CmdResponse_InfoServer::clear_has_meta_renewing() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void CmdResponse_InfoServer::clear_meta_renewing() {
+  meta_renewing_ = false;
+  clear_has_meta_renewing();
+}
+inline bool CmdResponse_InfoServer::meta_renewing() const {
+  return meta_renewing_;
+}
+inline void CmdResponse_InfoServer::set_meta_renewing(bool value) {
+  set_has_meta_renewing();
+  meta_renewing_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -4816,32 +5531,70 @@ CmdResponse::mutable_info_capacity() {
   return &info_capacity_;
 }
 
-// repeated .client.CmdResponse.InfoPartition info_partition = 9;
-inline int CmdResponse::info_partition_size() const {
-  return info_partition_.size();
+// repeated .client.CmdResponse.InfoRepl info_repl = 9;
+inline int CmdResponse::info_repl_size() const {
+  return info_repl_.size();
 }
-inline void CmdResponse::clear_info_partition() {
-  info_partition_.Clear();
+inline void CmdResponse::clear_info_repl() {
+  info_repl_.Clear();
 }
-inline const ::client::CmdResponse_InfoPartition& CmdResponse::info_partition(int index) const {
-  return info_partition_.Get(index);
+inline const ::client::CmdResponse_InfoRepl& CmdResponse::info_repl(int index) const {
+  return info_repl_.Get(index);
 }
-inline ::client::CmdResponse_InfoPartition* CmdResponse::mutable_info_partition(int index) {
-  return info_partition_.Mutable(index);
+inline ::client::CmdResponse_InfoRepl* CmdResponse::mutable_info_repl(int index) {
+  return info_repl_.Mutable(index);
 }
-inline ::client::CmdResponse_InfoPartition* CmdResponse::add_info_partition() {
-  return info_partition_.Add();
+inline ::client::CmdResponse_InfoRepl* CmdResponse::add_info_repl() {
+  return info_repl_.Add();
 }
-inline const ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoPartition >&
-CmdResponse::info_partition() const {
-  return info_partition_;
+inline const ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoRepl >&
+CmdResponse::info_repl() const {
+  return info_repl_;
 }
-inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoPartition >*
-CmdResponse::mutable_info_partition() {
-  return &info_partition_;
+inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoRepl >*
+CmdResponse::mutable_info_repl() {
+  return &info_repl_;
 }
 
-// repeated .client.CmdResponse.Mget mget = 10;
+// optional .client.CmdResponse.InfoServer info_server = 10;
+inline bool CmdResponse::has_info_server() const {
+  return (_has_bits_[0] & 0x00000200u) != 0;
+}
+inline void CmdResponse::set_has_info_server() {
+  _has_bits_[0] |= 0x00000200u;
+}
+inline void CmdResponse::clear_has_info_server() {
+  _has_bits_[0] &= ~0x00000200u;
+}
+inline void CmdResponse::clear_info_server() {
+  if (info_server_ != NULL) info_server_->::client::CmdResponse_InfoServer::Clear();
+  clear_has_info_server();
+}
+inline const ::client::CmdResponse_InfoServer& CmdResponse::info_server() const {
+  return info_server_ != NULL ? *info_server_ : *default_instance_->info_server_;
+}
+inline ::client::CmdResponse_InfoServer* CmdResponse::mutable_info_server() {
+  set_has_info_server();
+  if (info_server_ == NULL) info_server_ = new ::client::CmdResponse_InfoServer;
+  return info_server_;
+}
+inline ::client::CmdResponse_InfoServer* CmdResponse::release_info_server() {
+  clear_has_info_server();
+  ::client::CmdResponse_InfoServer* temp = info_server_;
+  info_server_ = NULL;
+  return temp;
+}
+inline void CmdResponse::set_allocated_info_server(::client::CmdResponse_InfoServer* info_server) {
+  delete info_server_;
+  info_server_ = info_server;
+  if (info_server) {
+    set_has_info_server();
+  } else {
+    clear_has_info_server();
+  }
+}
+
+// repeated .client.CmdResponse.Mget mget = 11;
 inline int CmdResponse::mget_size() const {
   return mget_.size();
 }

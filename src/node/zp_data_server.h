@@ -149,6 +149,8 @@ class ZPDataServer {
   bool GetAllTableName(std::set<std::string>& table_names);
   bool GetTableStat(const std::string& table_name, std::vector<Statistic>& stats);
   bool GetTableCapacity(const std::string& table_name, std::vector<Statistic>& capacity_stats);
+  bool GetTableReplInfo(const std::string& table_name,
+      std::unordered_map<std::string, client::CmdResponse_InfoRepl>* info_repls);
 
  private:
 

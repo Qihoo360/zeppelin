@@ -157,3 +157,15 @@ void Table::GetCapacity(Statistic *stat) {
   DLOG(INFO) << "GetCapacity for table " << table_name_ << ":";
   stat->Dump();
 }
+
+void Table::GetReplInfo(client::CmdResponse_InfoRepl* repl_info) {
+  repl_info->set_table_name(table_name_);
+  repl_info->set_partition_cnt(partition_cnt_);
+  client::PartitionState* partition_state = NULL;
+  for (auto& p : partitions_) {
+    partition_state = repl_info->add_partition_state();
+    p.second->GetState(partition_state);
+  }
+}
+
+
