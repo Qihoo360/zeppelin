@@ -6,7 +6,10 @@
 const int kMaxDataWorkerThread = 100;
 const int kMaxMetaWorkerThread = 16;
 
-const std::string kZPVersion = "0.0.1";
+#define dstr(a) #a
+#define dxstr(a) dstr(a)
+const std::string kZPVersion = dxstr(_GITVER_);
+const std::string kZPCompileDate = dxstr(_COMPILEDATE_);
 const std::string kZpPidFile = "zp.pid";
 const std::string kZpLockFile = "zp.lock";
 

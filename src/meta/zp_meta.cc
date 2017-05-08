@@ -46,7 +46,8 @@ static void SignalSetup() {
 
 void Usage() {
   printf("Usage:\n"
-          "  ./output/bin/zp-meta -c conf\n");
+          "  .zp-meta -c conf\n"
+          "  .zp-meta -v\n");
 }
 
 
@@ -58,7 +59,7 @@ void ZpConfInit(int argc, char* argv[]) {
   bool path_opt = false;
   char c;
   char path[1024];
-  while (-1 != (c = getopt(argc, argv, "c:h"))) {
+  while (-1 != (c = getopt(argc, argv, "c:hv"))) {
     switch (c) {
       case 'c':
         snprintf(path, 1024, "%s", optarg);
@@ -67,6 +68,11 @@ void ZpConfInit(int argc, char* argv[]) {
       case 'h':
         Usage();
         exit(-1);
+      case 'v':
+        std::cout << "Zeppelin " << std::endl;
+        std::cout << "Git ver: " << kZPVersion << std::endl;
+        std::cout << "Date:    " << kZPCompileDate << std::endl;
+        exit(0);
       default:
         Usage();
         exit(-1);

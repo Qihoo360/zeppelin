@@ -27,6 +27,8 @@ META_SRC_PATH = ./src/meta
 NODE_SRC_PATH = ./src/node
 THIRD_PATH = ./third
 OUTPUT = ./output
+VERSION = -D_GITVER_=$(shell git rev-list HEAD | head -n1) \
+					-D_COMPILEDATE_=$(shell date +%F)
 
 
 COMMON_SRC = $(wildcard $(COMMON_SRC_PATH)/*.cc)
@@ -112,13 +114,13 @@ all: $(ZP_META) $(ZP_NODE)
 
 
 $(ZP_META): $(FLOYD) $(GLOG) $(PINK) $(SLASH) $(COMMON_OBJS) $(META_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJS) $(META_OBJS) $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(METALIBS) $(LIBS) 
+	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJS) $(META_OBJS) $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(METALIBS) $(LIBS)
 
 $(ZP_NODE): $(NEMODB) $(GLOG) $(PINK) $(SLASH) $(COMMON_OBJS) $(NODE_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJS) $(NODE_OBJS) $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(NODELIBS) $(LIBS) 
+	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJS) $(NODE_OBJS) $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(NODELIBS) $(LIBS)
 
 $(OBJS): %.o : %.cc
-	$(CXX) $(CXXFLAGS) $(INCLUDE_PATH) -c $< -o $@  
+	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) $(VERSION)
 
 $(FLOYD):
 	make -C $(THIRD_PATH)/floyd/ __PERF=$(__PERF)
