@@ -110,38 +110,31 @@ ZPDataServer::~ZPDataServer() {
 }
 
 void ZPDataServer::InitDBOptions() {
-  // memtable大小256M，48个实例最多占用256M*2*48 = 24.6G
-  db_options_.write_buffer_size = 256 * 1024 * 1024;
-  // sst大小256M，这样可以减少sst文件数，从而减少fd个数
-  db_options_.target_file_size_base = 256 * 1024 * 1024;
-  /*
-   * level 1触发compaction的大小为128M*4 = 512M
-   * （这里假设从memtable到level 0会有50%的压缩）
-   */
-  db_options_.max_bytes_for_level_base = 512 * 1024 * 1024;
-  // 加快db打开的速度
+  // Assume 48 rocksdb install totally
+
+  // memtable each
+  db_options_.write_buffer_size = g_zp_conf->db_write_buffer_size() * 1024;
+
+  // memtable max
+  db_options_.write_buffer_manager.reset(
+      new rocksdb::WriteBufferManager(g_zp_conf->db_max_write_buffer() * 1024));
+  
+  // sst file size
+  db_options_.target_file_size_base = g_zp_conf->db_target_file_size_base() * 1024;
+ 
+  // suppose 50% compression radio
+  db_options_.max_bytes_for_level_base = 2 * db_options_.write_buffer_size;
+  
+  // speed up db open 
   db_options_.skip_stats_update_on_db_open = true;
-  /*
-   * compaction对需要的sst单独打开新的句柄，与Get()互不干扰
-   * 并且使用2M的readhead来加速read，这里分配2M会带来额外的内存
-   * 开销，默认单次compaction涉及的最大bytes为
-   * target_file_size_base * 25，即25个sst文件，则每个rocksdb
-   * 实例会额外消耗25*2M = 50M，48个实例一共消耗50M*48 = 2.4G
-   */
+  
   db_options_.compaction_readahead_size = 2 * 1024 * 1024;
-  /*
-   * 24T数据大约有198304个sst(256M)文件，则48个rocksdb实例
-   * 每一个实例差不多有2048个，所以配置table_cache的capacity
-   * 为2048
-   */
-  //db_options_.max_open_files = 2048;
+  
+  db_options_.max_open_files = g_zp_conf->db_max_open_files();
 
   rocksdb::BlockBasedTableOptions block_based_table_options;
-  /*
-   * 使用512K的block size，修改block_size主要是为了减少index block的大小
-   * 但鉴于本例中单条value很大，其实效果不明显，所以这个可改可不改
- */
-  block_based_table_options.block_size = 16 * 1024;
+  
+  block_based_table_options.block_size = g_zp_conf->db_block_size() * 1024;
 
   db_options_.table_factory.reset(
      NewBlockBasedTableFactory(block_based_table_options));
@@ -149,6 +142,7 @@ void ZPDataServer::InitDBOptions() {
   db_options_.max_background_flushes = g_zp_conf->max_background_flushes();
   db_options_.max_background_compactions = g_zp_conf->max_background_compactions();
   
+
   db_options_.create_if_missing = true;
 }
 

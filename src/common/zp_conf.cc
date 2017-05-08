@@ -38,6 +38,11 @@ ZpConf::ZpConf() {
   sync_send_thread_num_ = 4;
   max_background_flushes_ = 24;
   max_background_compactions_ = 24;
+  db_write_buffer_size_ = 256 * 1024; // 256M
+  db_max_write_buffer_ = 20 * 1024 * 1024; // 20G
+  db_target_file_size_base_ = 256 * 1024; // 256M
+  db_max_open_files_ = 4096;
+  db_block_size_ = 16; // 16K
   slowlog_slower_than_ = -1;
 }
 
@@ -64,6 +69,11 @@ void ZpConf::Dump() const {
   fprintf (stderr, "    Config.sync_send_thread_num   : %d\n", sync_send_thread_num_);
   fprintf (stderr, "    Config.max_background_flushes    : %d\n", max_background_flushes_);
   fprintf (stderr, "    Config.max_background_compactions   : %d\n", max_background_compactions_);
+  fprintf (stderr, "    Config.db_write_buffer_size   : %dKB\n", db_write_buffer_size_);
+  fprintf (stderr, "    Config.db_max_write_buffer   : %dKB\n", db_max_write_buffer_);
+  fprintf (stderr, "    Config.db_target_file_size_base   : %dKB\n", db_target_file_size_base_);
+  fprintf (stderr, "    Config.db_max_open_files   : %d\n", db_max_open_files_);
+  fprintf (stderr, "    Config.db_block_size   : %dKB\n", db_block_size_);
   fprintf (stderr, "    Config.slowlog_slower_than   : %d\n", slowlog_slower_than_);
 }
 
@@ -87,6 +97,11 @@ int ZpConf::Load(const std::string& path) {
   READCONF(conf_reader, sync_send_thread_num, sync_send_thread_num_, INT);
   READCONF(conf_reader, max_background_flushes, max_background_flushes_, INT);
   READCONF(conf_reader, max_background_compactions, max_background_compactions_, INT);
+  READCONF(conf_reader, db_write_buffer_size, db_write_buffer_size_, INT);
+  READCONF(conf_reader, db_max_write_buffer, db_max_write_buffer_, INT);
+  READCONF(conf_reader, db_target_file_size_base, db_target_file_size_base_, INT);
+  READCONF(conf_reader, db_max_open_files, db_max_open_files_, INT);
+  READCONF(conf_reader, db_block_size, db_block_size_, INT);
   READCONF(conf_reader, slowlog_slower_than, slowlog_slower_than_, INT);
   std::string lock_path = log_path_;
   if (lock_path.back() != '/') {
@@ -102,5 +117,9 @@ int ZpConf::Load(const std::string& path) {
   max_background_flushes_ = BoundaryLimit(max_background_flushes_, 10, 100);
   max_background_compactions_ = BoundaryLimit(max_background_compactions_, 10, 100);
   slowlog_slower_than_ = BoundaryLimit(slowlog_slower_than_, -1, 10000000);
+  db_write_buffer_size_ = BoundaryLimit(db_write_buffer_size_, 4 * 1024, 10 * 1024 * 1024); // 4M ~ 10G
+  db_max_write_buffer_ = BoundaryLimit(db_max_write_buffer_, 1024 * 1024, 500 * 1024 * 1024); // 1G ~ 500G
+  db_target_file_size_base_ = BoundaryLimit(db_target_file_size_base_, 4 * 1024, 10 * 1024 * 1024); // 4M ~ 10G
+  db_block_size_ = BoundaryLimit(db_block_size_, 4, 1024 * 1024); // 14K ~ 1G
   return res;
 }

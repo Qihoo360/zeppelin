@@ -104,6 +104,26 @@ class ZpConf {
     RWLock l(&rwlock_, false);
     return slowlog_slower_than_;
   }
+  int db_write_buffer_size() {
+    RWLock l(&rwlock_, false);
+    return db_write_buffer_size_;
+  }
+  int db_max_write_buffer() {
+    RWLock l(&rwlock_, false);
+    return db_max_write_buffer_;
+  }
+  int db_target_file_size_base() {
+    RWLock l(&rwlock_, false);
+    return db_target_file_size_base_;
+  }
+  int db_max_open_files() {
+    RWLock l(&rwlock_, false);
+    return db_max_open_files_;
+  }
+  int db_block_size() {
+    RWLock l(&rwlock_, false);
+    return db_block_size_;
+  }
 
  private:
   // copy disallowded
@@ -129,6 +149,13 @@ class ZpConf {
   int sync_send_thread_num_;
   int max_background_flushes_;
   int max_background_compactions_;
+
+  // DB
+  int db_write_buffer_size_; //KB
+  int db_max_write_buffer_; //KB
+  int db_target_file_size_base_; //KB
+  int db_max_open_files_;
+  int db_block_size_; //KB
 
   // Feature
   int slowlog_slower_than_;
