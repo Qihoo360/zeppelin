@@ -152,7 +152,8 @@ void MgetCmd::Do(const google::protobuf::Message *req,
     get->set_table_name(request->mget().table_name());
     get->set_key(key);
     partition->DoCommand(sub_cmd, sub_req, sub_res);
-    if (sub_res.code() != client::StatusCode::kOk) {
+    if (sub_res.code() != client::StatusCode::kOk
+        && sub_res.code() != client::StatusCode::kNotFound) {
       LOG(WARNING) << "command failed: Mget, key:" << key << ", error:" << sub_res.msg();
       response->set_code(sub_res.code());
       response->set_msg(sub_res.msg());
@@ -160,7 +161,11 @@ void MgetCmd::Do(const google::protobuf::Message *req,
     }
     client::CmdResponse_Mget* mget = response->add_mget();
     mget->set_key(key);
-    mget->set_value(sub_res.get().value());
+    if (sub_res.code() == client::StatusCode::kOk) {
+      mget->set_value(sub_res.get().value());
+    } else {
+      mget->set_value("");
+    }
   }
   response->set_code(client::StatusCode::kOk);
 }
