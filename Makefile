@@ -135,6 +135,13 @@ $(PINK):
 	make -C $(THIRD_PATH)/pink/ __PERF=$(__PERF)
 
 $(GLOG):
+ifeq ($(SO_PATH), $(wildcard $(SO_PATH)))
+       @echo "$(SO_PATH) exist."
+else
+       @echo "$(SO_PATH) not exist."
+       mkdir $(SO_PATH)
+endif
+
 	#if [ -d $(THIRD_PATH)/glog/.libs ]; then 
 	if [ ! -f $(GLOG) ]; then \
 		cd $(THIRD_PATH)/glog; \
