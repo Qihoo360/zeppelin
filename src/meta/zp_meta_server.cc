@@ -609,7 +609,7 @@ void ZPMetaServer::UpdateOffset(const ZPMeta::MetaCmd_Ping &ping) {
   slash::MutexLock l(&offset_mutex_);
   std::string ip_port;
   std::string p;
-  LOG(INFO) << "Size: " << ping.offset_size();
+//  LOG(INFO) << "Size: " << ping.offset_size();
   for (int i = 0; i < ping.offset_size(); i++) {
 //    LOG(INFO) << "process " << i;
     auto iter = offset_.find(ping.offset(i).table_name());
