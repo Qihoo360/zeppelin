@@ -37,7 +37,7 @@ void ZPDataDispatchThread::CronHandle() {
   LOG(INFO) << "ClientNum: " << ClientNum() << " ClientQueryNum: " << server_querys
       << " SyncCmdNum: " << sync_querys
       << " ServerCurrentQps: " << server_qps;
-  zp_data_server->DumpTablePartitions();
+  //zp_data_server->DumpTablePartitions();
   zp_data_server->DumpBinlogSendTask();
 }
 

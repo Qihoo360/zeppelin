@@ -103,10 +103,13 @@ int ZpConf::Load(const std::string& path) {
   READCONF(conf_reader, db_max_open_files, db_max_open_files_, INT);
   READCONF(conf_reader, db_block_size, db_block_size_, INT);
   READCONF(conf_reader, slowlog_slower_than, slowlog_slower_than_, INT);
-  std::string lock_path = log_path_;
-  if (lock_path.back() != '/') {
-    lock_path.append("/");
+  if (data_path_.back() != '/') {
+    data_path_.append("/");
   }
+  if (log_path_.back() != '/') {
+    log_path_.append("/");
+  }
+  std::string lock_path = log_path_;
   pid_file_ = lock_path + "pid";
   lock_file_ = lock_path + "lock";
 

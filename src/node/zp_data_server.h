@@ -69,7 +69,7 @@ class ZPDataServer {
   }
 
   std::string db_sync_path() {
-    return "./sync_" + std::to_string(g_zp_conf->local_port()) + "/";
+    return g_zp_conf->data_path() + "/sync_" + std::to_string(g_zp_conf->local_port()) + "/";
   }
 
   std::string bgsave_path() {
