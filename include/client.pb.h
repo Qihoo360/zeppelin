@@ -51,8 +51,8 @@ class CmdResponse_Get;
 class CmdResponse_InfoStats;
 class CmdResponse_InfoCapacity;
 class CmdResponse_InfoRepl;
-class CmdResponse_InfoServer;
 class CmdResponse_Mget;
+class CmdResponse_InfoServer;
 class BinlogSkip;
 class SyncRequest;
 
@@ -64,12 +64,12 @@ enum Type {
   INFOSTATS = 4,
   INFOCAPACITY = 5,
   INFOREPL = 6,
-  INFOSERVER = 7,
-  MGET = 8
+  MGET = 7,
+  INFOSERVER = 8
 };
 bool Type_IsValid(int value);
 const Type Type_MIN = SYNC;
-const Type Type_MAX = MGET;
+const Type Type_MAX = INFOSERVER;
 const int Type_ARRAYSIZE = Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Type_descriptor();
@@ -1916,6 +1916,108 @@ class CmdResponse_InfoRepl : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class CmdResponse_Mget : public ::google::protobuf::Message {
+ public:
+  CmdResponse_Mget();
+  virtual ~CmdResponse_Mget();
+
+  CmdResponse_Mget(const CmdResponse_Mget& from);
+
+  inline CmdResponse_Mget& operator=(const CmdResponse_Mget& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const CmdResponse_Mget& default_instance();
+
+  void Swap(CmdResponse_Mget* other);
+
+  // implements Message ----------------------------------------------
+
+  CmdResponse_Mget* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const CmdResponse_Mget& from);
+  void MergeFrom(const CmdResponse_Mget& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string key = 1;
+  inline bool has_key() const;
+  inline void clear_key();
+  static const int kKeyFieldNumber = 1;
+  inline const ::std::string& key() const;
+  inline void set_key(const ::std::string& value);
+  inline void set_key(const char* value);
+  inline void set_key(const char* value, size_t size);
+  inline ::std::string* mutable_key();
+  inline ::std::string* release_key();
+  inline void set_allocated_key(::std::string* key);
+
+  // required bytes value = 2;
+  inline bool has_value() const;
+  inline void clear_value();
+  static const int kValueFieldNumber = 2;
+  inline const ::std::string& value() const;
+  inline void set_value(const ::std::string& value);
+  inline void set_value(const char* value);
+  inline void set_value(const void* value, size_t size);
+  inline ::std::string* mutable_value();
+  inline ::std::string* release_value();
+  inline void set_allocated_value(::std::string* value);
+
+  // @@protoc_insertion_point(class_scope:client.CmdResponse.Mget)
+ private:
+  inline void set_has_key();
+  inline void clear_has_key();
+  inline void set_has_value();
+  inline void clear_has_value();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* key_;
+  ::std::string* value_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static CmdResponse_Mget* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class CmdResponse_InfoServer : public ::google::protobuf::Message {
  public:
   CmdResponse_InfoServer();
@@ -2037,108 +2139,6 @@ class CmdResponse_InfoServer : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
-class CmdResponse_Mget : public ::google::protobuf::Message {
- public:
-  CmdResponse_Mget();
-  virtual ~CmdResponse_Mget();
-
-  CmdResponse_Mget(const CmdResponse_Mget& from);
-
-  inline CmdResponse_Mget& operator=(const CmdResponse_Mget& from) {
-    CopyFrom(from);
-    return *this;
-  }
-
-  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
-    return _unknown_fields_;
-  }
-
-  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
-    return &_unknown_fields_;
-  }
-
-  static const ::google::protobuf::Descriptor* descriptor();
-  static const CmdResponse_Mget& default_instance();
-
-  void Swap(CmdResponse_Mget* other);
-
-  // implements Message ----------------------------------------------
-
-  CmdResponse_Mget* New() const;
-  void CopyFrom(const ::google::protobuf::Message& from);
-  void MergeFrom(const ::google::protobuf::Message& from);
-  void CopyFrom(const CmdResponse_Mget& from);
-  void MergeFrom(const CmdResponse_Mget& from);
-  void Clear();
-  bool IsInitialized() const;
-
-  int ByteSize() const;
-  bool MergePartialFromCodedStream(
-      ::google::protobuf::io::CodedInputStream* input);
-  void SerializeWithCachedSizes(
-      ::google::protobuf::io::CodedOutputStream* output) const;
-  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
-  int GetCachedSize() const { return _cached_size_; }
-  private:
-  void SharedCtor();
-  void SharedDtor();
-  void SetCachedSize(int size) const;
-  public:
-
-  ::google::protobuf::Metadata GetMetadata() const;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // required string key = 1;
-  inline bool has_key() const;
-  inline void clear_key();
-  static const int kKeyFieldNumber = 1;
-  inline const ::std::string& key() const;
-  inline void set_key(const ::std::string& value);
-  inline void set_key(const char* value);
-  inline void set_key(const char* value, size_t size);
-  inline ::std::string* mutable_key();
-  inline ::std::string* release_key();
-  inline void set_allocated_key(::std::string* key);
-
-  // required bytes value = 2;
-  inline bool has_value() const;
-  inline void clear_value();
-  static const int kValueFieldNumber = 2;
-  inline const ::std::string& value() const;
-  inline void set_value(const ::std::string& value);
-  inline void set_value(const char* value);
-  inline void set_value(const void* value, size_t size);
-  inline ::std::string* mutable_value();
-  inline ::std::string* release_value();
-  inline void set_allocated_value(::std::string* value);
-
-  // @@protoc_insertion_point(class_scope:client.CmdResponse.Mget)
- private:
-  inline void set_has_key();
-  inline void clear_has_key();
-  inline void set_has_value();
-  inline void clear_has_value();
-
-  ::google::protobuf::UnknownFieldSet _unknown_fields_;
-
-  ::std::string* key_;
-  ::std::string* value_;
-
-  mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
-
-  friend void  protobuf_AddDesc_client_2eproto();
-  friend void protobuf_AssignDesc_client_2eproto();
-  friend void protobuf_ShutdownFile_client_2eproto();
-
-  void InitAsDefaultInstance();
-  static CmdResponse_Mget* default_instance_;
-};
-// -------------------------------------------------------------------
-
 class CmdResponse : public ::google::protobuf::Message {
  public:
   CmdResponse();
@@ -2196,8 +2196,8 @@ class CmdResponse : public ::google::protobuf::Message {
   typedef CmdResponse_InfoStats InfoStats;
   typedef CmdResponse_InfoCapacity InfoCapacity;
   typedef CmdResponse_InfoRepl InfoRepl;
-  typedef CmdResponse_InfoServer InfoServer;
   typedef CmdResponse_Mget Mget;
+  typedef CmdResponse_InfoServer InfoServer;
 
   // accessors -------------------------------------------------------
 
@@ -2290,19 +2290,10 @@ class CmdResponse : public ::google::protobuf::Message {
   inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoRepl >*
       mutable_info_repl();
 
-  // optional .client.CmdResponse.InfoServer info_server = 10;
-  inline bool has_info_server() const;
-  inline void clear_info_server();
-  static const int kInfoServerFieldNumber = 10;
-  inline const ::client::CmdResponse_InfoServer& info_server() const;
-  inline ::client::CmdResponse_InfoServer* mutable_info_server();
-  inline ::client::CmdResponse_InfoServer* release_info_server();
-  inline void set_allocated_info_server(::client::CmdResponse_InfoServer* info_server);
-
-  // repeated .client.CmdResponse.Mget mget = 11;
+  // repeated .client.CmdResponse.Mget mget = 10;
   inline int mget_size() const;
   inline void clear_mget();
-  static const int kMgetFieldNumber = 11;
+  static const int kMgetFieldNumber = 10;
   inline const ::client::CmdResponse_Mget& mget(int index) const;
   inline ::client::CmdResponse_Mget* mutable_mget(int index);
   inline ::client::CmdResponse_Mget* add_mget();
@@ -2310,6 +2301,15 @@ class CmdResponse : public ::google::protobuf::Message {
       mget() const;
   inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_Mget >*
       mutable_mget();
+
+  // optional .client.CmdResponse.InfoServer info_server = 11;
+  inline bool has_info_server() const;
+  inline void clear_info_server();
+  static const int kInfoServerFieldNumber = 11;
+  inline const ::client::CmdResponse_InfoServer& info_server() const;
+  inline ::client::CmdResponse_InfoServer* mutable_info_server();
+  inline ::client::CmdResponse_InfoServer* release_info_server();
+  inline void set_allocated_info_server(::client::CmdResponse_InfoServer* info_server);
 
   // @@protoc_insertion_point(class_scope:client.CmdResponse)
  private:
@@ -2339,8 +2339,8 @@ class CmdResponse : public ::google::protobuf::Message {
   ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoStats > info_stats_;
   ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoCapacity > info_capacity_;
   ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_InfoRepl > info_repl_;
-  ::client::CmdResponse_InfoServer* info_server_;
   ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_Mget > mget_;
+  ::client::CmdResponse_InfoServer* info_server_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(11 + 31) / 32];
@@ -4975,136 +4975,6 @@ CmdResponse_InfoRepl::mutable_partition_state() {
 
 // -------------------------------------------------------------------
 
-// CmdResponse_InfoServer
-
-// required int64 epoch = 1;
-inline bool CmdResponse_InfoServer::has_epoch() const {
-  return (_has_bits_[0] & 0x00000001u) != 0;
-}
-inline void CmdResponse_InfoServer::set_has_epoch() {
-  _has_bits_[0] |= 0x00000001u;
-}
-inline void CmdResponse_InfoServer::clear_has_epoch() {
-  _has_bits_[0] &= ~0x00000001u;
-}
-inline void CmdResponse_InfoServer::clear_epoch() {
-  epoch_ = GOOGLE_LONGLONG(0);
-  clear_has_epoch();
-}
-inline ::google::protobuf::int64 CmdResponse_InfoServer::epoch() const {
-  return epoch_;
-}
-inline void CmdResponse_InfoServer::set_epoch(::google::protobuf::int64 value) {
-  set_has_epoch();
-  epoch_ = value;
-}
-
-// repeated string table_names = 2;
-inline int CmdResponse_InfoServer::table_names_size() const {
-  return table_names_.size();
-}
-inline void CmdResponse_InfoServer::clear_table_names() {
-  table_names_.Clear();
-}
-inline const ::std::string& CmdResponse_InfoServer::table_names(int index) const {
-  return table_names_.Get(index);
-}
-inline ::std::string* CmdResponse_InfoServer::mutable_table_names(int index) {
-  return table_names_.Mutable(index);
-}
-inline void CmdResponse_InfoServer::set_table_names(int index, const ::std::string& value) {
-  table_names_.Mutable(index)->assign(value);
-}
-inline void CmdResponse_InfoServer::set_table_names(int index, const char* value) {
-  table_names_.Mutable(index)->assign(value);
-}
-inline void CmdResponse_InfoServer::set_table_names(int index, const char* value, size_t size) {
-  table_names_.Mutable(index)->assign(
-    reinterpret_cast<const char*>(value), size);
-}
-inline ::std::string* CmdResponse_InfoServer::add_table_names() {
-  return table_names_.Add();
-}
-inline void CmdResponse_InfoServer::add_table_names(const ::std::string& value) {
-  table_names_.Add()->assign(value);
-}
-inline void CmdResponse_InfoServer::add_table_names(const char* value) {
-  table_names_.Add()->assign(value);
-}
-inline void CmdResponse_InfoServer::add_table_names(const char* value, size_t size) {
-  table_names_.Add()->assign(reinterpret_cast<const char*>(value), size);
-}
-inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
-CmdResponse_InfoServer::table_names() const {
-  return table_names_;
-}
-inline ::google::protobuf::RepeatedPtrField< ::std::string>*
-CmdResponse_InfoServer::mutable_table_names() {
-  return &table_names_;
-}
-
-// required .client.Node cur_meta = 3;
-inline bool CmdResponse_InfoServer::has_cur_meta() const {
-  return (_has_bits_[0] & 0x00000004u) != 0;
-}
-inline void CmdResponse_InfoServer::set_has_cur_meta() {
-  _has_bits_[0] |= 0x00000004u;
-}
-inline void CmdResponse_InfoServer::clear_has_cur_meta() {
-  _has_bits_[0] &= ~0x00000004u;
-}
-inline void CmdResponse_InfoServer::clear_cur_meta() {
-  if (cur_meta_ != NULL) cur_meta_->::client::Node::Clear();
-  clear_has_cur_meta();
-}
-inline const ::client::Node& CmdResponse_InfoServer::cur_meta() const {
-  return cur_meta_ != NULL ? *cur_meta_ : *default_instance_->cur_meta_;
-}
-inline ::client::Node* CmdResponse_InfoServer::mutable_cur_meta() {
-  set_has_cur_meta();
-  if (cur_meta_ == NULL) cur_meta_ = new ::client::Node;
-  return cur_meta_;
-}
-inline ::client::Node* CmdResponse_InfoServer::release_cur_meta() {
-  clear_has_cur_meta();
-  ::client::Node* temp = cur_meta_;
-  cur_meta_ = NULL;
-  return temp;
-}
-inline void CmdResponse_InfoServer::set_allocated_cur_meta(::client::Node* cur_meta) {
-  delete cur_meta_;
-  cur_meta_ = cur_meta;
-  if (cur_meta) {
-    set_has_cur_meta();
-  } else {
-    clear_has_cur_meta();
-  }
-}
-
-// required bool meta_renewing = 4;
-inline bool CmdResponse_InfoServer::has_meta_renewing() const {
-  return (_has_bits_[0] & 0x00000008u) != 0;
-}
-inline void CmdResponse_InfoServer::set_has_meta_renewing() {
-  _has_bits_[0] |= 0x00000008u;
-}
-inline void CmdResponse_InfoServer::clear_has_meta_renewing() {
-  _has_bits_[0] &= ~0x00000008u;
-}
-inline void CmdResponse_InfoServer::clear_meta_renewing() {
-  meta_renewing_ = false;
-  clear_has_meta_renewing();
-}
-inline bool CmdResponse_InfoServer::meta_renewing() const {
-  return meta_renewing_;
-}
-inline void CmdResponse_InfoServer::set_meta_renewing(bool value) {
-  set_has_meta_renewing();
-  meta_renewing_ = value;
-}
-
-// -------------------------------------------------------------------
-
 // CmdResponse_Mget
 
 // required string key = 1;
@@ -5245,6 +5115,136 @@ inline void CmdResponse_Mget::set_allocated_value(::std::string* value) {
     clear_has_value();
     value_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   }
+}
+
+// -------------------------------------------------------------------
+
+// CmdResponse_InfoServer
+
+// required int64 epoch = 1;
+inline bool CmdResponse_InfoServer::has_epoch() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void CmdResponse_InfoServer::set_has_epoch() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void CmdResponse_InfoServer::clear_has_epoch() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void CmdResponse_InfoServer::clear_epoch() {
+  epoch_ = GOOGLE_LONGLONG(0);
+  clear_has_epoch();
+}
+inline ::google::protobuf::int64 CmdResponse_InfoServer::epoch() const {
+  return epoch_;
+}
+inline void CmdResponse_InfoServer::set_epoch(::google::protobuf::int64 value) {
+  set_has_epoch();
+  epoch_ = value;
+}
+
+// repeated string table_names = 2;
+inline int CmdResponse_InfoServer::table_names_size() const {
+  return table_names_.size();
+}
+inline void CmdResponse_InfoServer::clear_table_names() {
+  table_names_.Clear();
+}
+inline const ::std::string& CmdResponse_InfoServer::table_names(int index) const {
+  return table_names_.Get(index);
+}
+inline ::std::string* CmdResponse_InfoServer::mutable_table_names(int index) {
+  return table_names_.Mutable(index);
+}
+inline void CmdResponse_InfoServer::set_table_names(int index, const ::std::string& value) {
+  table_names_.Mutable(index)->assign(value);
+}
+inline void CmdResponse_InfoServer::set_table_names(int index, const char* value) {
+  table_names_.Mutable(index)->assign(value);
+}
+inline void CmdResponse_InfoServer::set_table_names(int index, const char* value, size_t size) {
+  table_names_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CmdResponse_InfoServer::add_table_names() {
+  return table_names_.Add();
+}
+inline void CmdResponse_InfoServer::add_table_names(const ::std::string& value) {
+  table_names_.Add()->assign(value);
+}
+inline void CmdResponse_InfoServer::add_table_names(const char* value) {
+  table_names_.Add()->assign(value);
+}
+inline void CmdResponse_InfoServer::add_table_names(const char* value, size_t size) {
+  table_names_.Add()->assign(reinterpret_cast<const char*>(value), size);
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+CmdResponse_InfoServer::table_names() const {
+  return table_names_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+CmdResponse_InfoServer::mutable_table_names() {
+  return &table_names_;
+}
+
+// required .client.Node cur_meta = 3;
+inline bool CmdResponse_InfoServer::has_cur_meta() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void CmdResponse_InfoServer::set_has_cur_meta() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void CmdResponse_InfoServer::clear_has_cur_meta() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void CmdResponse_InfoServer::clear_cur_meta() {
+  if (cur_meta_ != NULL) cur_meta_->::client::Node::Clear();
+  clear_has_cur_meta();
+}
+inline const ::client::Node& CmdResponse_InfoServer::cur_meta() const {
+  return cur_meta_ != NULL ? *cur_meta_ : *default_instance_->cur_meta_;
+}
+inline ::client::Node* CmdResponse_InfoServer::mutable_cur_meta() {
+  set_has_cur_meta();
+  if (cur_meta_ == NULL) cur_meta_ = new ::client::Node;
+  return cur_meta_;
+}
+inline ::client::Node* CmdResponse_InfoServer::release_cur_meta() {
+  clear_has_cur_meta();
+  ::client::Node* temp = cur_meta_;
+  cur_meta_ = NULL;
+  return temp;
+}
+inline void CmdResponse_InfoServer::set_allocated_cur_meta(::client::Node* cur_meta) {
+  delete cur_meta_;
+  cur_meta_ = cur_meta;
+  if (cur_meta) {
+    set_has_cur_meta();
+  } else {
+    clear_has_cur_meta();
+  }
+}
+
+// required bool meta_renewing = 4;
+inline bool CmdResponse_InfoServer::has_meta_renewing() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void CmdResponse_InfoServer::set_has_meta_renewing() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void CmdResponse_InfoServer::clear_has_meta_renewing() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void CmdResponse_InfoServer::clear_meta_renewing() {
+  meta_renewing_ = false;
+  clear_has_meta_renewing();
+}
+inline bool CmdResponse_InfoServer::meta_renewing() const {
+  return meta_renewing_;
+}
+inline void CmdResponse_InfoServer::set_meta_renewing(bool value) {
+  set_has_meta_renewing();
+  meta_renewing_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -5556,15 +5556,40 @@ CmdResponse::mutable_info_repl() {
   return &info_repl_;
 }
 
-// optional .client.CmdResponse.InfoServer info_server = 10;
+// repeated .client.CmdResponse.Mget mget = 10;
+inline int CmdResponse::mget_size() const {
+  return mget_.size();
+}
+inline void CmdResponse::clear_mget() {
+  mget_.Clear();
+}
+inline const ::client::CmdResponse_Mget& CmdResponse::mget(int index) const {
+  return mget_.Get(index);
+}
+inline ::client::CmdResponse_Mget* CmdResponse::mutable_mget(int index) {
+  return mget_.Mutable(index);
+}
+inline ::client::CmdResponse_Mget* CmdResponse::add_mget() {
+  return mget_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_Mget >&
+CmdResponse::mget() const {
+  return mget_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_Mget >*
+CmdResponse::mutable_mget() {
+  return &mget_;
+}
+
+// optional .client.CmdResponse.InfoServer info_server = 11;
 inline bool CmdResponse::has_info_server() const {
-  return (_has_bits_[0] & 0x00000200u) != 0;
+  return (_has_bits_[0] & 0x00000400u) != 0;
 }
 inline void CmdResponse::set_has_info_server() {
-  _has_bits_[0] |= 0x00000200u;
+  _has_bits_[0] |= 0x00000400u;
 }
 inline void CmdResponse::clear_has_info_server() {
-  _has_bits_[0] &= ~0x00000200u;
+  _has_bits_[0] &= ~0x00000400u;
 }
 inline void CmdResponse::clear_info_server() {
   if (info_server_ != NULL) info_server_->::client::CmdResponse_InfoServer::Clear();
@@ -5592,31 +5617,6 @@ inline void CmdResponse::set_allocated_info_server(::client::CmdResponse_InfoSer
   } else {
     clear_has_info_server();
   }
-}
-
-// repeated .client.CmdResponse.Mget mget = 11;
-inline int CmdResponse::mget_size() const {
-  return mget_.size();
-}
-inline void CmdResponse::clear_mget() {
-  mget_.Clear();
-}
-inline const ::client::CmdResponse_Mget& CmdResponse::mget(int index) const {
-  return mget_.Get(index);
-}
-inline ::client::CmdResponse_Mget* CmdResponse::mutable_mget(int index) {
-  return mget_.Mutable(index);
-}
-inline ::client::CmdResponse_Mget* CmdResponse::add_mget() {
-  return mget_.Add();
-}
-inline const ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_Mget >&
-CmdResponse::mget() const {
-  return mget_;
-}
-inline ::google::protobuf::RepeatedPtrField< ::client::CmdResponse_Mget >*
-CmdResponse::mutable_mget() {
-  return &mget_;
 }
 
 // -------------------------------------------------------------------

@@ -8,8 +8,8 @@ enum Type {
   INFOSTATS = 4;
   INFOCAPACITY = 5;
   INFOREPL= 6;
-  INFOSERVER = 7;
-  MGET = 8;
+  MGET = 7;
+  INFOSERVER = 8;
 }
 
 enum SyncType {
@@ -140,6 +140,13 @@ message CmdResponse {
   }
   repeated InfoRepl info_repl = 9;
 
+  // Mget
+  message Mget {
+    required string key = 1;
+    required bytes value = 2; 
+  }
+  repeated Mget mget = 10;
+
   // InfoServer
   message InfoServer {
     required int64 epoch = 1;
@@ -147,14 +154,8 @@ message CmdResponse {
     required Node cur_meta = 3;
     required bool meta_renewing = 4; 
   }
-  optional InfoServer info_server = 10;
+  optional InfoServer info_server = 11;
 
-  // Mget
-  message Mget {
-    required string key = 1;
-    required bytes value = 2; 
-  }
-  repeated Mget mget = 11;
 }
 
 message BinlogSkip {
