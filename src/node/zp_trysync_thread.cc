@@ -19,6 +19,7 @@ ZPTrySyncThread::~ZPTrySyncThread() {
   delete bg_thread_;
   for (auto &kv: client_pool_) {
     kv.second->Close();
+    delete kv.second;
   }
   slash::StopRsync(zp_data_server->db_sync_path());
   LOG(INFO) << " TrySync thread " << pthread_self() << " exit!!!";
@@ -122,6 +123,7 @@ pink::PbCli* ZPTrySyncThread::GetConnection(const Node& node) {
     pink::Status s = cli->Connect(node.ip, node.port);
     if (!s.ok()) {
       LOG(WARNING) << "Connect failed caz" << s.ToString();
+      delete cli;
       return NULL;
     }
     cli->set_send_timeout(1000);
@@ -138,6 +140,7 @@ void ZPTrySyncThread::DropConnection(const Node& node) {
   auto iter = client_pool_.find(ip_port);
   if (iter != client_pool_.end()) {
     pink::PbCli* cli = iter->second;
+    cli->Close();
     delete cli;
     client_pool_.erase(iter);
   }
