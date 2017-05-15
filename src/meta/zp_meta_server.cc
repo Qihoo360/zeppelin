@@ -30,7 +30,6 @@ ZPMetaServer::ZPMetaServer()
         LOG(FATAL) << "your 'limit -n ' of " << previous_limit << " is not enough for zeppelin to start, but zeppelin can not reconfig it: " << strerror(errno) <<" do it by yourself";
       };
     }
-    LOG(INFO) <<limit.rlim_max << " " << limit.rlim_cur << std::endl;
   } else {
     LOG(WARNING) << "getrlimir error: " << strerror(errno);
   }
