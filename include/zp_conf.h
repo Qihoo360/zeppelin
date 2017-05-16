@@ -71,7 +71,7 @@ class ZpConf {
     return lock_file_;
   }
 
-  int64_t max_file_descriptor_num() {
+  int max_file_descriptor_num() {
     RWLock l(&rwlock_, false);
     return max_file_descriptor_num_;
   }
@@ -146,7 +146,7 @@ class ZpConf {
   bool daemonize_;
   std::string pid_file_;
   std::string lock_file_;
-  int64_t max_file_descriptor_num_;
+  int max_file_descriptor_num_;
 
   // Thread Num
   int meta_thread_num_;

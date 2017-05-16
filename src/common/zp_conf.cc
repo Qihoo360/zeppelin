@@ -1,9 +1,11 @@
 #include "zp_conf.h"
 
+//TODO wangkang-xy add int64 after update slash
+//#define READCONFINT64(reader, attr, value) 
+//  reader.GetConfInt64(std::string(#attr), &value)
+
 #define READCONFINT(reader, attr, value) \
   reader.GetConfInt(std::string(#attr), &value)
-#define READCONFINT64(reader, attr, value) \
-  reader.GetConfInt64(std::string(#attr), &value)
 #define READCONFBOOL(reader, attr, value) \
   reader.GetConfBool(std::string(#attr), &value)
 #define READCONFSTR(reader, attr, value) \
@@ -66,7 +68,7 @@ void ZpConf::Dump() const {
   fprintf (stderr, "    Config.daemonize    : %s\n", daemonize_? "true":"false");
   fprintf (stderr, "    Config.pid_file    : %s\n", pid_file_.c_str());
   fprintf (stderr, "    Config.lock_file    : %s\n", lock_file_.c_str());
-  fprintf (stderr, "    Config.max_file_descriptor_num    : %lld\n", max_file_descriptor_num_);
+  fprintf (stderr, "    Config.max_file_descriptor_num    : %d\n", max_file_descriptor_num_);
   fprintf (stderr, "    Config.meta_thread_num    : %d\n", meta_thread_num_);
   fprintf (stderr, "    Config.data_thread_num    : %d\n", data_thread_num_);
   fprintf (stderr, "    Config.sync_recv_thread_num   : %d\n", sync_recv_thread_num_);
@@ -95,7 +97,7 @@ int ZpConf::Load(const std::string& path) {
   READCONF(conf_reader, log_path, log_path_, STR);
   READCONF(conf_reader, daemonize, daemonize_, BOOL);
   READCONF(conf_reader, meta_addr, meta_addr_, STRVEC);
-  READCONF(conf_reader, max_file_descriptor_num, max_file_descriptor_num_, INT64);
+  READCONF(conf_reader, max_file_descriptor_num, max_file_descriptor_num_, INT);
   READCONF(conf_reader, meta_thread_num, meta_thread_num_, INT);
   READCONF(conf_reader, data_thread_num, data_thread_num_, INT);
   READCONF(conf_reader, sync_recv_thread_num, sync_recv_thread_num_, INT);
