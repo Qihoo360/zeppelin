@@ -16,7 +16,7 @@
   if (!ret) printf("%s not set,use default\n", #attr)
 
 
-static long long int BoundaryLimit(long long int target, long long int floor, long long int ceil) {
+static int64_t BoundaryLimit(int64_t target, int64_t floor, int64_t ceil) {
   target = (target < floor) ? floor : target;
   target = (target > ceil) ? ceil : target;
   return target;
@@ -34,7 +34,7 @@ ZpConf::ZpConf() {
   daemonize_ = false;
   pid_file_ = std::string("./pid");
   lock_file_ = std::string("./lock");
-  file_descriptor_num_ = 1048576;
+  max_file_descriptor_num_ = 1048576;
   meta_thread_num_ = 4;
   data_thread_num_ = 6;
   sync_recv_thread_num_ = 4;
@@ -66,7 +66,7 @@ void ZpConf::Dump() const {
   fprintf (stderr, "    Config.daemonize    : %s\n", daemonize_? "true":"false");
   fprintf (stderr, "    Config.pid_file    : %s\n", pid_file_.c_str());
   fprintf (stderr, "    Config.lock_file    : %s\n", lock_file_.c_str());
-  fprintf (stderr, "    Config.file_descriptor_num    : %d\n", file_descriptor_num_);
+  fprintf (stderr, "    Config.max_file_descriptor_num    : %lld\n", max_file_descriptor_num_);
   fprintf (stderr, "    Config.meta_thread_num    : %d\n", meta_thread_num_);
   fprintf (stderr, "    Config.data_thread_num    : %d\n", data_thread_num_);
   fprintf (stderr, "    Config.sync_recv_thread_num   : %d\n", sync_recv_thread_num_);
@@ -95,7 +95,7 @@ int ZpConf::Load(const std::string& path) {
   READCONF(conf_reader, log_path, log_path_, STR);
   READCONF(conf_reader, daemonize, daemonize_, BOOL);
   READCONF(conf_reader, meta_addr, meta_addr_, STRVEC);
-  READCONF(conf_reader, file_descriptor_num, file_descriptor_num_, INT64);
+  READCONF(conf_reader, max_file_descriptor_num, max_file_descriptor_num_, INT64);
   READCONF(conf_reader, meta_thread_num, meta_thread_num_, INT);
   READCONF(conf_reader, data_thread_num, data_thread_num_, INT);
   READCONF(conf_reader, sync_recv_thread_num, sync_recv_thread_num_, INT);
@@ -115,7 +115,7 @@ int ZpConf::Load(const std::string& path) {
   pid_file_ = lock_path + "pid";
   lock_file_ = lock_path + "lock";
 
-  file_descriptor_num_ = BoundaryLimit(file_descriptor_num_, 1, 4294967296);
+  max_file_descriptor_num_ = BoundaryLimit(max_file_descriptor_num_, 1, 4294967296);
   meta_thread_num_ = BoundaryLimit(meta_thread_num_, 1, kMaxMetaWorkerThread);
   data_thread_num_ = BoundaryLimit(data_thread_num_, 1, kMaxDataWorkerThread);
   sync_recv_thread_num_ = BoundaryLimit(sync_recv_thread_num_, 1, 100);

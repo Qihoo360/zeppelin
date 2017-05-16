@@ -108,6 +108,7 @@ int main(int argc, char** argv) {
   FileLocker db_lock(g_zp_conf->lock_file());
   Status s = db_lock.Lock();
   if (!s.ok()) {
+    printf("Start ZPDataServer failed, because LOCK file error\n");
     return 1;
   }
 
