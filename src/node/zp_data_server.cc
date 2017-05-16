@@ -3,6 +3,7 @@
 #include <fstream>
 #include <random>
 #include <glog/logging.h>
+#include <sys/resource.h>
 
 #include "zp_data_worker_thread.h"
 #include "zp_data_dispatch_thread.h"
@@ -20,6 +21,29 @@ ZPDataServer::ZPDataServer()
     pthread_rwlockattr_init(&attr);
     pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
     pthread_rwlock_init(&table_rw_, &attr);
+
+    LOG(INFO) << "ZPMetaServer start initialization";
+
+    // Try to raise the file descriptor
+    struct  rlimit limit;
+    if (getrlimit(RLIMIT_NOFILE, &limit) != -1) {
+      if (limit.rlim_cur < (rlim_t)g_zp_conf->max_file_descriptor_num()) {
+        // rlim_cur could be set by any user while rlim_max are
+        // changeable only by root.
+        rlim_t previous_limit = limit.rlim_cur;
+        limit.rlim_cur = g_zp_conf->max_file_descriptor_num();
+        if(limit.rlim_cur > limit.rlim_max) {
+          limit.rlim_max = g_zp_conf->max_file_descriptor_num();
+        }
+        if (setrlimit(RLIMIT_NOFILE, &limit) != -1) {
+          LOG(WARNING) << "your 'limit -n ' of " << previous_limit << " is not enough for zeppelin to start, zeppelin have successfully reconfig it to " << limit.rlim_cur;
+        } else {
+          LOG(FATAL) << "your 'limit -n ' of " << previous_limit << " is not enough for zeppelin to start, but zeppelin can not reconfig it: " << strerror(errno) <<" do it by yourself";
+        };
+      }
+    } else {
+      LOG(WARNING) << "getrlimir error: " << strerror(errno);
+    }
 
     // Command table
     cmds_.reserve(300);
