@@ -11,6 +11,7 @@ extern ZPDataServer* zp_data_server;
 Partition::Partition(const std::string &table_name, const int partition_id, const std::string &log_path, const std::string &data_path)
   : table_name_(table_name),
   partition_id_(partition_id),
+  opened_(false),
   readonly_(false),
   pstate_(ZPMeta::PState::ACTIVE),
   role_(Role::kNodeSingle),
@@ -49,7 +50,12 @@ Partition::Partition(const std::string &table_name, const int partition_id, cons
 
   }
 
-Status Partition::Init() {
+// Requeired: hold write lock of state_rw_
+Status Partition::Open() {
+  if (opened_) { 
+    return Status::OK();
+  }
+  
   // Create db handle
   rocksdb::Status rs = rocksdb::DBNemo::Open(*(zp_data_server->db_options()),
       data_path_, &db_);
@@ -62,6 +68,7 @@ Status Partition::Init() {
   Status s = Binlog::Create(log_path_, kBinlogSize, &logger_);
   if (!s.ok()) {
     LOG(ERROR) << "Create binlog failed: " << s.ToString();
+    delete db_;
     return s;
   }
 
@@ -69,14 +76,27 @@ Status Partition::Init() {
   if (!CheckBinlogFiles()) {
     // Binlog unavailable
     LOG(ERROR) << "CheckBinlogFiles failed: " << s.ToString();
+    delete db_;
+    delete logger_;
     return Status::Corruption("Check binlog file failed!");
   }
+
+  opened_ = true;
   return s;
 }
 
-Partition::~Partition() {
-  delete logger_;
+// Requeired: hold write lock of state_rw_
+void Partition::Close() {
+  if (!opened_) {
+    return;
+  }
   delete db_;
+  delete logger_;
+  opened_ = false;
+}
+
+Partition::~Partition() {
+  Close();
   pthread_rwlock_destroy(&purged_index_rw_);
   pthread_rwlock_destroy(&partition_rw_);
   pthread_rwlock_destroy(&state_rw_);
@@ -409,6 +429,7 @@ void Partition::CleanSlaves(const std::set<Node> &old_slaves) {
 
 // Requeired: hold write lock of state_rw_
 void Partition::BecomeSingle() {
+  Close();
   LOG(INFO) << " Partition " << partition_id_ << " BecomeSingle";
   role_ = Role::kNodeSingle;
   repl_state_ = ReplState::kNoConnect;
@@ -417,6 +438,7 @@ void Partition::BecomeSingle() {
 
 // Requeired: hold write lock of state_rw_
 void Partition::BecomeMaster() {
+  Open();
   LOG(INFO) << " Partition " << partition_id_ << " BecomeMaster";
   role_ = Role::kNodeMaster;
   repl_state_ = ReplState::kNoConnect;
@@ -428,6 +450,7 @@ void Partition::BecomeMaster() {
 
 // Requeired: hold write lock of state_rw_
 void Partition::BecomeSlave() {
+  Open();
   LOG(INFO) << " Partition " << partition_id_
     << " BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
   role_ = Role::kNodeSlave;
@@ -549,12 +572,6 @@ std::shared_ptr<Partition> NewPartition(const std::string &table_name,
     const int partition_id, const Node& master, const std::set<Node> &slaves) {
   std::shared_ptr<Partition> partition(new Partition(table_name,
       partition_id, log_path, data_path));
-
-  Status s = partition->Init();
-  if (!s.ok()) {
-    return NULL;
-  }
-
   return partition;
 }
 
@@ -571,8 +588,10 @@ Status Partition::SetBinlogOffset(uint32_t filenum, uint64_t offset) {
 // Required: hold read mutex of status_rw_
 bool Partition::CheckSyncOption(const PartitionSyncOption& option) {
   // Check current status
-  if (role_ != Role::kNodeSlave || repl_state_ != ReplState::kConnected) {
+  if (!opened_
+      ||role_ != Role::kNodeSlave || repl_state_ != ReplState::kConnected) {
     LOG(WARNING) << "Discard binlog item from " << option.from_node
+      << ", is opened:" << opened_
       << ", partition:" << partition_id_
       << ", my current role: " << static_cast<int>(role_)
       << ", my current connection state: " << static_cast<int>(repl_state_);
@@ -674,6 +693,19 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
   std::string key = cmd->ExtractKey(&req);
 
   slash::RWLock l(&state_rw_, false);
+  if (!opened_) {
+    res.set_type(req.type());
+    res.set_code(client::StatusCode::kError);
+    res.set_msg("error data node");
+
+    client::Node* node = res.mutable_redirect();
+    node->set_ip(master_node_.ip);
+    node->set_port(master_node_.port);
+    LOG(WARNING) << "Partition not opened, table:" << table_name_
+      << ", Partition: " << partition_id_;
+    return;
+  }
+
   if (cmd->is_write() && readonly_) {
     res.set_type(req.type());
     res.set_code(client::StatusCode::kError);
@@ -683,7 +715,8 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
     node->set_ip(master_node_.ip);
     node->set_port(master_node_.port);
 
-    LOG(WARNING) << "Readonly mode, failed to DoCommand  at Partition: " << partition_id_
+    LOG(WARNING) << "Readonly mode, failed to DoCommand  at table: " << table_name_
+      << ", Partition: " << partition_id_
       << " Role:" << RoleMsg[role_] << " ParititionState:" << static_cast<int>(pstate_);
     return;
   }

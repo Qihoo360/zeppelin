@@ -99,15 +99,15 @@ class Partition {
     return table_name_;
   }
 
+// Requeired: hold write lock of state_rw_
   rocksdb::DBNemo* db() const {
     return db_;
   }
+
   Node master_node() {
     slash::RWLock l(&state_rw_, false);
     return master_node_;
   }
-
-  Status Init();
 
   // Command related
   void DoBinlogCommand(const PartitionSyncOption& option,
@@ -206,9 +206,12 @@ class Partition {
   std::string sync_path_;
   std::string bgsave_path_;
 
+  Status Open();
+  void Close();
   
   // State related
   pthread_rwlock_t state_rw_; //protect partition status below
+  std::atomic<bool> opened_;
   Node master_node_;
   std::set<Node> slave_nodes_;
   std::atomic<bool> readonly_;
