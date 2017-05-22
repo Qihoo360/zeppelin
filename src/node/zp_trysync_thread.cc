@@ -68,7 +68,7 @@ bool ZPTrySyncThread::Send(std::shared_ptr<Partition> partition, pink::PbCli* cl
 
   uint32_t filenum = 0;
   uint64_t offset = 0;
-  partition->GetBinlogOffset(&filenum, &offset);
+  partition->GetBinlogOffsetWithLock(&filenum, &offset);
   sync->set_table_name(partition->table_name());
   client::SyncOffset *sync_offset = sync->mutable_sync_offset();
   sync_offset->set_partition(partition->partition_id());
@@ -152,8 +152,9 @@ void ZPTrySyncThread::DropConnection(const Node& node) {
 bool ZPTrySyncThread::SendTrySync(const std::string& table_name, int partition_id) {
   std::shared_ptr<Partition> partition =
     zp_data_server->GetTablePartitionById(table_name, partition_id);
-  if (!partition) {
-    // Partition maybe deleted, no need to rescheule again
+  if (!partition
+      || !partition->opened()) {
+    // Partition maybe deleted or closed, no need to rescheule again
     return true;
   }
 

@@ -83,6 +83,22 @@ struct CheckpointContent {
     sequence_number(0) {}
 };
 
+struct BGSaveInfo {
+  bool bgsaving;
+  time_t start_time;
+  std::string s_start_time;
+  std::string path;
+  uint32_t filenum;
+  uint64_t offset;
+  BGSaveInfo() : bgsaving(false), filenum(0), offset(0){}
+  void Clear() {
+    bgsaving = false;
+    path.clear();
+    filenum = 0;
+    offset = 0;
+  }
+};
+
 class Partition {
   public:
   Partition(const std::string &table_name, const int partition_id,
@@ -99,7 +115,7 @@ class Partition {
     return table_name_;
   }
 
-// Requeired: hold read lock of state_rw_
+  // Requeired: hold read lock of state_rw_, and partition is opened
   rocksdb::DBNemo* db() const {
     return db_;
   }
@@ -107,6 +123,11 @@ class Partition {
   Node master_node() {
     slash::RWLock l(&state_rw_, false);
     return master_node_;
+  }
+
+  bool opened() {
+    slash::RWLock l(&state_rw_, false);
+    return opened_;
   }
 
   // Command related
@@ -130,73 +151,16 @@ class Partition {
 
   // Binlog related
   Status SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset);
-  void GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) const {
-    logger_->GetProducerStatus(filenum, pro_offset);
-  }
+  bool GetBinlogOffsetWithLock(uint32_t* filenum, uint64_t* offset);
   Status SetBinlogOffsetWithLock(uint32_t filenum, uint64_t offset);
-  std::string GetBinlogFilename() {
-    return logger_->filename();
-  }
-
-  // BGSave related
-  struct BGSaveInfo {
-    bool bgsaving;
-    time_t start_time;
-    std::string s_start_time;
-    std::string path;
-    uint32_t filenum;
-    uint64_t offset;
-    BGSaveInfo() : bgsaving(false), filenum(0), offset(0){}
-    void Clear() {
-      bgsaving = false;
-      path.clear();
-      filenum = 0;
-      offset = 0;
-    }
-  };
-  bool RunBgsave();
-  void FinishBgsave() {
-    slash::MutexLock l(&bgsave_protector_);
-    bgsave_info_.bgsaving = false;
-  }
-  void ClearBgsave() {
-    slash::MutexLock l(&bgsave_protector_);
-    bgsave_info_.Clear();
-  }
-  BGSaveInfo bgsave_info() {
-    slash::MutexLock l(&bgsave_protector_);
-    return bgsave_info_;
-  }
-
-  // DBSync related
-  struct DBSyncArg {
-    Partition* p;
-    std::string ip;
-    int port;
-    DBSyncArg(Partition* _p, const std::string& _ip, int &_port)
-      : p(_p), ip(_ip), port(_port) {}
-  };
-  void DBSyncSendFile(const std::string& ip, int port);
-  
-  // Purge binlog related
-  struct PurgeArg {
-    Partition* p;
-    uint32_t to;
-    bool manual;
-  };
-  bool PurgeLogs(uint32_t to, bool manual);
-  bool PurgeFiles(uint32_t to, bool manual);
-  void ClearPurge() {
-    purging_ = false;
-  }
-  void Dump();
+  std::string GetBinlogFilename();
 
   // State related
+  void Dump();
   bool GetWinBinlogOffset(uint32_t* filenum, uint64_t* offset);
+  void GetState(client::PartitionState* state);
   
   void DoTimingTask();
-
-  void GetState(client::PartitionState* state);
 
  private:
   std::string table_name_;
@@ -234,6 +198,7 @@ class Partition {
   Binlog* logger_;
   bool CheckBinlogFiles(); // Check binlog availible and update purge_index_
   Status SetBinlogOffset(uint32_t filenum, uint64_t offset);
+  bool GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) const;
 
   // DoCommand related
   slash::RecordMutex mutex_record_;
@@ -251,15 +216,17 @@ class Partition {
   BGSaveInfo bgsave_info_;
   void Bgsave();
   static void DoBgsave(void* arg);
+  bool RunBgsave();
   bool InitBgsaveEnv();
   bool InitBgsaveContent(rocksdb::DBNemoCheckpoint* cp,
     CheckpointContent* content);
+  BGSaveInfo bgsave_info() {
+    slash::MutexLock l(&bgsave_protector_);
+    return bgsave_info_;
+  }
   bool bgsaving() {
     slash::MutexLock l(&bgsave_protector_);
     return bgsave_info_.bgsaving;
-  }
-  std::string bgsave_prefix() {
-    return "";
   }
 
   // DBSync related
@@ -269,6 +236,7 @@ class Partition {
   void DBSync(const std::string& ip, int port);
   static void DoDBSync(void* arg);
   bool ChangeDb(const std::string& new_path);
+  void DBSyncSendFile(const std::string& ip, int port);
 
   // Purge binlog related
   std::atomic<bool> purging_;
@@ -279,11 +247,15 @@ class Partition {
   bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
   static void DoPurgeLogs(void* arg);
   bool CouldPurge(uint32_t index);
+  bool PurgeLogs(uint32_t to, bool manual);
+  bool PurgeFiles(uint32_t to, bool manual);
 
   // Lock order:
-  // state_rw_ > suspend_rw_ > bgsave_protector_
-  //                         > mutex_record_
-  //                         > purged_index_rw_
+  // state_rw_      >       suspend_rw_         >       bgsave_protector_
+  // state_rw_      >       suspend_rw_         >       mutex_record_
+  // state_rw_      >       bgsave_protector_
+  // state_rw_      >       db_sync_protector_
+  // state_rw_      >       purged_index_rw_
 
   Partition(const Partition&);
   void operator=(const Partition&);

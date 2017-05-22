@@ -134,7 +134,7 @@ void Table::DumpPartitionBinlogOffsets(std::vector<PartitionBinlogOffset> &offse
   PartitionBinlogOffset tboffset;
   for (auto& pair : partitions_) {
     tboffset.partition_id = pair.first;
-    (pair.second)->GetBinlogOffset(&(tboffset.filenum), &(tboffset.offset));
+    (pair.second)->GetBinlogOffsetWithLock(&(tboffset.filenum), &(tboffset.offset));
     offset.push_back(tboffset);
   }
 }

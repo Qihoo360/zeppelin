@@ -63,6 +63,10 @@ Status ZPBinlogSendTask::Init() {
   }
 
   binlog_filename_ = partition->GetBinlogFilename();
+  if (binlog_filename_.empty()) {
+    return Status::Incomplete("partition not open yet");
+  }
+
   std::string confile = NewFileName(binlog_filename_, filenum_);
   if (!slash::NewSequentialFile(confile, &queue_).ok()) {
     return Status::IOError("ZPBinlogSendTask Init new sequtial file failed");
@@ -86,10 +90,11 @@ Status ZPBinlogSendTask::ProcessTask() {
   uint64_t curoffset = 0;
   std::shared_ptr<Partition> partition =
     zp_data_server->GetTablePartitionById(table_name_,partition_id_);
-  if (partition == NULL) {
-    return Status::InvalidArgument("Error Task with nono exist partition");
+  if (partition == NULL
+      || !partition->opened()) {
+    return Status::InvalidArgument("Error no exist or closed partition");
   }
-  partition->GetBinlogOffset(&curnum, &curoffset);
+  partition->GetBinlogOffsetWithLock(&curnum, &curoffset);
   if (filenum_ == curnum && offset_ == curoffset) {
     // No more binlog item in current task, switch to others
     return Status::EndFile("no more binlog item");

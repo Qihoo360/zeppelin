@@ -8,7 +8,22 @@
 
 extern ZPDataServer* zp_data_server;
 
-Partition::Partition(const std::string &table_name, const int partition_id, const std::string &log_path, const std::string &data_path)
+struct DBSyncArg {
+  Partition* p;
+  std::string ip;
+  int port;
+  DBSyncArg(Partition* _p, const std::string& _ip, int &_port)
+    : p(_p), ip(_ip), port(_port) {}
+};
+
+struct PurgeArg {
+  Partition* p;
+  uint32_t to;
+  bool manual;
+};
+
+Partition::Partition(const std::string &table_name, const int partition_id,
+    const std::string &log_path, const std::string &data_path)
   : table_name_(table_name),
   partition_id_(partition_id),
   opened_(false),
@@ -38,7 +53,6 @@ Partition::Partition(const std::string &table_name, const int partition_id, cons
     if (bgsave_path_.back() != '/') {
       bgsave_path_.push_back('/');
     }
-
     
     pthread_rwlock_init(&state_rw_, NULL);
     pthread_rwlockattr_t attr;
@@ -183,7 +197,7 @@ bool Partition::InitBgsaveEnv() {
   char s_time[32];
   int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
   bgsave_info_.s_start_time.assign(s_time, len);
-  bgsave_info_.path = bgsave_path_ + bgsave_prefix();
+  bgsave_info_.path = bgsave_path_;
   if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
     LOG(WARNING) << "Remove exist bgsave dir failed, Partition:" << partition_id_;
     return false;
@@ -278,7 +292,6 @@ void Partition::Bgsave() {
     bgsave_info_.bgsaving = true;
   }
 
-
   zp_data_server->BGSaveTaskSchedule(&DoBgsave, static_cast<void*>(this));
 }
 
@@ -289,7 +302,8 @@ void Partition::DoBgsave(void* arg) {
   bool ok = p->RunBgsave();
 
   BGSaveInfo info = p->bgsave_info();
-  DLOG(INFO) << "DoBGSave info file " << zp_data_server->local_ip() << ":" << zp_data_server->local_port() << " filenum=" << info.filenum << " offset=" << info.offset;
+  DLOG(INFO) << "DoBGSave info file " << zp_data_server->local_ip()
+    << ":" << zp_data_server->local_port() << " filenum=" << info.filenum << " offset=" << info.offset;
   // Some output
   std::ofstream out;
   out.open(info.path + "/info", std::ios::in | std::ios::trunc);
@@ -304,9 +318,12 @@ void Partition::DoBgsave(void* arg) {
   if (!ok) {
     std::string fail_path = info.path + "_FAILED";
     slash::RenameFile(info.path.c_str(), fail_path.c_str());
-    p->ClearBgsave();
+    slash::MutexLock l(&p->bgsave_protector_);
+    p->bgsave_info_.Clear();
   }
-  p->FinishBgsave();
+
+  slash::MutexLock l(&p->bgsave_protector_);
+  p->bgsave_info_.bgsaving = false;
 }
 
 bool Partition::TryUpdateMasterOffset() {
@@ -319,7 +336,8 @@ bool Partition::TryUpdateMasterOffset() {
   // Got new binlog offset
   std::ifstream is(info_path);
   if (!is) {
-    LOG(WARNING) << "Failed to open info file after db sync, table: " << table_name_ << " Partition:" << partition_id_ << " info_path:" << info_path;
+    LOG(WARNING) << "Failed to open info file after db sync, table: "
+      << table_name_ << " Partition:" << partition_id_ << " info_path:" << info_path;
     return false;
   }
   std::string line, master_ip;
@@ -331,7 +349,8 @@ bool Partition::TryUpdateMasterOffset() {
       master_ip = line;
     } else if (lineno > 2 && lineno < 6) {
       if (!slash::string2l(line.data(), line.size(), &tmp) || tmp < 0) {
-        LOG(WARNING) << "Format of info file after db sync error, Partition:" << partition_id_ << "line : " << line;
+        LOG(WARNING) << "Format of info file after db sync error, Partition:"
+          << partition_id_ << "line : " << line;
         is.close();
         return false;
       }
@@ -340,7 +359,8 @@ bool Partition::TryUpdateMasterOffset() {
       else { offset = tmp; }
 
     } else if (lineno > 5) {
-      LOG(WARNING) << "Format of info file after db sync error, Partition:" << partition_id_ << " line : " << line;
+      LOG(WARNING) << "Format of info file after db sync error, Partition:"
+        << partition_id_ << " line : " << line;
       is.close();
       return false;
     }
@@ -355,8 +375,15 @@ bool Partition::TryUpdateMasterOffset() {
 
   // Sanity check
   slash::RWLock l(&state_rw_, true);
+  if (!opened_) {
+    LOG(WARNING) << "Partition not opened, Table:" << table_name_
+      << ", Partition:" << partition_id_;
+    return false;
+  }
+
   if (master_ip != master_node_.ip || master_port != master_node_.port) {
-    LOG(WARNING) << "Error master ip port: " << master_ip << ":" << master_port << ". current master ip port: " << master_node_.ip <<":" << master_node_.port ;
+    LOG(WARNING) << "Error master ip port: " << master_ip << ":" << master_port
+      << ". current master ip port: " << master_node_.ip <<":" << master_node_.port ;
     return false;
   }
 
@@ -374,12 +401,12 @@ bool Partition::TryUpdateMasterOffset() {
 // Return EndFile when the sync offset is larger than current one
 // Return InvalidArgument when the offset is invalid
 // Return Incomplete when neet sync db
+// Required: state_rw hold and partition opened
 Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset) {
   // Check role
-  slash::RWLock ls(&state_rw_, false);
   if (role_ != Role::kNodeMaster
       || slave_nodes_.find(node) == slave_nodes_.end()) {
-    DLOG(INFO) << "I'm not the master for :" << node
+    LOG(WARNING) << "I'm not the master for :" << node
       << ", table: " << table_name_
       << ", partition: " << partition_id_;
     return Status::Corruption("Current node is not the master");
@@ -394,10 +421,10 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
   }
 
   // Binlog already be purged
+  slash::RWLock lp(&purged_index_rw_, false);
   LOG(INFO) << "Partition:" << table_name_ << "_" << partition_id_
     << ", We " << (purged_index_ > filenum ? "will" : "won't")
     << " TryDBSync, purged_index_=" << purged_index_ << ", filenum=" << filenum;
-  slash::RWLock lp(&purged_index_rw_, false);
   if (purged_index_ > filenum) {
     TryDBSync(node.ip, node.port + kPortShiftRsync, cur_filenum);
     return Status::Incomplete("Bgsaving and DBSync first");
@@ -482,6 +509,7 @@ bool Partition::GetWinBinlogOffset(uint32_t* filenum, uint64_t* offset) {
 
 // Update partition state
 // and return current state
+// Requeired hold write lock of state_rw_
 ZPMeta::PState Partition::UpdateState(ZPMeta::PState state) {
   // Notice: could not become ACTIVE from STUCK
   // without master changed
@@ -599,11 +627,34 @@ Status Partition::SetBinlogOffset(uint32_t filenum, uint64_t offset) {
   return s;
 }
 
+bool Partition::GetBinlogOffsetWithLock(uint32_t* filenum, uint64_t* offset) {
+  slash::RWLock l(&state_rw_, false);
+  return GetBinlogOffset(filenum, offset);
+}
+
+// Required: hold read mutex of status_rw_
+bool Partition::GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) const {
+  if (!opened_) {
+    return false;
+  }
+  logger_->GetProducerStatus(filenum, pro_offset);
+  return true;
+}
+
+std::string Partition::GetBinlogFilename() {
+  slash::RWLock l(&state_rw_, false);
+  if (!opened_) {
+    return std::string();
+  }
+  return logger_->filename();
+}
+
 // Required: hold read mutex of status_rw_
 bool Partition::CheckSyncOption(const PartitionSyncOption& option) {
   // Check current status
   if (!opened_
-      ||role_ != Role::kNodeSlave || repl_state_ != ReplState::kConnected) {
+      ||role_ != Role::kNodeSlave
+      || repl_state_ != ReplState::kConnected) {
     LOG(WARNING) << "Discard binlog item from " << option.from_node
       << ", is opened:" << opened_
       << ", partition:" << partition_id_
@@ -833,9 +884,9 @@ void Partition::TryDBSync(const std::string& ip, int port, int32_t top) {
   DBSync(ip, port);
 }
 
+// Required: hold read mutex of status_rw_
 void Partition::DBSync(const std::string& ip, int port) {
   // Only one DBSync task for every ip_port
-
   std::string ip_port = slash::IpPortString(ip, port);
   {
     slash::MutexLock l(&db_sync_protector_);
@@ -865,6 +916,12 @@ void Partition::DoDBSync(void* arg) {
 }
 
 void Partition::DBSyncSendFile(const std::string& ip, int port) {
+  slash::RWLock l(&state_rw_, false);
+  if (!opened_) {
+    LOG(WARNING) << "Partition has been closed when try to dbsync"
+      << ", Table:" << table_name_ << ", Partition: "<< partition_id_;
+    return;
+  }
   std::string bg_path;
   {
     slash::MutexLock l(&bgsave_protector_);
@@ -892,7 +949,6 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
     if (target_path == kBgsaveInfoFile) {
       continue;
     }
-    //DLOG(INFO) << "      RsyncSendFile("  << *it << ", " << target_dir << "/" << target_path << ")";
     // We need specify the speed limit for every single file
     ret = slash::RsyncSendFile(*it, target_dir + "/" + target_path, remote);
     if (0 != ret) {
@@ -902,6 +958,11 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
         << ", Error: " << ret;
       break;
     }
+    if (!opened_) {
+      LOG(WARNING) << "Partition has been closed when try to send dbsync"
+        << ", Table:" << table_name_ << ", Partition: "<< partition_id_;
+      return; // Terminate as soon as possible
+    }
   }
  
   // Clear target path
@@ -909,7 +970,8 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
 
   // Send info file at last
   if (0 == ret) {
-    if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, target_dir + "/" + kBgsaveInfoFile, remote))) {
+    if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile,
+            target_dir + "/" + kBgsaveInfoFile, remote))) {
       LOG(WARNING) << "send info file failed";
     }
   }
@@ -926,13 +988,17 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
 }
 
 bool Partition::PurgeLogs(uint32_t to, bool manual) {
-  //usleep(300000);
-
   // Only one thread can go through
   bool expect = false;
   if (!purging_.compare_exchange_strong(expect, true)) {
-    LOG(WARNING) << "purge process already exist : " << partition_id_;
+    LOG(WARNING) << "purge process already exist"
+      << ", table:" << table_name_ << ", partition:" << partition_id_;
     return false;
+  }
+
+  slash::RWLock l(&state_rw_, false);
+  if (!opened_) {
+    return true;
   }
   PurgeArg *arg = new PurgeArg();
   arg->p = this;
@@ -948,12 +1014,17 @@ void Partition::DoPurgeLogs(void* arg) {
 
   ps->PurgeFiles(ppurge->to, ppurge->manual);
 
-  ps->ClearPurge();
+  ps->purging_ = false;
   delete (PurgeArg*)arg;
 }
 
 bool Partition::PurgeFiles(uint32_t to, bool manual)
 {
+  slash::RWLock l(&state_rw_, false);
+  if (!opened_) {
+    return true;
+  }
+
   std::map<uint32_t, std::string> binlogs;
   if (!GetBinlogFiles(binlogs)) {
     LOG(WARNING) << "Could not get binlog files!";
@@ -969,8 +1040,6 @@ bool Partition::PurgeFiles(uint32_t to, bool manual)
   struct stat file_stat;
   int remain_expire_num = binlogs.size() - kBinlogRemainMaxCount;
   std::map<uint32_t, std::string>::iterator it;
-
-  //DLOG(INFO) << "partition " << table_name_ << "_" << partition_id_ << " PugeFiles remain_expire_num is " << remain_expire_num;
 
   for (it = binlogs.begin(); it != binlogs.end(); ++it) {
     if ((manual && it->first <= to) ||           // Argument bound
@@ -1005,6 +1074,7 @@ bool Partition::PurgeFiles(uint32_t to, bool manual)
   return true;
 }
 
+// Required hold read lock of state_rw_ and  partition opened
 bool Partition::CheckBinlogFiles() {
   std::vector<std::string> children;
   int ret = slash::GetChildren(log_path_, children);
@@ -1043,6 +1113,7 @@ bool Partition::CheckBinlogFiles() {
   return true;
 }
 
+// Required: hold read lock of state_rw_ and partition opened
 bool Partition::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
   std::vector<std::string> children;
   int ret = slash::GetChildren(log_path_, children);
@@ -1066,18 +1137,17 @@ bool Partition::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
   return true;
 }
 
+
+// Required: hold read lock of state_rw_ and partition opened
 bool Partition::CouldPurge(uint32_t index) {
   uint32_t pro_num;
   uint64_t tmp;
-  slash::RWLock ls(&state_rw_, false);
   logger_->GetProducerStatus(&pro_num, &tmp);
-
   if (index >= pro_num) {
     return false;
   }
 
   std::set<Node>::iterator it;
-
   slash::RWLock lp(&purged_index_rw_, true);
   for (it = slave_nodes_.begin(); it != slave_nodes_.end(); ++it) {
     int32_t filenum = zp_data_server->GetBinlogSendFilenum(table_name_,
