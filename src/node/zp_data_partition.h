@@ -99,7 +99,7 @@ class Partition {
     return table_name_;
   }
 
-// Requeired: hold write lock of state_rw_
+// Requeired: hold read lock of state_rw_
   rocksdb::DBNemo* db() const {
     return db_;
   }
@@ -133,7 +133,7 @@ class Partition {
   void GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) const {
     logger_->GetProducerStatus(filenum, pro_offset);
   }
-  Status SetBinlogOffset(uint32_t filenum, uint64_t offset);
+  Status SetBinlogOffsetWithLock(uint32_t filenum, uint64_t offset);
   std::string GetBinlogFilename() {
     return logger_->filename();
   }
@@ -229,15 +229,15 @@ class Partition {
 
   // DB related
   rocksdb::DBNemo *db_;
-  bool FlushAll();
 
   // Binlog related
   Binlog* logger_;
   bool CheckBinlogFiles(); // Check binlog availible and update purge_index_
+  Status SetBinlogOffset(uint32_t filenum, uint64_t offset);
 
   // DoCommand related
   slash::RecordMutex mutex_record_;
-  pthread_rwlock_t partition_rw_; // Some command use partition_rw to suspend others
+  pthread_rwlock_t suspend_rw_; // Some command use suspend_rw to suspend others
 
   // Recover sync related
   std::atomic<bool> do_recovery_sync_;
@@ -279,6 +279,11 @@ class Partition {
   bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
   static void DoPurgeLogs(void* arg);
   bool CouldPurge(uint32_t index);
+
+  // Lock order:
+  // state_rw_ > suspend_rw_ > bgsave_protector_
+  //                         > mutex_record_
+  //                         > purged_index_rw_
 
   Partition(const Partition&);
   void operator=(const Partition&);

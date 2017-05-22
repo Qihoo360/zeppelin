@@ -196,7 +196,7 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name, int partition_i
           case client::StatusCode::kFallback:
             LOG(INFO) << "Receive sync offset fallback to : "
               << res.filenum << "_" << res.offset;
-            s = partition->SetBinlogOffset(res.filenum, res.offset);
+            s = partition->SetBinlogOffsetWithLock(res.filenum, res.offset);
             if (!s.ok()) {
               LOG(WARNING) << "Set sync offset fallback to : "
                 << res.filenum << "_" << res.offset

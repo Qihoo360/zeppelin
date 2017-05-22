@@ -44,7 +44,7 @@ Partition::Partition(const std::string &table_name, const int partition_id, cons
     pthread_rwlockattr_t attr;
     pthread_rwlockattr_init(&attr);
     pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
-    pthread_rwlock_init(&partition_rw_, &attr);
+    pthread_rwlock_init(&suspend_rw_, &attr);
     
     pthread_rwlock_init(&purged_index_rw_, NULL);
 
@@ -98,7 +98,7 @@ void Partition::Close() {
 Partition::~Partition() {
   Close();
   pthread_rwlock_destroy(&purged_index_rw_);
-  pthread_rwlock_destroy(&partition_rw_);
+  pthread_rwlock_destroy(&suspend_rw_);
   pthread_rwlock_destroy(&state_rw_);
   LOG(INFO) << " Partition " << table_name_ << "_" << partition_id_ << " exit!!!";
 }
@@ -141,6 +141,7 @@ void Partition::TrySyncDone() {
     ", Master Node:" << master_node_.ip << ":" << master_node_.port;
 }
 
+// Required: hold write mutex of status_rw_
 bool Partition::ChangeDb(const std::string& new_path) {
   std::string tmp_path(data_path_);
   if (tmp_path.back() == '/') {
@@ -148,7 +149,6 @@ bool Partition::ChangeDb(const std::string& new_path) {
   }
   tmp_path += "_bak";
   slash::DeleteDirIfExist(tmp_path);
-  slash::RWLock l(&partition_rw_, true);
   DLOG(INFO) << "Prepare change db from: " << tmp_path;
   delete db_;
   if (0 != slash::RenameFile(data_path_.c_str(), tmp_path)) {
@@ -175,6 +175,7 @@ bool Partition::ChangeDb(const std::string& new_path) {
 ////// BGSave //////
 
 // Prepare env
+// Required: hold read mutex of status_rw_
 bool Partition::InitBgsaveEnv() {
   slash::MutexLock l(&bgsave_protector_);
   // Prepare for bgsave dir
@@ -200,11 +201,12 @@ bool Partition::InitBgsaveEnv() {
 }
 
 // Prepare bgsave env
+// Required: hold read mutex of status_rw_
 bool Partition::InitBgsaveContent(rocksdb::DBNemoCheckpoint* cp,
     CheckpointContent* content) {
   rocksdb::Status s;
   {
-    slash::RWLock l(&partition_rw_, true);
+    slash::RWLock l(&suspend_rw_, true);
     {
       slash::MutexLock l(&bgsave_protector_);
       logger_->GetProducerStatus(&bgsave_info_.filenum, &bgsave_info_.offset);
@@ -225,6 +227,14 @@ bool Partition::RunBgsave() {
   // Create new checkpoint
   CheckpointContent content;
   rocksdb::DBNemoCheckpoint* cp;
+
+  slash::RWLock l(&state_rw_, false);
+  if (!opened_) {
+    LOG(WARNING) << "db already closed when try to do bgsave"
+      << ", Table:" << table_name_ << ", Partition:" << partition_id_;
+    return false;
+  }
+
   rocksdb::Status s = rocksdb::DBNemoCheckpoint::Create(db_, &cp);
   if (!s.ok()) {
     LOG(WARNING) << "Create DBNemoCheckpoint failed :" << s.ToString();
@@ -236,11 +246,11 @@ bool Partition::RunBgsave() {
     delete cp;
     return false;
   }
-  
+
   BGSaveInfo info = bgsave_info();
   DLOG(INFO) << "   bgsave_info: path=" << info.path << ",  filenum=" << info.filenum
-      << ", offset=" << info.offset;
-  
+    << ", offset=" << info.offset;
+
   // Backup to tmp dir
   s = cp->CreateCheckpointWithFiles(info.path,
       content.live_files,
@@ -248,7 +258,7 @@ bool Partition::RunBgsave() {
       content.manifest_file_size,
       content.sequence_number);
   DLOG(INFO) << "Create new backup finished, path is " << info.path;
-  
+
   delete cp;
   if (!s.ok()) {
     LOG(WARNING) << "backup failed :" << s.ToString();
@@ -267,7 +277,7 @@ void Partition::Bgsave() {
     }
     bgsave_info_.bgsaving = true;
   }
-  
+
 
   zp_data_server->BGSaveTaskSchedule(&DoBgsave, static_cast<void*>(this));
 }
@@ -344,12 +354,10 @@ bool Partition::TryUpdateMasterOffset() {
     << ", offset: " << offset;
 
   // Sanity check
-  {
-    slash::RWLock l(&state_rw_, false);
-    if (master_ip != master_node_.ip || master_port != master_node_.port) {
-      LOG(WARNING) << "Error master ip port: " << master_ip << ":" << master_port << ". current master ip port: " << master_node_.ip <<":" << master_node_.port ;
-      return false;
-    }
+  slash::RWLock l(&state_rw_, true);
+  if (master_ip != master_node_.ip || master_port != master_node_.port) {
+    LOG(WARNING) << "Error master ip port: " << master_ip << ":" << master_port << ". current master ip port: " << master_node_.ip <<":" << master_node_.port ;
+    return false;
   }
 
   slash::DeleteFile(info_path);
@@ -575,6 +583,12 @@ std::shared_ptr<Partition> NewPartition(const std::string &table_name,
   return partition;
 }
 
+Status Partition::SetBinlogOffsetWithLock(uint32_t filenum, uint64_t offset) {
+  slash::RWLock l(&state_rw_, false);
+  return SetBinlogOffset(filenum, offset);
+}
+
+// Required: hold read mutex of status_rw_
 Status Partition::SetBinlogOffset(uint32_t filenum, uint64_t offset) {
   uint64_t actual = 0;
   Status s = logger_->SetProducerStatus(filenum, offset, &actual);
@@ -642,7 +656,7 @@ void Partition::DoBinlogCommand(const PartitionSyncOption& option,
 
   // Add read lock for no suspend command
   if (!cmd->is_suspend()) {
-    pthread_rwlock_rdlock(&partition_rw_);
+    pthread_rwlock_rdlock(&suspend_rw_);
   }
 
   client::CmdResponse res;
@@ -659,7 +673,7 @@ void Partition::DoBinlogCommand(const PartitionSyncOption& option,
   }
 
   if (!cmd->is_suspend()) {
-    pthread_rwlock_unlock(&partition_rw_);
+    pthread_rwlock_unlock(&suspend_rw_);
   }
 
   if (g_zp_conf->slowlog_slower_than() >= 0) {
@@ -728,9 +742,8 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
 
   // Add read lock for no suspend command
   if (!cmd->is_suspend()) {
-    pthread_rwlock_rdlock(&partition_rw_);
+    pthread_rwlock_rdlock(&suspend_rw_);
   }
-
 
   if (cmd->is_write()) {
     mutex_record_.Lock(key);
@@ -750,7 +763,7 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
   }
 
   if (!cmd->is_suspend()) {
-    pthread_rwlock_unlock(&partition_rw_);
+    pthread_rwlock_unlock(&suspend_rw_);
   }
 
   if (g_zp_conf->slowlog_slower_than() >= 0) {
@@ -798,6 +811,7 @@ void Partition::DoTimingTask() {
   }
 }
 
+// Required: hold read mutex of status_rw_
 void Partition::TryDBSync(const std::string& ip, int port, int32_t top) {
   DLOG(INFO) << "TryDBSync " << ip << ":" << port << ", top=" << top << " Partition:" << partition_id_;
 
@@ -890,9 +904,6 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
     }
   }
  
-  // TODO anan rm
-  //DLOG(INFO) << "      RsyncSendClearTarget("  << bg_path << "/[kv|hash], " << target_dir << "/[kv|hash])";
-  // TODO clear sync_path if needed
   // Clear target path
   slash::RsyncSendClearTarget(bg_path, target_dir, remote);
 
@@ -912,39 +923,6 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
   if (0 == ret) {
     LOG(INFO) << "rsync send files success";
   }
-}
-
-bool Partition::FlushAll() {
-  {
-    slash::MutexLock l(&bgsave_protector_);
-    if (bgsave_info_.bgsaving) {
-      return false;
-    }
-  }
-  std::string dbpath = data_path_;
-  if (dbpath[dbpath.length() - 1] == '/') {
-    dbpath.erase(dbpath.length() - 1);
-  }
-  int pos = dbpath.find_last_of('/');
-  dbpath = dbpath.substr(0, pos);
-  dbpath.append("/deleting");
-
-  LOG(INFO) << "Delete old db...";
-  delete db_;
-  if (slash::RenameFile(data_path_, dbpath.c_str()) != 0) {
-    LOG(WARNING) << "Failed to rename db path when flushall, error: " << strerror(errno);
-    return false;
-  }
- 
-  LOG(INFO) << "Prepare open new db...";
-  rocksdb::Status s = rocksdb::DBNemo::Open(*(zp_data_server->db_options()),
-      data_path_, &db_);
-  if (!s.ok()) {
-    LOG(WARNING) << "Failed to open new db error: " << s.ToString();
-  }
-  LOG(INFO) << "open new db success";
-  // TODO PurgeDir(dbpath);
-  return true; 
 }
 
 bool Partition::PurgeLogs(uint32_t to, bool manual) {
@@ -1091,6 +1069,7 @@ bool Partition::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
 bool Partition::CouldPurge(uint32_t index) {
   uint32_t pro_num;
   uint64_t tmp;
+  slash::RWLock ls(&state_rw_, false);
   logger_->GetProducerStatus(&pro_num, &tmp);
 
   if (index >= pro_num) {
@@ -1098,7 +1077,6 @@ bool Partition::CouldPurge(uint32_t index) {
   }
 
   std::set<Node>::iterator it;
-  slash::RWLock ls(&state_rw_, false);
 
   slash::RWLock lp(&purged_index_rw_, true);
   for (it = slave_nodes_.begin(); it != slave_nodes_.end(); ++it) {
