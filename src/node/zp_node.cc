@@ -71,7 +71,6 @@ void ZpConfInit(int argc, char* argv[]) {
       case 'h':
         Usage();
         exit(-1);
-        return;
       case 'v':
         std::cout << "Zeppelin " << std::endl;
         std::cout << "Git ver: " << kZPVersion << std::endl;
