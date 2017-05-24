@@ -1,4 +1,4 @@
-#include "zp_conf.h"
+#include "include/zp_conf.h"
 
 //TODO wangkang-xy add int64 after update slash
 //#define READCONFINT64(reader, attr, value) 

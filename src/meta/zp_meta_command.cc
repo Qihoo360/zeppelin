@@ -1,11 +1,13 @@
+#include "src/meta/zp_meta_command.h"
+
 #include <glog/logging.h>
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/repeated_field.h>
-#include "slash_string.h"
 
-#include "zp_meta.pb.h"
-#include "zp_meta_command.h"
-#include "zp_meta_server.h"
+#include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta_server.h"
+
+#include "slash/include/slash_string.h"
 
 extern ZPMetaServer *g_meta_server;
 

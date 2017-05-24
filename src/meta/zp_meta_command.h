@@ -1,7 +1,7 @@
 #ifndef ZP_META_COMMAND_H
 #define ZP_META_COMMAND_H
 
-#include "zp_command.h"
+#include "include/zp_command.h"
 
 class PingCmd : public Cmd {
  public:

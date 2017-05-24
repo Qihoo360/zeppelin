@@ -1,13 +1,17 @@
-#include <glog/logging.h>
-#include <google/protobuf/text_format.h>
-#include <google/protobuf/repeated_field.h>
+#include "src/meta/zp_meta_server.h"
+
 #include <cstdlib>
 #include <ctime>
 #include <sys/resource.h>
+#include <glog/logging.h>
+#include <google/protobuf/text_format.h>
+#include <google/protobuf/repeated_field.h>
 
-#include "slash_string.h"
-#include "zp_meta_server.h"
-#include "zp_meta.pb.h"
+#include "include/zp_meta.pb.h"
+
+#include "pink/include/pink_cli.h"
+
+#include "slash/include/env.h"
 
 ZPMetaServer::ZPMetaServer()
   : should_exit_(false), started_(false), version_(-1), leader_cli_(NULL), leader_first_time_(true), leader_ip_(""), leader_cmd_port_(0) {
@@ -50,24 +54,29 @@ ZPMetaServer::ZPMetaServer()
   fy_options.data_path = g_zp_conf->data_path();
   fy_options.log_path = g_zp_conf->log_path();
 
-  floyd_ = new floyd::Floyd(fy_options);
+  floyd::Floyd::Open(fy_options, &floyd_);
 
   cmds_.reserve(300);
   InitClientCmdTable();  
 
-  for (int i = 0; i < g_zp_conf->meta_thread_num() ; ++i) {
-    zp_meta_worker_thread_[i] = new ZPMetaWorkerThread(kMetaWorkerCronInterval);
-  }
-  zp_meta_dispatch_thread_ = new ZPMetaDispatchThread(g_zp_conf->local_port() + kMetaPortShiftCmd,
-      g_zp_conf->meta_thread_num(), zp_meta_worker_thread_, kMetaDispathCronInterval);
+  conn_factory_ = new ZPMetaClientConnFactory(); 
+  server_handle_ = new ZPMetaServerHandle();
+  server_thread_ = pink::NewDispatchThread(
+      g_zp_conf->local_port() + kMetaPortShiftCmd, 
+      g_zp_conf->meta_thread_num(),
+      conn_factory_,
+      kMetaDispathCronInterval,
+      server_handle_);
+
   update_thread_ = new ZPMetaUpdateThread();
 }
 
 ZPMetaServer::~ZPMetaServer() {
-  delete zp_meta_dispatch_thread_;
-  for (int i = 0; i < g_zp_conf->meta_thread_num(); ++i) {
-    delete zp_meta_worker_thread_[i];
-  }
+  server_thread_->StopThread();
+  delete server_thread_;
+  delete conn_factory_;
+  delete server_handle_;
+
   DestoryCmdTable(cmds_);
   delete update_thread_;
   CleanLeader();
@@ -101,10 +110,11 @@ void ZPMetaServer::Start() {
       sleep(1);
     }
 
-    if (pink::RetCode::kSuccess != zp_meta_dispatch_thread_->StartThread()) {
+    if (pink::RetCode::kSuccess != server_thread_->StartThread()) {
       LOG(INFO) << "Disptch thread start failed";
       return;
     }
+    server_thread_->set_thread_name("ZPMetaWorker");
 
     server_mutex_.Lock();
     started_ = true;
@@ -771,7 +781,7 @@ bool ZPMetaServer::IsLeader() {
   // Connect to new leader
   CleanLeader();
   leader_first_time_ = true;
-  leader_cli_ = new pink::PbCli();
+  leader_cli_ = pink::NewPbCli();
   leader_ip_ = leader_ip;
   leader_cmd_port_ = leader_cmd_port;
   pink::Status s = leader_cli_->Connect(leader_ip_, leader_cmd_port_);
@@ -1567,7 +1577,7 @@ Status ZPMetaServer::Delete(const std::string &key) {
 
 inline bool ZPMetaServer::GetLeader(std::string *ip, int *port) {
   int fy_port = 0;
-  bool res = floyd_->GetLeader(*ip, fy_port);
+  bool res = floyd_->GetLeader(ip, &fy_port);
   if (res) {
     *port = fy_port - kMetaPortShiftFY;
   }
@@ -1603,4 +1613,24 @@ void ZPMetaServer::CleanLeader() {
   }
   leader_ip_.clear();
   leader_cmd_port_ = 0;
+}
+
+// Statistic related
+uint64_t ZPMetaServer::last_qps() {
+  return last_qps_.load();
+}
+
+uint64_t ZPMetaServer::query_num() {
+  return query_num_.load();
+}
+
+void ZPMetaServer::PlusQueryNum() {
+  query_num_++;
+}
+
+void ZPMetaServer::ResetLastSecQueryNum() {
+  uint64_t cur_time_us = slash::NowMicros();
+  last_qps_ = (query_num_ - last_query_num_) * 1000000 / (cur_time_us - last_time_us_ + 1);
+  last_query_num_ = query_num_.load();
+  last_time_us_ = cur_time_us;
 }

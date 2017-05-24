@@ -4,11 +4,11 @@
 #include <string>
 #include <vector>
 
-#include "base_conf.h"
-#include "slash_string.h"
-#include "slash_mutex.h"
-
 #include "zp_const.h"
+
+#include "slash/include/base_conf.h"
+#include "slash/include/slash_string.h"
+#include "slash/include/slash_mutex.h"
 
 typedef slash::RWLock RWLock;
 

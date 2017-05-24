@@ -1,8 +1,10 @@
+#include "src/meta/zp_meta_update_thread.h"
+
 #include <google/protobuf/text_format.h>
-#include "zp_const.h"
-#include "zp_meta_update_thread.h"
-#include "zp_meta.pb.h"
-#include "zp_meta_server.h"
+
+#include "include/zp_const.h"
+#include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta_server.h"
 
 extern ZPMetaServer* g_meta_server;
 
@@ -11,12 +13,12 @@ ZPMetaUpdateThread::ZPMetaUpdateThread() {
 }
 
 ZPMetaUpdateThread::~ZPMetaUpdateThread() {
-  worker_.Stop();
+  worker_.StopThread();
 }
 
 void ZPMetaUpdateThread::ScheduleUpdate(ZPMetaUpdateTaskDeque task_deque) {
   ZPMetaUpdateArgs* arg = new ZPMetaUpdateArgs(this, task_deque);
-  worker_.StartIfNeed();
+  worker_.StartThread();
   LOG(INFO) << "Schedule to update thread worker, task num: " << task_deque.size();
   worker_.Schedule(&DoMetaUpdate, static_cast<void*>(arg));
 }

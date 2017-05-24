@@ -1,16 +1,19 @@
 #ifndef ZP_META_UPDATE_THREAD_H
 #define ZP_META_UPDATE_THREAD_H
 
-#include <glog/logging.h>
 #include <string>
 #include <unordered_map>
-#include "slash_string.h"
-#include "slash_status.h"
-#include "bg_thread.h"
-#include "pb_cli.h"
-#include "zp_meta.pb.h"
+#include <glog/logging.h>
 
-enum ZPMetaUpdateOP {
+#include "include/zp_meta.pb.h"
+
+#include "pink/include/bg_thread.h"
+//#include "pink/include/pink_cli.h"
+
+#include "slash/include/slash_string.h"
+#include "slash/include/slash_status.h"
+
+enum ZPMetaUpdateOP : unsigned int {
   kOpAdd,
   kOpRemove,
   kOpAddVersion,

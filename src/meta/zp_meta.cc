@@ -1,15 +1,18 @@
 #include <stdio.h>
-#include <unistd.h>
-#include <getopt.h>
 #include <iostream>
 #include <sstream>
+
+#include <signal.h>
+#include <unistd.h>
+#include <getopt.h>
+
 #include <glog/logging.h>
 
-#include "env.h"
+#include "include/zp_util.h"
+#include "include/zp_conf.h"
+#include "src/meta/zp_meta_server.h"
 
-#include "zp_meta_server.h"
-#include "zp_conf.h"
-
+#include "slash/include/env.h"
 
 ZpConf *g_zp_conf;
 ZPMetaServer* g_meta_server;

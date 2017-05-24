@@ -30,6 +30,21 @@ OUTPUT = ./output
 VERSION = -D_GITVER_=$(shell git rev-list HEAD | head -n1) \
 					-D_COMPILEDATE_=$(shell date +%F)
 
+ifndef SLASH_PATH
+SLASH_PATH = $(realpath $(THIRD_PATH)/slash)
+endif
+
+ifndef PINK_PATH
+PINK_PATH = $(realpath $(THIRD_PATH)/pink)
+endif
+
+ifndef NEMODB_PATH
+NEMODB_PATH = $(realpath $(THIRD_PATH)/nemo-rocksdb)
+endif
+
+ifndef FLOYD_PATH
+FLOYD_PATH = $(realpath $(THIRD_PATH)/floyd)
+endif
 
 COMMON_SRC = $(wildcard $(COMMON_SRC_PATH)/*.cc)
 COMMON_OBJS = $(patsubst %.cc,%.o,$(COMMON_SRC))
@@ -49,57 +64,59 @@ ZP_NODE = zp-node
 OBJS = $(COMMON_OBJS) $(META_OBJS) $(NODE_OBJS) 
 
 
-INCLUDE_PATH = -I./include/ \
-			   -I$(THIRD_PATH)/glog/src/ \
-			   -I$(THIRD_PATH)/nemo-rocksdb/ \
-			   -I$(THIRD_PATH)/nemo-rocksdb/rocksdb \
-			   -I$(THIRD_PATH)/nemo-rocksdb/rocksdb/include/ \
-			   -I$(THIRD_PATH)/slash/output/include/ \
-			   -I$(THIRD_PATH)/pink/output/include/ \
-			   -I$(THIRD_PATH)/pink/output/ \
-			   -I$(THIRD_PATH)/floyd/output/include/
-
+INCLUDE_PATH = -I./ \
+							 -I$(THIRD_PATH)/glog/src/ \
+							 -I$(NEMODB_PATH)/ \
+							 -I$(NEMODB_PATH)/rocksdb \
+							 -I$(NEMODB_PATH)/rocksdb/include \
+							 -I$(SLASH_PATH)/ \
+							 -I$(PINK_PATH)/ \
+							 -I$(FLOYD_PATH)/
 
 LIB_PATH = -L./ \
-		   -L$(THIRD_PATH)/floyd/output/lib/ \
-		   -L$(THIRD_PATH)/nemo-rocksdb/output/lib/ \
-		   -L$(THIRD_PATH)/slash/output/lib/ \
-		   -L$(THIRD_PATH)/pink/output/lib/ \
-		   -L$(THIRD_PATH)/glog/.libs/
-
+					 -L$(FLOYD_PATH)/floyd/lib/ \
+					 -L$(SLASH_PATH)/slash/lib/ \
+					 -L$(PINK_PATH)/pink/lib/ \
+					 -L$(NEMODB_PATH)/output/lib/ \
+					 -L$(THIRD_PATH)/glog/.libs/
 
 LIBS = -lpthread \
-	   -lprotobuf \
-	   -lglog \
-	   -lslash \
-		 -lpink \
-	   -lz \
-	   -lbz2 \
-	   -lsnappy \
-	   -lrt
+			 -lprotobuf \
+			 -lglog \
+			 -lslash \
+			 -lpink \
+			 -lz \
+			 -lbz2 \
+			 -lsnappy \
+			 -lrt
 
 METALIBS = -lfloyd \
-     -lleveldb
+					 -lnemodb \
+					 -lrocksdb
 
 NODELIBS = -lnemodb \
-     -lrocksdb
+					 -lrocksdb
 
-FLOYD = $(THIRD_PATH)/floyd/output/lib/libfloyd.a
-NEMODB = $(THIRD_PATH)/nemo-rocksdb/output/lib/libnemodb.a
+FLOYD = $(FLOYD_PATH)/floyd/lib/libfloyd.a
+NEMODB = $(NEMODB_PATH)/output/lib/libnemodb.a
 GLOG = $(THIRD_PATH)/glog/.libs/libglog.so.0
-PINK = $(THIRD_PATH)/pink/output/lib/libpink.a
-SLASH = $(THIRD_PATH)/slash/output/lib/libslash.a
+PINK = $(PINK_PATH)/pink/lib/libpink.a
+SLASH = $(SLASH_PATH)/slash/lib/libslash.a
 
 .PHONY: all clean distclean
 
 
-all: $(ZP_META) $(ZP_NODE)
-#all: $(ZP_NODE)
+#all: $(ZP_META) $(ZP_NODE)
+all: $(ZP_META)
 #all: 
-	@echo "COMMON_OBJS $(COMMON_OBJS)"
-	@echo "ZP_META_OBJS $(META_OBJS)"
-	@echo "ZP_NODE_OBJS $(NODE_OBJS)"
+	#@echo "COMMON_OBJS $(COMMON_OBJS)"
+	#@echo "ZP_META_OBJS $(META_OBJS)"
+	#@echo "ZP_NODE_OBJS $(NODE_OBJS)"
 	@echo "OBJS $(OBJS)"
+	echo "PINK_PATH $(PINK_PATH)"
+	echo "SLASH_PATH $(SLASH_PATH)"
+	echo "FLOYD_PATH $(FLOYD_PATH)"
+	echo "NEMODB_PATH $(NEMODB_PATH)"
 	rm -rf $(OUTPUT)
 	mkdir $(OUTPUT)
 	mkdir $(OUTPUT)/bin
@@ -123,16 +140,16 @@ $(OBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) $(VERSION)
 
 $(FLOYD):
-	make -C $(THIRD_PATH)/floyd/ __PERF=$(__PERF)
+	make -C $(FLOYD_PATH)/floyd/ __PERF=$(__PERF) SLASH_PATH=$(SLASH_PATH) PINK_PATH=$(PINK_PATH) NEMODB_PATH=$(NEMODB_PATH)
 
 $(NEMODB):
-	make -C $(THIRD_PATH)/nemo-rocksdb/
+	make -C $(NEMODB_PATH)/
 
 $(SLASH):
-	make -C $(THIRD_PATH)/slash/ __PERF=$(__PERF)
+	make -C $(SLASH_PATH)/slash/ __PERF=$(__PERF)
 
 $(PINK):
-	make -C $(THIRD_PATH)/pink/ __PERF=$(__PERF)
+	make -C $(PINK_PATH)/pink/ __PERF=$(__PERF)  SLASH_PATH=$(SLASH_PATH)
 
 $(GLOG):
 ifeq ($(SO_PATH), $(wildcard $(SO_PATH)))
@@ -154,8 +171,8 @@ clean:
 	rm -rf $(OUTPUT)
 
 distclean: clean
-	make -C $(THIRD_PATH)/pink/ clean
-	make -C $(THIRD_PATH)/slash/ clean
-	make -C $(THIRD_PATH)/nemo-rocksdb/ clean
-	make -C $(THIRD_PATH)/floyd/ distclean
+	make -C $(PINK_PATH)/pink/ clean
+	make -C $(SLASH_PATH)/slash/ clean
+	make -C $(NEMODB_PATH)/ clean
+	make -C $(FLOYD_PATH)/floyd/ distclean
 

@@ -6,7 +6,7 @@
 
 #include "zp_conf.h"
 
-#include "env.h"
+#include "slash/include/env.h"
 
 // @TODO use Tasktype instead of macro
 enum TaskType {

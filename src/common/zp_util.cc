@@ -1,11 +1,16 @@
+#include "include/zp_util.h"
+
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "env.h"
-#include "zp_util.h"
-#include "zp_const.h"
+
+#include "include/zp_const.h"
+
+#include "slash/include/env.h"
+
 extern ZpConf* g_zp_conf;
+
 void daemonize() {
   if (fork() != 0) exit(0); /* parent exits */
   setsid(); /* create a new session */

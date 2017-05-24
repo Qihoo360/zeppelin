@@ -8,8 +8,9 @@
 
 #include "client.pb.h"
 #include "zp_meta.pb.h"
-#include "slash_string.h"
-#include "slash_status.h"
+
+#include "slash/include/slash_string.h"
+#include "slash/include/slash_status.h"
 
 //Constant for command name
 

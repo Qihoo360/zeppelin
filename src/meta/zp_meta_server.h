@@ -3,17 +3,21 @@
 
 #include <stdio.h>
 #include <string>
+#include <unordered_map>
+#include <set>
+#include <atomic>
 
-#include "slash_status.h"
-#include "slash_mutex.h"
-#include "floyd.h"
+#include "include/zp_conf.h"
+#include "include/zp_const.h"
+#include "src/meta/zp_meta_command.h"
+#include "src/meta/zp_meta_update_thread.h"
+#include "src/meta/zp_meta_client_conn.h"
 
-#include "zp_conf.h"
-#include "zp_const.h"
-#include "zp_meta_command.h"
-#include "zp_meta_dispatch_thread.h"
-#include "zp_meta_worker_thread.h"
-#include "zp_meta_update_thread.h"
+#include "pink/include/server_thread.h"
+#include "slash/include/slash_status.h"
+#include "slash/include/slash_mutex.h"
+
+#include "floyd/include/floyd.h"
 
 using slash::Status;
 
@@ -38,6 +42,11 @@ struct StuckState {
   int new_master_port;
   NodeOffset new_master_offset;
 };
+
+namespace pink {
+class ServerThread;
+class PinkCli;
+}
 
 class ZPMetaServer {
  public:
@@ -94,6 +103,12 @@ class ZPMetaServer {
   bool IsLeader();
   void DebugOffset();
 
+  // Statistic related
+  uint64_t last_qps();
+  uint64_t query_num();
+  void PlusQueryNum();
+  void ResetLastSecQueryNum();
+
 private:
 
   // Debug
@@ -105,8 +120,10 @@ private:
   int seed_port_;
 
   // Server related
-  ZPMetaWorkerThread* zp_meta_worker_thread_[kMaxMetaWorkerThread];
-  ZPMetaDispatchThread* zp_meta_dispatch_thread_;
+  pink::ServerThread* server_thread_;
+  ZPMetaClientConnFactory* conn_factory_;
+  ZPMetaServerHandle* server_handle_;
+
   std::atomic<bool> should_exit_;
   slash::Mutex server_mutex_;
   std::atomic<bool> started_;
@@ -175,10 +192,16 @@ private:
   void CleanLeader();
 
   slash::Mutex leader_mutex_;
-  pink::PbCli* leader_cli_;
+  pink::PinkCli* leader_cli_;
   bool leader_first_time_;
   std::string leader_ip_;
   int leader_cmd_port_;
+
+  // Statistic related
+  std::atomic<uint64_t> last_query_num_;
+  std::atomic<uint64_t> query_num_;
+  std::atomic<uint64_t> last_qps_;
+  std::atomic<uint64_t> last_time_us_;
 };
 
 #endif

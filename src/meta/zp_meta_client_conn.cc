@@ -1,18 +1,28 @@
-#include "zp_meta_client_conn.h"
+#include "src/meta/zp_meta_client_conn.h"
 
 #include <vector>
 #include <algorithm>
 #include <glog/logging.h>
 
-#include "zp_meta_worker_thread.h"
-#include "zp_meta_server.h"
+#include "src/meta/zp_meta_server.h"
 
 extern ZPMetaServer* g_meta_server;
 
+////// ZPMetaServerHandle //////
+void ZPMetaServerHandle::CronHandle() const {
+  g_meta_server->ResetLastSecQueryNum();
+  //LOG(INFO) << "ClientNum: " << ClientNum() << " ServerQueryNum: " << server_querynum << " ServerCurrentQps: " << server_current_qps;
+
+  // Check alive
+  g_meta_server->CheckNodeAlive();
+  //g_meta_server->DebugOffset();
+  g_meta_server->ScheduleUpdate();
+}
+
 ////// ZPDataClientConn //////
-ZPMetaClientConn::ZPMetaClientConn(int fd, std::string ip_port, pink::Thread* thread) :
-  PbConn(fd, ip_port) {
-  self_thread_ = dynamic_cast<ZPMetaWorkerThread*>(thread);
+ZPMetaClientConn::ZPMetaClientConn(int fd, const std::string& ip_port,
+                                   pink::Thread* thread)
+  : PbConn(fd, ip_port, thread) {
 }
 
 ZPMetaClientConn::~ZPMetaClientConn() {
