@@ -65,7 +65,7 @@ void* ZPPingThread::ThreadMain() {
   struct timeval now, last_interaction;
   slash::Status s;
 
-  while (running()) {
+  while (!should_stop()) {
     zp_data_server->PickMeta();
     std::string meta_ip = zp_data_server->meta_ip();
     int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;
@@ -80,7 +80,7 @@ void* ZPPingThread::ThreadMain() {
       cli_->set_recv_timeout(1000);
 
       // Send && Recv
-      while (running()) {
+      while (!should_stop()) {
         gettimeofday(&now, NULL);
         if (now.tv_sec - last_interaction.tv_sec > kNodeMetaTimeoutN) {
           LOG(WARNING) << "Ping meta ("<< meta_ip << ":" << meta_port << ") timeout, reconnect!";

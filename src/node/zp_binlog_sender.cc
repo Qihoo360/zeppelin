@@ -343,12 +343,12 @@ ZPBinlogSendThread::~ZPBinlogSendThread() {
 
 void* ZPBinlogSendThread::ThreadMain() {
   // Wait until the server is availible
-  while (running() && !zp_data_server->Availible()) {
+  while (!should_stop() && !zp_data_server->Availible()) {
     sleep(kBinlogSendInterval);
   }
 
   struct timeval begin, now;
-  while (running()) {
+  while (!should_stop()) {
     sleep(kBinlogSendInterval);
     ZPBinlogSendTask* task = NULL;
     Status s = pool_->FetchOut(&task);
@@ -359,7 +359,7 @@ void* ZPBinlogSendThread::ThreadMain() {
 
     // Fetched one task, process it
     gettimeofday(&begin, NULL);
-    while (running()) {
+    while (!should_stop()) {
       Status item_s = Status::OK();
       // Record offset of current binlog item for sending later
       if (task->send_next) {
