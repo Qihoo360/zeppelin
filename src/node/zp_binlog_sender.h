@@ -1,19 +1,17 @@
 #ifndef ZP_BINLOG_SENDER
 #define ZP_BINLOG_SENDER
 #include <list>
-#include <map>
-#include <vector>
 #include <string>
 #include <unordered_map>
 
-#include "env.h"
-#include "slash_status.h"
-#include "slash_mutex.h"
-#include "pink_thread.h"
+#include "slash/include/slash_status.h"
+#include "slash/include/slash_mutex.h"
+#include "slash/include/env.h"
+#include "pink/include/pink_thread.h"
 
-#include "client.pb.h"
-#include "zp_meta_utils.h"
-#include "zp_binlog.h"
+#include "include/client.pb.h"
+#include "include/zp_meta_utils.h"
+#include "include/zp_binlog.h"
 
 using slash::Status;
 using slash::Slice;

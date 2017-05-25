@@ -1,8 +1,8 @@
+#include "src/node/zp_binlog_receive_bgworker.h"
+
 #include <glog/logging.h>
-#include "zp_data_server.h"
-#include "zp_data_partition.h"
-#include "zp_binlog_receiver_thread.h"
-#include "zp_binlog_receive_bgworker.h"
+#include "src/node/zp_data_server.h"
+#include "src/node/zp_data_partition.h"
 
 extern ZPDataServer* zp_data_server;
 
@@ -12,13 +12,13 @@ ZPBinlogReceiveBgWorker::ZPBinlogReceiveBgWorker(int full) {
 }
 
 ZPBinlogReceiveBgWorker::~ZPBinlogReceiveBgWorker() {
-  bg_thread_->Stop();
+  bg_thread_->StopThread();
   delete bg_thread_;
   LOG(INFO) << "A ZPBinlogReceiveBgWorker " << bg_thread_->thread_id() << " exit!!!";
 }
 
 void ZPBinlogReceiveBgWorker::AddTask(ZPBinlogReceiveTask *task) {
-  bg_thread_->StartIfNeed();
+  bg_thread_->StartThread();
   bg_thread_->Schedule(&DoBinlogReceiveTask, static_cast<void*>(task));
 }
 

@@ -121,8 +121,8 @@ int ZpConf::Load(const std::string& path) {
   lock_file_ = lock_path + "lock";
 
   max_file_descriptor_num_ = BoundaryLimit(max_file_descriptor_num_, 1, 4294967296);
-  meta_thread_num_ = BoundaryLimit(meta_thread_num_, 1, kMaxMetaWorkerThread);
-  data_thread_num_ = BoundaryLimit(data_thread_num_, 1, kMaxDataWorkerThread);
+  meta_thread_num_ = BoundaryLimit(meta_thread_num_, 1, 100);
+  data_thread_num_ = BoundaryLimit(data_thread_num_, 1, 100);
   sync_recv_thread_num_ = BoundaryLimit(sync_recv_thread_num_, 1, 100);
   sync_send_thread_num_ = BoundaryLimit(sync_send_thread_num_, 1, 100);
   max_background_flushes_ = BoundaryLimit(max_background_flushes_, 10, 100);

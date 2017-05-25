@@ -1,18 +1,14 @@
-#include "zp_data_client_conn.h"
+#include "src/node/zp_data_client_conn.h"
 
-#include <vector>
-#include <algorithm>
 #include <glog/logging.h>
-
-#include "zp_data_worker_thread.h"
-#include "zp_data_server.h"
+#include "src/node/zp_data_server.h"
 
 extern ZPDataServer* zp_data_server;
 
 ////// ZPDataClientConn //////
-ZPDataClientConn::ZPDataClientConn(int fd, std::string ip_port, pink::Thread* thread) :
-  PbConn(fd, ip_port) {
-  self_thread_ = dynamic_cast<ZPDataWorkerThread*>(thread);
+ZPDataClientConn::ZPDataClientConn(int fd, std::string ip_port,
+    pink::Thread* thread) :
+  PbConn(fd, ip_port, thread) {
 }
 
 ZPDataClientConn::~ZPDataClientConn() {
@@ -54,7 +50,7 @@ int ZPDataClientConn::DealMessageInternal() {
     << ", table=" << cmd->ExtractTable(&request_)
     << " key=" << cmd->ExtractKey(&request_);
 
-  self_thread_->PlusStat(cmd->ExtractTable(&request_));
+  //self_thread_->PlusStat(cmd->ExtractTable(&request_));
 
   if (!cmd->is_single_paritition()) {
     cmd->Do(&request_, &response_);

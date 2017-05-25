@@ -1,7 +1,7 @@
 #ifndef ZP_KV_H
 #define ZP_KV_H
 
-#include "zp_command.h"
+#include "include/zp_command.h"
 
 ////// kv //////
 class SetCmd : public Cmd {

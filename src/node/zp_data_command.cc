@@ -1,11 +1,12 @@
-#include "zp_data_command.h"
+#include "src/node/zp_data_command.h"
 
-#include <google/protobuf/text_format.h>
 #include <glog/logging.h>
-#include "include/db_nemo_impl.h"
-#include "zp_data_server.h"
+#include <google/protobuf/text_format.h>
+#include "slash/include/slash_string.h"
 
-#include "slash_string.h"
+#include "include/db_nemo_impl.h"
+#include "src/node/zp_data_server.h"
+
 
 extern ZPDataServer *zp_data_server;
 

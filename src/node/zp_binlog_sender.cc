@@ -1,11 +1,11 @@
-#include "zp_binlog_sender.h"
+#include "src/node/zp_binlog_sender.h"
 
 #include <limits>
 #include <glog/logging.h>
 #include <google/protobuf/text_format.h>
-#include "zp_const.h"
-#include "zp_data_server.h"
-#include "zp_data_partition.h"
+#include "include/zp_const.h"
+#include "src/node/zp_data_server.h"
+#include "src/node/zp_data_partition.h"
 
 extern ZPDataServer* zp_data_server;
 
@@ -337,19 +337,18 @@ ZPBinlogSendThread::ZPBinlogSendThread(ZPBinlogSendTaskPool *pool)
   }
 
 ZPBinlogSendThread::~ZPBinlogSendThread() {
-  should_exit_ = true;
-  pthread_join(thread_id(), NULL);
+  StopThread();
   LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
   }
 
 void* ZPBinlogSendThread::ThreadMain() {
   // Wait until the server is availible
-  while (!should_exit_ && !zp_data_server->Availible()) {
+  while (!should_stop() && !zp_data_server->Availible()) {
     sleep(kBinlogSendInterval);
   }
 
   struct timeval begin, now;
-  while (!should_exit_) {
+  while (!should_stop()) {
     sleep(kBinlogSendInterval);
     ZPBinlogSendTask* task = NULL;
     Status s = pool_->FetchOut(&task);
@@ -360,7 +359,7 @@ void* ZPBinlogSendThread::ThreadMain() {
 
     // Fetched one task, process it
     gettimeofday(&begin, NULL);
-    while (!should_exit_) {
+    while (!should_stop()) {
       Status item_s = Status::OK();
       // Record offset of current binlog item for sending later
       if (task->send_next) {

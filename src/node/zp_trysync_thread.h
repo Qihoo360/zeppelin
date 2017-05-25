@@ -1,22 +1,22 @@
 #ifndef ZP_TRYSYNC_THREAD_H
 #define ZP_TRYSYNC_THREAD_H
-#include "pb_cli.h"
-#include "status.h"
-#include "slash_mutex.h"
-#include "bg_thread.h"
-#include "zp_const.h"
-#include "zp_data_partition.h"
+#include "slash/include/slash_status.h"
+#include "slash/include/slash_mutex.h"
+#include "pink/include/pink_cli.h"
+#include "pink/include/bg_thread.h"
+
+#include "include/zp_const.h"
+#include "src/node/zp_data_partition.h"
 
 class ZPTrySyncThread {
  public:
   ZPTrySyncThread();
   virtual ~ZPTrySyncThread();
-  void TrySyncTaskSchedule(const std::string& table, int partition_id);
+  void TrySyncTaskSchedule(const std::string& table,
+      int partition_id, uint64_t delay = 0);
   void TrySyncTask(const std::string& table_name, int partition_id);
 
  private:
-  bool should_exit_;
-
   // BGThread related
   struct TrySyncTaskArg {
     ZPTrySyncThread* thread;
@@ -29,7 +29,7 @@ class ZPTrySyncThread {
   pink::BGThread* bg_thread_;
   static void DoTrySyncTask(void* arg);
   bool SendTrySync(const std::string& table_name, int partition_id);
-  bool Send(std::shared_ptr<Partition> partition, pink::PbCli* cli);
+  bool Send(std::shared_ptr<Partition> partition, pink::PinkCli* cli);
   
   struct RecvResult {
     client::StatusCode code;
@@ -37,7 +37,7 @@ class ZPTrySyncThread {
     uint32_t filenum;
     uint64_t offset;
   };
-  bool Recv(std::shared_ptr<Partition> partition, pink::PbCli* cli,
+  bool Recv(std::shared_ptr<Partition> partition, pink::PinkCli* cli,
       RecvResult* res);
 
   // Rsync related
@@ -46,8 +46,9 @@ class ZPTrySyncThread {
   void RsyncUnref();
   
   // Connection related
-  std::map<std::string, pink::PbCli*> client_pool_;
-  pink::PbCli* GetConnection(const Node& node);
+  std::map<std::string, pink::PinkCli*> client_pool_;
+  pink::PinkCli* GetConnection(const Node& node);
+
   void DropConnection(const Node& node);
 };
 

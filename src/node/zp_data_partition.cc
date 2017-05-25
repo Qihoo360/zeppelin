@@ -1,10 +1,14 @@
-#include "zp_data_partition.h"
+#include "src/node/zp_data_partition.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <vector>
 #include <fstream>
 #include <glog/logging.h>
-#include "zp_data_server.h"
-#include "rsync.h"
+
+#include "slash/include/rsync.h"
+#include "src/node/zp_data_server.h"
 
 extern ZPDataServer* zp_data_server;
 

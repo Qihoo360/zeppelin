@@ -1,15 +1,15 @@
-#include "zp_data_server.h"
+#include "src/node/zp_data_server.h"
 
 #include <fstream>
 #include <random>
 #include <glog/logging.h>
 #include <sys/resource.h>
-
-#include "zp_data_worker_thread.h"
-#include "zp_data_dispatch_thread.h"
 #include <google/protobuf/text_format.h>
 
-#include "rsync.h"
+#include "slash/include/rsync.h"
+
+#include "src/node/zp_sync_conn.h"
+#include "src/node/zp_data_client_conn.h"
 
 ZPDataServer::ZPDataServer()
   : table_count_(0),
@@ -52,31 +52,35 @@ ZPDataServer::ZPDataServer()
     // Create thread
     zp_metacmd_bgworker_= new ZPMetacmdBGWorker();
     zp_trysync_thread_ = new ZPTrySyncThread();
-
-    // Binlog related
+    
+    // Binlog receive
     for (int j = 0; j < g_zp_conf->sync_recv_thread_num(); j++) {
       zp_binlog_receive_bgworkers_.push_back(
           new ZPBinlogReceiveBgWorker(kBinlogReceiveBgWorkerFull));
     }
-    zp_binlog_receiver_thread_ = new ZPBinlogReceiverThread(g_zp_conf->local_port() + kPortShiftSync,
-        kBinlogReceiverCronInterval);
+    sync_factory_ = new ZPSyncConnFactory();
+    zp_binlog_receiver_thread_ = pink::NewHolyThread(
+        g_zp_conf->local_port() + kPortShiftSync, sync_factory_);
+    zp_binlog_receiver_thread_->set_keepalive_timeout(kBinlogReceiverCronInterval);
+    zp_binlog_receiver_thread_->set_thread_name("ZPDataSyncDispatch");
+
+    // Binlog send
     for (int i = 0; i < g_zp_conf->sync_send_thread_num(); ++i) {
       ZPBinlogSendThread *thread = new ZPBinlogSendThread(&binlog_send_pool_);
       binlog_send_workers_.push_back(thread);
     }
 
-    for (int i = 0; i < g_zp_conf->data_thread_num(); i++) {
-      zp_worker_thread_[i] = new ZPDataWorkerThread(kWorkerCronInterval);
-    }
-    zp_dispatch_thread_ = new ZPDataDispatchThread(g_zp_conf->local_port(),
-        g_zp_conf->data_thread_num(), zp_worker_thread_, kDispatchCronInterval);
+    // Client command
+    client_factory_ = new ZPDataClientConnFactory();
+    zp_dispatch_thread_ = pink::NewDispatchThread(g_zp_conf->local_port(),
+        g_zp_conf->data_thread_num(), client_factory_);
+    zp_dispatch_thread_->set_keepalive_timeout(kDispatchCronInterval);
+    zp_dispatch_thread_->set_thread_name("ZPDataDispatch");
 
+    // Ping
     zp_ping_thread_ = new ZPPingThread();
 
     InitDBOptions();
-
-    // TODO rm
-    //LOG(INFO) << "local_host " << options_.local_ip << ":" << options.local_port;
     DLOG(INFO) << "ZPDataServer constructed";
   }
 
@@ -84,24 +88,20 @@ ZPDataServer::~ZPDataServer() {
   DLOG(INFO) << "~ZPDataServer destoryed";
   // Order:
   // 1, Meta thread should before trysync thread
-  // 2, Worker thread should before bgsave_thread
-  // 3, binlog reciever should before recieve bgworker
-  // 4, binlog send thread should before binlog send pool
+  // 2, binlog reciever should before recieve bgworker
+  // 3, binlog send thread should before binlog send pool
   delete zp_ping_thread_;
   delete zp_dispatch_thread_;
-  for (int i = 0; i < g_zp_conf->data_thread_num(); i++) {
-    delete zp_worker_thread_[i];
-  }
+  delete client_factory_;
 
-
-  std::vector<ZPBinlogSendThread*>::iterator it = binlog_send_workers_.begin();
+  auto it = binlog_send_workers_.begin();
   for (; it != binlog_send_workers_.end(); ++it) {
     delete *it;
   }
 
   {
     slash::MutexLock l(&mutex_peers_);
-    std::unordered_map<std::string, ZPPbCli*>::iterator iter = peers_.begin();
+    auto iter = peers_.begin();
     while (iter != peers_.end()) {
       iter->second->Close();
       delete iter->second;
@@ -109,27 +109,24 @@ ZPDataServer::~ZPDataServer() {
     }
   }
 
-  //delete binlog_send_pool_;
   delete zp_binlog_receiver_thread_;
-  std::vector<ZPBinlogReceiveBgWorker*>::iterator binlogbg_iter = zp_binlog_receive_bgworkers_.begin();
+  auto binlogbg_iter = zp_binlog_receive_bgworkers_.begin();
   while(binlogbg_iter != zp_binlog_receive_bgworkers_.end()){
     delete (*binlogbg_iter);
     ++binlogbg_iter;
   }
+  delete sync_factory_;
 
   delete zp_trysync_thread_;
   delete zp_metacmd_bgworker_;
 
   LOG(INFO) << " All Tables exit!!!";
-
-  bgsave_thread_.Stop();
-  bgpurge_thread_.Stop();
+  bgsave_thread_.StopThread();
+  bgpurge_thread_.StopThread();
 
   DestoryCmdTable(cmds_);
-  // TODO 
   pthread_rwlock_destroy(&meta_state_rw_);
   pthread_rwlock_destroy(&table_rw_);
-
   LOG(INFO) << "ZPDataServerThread " << pthread_self() << " exit!!!";
 }
 
@@ -265,17 +262,18 @@ Status ZPDataServer::SendToPeer(const Node &node, const client::SyncRequest &msg
   std::string ip_port = slash::IpPortString(node.ip, node.port);
 
   slash::MutexLock pl(&mutex_peers_);
-  std::unordered_map<std::string, ZPPbCli*>::iterator iter = peers_.find(ip_port);
+  std::unordered_map<std::string, pink::PinkCli*>::iterator iter = peers_.find(ip_port);
   if (iter == peers_.end()) {
-    ZPPbCli *cli = new ZPPbCli();
+    pink::PinkCli *cli = pink::NewPbCli();
     res = cli->Connect(node.ip, node.port);
     if (!res.ok()) {
+      cli->Close();
       delete cli;
       return Status::Corruption(res.ToString());
     }
     cli->set_send_timeout(1000);
     cli->set_recv_timeout(1000);
-    iter = (peers_.insert(std::pair<std::string, ZPPbCli*>(ip_port, cli))).first;
+    iter = (peers_.insert(std::pair<std::string, pink::PinkCli*>(ip_port, cli))).first;
   }
   
   res = iter->second->Send(const_cast<client::SyncRequest*>(&msg));
@@ -366,13 +364,13 @@ int ZPDataServer::KeyToPartition(const std::string& table_name,
 
 void ZPDataServer::BGSaveTaskSchedule(void (*function)(void*), void* arg) {
   slash::MutexLock l(&bgsave_thread_protector_);
-  bgsave_thread_.StartIfNeed();
+  bgsave_thread_.StartThread();
   bgsave_thread_.Schedule(function, arg);
 }
 
 void ZPDataServer::BGPurgeTaskSchedule(void (*function)(void*), void* arg) {
   slash::MutexLock l(&bgpurge_thread_protector_);
-  bgpurge_thread_.StartIfNeed();
+  bgpurge_thread_.StartThread();
   bgpurge_thread_.Schedule(function, arg);
 }
 
@@ -402,8 +400,9 @@ void ZPDataServer::DumpBinlogSendTask() {
   LOG(INFO) << "BinlogSendTask--------------------------";
 }
 
-void ZPDataServer::AddSyncTask(const std::string& table, int partition_id) {
-  zp_trysync_thread_->TrySyncTaskSchedule(table, partition_id);
+void ZPDataServer::AddSyncTask(const std::string& table,
+    int partition_id, uint64_t delay) {
+  zp_trysync_thread_->TrySyncTaskSchedule(table, partition_id, delay);
 }
 
 void ZPDataServer::AddMetacmdTask() {
@@ -428,23 +427,24 @@ bool ZPDataServer::GetAllTableName(std::set<std::string>* table_names) {
 }
 
 bool ZPDataServer::GetTableStat(const std::string& table_name, std::vector<Statistic>& stats) {
-  std::set<std::string> stat_tables;
-  if (table_name.empty()) {
-    GetAllTableName(&stat_tables);
-  } else {
-    stat_tables.insert(table_name);
-  }
+  // TODO wangkang-xy get statistic
+  //std::set<std::string> stat_tables;
+  //if (table_name.empty()) {
+  //  GetAllTableName(&stat_tables);
+  //} else {
+  //  stat_tables.insert(table_name);
+  //}
 
-  for (auto it = stat_tables.begin(); it != stat_tables.end(); it++) {
-    Statistic sum;
-    sum.table_name = *it;
-    for (int i = 0; i < g_zp_conf->data_thread_num(); i++) {
-      Statistic tmp;
-      zp_worker_thread_[i]->GetStat(*it, tmp);
-      sum.Add(tmp);
-    }
-    stats.push_back(sum);
-  }
+  //for (auto it = stat_tables.begin(); it != stat_tables.end(); it++) {
+  //  Statistic sum;
+  //  sum.table_name = *it;
+  //  for (int i = 0; i < g_zp_conf->data_thread_num(); i++) {
+  //    Statistic tmp;
+  //    zp_worker_thread_[i]->GetStat(*it, tmp);
+  //    sum.Add(tmp);
+  //  }
+  //  stats.push_back(sum);
+  //}
   return true;
 }
 

@@ -1,15 +1,13 @@
-#include "zp_sync_conn.h"
+#include "src/node/zp_sync_conn.h"
 
 #include <glog/logging.h>
-#include "zp_data_server.h"
-#include "zp_data_partition.h"
-#include "zp_binlog_receiver_thread.h"
+#include "src/node/zp_data_server.h"
+#include "src/node/zp_data_partition.h"
 
 extern ZPDataServer* zp_data_server;
 
 ZPSyncConn::ZPSyncConn(int fd, std::string ip_port, pink::Thread* thread) :
-  PbConn(fd, ip_port) {
-  self_thread_ = dynamic_cast<ZPBinlogReceiverThread*>(thread);
+  PbConn(fd, ip_port, thread) {
 }
 
 ZPSyncConn::~ZPSyncConn() {
@@ -58,7 +56,6 @@ int ZPSyncConn::DealMessage() {
 
   // do not reply
   set_is_reply(false);
-  
 
   ZPBinlogReceiveTask *arg = NULL;
   if (request_.sync_type() == client::SyncType::SKIP) {
@@ -94,7 +91,7 @@ int ZPSyncConn::DealMessage() {
       << " key=" << cmd->ExtractKey(&request_);
 
     std::string table_name = cmd->ExtractTable(&crequest);
-    self_thread_->PlusStat(table_name);
+    //self_thread_->PlusStat(table_name);
     
     int partition_id = zp_data_server->KeyToPartition(table_name, cmd->ExtractKey(&crequest));
     if (partition_id < 0) {
