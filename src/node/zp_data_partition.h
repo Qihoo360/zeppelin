@@ -6,18 +6,15 @@
 #include <unordered_set>
 #include <set>
 
-#include "pb_conn.h"
-#include "pb_cli.h"
-#include "holy_thread.h"
 #include "include/db_nemo_impl.h"
 #include "include/db_nemo_checkpoint.h"
 
-#include "zp_const.h"
-#include "client.pb.h"
-#include "zp_conf.h"
-#include "zp_binlog.h"
-#include "zp_meta_utils.h"
-#include "zp_command.h"
+#include "include/zp_const.h"
+#include "include/client.pb.h"
+#include "include/zp_conf.h"
+#include "include/zp_binlog.h"
+#include "include/zp_meta_utils.h"
+#include "include/zp_command.h"
 
 
 class Partition;

@@ -6,11 +6,11 @@
 #include <vector>
 #include <memory>
 
-#include "zp_util.h"
-#include "zp_const.h"
-#include "client.pb.h"
-#include "zp_meta.pb.h"
-#include "zp_meta_utils.h"
+#include "include/zp_util.h"
+#include "include/zp_const.h"
+#include "include/client.pb.h"
+#include "include/zp_meta.pb.h"
+#include "include/zp_meta_utils.h"
 
 class Table;
 class Partition;

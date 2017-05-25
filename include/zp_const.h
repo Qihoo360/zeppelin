@@ -3,9 +3,6 @@
 
 #include <string>
 
-const int kMaxDataWorkerThread = 100;
-const int kMaxMetaWorkerThread = 16;
-
 #define dstr(a) #a
 #define dxstr(a) dstr(a)
 const std::string kZPVersion = dxstr(_GITVER_);

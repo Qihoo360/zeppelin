@@ -2,14 +2,11 @@
 #define ZP_DATA_CLIENT_CONN_H
 
 #include <string>
+#include "pink/include/pb_conn.h"
+#include "pink/include/pink_thread.h"
+#include "pink/include/server_thread.h"
 
-#include "client.pb.h"
-
-#include "pb_conn.h"
-#include "pink_thread.h"
-
-
-class ZPDataWorkerThread;
+#include "include/client.pb.h"
 
 class ZPDataClientConn : public pink::PbConn {
  public:
@@ -17,17 +14,20 @@ class ZPDataClientConn : public pink::PbConn {
   virtual ~ZPDataClientConn();
 
   virtual int DealMessage();
-  ZPDataWorkerThread* self_thread() {
-    return self_thread_;
-  }
 
  private:
-
   client::CmdRequest request_;
   client::CmdResponse response_;
-  ZPDataWorkerThread* self_thread_;
   
   int DealMessageInternal();
+};
+
+class ZPDataClientConnFactory : public pink::ConnFactory {
+ public:
+  virtual pink::PinkConn *NewPinkConn(int connfd, const std::string &ip_port,
+      pink::Thread *thread) const {
+    return new ZPDataClientConn(connfd, ip_port, thread);
+  }
 };
 
 #endif

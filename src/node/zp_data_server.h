@@ -3,31 +3,27 @@
 
 #include <string>
 #include <memory>
-#include <algorithm>
-#include <unordered_set>
 #include <unordered_map>
 
-#include "bg_thread.h"
-#include "pb_conn.h"
-#include "zp_pb_cli.h"
-#include "holy_thread.h"
+#include "pink/include/bg_thread.h"
+#include "pink/include/server_thread.h"
+#include "pink/include/pb_conn.h"
 
-#include "slash_status.h"
-#include "slash_mutex.h"
+#include "slash/include/slash_status.h"
+#include "slash/include/slash_mutex.h"
 
-#include "zp_data_command.h"
-#include "zp_conf.h"
-#include "zp_binlog.h"
-#include "zp_meta_utils.h"
-#include "zp_const.h"
-#include "zp_metacmd_bgworker.h"
-#include "zp_ping_thread.h"
-#include "zp_trysync_thread.h"
-#include "zp_binlog_sender.h"
-#include "zp_binlog_receiver_thread.h"
-#include "zp_binlog_receive_bgworker.h"
-#include "zp_data_table.h"
-#include "zp_data_partition.h"
+#include "include/zp_conf.h"
+#include "include/zp_const.h"
+#include "include/zp_binlog.h"
+#include "include/zp_meta_utils.h"
+#include "src/node/zp_data_command.h"
+#include "src/node/zp_metacmd_bgworker.h"
+#include "src/node/zp_ping_thread.h"
+#include "src/node/zp_trysync_thread.h"
+#include "src/node/zp_binlog_sender.h"
+#include "src/node/zp_binlog_receive_bgworker.h"
+#include "src/node/zp_data_table.h"
+#include "src/node/zp_data_partition.h"
 
 
 using slash::Status;
@@ -65,11 +61,13 @@ class ZPDataServer {
   }
 
   bool IsSelf(const Node& node) {
-    return (g_zp_conf->local_ip() == node.ip && g_zp_conf->local_port() == node.port);
+    return (g_zp_conf->local_ip() == node.ip
+        && g_zp_conf->local_port() == node.port);
   }
 
   std::string db_sync_path() {
-    return g_zp_conf->data_path() + "/sync_" + std::to_string(g_zp_conf->local_port()) + "/";
+    return g_zp_conf->data_path() + "/sync_"
+      + std::to_string(g_zp_conf->local_port()) + "/";
   }
 
   std::string bgsave_path() {
@@ -83,14 +81,6 @@ class ZPDataServer {
   void Exit() {
     should_exit_ = true;
   }
-
-  //ZPMetacmdWorkerThread* zp_metacmd_worker_thread() {
-  //  return zp_metacmd_worker_thread_;
-  //};
-
-  ZPBinlogReceiverThread* zp_binlog_receiver_thread() {
-    return zp_binlog_receiver_thread_;
-  };
 
   // Meta related
   bool ShouldJoinMeta();
@@ -116,8 +106,10 @@ class ZPDataServer {
   std::shared_ptr<Table> GetOrAddTable(const std::string &table_name);
   void DeleteTable(const std::string &table_name);
 
-  std::shared_ptr<Partition> GetTablePartition(const std::string &table_name, const std::string &key);
-  std::shared_ptr<Partition> GetTablePartitionById(const std::string &table_name, const int partition_id);
+  std::shared_ptr<Partition> GetTablePartition(const std::string &table_name,
+      const std::string &key);
+  std::shared_ptr<Partition> GetTablePartitionById(const std::string &table_name,
+      const int partition_id);
   int KeyToPartition(const std::string& table_name, const std::string &key);
 
   void DumpTablePartitions();
@@ -129,12 +121,15 @@ class ZPDataServer {
   // Backgroud thread
   void BGSaveTaskSchedule(void (*function)(void*), void* arg);
   void BGPurgeTaskSchedule(void (*function)(void*), void* arg);
-  void AddSyncTask(const std::string& table, int partition_id);
+  void AddSyncTask(const std::string& table, int partition_id,
+      uint64_t delay = 0);
   void AddMetacmdTask();
-  Status AddBinlogSendTask(const std::string &table, int parititon_id, const Node& node,
-      int32_t filenum, int64_t offset);
-  Status RemoveBinlogSendTask(const std::string &table, int parititon_id, const Node& node);
-  int32_t GetBinlogSendFilenum(const std::string &table, int partition_id, const Node& node);
+  Status AddBinlogSendTask(const std::string &table, int parititon_id,
+      const Node& node, int32_t filenum, int64_t offset);
+  Status RemoveBinlogSendTask(const std::string &table, int parititon_id,
+      const Node& node);
+  int32_t GetBinlogSendFilenum(const std::string &table, int partition_id,
+      const Node& node);
   void DispatchBinlogBGWorker(ZPBinlogReceiveTask *task);
 
 
@@ -143,12 +138,13 @@ class ZPDataServer {
     return GetCmdFromTable(op, cmds_);
   }
   void DumpTableBinlogOffsets(const std::string &table_name,
-                              std::unordered_map<std::string, std::vector<PartitionBinlogOffset>> &all_offset);
+      std::unordered_map<std::string, std::vector<PartitionBinlogOffset>> &all_offset);
 
   // Statistic related
   bool GetAllTableName(std::set<std::string>* table_names);
   bool GetTableStat(const std::string& table_name, std::vector<Statistic>& stats);
-  bool GetTableCapacity(const std::string& table_name, std::vector<Statistic>& capacity_stats);
+  bool GetTableCapacity(const std::string& table_name,
+      std::vector<Statistic>& capacity_stats);
   bool GetTableReplInfo(const std::string& table_name,
       std::unordered_map<std::string, client::CmdResponse_InfoRepl>* info_repls);
   bool GetServerInfo(client::CmdResponse_InfoServer* info_server);
@@ -159,7 +155,8 @@ class ZPDataServer {
   std::unordered_map<int, Cmd*> cmds_;
 
   // Table and Partition
-  //Note: this lock only protect table map, rather than certain partiton which should keep thread safety itself
+  // Note: this lock only protect table map,
+  // rather than certain partiton which should keep thread safety itself
   pthread_rwlock_t table_rw_;
   std::atomic<int> table_count_;
   std::unordered_map<std::string, std::shared_ptr<Table>> tables_;
@@ -167,18 +164,21 @@ class ZPDataServer {
 
   // Binlog Send related
   slash::Mutex mutex_peers_;
-  std::unordered_map<std::string, ZPPbCli*> peers_;
+  std::unordered_map<std::string, pink::PinkCli*> peers_;
   ZPBinlogSendTaskPool binlog_send_pool_;
   std::vector<ZPBinlogSendThread*> binlog_send_workers_;
 
   // Server related
-  ZPDataWorkerThread* zp_worker_thread_[kMaxDataWorkerThread];
-  ZPDataDispatchThread* zp_dispatch_thread_;
-  ZPPingThread* zp_ping_thread_;
   ZPMetacmdBGWorker* zp_metacmd_bgworker_;
   ZPTrySyncThread* zp_trysync_thread_;
-  ZPBinlogReceiverThread* zp_binlog_receiver_thread_;
+
   std::vector<ZPBinlogReceiveBgWorker*> zp_binlog_receive_bgworkers_;
+  pink::ConnFactory* sync_factory_;
+  pink::ServerThread* zp_binlog_receiver_thread_;
+
+  pink::ConnFactory *client_factory_;
+  pink::ServerThread* zp_dispatch_thread_;
+  ZPPingThread* zp_ping_thread_;
 
   std::atomic<bool> should_exit_;
 

@@ -1,19 +1,19 @@
-#include "zp_ping_thread.h"
+#include "src/node/zp_ping_thread.h"
+
 #include <glog/logging.h>
-#include "zp_data_server.h"
-#include "zp_meta.pb.h"
-#include "zp_const.h"
+#include "src/node/zp_data_server.h"
+#include "include/zp_meta.pb.h"
+#include "include/zp_const.h"
 
 extern ZPDataServer* zp_data_server;
 
 ZPPingThread::~ZPPingThread() {
-  should_exit_ = true;
-  pthread_join(thread_id(), NULL);
+  StopThread();
   delete cli_;
   LOG(INFO) << " Ping thread " << pthread_self() << " exit!!!";
 }
 
-pink::Status ZPPingThread::Send() {
+slash::Status ZPPingThread::Send() {
   ZPMeta::MetaCmd request;
   int64_t meta_epoch = zp_data_server->meta_epoch();
   ZPMeta::MetaCmd_Ping* ping = request.mutable_ping();
@@ -41,8 +41,8 @@ pink::Status ZPPingThread::Send() {
   return cli_->Send(&request);
 }
 
-pink::Status ZPPingThread::RecvProc() {
-  pink::Status result;
+slash::Status ZPPingThread::RecvProc() {
+  slash::Status result;
   ZPMeta::MetaCmdResponse response;
   result = cli_->Recv(&response); 
   DLOG(INFO) << "Ping Recv from Meta (" << zp_data_server->meta_ip() << ":"
@@ -51,21 +51,21 @@ pink::Status ZPPingThread::RecvProc() {
     return result;
   }
   if (response.code() != ZPMeta::StatusCode::OK) {
-    return pink::Status::Corruption("Receive reponse with error code");
+    return slash::Status::Corruption("Receive reponse with error code");
   }
   // StatusCode OK
   if (response.type() == ZPMeta::Type::PING) {
     zp_data_server->TryUpdateEpoch(response.ping().version());
-    return pink::Status::OK();
+    return slash::Status::OK();
   }
-  return pink::Status::Corruption("Receive reponse whose type is not ping");
+  return slash::Status::Corruption("Receive reponse whose type is not ping");
 }
 
 void* ZPPingThread::ThreadMain() {
   struct timeval now, last_interaction;
-  pink::Status s;
+  slash::Status s;
 
-  while (!should_exit_) {
+  while (running()) {
     zp_data_server->PickMeta();
     std::string meta_ip = zp_data_server->meta_ip();
     int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;
@@ -80,7 +80,7 @@ void* ZPPingThread::ThreadMain() {
       cli_->set_recv_timeout(1000);
 
       // Send && Recv
-      while (!should_exit_) {
+      while (running()) {
         gettimeofday(&now, NULL);
         if (now.tv_sec - last_interaction.tv_sec > kNodeMetaTimeoutN) {
           LOG(WARNING) << "Ping meta ("<< meta_ip << ":" << meta_port << ") timeout, reconnect!";

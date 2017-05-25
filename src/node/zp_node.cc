@@ -1,14 +1,15 @@
 #include <stdio.h>
+#include <signal.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <iostream>
 #include <sstream>
 #include <glog/logging.h>
 
-#include "zp_data_server.h"
-#include "zp_conf.h"
+#include "slash/include/env.h"
+#include "src/node/zp_data_server.h"
+#include "include/zp_conf.h"
 
-#include "env.h"
 
 ZpConf *g_zp_conf;
 ZPDataServer* zp_data_server;

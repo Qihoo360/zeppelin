@@ -1,28 +1,29 @@
-#include "zp_metacmd_bgworker.h"
+#include "src/node/zp_metacmd_bgworker.h"
 #include <string.h>
 #include <glog/logging.h>
 #include <google/protobuf/text_format.h>
 
-#include "zp_data_server.h"
-#include "zp_command.h"
+#include "src/node/zp_data_server.h"
+#include "include/zp_command.h"
 
 extern ZPDataServer* zp_data_server;
 
 ZPMetacmdBGWorker::ZPMetacmdBGWorker() {
-    cli_ = new pink::PbCli();
+    cli_ = pink::NewPbCli();
     cli_->set_connect_timeout(1500);
     bg_thread_ = new pink::BGThread();
   }
 
 ZPMetacmdBGWorker::~ZPMetacmdBGWorker() {
-  bg_thread_->Stop();
+  bg_thread_->StopThread();
   delete bg_thread_;
+  cli_->Close();
   delete cli_;
   LOG(INFO) << "ZPMetacmd thread " << bg_thread_->thread_id() << " exit!!!";
 }
 
 void ZPMetacmdBGWorker::AddTask() {
-  bg_thread_->StartIfNeed();
+  bg_thread_->StartThread();
   bg_thread_->Schedule(&MetaUpdateTask, static_cast<void*>(this));
 }
 

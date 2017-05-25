@@ -106,8 +106,8 @@ SLASH = $(SLASH_PATH)/slash/lib/libslash.a
 .PHONY: all clean distclean
 
 
-#all: $(ZP_META) $(ZP_NODE)
-all: $(ZP_META)
+all: $(ZP_META) $(ZP_NODE)
+#all: $(ZP_META)
 #all: 
 	#@echo "COMMON_OBJS $(COMMON_OBJS)"
 	#@echo "ZP_META_OBJS $(META_OBJS)"
