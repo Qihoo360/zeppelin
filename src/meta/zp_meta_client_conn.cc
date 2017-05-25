@@ -11,7 +11,8 @@ extern ZPMetaServer* g_meta_server;
 ////// ZPMetaServerHandle //////
 void ZPMetaServerHandle::CronHandle() const {
   g_meta_server->ResetLastSecQueryNum();
-  //LOG(INFO) << "ClientNum: " << ClientNum() << " ServerQueryNum: " << server_querynum << " ServerCurrentQps: " << server_current_qps;
+  LOG(INFO) << "ServerQueryNum: " << g_meta_server->query_num()
+      << " ServerCurrentQps: " << g_meta_server->last_qps();
 
   // Check alive
   g_meta_server->CheckNodeAlive();

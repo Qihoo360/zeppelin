@@ -93,6 +93,16 @@ class ListMetaCmd : public Cmd {
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
+class MetaStatusCmd : public Cmd {
+ public:
+  MetaStatusCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "MetaStatus"; 
+  }
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition = NULL) const;
+};
+
 class DropTableCmd : public Cmd {
  public:
   DropTableCmd(int flag) : Cmd(flag) {}

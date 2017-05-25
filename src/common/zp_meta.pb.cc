@@ -646,11 +646,12 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "leName\032(\n\010ListNode\022\034\n\005nodes\030\001 \001(\0132\r.ZPMe"
     "ta.Nodes\032,\n\010ListMeta\022 \n\005nodes\030\001 \002(\0132\021.ZP"
     "Meta.MetaNodes*-\n\nStatusCode\022\006\n\002OK\020\000\022\014\n\010"
-    "NOTFOUND\020\001\022\t\n\005ERROR\020\002*\214\001\n\004Type\022\010\n\004PING\020\001"
+    "NOTFOUND\020\001\022\t\n\005ERROR\020\002*\234\001\n\004Type\022\010\n\004PING\020\001"
     "\022\010\n\004PULL\020\002\022\010\n\004INIT\020\003\022\r\n\tSETMASTER\020\004\022\014\n\010A"
     "DDSLAVE\020\005\022\017\n\013REMOVESLAVE\020\006\022\r\n\tLISTTABLE\020"
     "\007\022\014\n\010LISTNODE\020\010\022\014\n\010LISTMETA\020\t\022\r\n\tDROPTAB"
-    "LE\020\n*\037\n\006PState\022\n\n\006ACTIVE\020\001\022\t\n\005STUCK\020\002", 2077);
+    "LE\020\n\022\016\n\nMETASTATUS\020\013*\037\n\006PState\022\n\n\006ACTIVE"
+    "\020\001\022\t\n\005STUCK\020\002", 2093);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zp_meta.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -739,6 +740,7 @@ bool Type_IsValid(int value) {
     case 8:
     case 9:
     case 10:
+    case 11:
       return true;
     default:
       return false;

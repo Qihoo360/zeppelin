@@ -88,11 +88,12 @@ enum Type {
   LISTTABLE = 7,
   LISTNODE = 8,
   LISTMETA = 9,
-  DROPTABLE = 10
+  DROPTABLE = 10,
+  METASTATUS = 11
 };
 bool Type_IsValid(int value);
 const Type Type_MIN = PING;
-const Type Type_MAX = DROPTABLE;
+const Type Type_MAX = METASTATUS;
 const int Type_ARRAYSIZE = Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Type_descriptor();

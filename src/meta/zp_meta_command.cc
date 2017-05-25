@@ -169,7 +169,6 @@ void RemoveSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::
 }
 
 void ListTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
-  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
   ZPMeta::MetaCmdResponse_ListTable *table_name = response->mutable_list_table();
 
@@ -187,7 +186,6 @@ void ListTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
 }
 
 void ListNodeCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
-  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
   ZPMeta::MetaCmdResponse_ListNode *nodes = response->mutable_list_node();
 
@@ -205,7 +203,6 @@ void ListNodeCmd::Do(const google::protobuf::Message *req, google::protobuf::Mes
 }
 
 void ListMetaCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
-  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
   ZPMeta::MetaCmdResponse_ListMeta *nodes = response->mutable_list_meta();
 
@@ -221,6 +218,24 @@ void ListMetaCmd::Do(const google::protobuf::Message *req, google::protobuf::Mes
     response->set_msg(s.ToString());
   }
 }
+
+void MetaStatusCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+
+  response->set_type(ZPMeta::Type::METASTATUS);
+
+  std::string result;
+  Status s = g_meta_server->GetMetaStatus(&result);
+
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg(result);
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
+}
+
 
 void DropTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);

@@ -91,6 +91,7 @@ class ZPMetaServer {
   Status SetMaster(const std::string &table, int partition, const ZPMeta::Node &node);
   Status AddSlave(const std::string &table, int partition, const ZPMeta::Node &node);
   Status GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes);
+  Status GetMetaStatus(std::string *result);
   Status GetTableList(ZPMeta::MetaCmdResponse_ListTable *tables);
   Status GetAllNodes(ZPMeta::MetaCmdResponse_ListNode *nodes);
   Status Distribute(const std::string &table, int num);

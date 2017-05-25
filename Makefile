@@ -174,5 +174,5 @@ distclean: clean
 	make -C $(PINK_PATH)/pink/ clean
 	make -C $(SLASH_PATH)/slash/ clean
 	make -C $(NEMODB_PATH)/ clean
-	make -C $(FLOYD_PATH)/floyd/ distclean
+	make -C $(FLOYD_PATH)/floyd/ clean
 

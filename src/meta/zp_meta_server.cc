@@ -68,6 +68,10 @@ ZPMetaServer::ZPMetaServer()
       kMetaDispathCronInterval,
       server_handle_);
 
+  server_thread_->set_thread_name("ZPMetaDispatch");
+  // TODO(anan) set keepalive
+  //server_thread_->set_keepalive_timeout(kIdleTimeout);
+
   update_thread_ = new ZPMetaUpdateThread();
 }
 
@@ -81,7 +85,7 @@ ZPMetaServer::~ZPMetaServer() {
   delete update_thread_;
   CleanLeader();
   delete floyd_;
-  LOG(INFO) << "Delete Done";
+  LOG(INFO) << "ZPMetaServer Delete Done";
 }
 
 void ZPMetaServer::Start() {
@@ -114,7 +118,6 @@ void ZPMetaServer::Start() {
       LOG(INFO) << "Disptch thread start failed";
       return;
     }
-    server_thread_->set_thread_name("ZPMetaWorker");
 
     server_mutex_.Lock();
     started_ = true;
@@ -507,6 +510,11 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
       return Status::Corruption("parse ip port error");
     }
   }
+  return Status::OK();
+}
+
+Status ZPMetaServer::GetMetaStatus(std::string *result) {
+  floyd_->GetServerStatus(*result);
   return Status::OK();
 }
 
@@ -1456,11 +1464,9 @@ Status ZPMetaServer::InitVersion() {
 // Get Version
   fs = floyd_->Read(kMetaVersion, value);
   if (fs.ok()) {
-    if (value == "") {
-      tmp_version = -1;
-    } else {
-      tmp_version = std::stoi(value);
-    }
+    tmp_version = std::stoi(value);
+  } else if (fs.IsNotFound()) {
+    tmp_version = -1;
   } else {
     LOG(ERROR) << "Read floyd version failed in InitVersion: " << fs.ToString() << ", try again";
     return Status::Corruption("Read Version error");
@@ -1470,7 +1476,6 @@ Status ZPMetaServer::InitVersion() {
   fs = floyd_->Read(kMetaTables, value);
   LOG(INFO) << "InitVersion read tables, ret: " << fs.ToString();
   if (fs.ok()) {
-    if (value != "") {
       if (!tables.ParseFromString(value)) {
         LOG(ERROR) << "Deserialization table failed, error: " << value;
         return Status::Corruption("Parse failed");
@@ -1518,7 +1523,8 @@ Status ZPMetaServer::InitVersion() {
         }
       }
       DebugNodes();
-    }
+  } else if (fs.IsNotFound()) {
+    LOG(INFO) << "Read floyd tables in InitVersion, not found";
   } else {
     LOG(ERROR) << "Read floyd tables failed in InitVersion: " << fs.ToString() << ", try again";
     return Status::Corruption("Read tables error");

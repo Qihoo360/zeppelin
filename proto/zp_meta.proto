@@ -17,6 +17,7 @@ enum Type {
   LISTNODE = 8;
   LISTMETA = 9;
   DROPTABLE = 10;
+  METASTATUS = 11;
 }
 
 enum PState {
