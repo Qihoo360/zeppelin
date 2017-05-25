@@ -856,16 +856,20 @@ void ZPMetaServer::InitClientCmdTable() {
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::REMOVESLAVE), removeslaveptr));
 
   //ListTable Command
-  Cmd* listtableptr = new ListTableCmd(kCmdFlagsWrite);
+  Cmd* listtableptr = new ListTableCmd(kCmdFlagsRead);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTTABLE), listtableptr));
 
   //ListNode Command
-  Cmd* listnodeptr = new ListNodeCmd(kCmdFlagsWrite);
+  Cmd* listnodeptr = new ListNodeCmd(kCmdFlagsRead);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTNODE), listnodeptr));
 
-  //ListNode Command
-  Cmd* listmetaptr = new ListMetaCmd(kCmdFlagsWrite);
+  //ListMeta Command
+  Cmd* listmetaptr = new ListMetaCmd(kCmdFlagsRead);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTMETA), listmetaptr));
+
+  //MetaStatus Command
+  Cmd* meta_status_ptr = new MetaStatusCmd(kCmdFlagsRead);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::METASTATUS), meta_status_ptr));
 
   //DropTable Command
   Cmd* droptableptr = new DropTableCmd(kCmdFlagsWrite);
