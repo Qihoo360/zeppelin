@@ -92,6 +92,8 @@ ZPDataServer::~ZPDataServer() {
   // 3, binlog send thread should before binlog send pool
   delete zp_ping_thread_;
   delete zp_dispatch_thread_;
+  LOG(INFO) << "Dispatch thread exit!";
+
   delete client_factory_;
 
   auto it = binlog_send_workers_.begin();
@@ -108,8 +110,10 @@ ZPDataServer::~ZPDataServer() {
       iter++;
     }
   }
+  LOG(INFO) << "Peers client exit!";
 
   delete zp_binlog_receiver_thread_;
+  LOG(INFO) << "Binlig receiver thread exit!";
   auto binlogbg_iter = zp_binlog_receive_bgworkers_.begin();
   while(binlogbg_iter != zp_binlog_receive_bgworkers_.end()){
     delete (*binlogbg_iter);
