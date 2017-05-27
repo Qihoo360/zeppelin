@@ -87,8 +87,8 @@ int ZPSyncConn::DealMessage() {
     }
 
     DLOG(INFO) << "Receive sync cmd: " << cmd->name()
-      << ", table=" << cmd->ExtractTable(&request_)
-      << " key=" << cmd->ExtractKey(&request_);
+      << ", table=" << cmd->ExtractTable(&crequest)
+      << " key=" << cmd->ExtractKey(&crequest);
 
     std::string table_name = cmd->ExtractTable(&crequest);
     //self_thread_->PlusStat(table_name);
