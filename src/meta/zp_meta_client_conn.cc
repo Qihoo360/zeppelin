@@ -33,26 +33,30 @@ ZPMetaClientConn::~ZPMetaClientConn() {
 int ZPMetaClientConn::DealMessage() {
   response_.Clear();
   bool need_redirect = true;
-  bool ret = request_.ParseFromArray(rbuf_ + 4, header_len_);
-  if (!ret) {
+  if (!request_.ParseFromArray(rbuf_ + 4, header_len_)) {
     LOG(INFO) << "DealMessage, Invalid pb message";
     return -1;
   }
-  // TODO test only
-  ZPMeta::Type response_type;
+
+  ZPMeta::Type response_type = request_.type();
   switch (request_.type()) {
     case ZPMeta::Type::PING:
-      response_type = ZPMeta::Type::PING;
       DLOG(INFO) << "Receive ping cmd";
       break;
+    case ZPMeta::Type::INIT:
+      DLOG(INFO) << "Receive init cmd";
+      break;
+    // Cmds do not need redirect
     case ZPMeta::Type::PULL:
-      response_type = ZPMeta::Type::PULL;
       need_redirect = false;
       DLOG(INFO) << "Receive pull cmd";
       break;
-    case ZPMeta::Type::INIT:
-      response_type = ZPMeta::Type::INIT;
-      DLOG(INFO) << "Receive init cmd";
+    case ZPMeta::Type::LISTTABLE:
+    case ZPMeta::Type::LISTNODE:
+    case ZPMeta::Type::LISTMETA:
+    case ZPMeta::Type::METASTATUS:
+      need_redirect = false;
+      DLOG(INFO) << "Receive LIST (Table/Node/Meta/MetaStatus) cmd";
       break;
     default:
       DLOG(INFO) << "Receive unknow meta cmd";
