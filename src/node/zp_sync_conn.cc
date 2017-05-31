@@ -2,7 +2,7 @@
 
 #include <glog/logging.h>
 #include "src/node/zp_data_server.h"
-#include "src/node/zp_data_partition.h"
+//#include "src/node/zp_data_partition.h"
 
 extern ZPDataServer* zp_data_server;
 
@@ -91,7 +91,7 @@ int ZPSyncConn::DealMessage() {
       << " key=" << cmd->ExtractKey(&crequest);
 
     std::string table_name = cmd->ExtractTable(&crequest);
-    //self_thread_->PlusStat(table_name);
+    zp_data_server->PlusStat(StatType::kSync, table_name);
     
     int partition_id = zp_data_server->KeyToPartition(table_name, cmd->ExtractKey(&crequest));
     if (partition_id < 0) {
@@ -124,4 +124,10 @@ int ZPSyncConn::DealMessage() {
   zp_data_server->DispatchBinlogBGWorker(arg);
 
   return 0;
+}
+
+////// ZPSyncConnHandle //////
+void ZPSyncConnHandle::CronHandle() const {
+  // Note: ServerCurrentQPS is the sum of client qps and sync qps;
+  zp_data_server->ResetLastStat(StatType::kSync);
 }

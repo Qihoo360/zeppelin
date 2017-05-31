@@ -187,7 +187,7 @@ void InfoCmd::Do(const google::protobuf::Message *req,
       response->set_type(client::Type::INFOSTATS);
 
       std::vector<Statistic> stats;
-      zp_data_server->GetTableStat(table_name, stats);
+      zp_data_server->GetTableStat(StatType::kClient, table_name, stats);
       DLOG(INFO) << "InfoStat with " << stats.size() << " tables total";
 
       for (auto it = stats.begin(); it != stats.end(); it++) {

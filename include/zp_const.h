@@ -52,7 +52,7 @@ const int kMetaPortShiftFY = 100;
 
 // TrySync Delay time := kRecoverSyncDelayCronCount * (kNodeCronInterval * kNodeCronWaitCount)
 const int kRecoverSyncDelayCronCount = 7;
-const int kTrySyncInterval = 3;
+const int kTrySyncInterval = 3000;
 const int kBinlogSendInterval = 2;
 const int kBinlogTimeSlice = 10; //should larger than kBinlogSendInterval
 const int kPingInterval = 3;
@@ -60,6 +60,7 @@ const int kMetacmdInterval = 3;
 const int kDispatchCronInterval = 5000;
 const int kMetaDispathCronInterval = 1000;
 const int kWorkerCronInterval = 5000;
+const int kKeepAlive = 30000;
 const int kMetaWorkerCronInterval = 1000;
 const int kBinlogReceiverCronInterval = 6000;
 // Server cron wait kNodeCronInterval * kNodeCronWaitCount every time

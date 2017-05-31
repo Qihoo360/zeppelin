@@ -16,6 +16,7 @@
 #include "include/zp_const.h"
 #include "include/zp_binlog.h"
 #include "include/zp_meta_utils.h"
+#include "include/zp_util.h"
 #include "src/node/zp_data_command.h"
 #include "src/node/zp_metacmd_bgworker.h"
 #include "src/node/zp_ping_thread.h"
@@ -29,15 +30,18 @@
 using slash::Status;
 
 class ZPDataServer;
-class ZPDataServerConn;
-class ZPDataServerThread;
-
-class ZPDataWorkerThread;
-class ZPDataDispatchThread;
-
-//class Table;
+//class ZPDataServerConn;
 
 extern ZpConf* g_zp_conf;
+
+// For now, we only have 2 kinds of Statistics:
+//  stats[0] is client stats;
+//  stats[1] is sync stats;
+enum StatType {
+  kClient = 0,
+  kSync = 1,
+};
+
 class ZPDataServer {
  public:
 
@@ -141,8 +145,12 @@ class ZPDataServer {
       std::unordered_map<std::string, std::vector<PartitionBinlogOffset>> &all_offset);
 
   // Statistic related
+  void PlusStat(const StatType type, const std::string &table);
+  void ResetLastStat(const StatType type);
+  bool GetTotalStat(const StatType type, Statistic& stat);
+
   bool GetAllTableName(std::set<std::string>* table_names);
-  bool GetTableStat(const std::string& table_name, std::vector<Statistic>& stats);
+  bool GetTableStat(const StatType type, const std::string& table_name, std::vector<Statistic>& stats);
   bool GetTableCapacity(const std::string& table_name,
       std::vector<Statistic>& capacity_stats);
   bool GetTableReplInfo(const std::string& table_name,
@@ -174,9 +182,11 @@ class ZPDataServer {
 
   std::vector<ZPBinlogReceiveBgWorker*> zp_binlog_receive_bgworkers_;
   pink::ConnFactory* sync_factory_;
+  pink::ServerHandle* sync_handle_;
   pink::ServerThread* zp_binlog_receiver_thread_;
 
-  pink::ConnFactory *client_factory_;
+  pink::ConnFactory* client_factory_;
+  pink::ServerHandle* client_handle_;
   pink::ServerThread* zp_dispatch_thread_;
   ZPPingThread* zp_ping_thread_;
 
@@ -200,6 +210,22 @@ class ZPDataServer {
   slash::Mutex bgpurge_thread_protector_;
   pink::BGThread bgpurge_thread_;
   void DoTimingTask();
+
+  // Statistic related
+  struct ThreadStatistic {
+    slash::Mutex mu;
+    uint64_t last_time_us;
+    Statistic other_stat;
+    std::unordered_map<std::string, Statistic*> table_stats;
+
+    ThreadStatistic()
+      : last_time_us(slash::NowMicros()) {}
+  };
+
+  ThreadStatistic stats[2];
+
+
+  bool GetStat(const StatType type, const std::string &table, Statistic& stat);
 
   rocksdb::Options db_options_;
   void InitDBOptions();

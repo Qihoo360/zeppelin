@@ -59,9 +59,15 @@ ZPDataServer::ZPDataServer()
           new ZPBinlogReceiveBgWorker(kBinlogReceiveBgWorkerFull));
     }
     sync_factory_ = new ZPSyncConnFactory();
+    sync_handle_ = new ZPSyncConnHandle();
     zp_binlog_receiver_thread_ = pink::NewHolyThread(
-        g_zp_conf->local_port() + kPortShiftSync, sync_factory_);
-    zp_binlog_receiver_thread_->set_keepalive_timeout(kBinlogReceiverCronInterval);
+        g_zp_conf->local_port() + kPortShiftSync,
+        sync_factory_,
+        kBinlogReceiverCronInterval,
+        sync_handle_);
+
+    // TODO(anan) receiver should not check keepalive
+    //zp_binlog_receiver_thread_->set_keepalive_timeout(0);
     zp_binlog_receiver_thread_->set_thread_name("ZPDataSyncDispatch");
 
     // Binlog send
@@ -72,9 +78,15 @@ ZPDataServer::ZPDataServer()
 
     // Client command
     client_factory_ = new ZPDataClientConnFactory();
-    zp_dispatch_thread_ = pink::NewDispatchThread(g_zp_conf->local_port(),
-        g_zp_conf->data_thread_num(), client_factory_);
-    zp_dispatch_thread_->set_keepalive_timeout(kDispatchCronInterval);
+    client_handle_ = new ZPDataClientConnHandle();
+    zp_dispatch_thread_ = pink::NewDispatchThread(
+        g_zp_conf->local_port(),
+        g_zp_conf->data_thread_num(),
+        client_factory_,
+        kDispatchCronInterval,
+        client_handle_);
+
+    zp_dispatch_thread_->set_keepalive_timeout(kKeepAlive);
     zp_dispatch_thread_->set_thread_name("ZPDataDispatch");
 
     // Ping
@@ -91,10 +103,13 @@ ZPDataServer::~ZPDataServer() {
   // 2, binlog reciever should before recieve bgworker
   // 3, binlog send thread should before binlog send pool
   delete zp_ping_thread_;
-  delete zp_dispatch_thread_;
-  LOG(INFO) << "Dispatch thread exit!";
 
+  // We call StopThread first
+  zp_dispatch_thread_->StopThread();
+  delete zp_dispatch_thread_;
   delete client_factory_;
+  delete client_handle_;
+  LOG(INFO) << "Dispatch thread exit!";
 
   auto it = binlog_send_workers_.begin();
   for (; it != binlog_send_workers_.end(); ++it) {
@@ -112,6 +127,7 @@ ZPDataServer::~ZPDataServer() {
   }
   LOG(INFO) << "Peers client exit!";
 
+  zp_binlog_receiver_thread_->StopThread();
   delete zp_binlog_receiver_thread_;
   LOG(INFO) << "Binlig receiver thread exit!";
   auto binlogbg_iter = zp_binlog_receive_bgworkers_.begin();
@@ -120,6 +136,15 @@ ZPDataServer::~ZPDataServer() {
     ++binlogbg_iter;
   }
   delete sync_factory_;
+  delete sync_handle_;
+
+  // Statistic result
+  for (int i = 0; i < 2; i++) {
+    slash::MutexLock l(&(stats[i].mu));
+    for (auto& item : stats[i].table_stats) {
+      delete item.second;
+    }
+  }
 
   delete zp_trysync_thread_;
   delete zp_metacmd_bgworker_;
@@ -421,7 +446,57 @@ void ZPDataServer::DispatchBinlogBGWorker(ZPBinlogReceiveTask *task) {
     zp_binlog_receive_bgworkers_[index]->AddTask(task);
 }
 
+//
 // Statistic related
+//
+bool ZPDataServer::GetStat(const StatType type, const std::string &table, Statistic& stat) {
+  stat.Reset();
+
+  slash::MutexLock l(&(stats[type].mu));
+  auto it = stats[type].table_stats.find(table);
+  if (it == stats[type].table_stats.end()) {
+    return false;
+  }
+  stat = *(it->second);
+  return true;
+}
+
+void ZPDataServer::PlusStat(const StatType type, const std::string &table) {
+  slash::MutexLock l(&(stats[type].mu));
+  if (table.empty()) {
+    stats[type].other_stat.querys++;
+  } else {
+    auto it = stats[type].table_stats.find(table);
+    if (it == stats[type].table_stats.end()) {
+      Statistic* pstat = new Statistic;
+      pstat->table_name = table;
+      pstat->querys++;
+      stats[type].table_stats[table] = pstat;
+    } else {
+      (it->second)->querys++;
+    }
+  }
+}
+
+void ZPDataServer::ResetLastStat(const StatType type) {
+  uint64_t cur_time_us = slash::NowMicros();
+  slash::MutexLock l(&(stats[type].mu));
+  // TODO(anan) debug;
+  for (auto it = stats[type].table_stats.begin();
+       it != stats[type].table_stats.end(); it++) {
+    auto stat = it->second;
+    stat->last_qps = ((stat->querys - stat->last_querys) * 1000000
+                      / (cur_time_us - stats[type].last_time_us + 1));
+    stat->last_querys = stat->querys;
+    //stat->Dump();
+  }
+  stats[type].other_stat.last_qps =
+      ((stats[type].other_stat.querys - stats[type].other_stat.last_querys)
+       * 1000000 / (cur_time_us - stats[type].last_time_us + 1));
+  stats[type].other_stat.last_querys = stats[type].other_stat.querys;
+  stats[type].last_time_us = cur_time_us;
+}
+
 bool ZPDataServer::GetAllTableName(std::set<std::string>* table_names) {
   slash::RWLock l(&table_rw_, false);
   for (auto iter = tables_.begin(); iter != tables_.end(); iter++) {
@@ -430,25 +505,30 @@ bool ZPDataServer::GetAllTableName(std::set<std::string>* table_names) {
   return true;
 }
 
-bool ZPDataServer::GetTableStat(const std::string& table_name, std::vector<Statistic>& stats) {
-  // TODO wangkang-xy get statistic
-  //std::set<std::string> stat_tables;
-  //if (table_name.empty()) {
-  //  GetAllTableName(&stat_tables);
-  //} else {
-  //  stat_tables.insert(table_name);
-  //}
+bool ZPDataServer::GetTotalStat(const StatType type, Statistic& stat) {
+  stat.Reset();
+  slash::MutexLock l(&(stats[type].mu));
+  for (auto it = stats[type].table_stats.begin();
+       it != stats[type].table_stats.end(); it++) {
+    stat.Add(*(it->second));
+  }
+  stat.Add(stats[type].other_stat);
+  return true;
+}
 
-  //for (auto it = stat_tables.begin(); it != stat_tables.end(); it++) {
-  //  Statistic sum;
-  //  sum.table_name = *it;
-  //  for (int i = 0; i < g_zp_conf->data_thread_num(); i++) {
-  //    Statistic tmp;
-  //    zp_worker_thread_[i]->GetStat(*it, tmp);
-  //    sum.Add(tmp);
-  //  }
-  //  stats.push_back(sum);
-  //}
+bool ZPDataServer::GetTableStat(const StatType type, const std::string& table_name, std::vector<Statistic>& stats) {
+  std::set<std::string> stat_tables;
+  if (table_name.empty()) {
+    GetAllTableName(&stat_tables);
+  } else {
+    stat_tables.insert(table_name);
+  }
+
+  for (auto it = stat_tables.begin(); it != stat_tables.end(); it++) {
+    Statistic sum;
+    GetStat(type, *it, sum);
+    stats.push_back(sum);
+  }
   return true;
 }
 
@@ -550,3 +630,4 @@ void ZPDataServer::DoTimingTask() {
     pair.second->DoTimingTask();
   }
 }
+

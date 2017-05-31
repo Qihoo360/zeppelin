@@ -22,6 +22,17 @@ class ZPDataClientConn : public pink::PbConn {
   int DealMessageInternal();
 };
 
+class ZPDataClientConnHandle : public pink::ServerHandle {
+ public:
+  explicit ZPDataClientConnHandle() {}
+  virtual ~ZPDataClientConnHandle() {}
+
+  virtual void CronHandle() const;
+  virtual bool AccessHandle(std::string& ip) const {
+    return true;
+  }
+};
+
 class ZPDataClientConnFactory : public pink::ConnFactory {
  public:
   virtual pink::PinkConn *NewPinkConn(int connfd, const std::string &ip_port,

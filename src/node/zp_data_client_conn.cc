@@ -50,7 +50,7 @@ int ZPDataClientConn::DealMessageInternal() {
     << ", table=" << cmd->ExtractTable(&request_)
     << " key=" << cmd->ExtractKey(&request_);
 
-  //self_thread_->PlusStat(cmd->ExtractTable(&request_));
+  zp_data_server->PlusStat(StatType::kClient, cmd->ExtractTable(&request_));
 
   if (!cmd->is_single_paritition()) {
     cmd->Do(&request_, &response_);
@@ -82,3 +82,24 @@ int ZPDataClientConn::DealMessageInternal() {
   return 0;
 }
 
+////// ZPDataClientConnHandle //////
+void ZPDataClientConnHandle::CronHandle() const {
+  // Note: ServerCurrentQPS is the sum of client qps and sync qps;
+  zp_data_server->ResetLastStat(StatType::kClient);
+  
+  Statistic stat;
+  zp_data_server->GetTotalStat(StatType::kClient, stat);
+  uint64_t server_querys = stat.querys;
+  uint64_t server_qps = stat.last_qps;
+  
+  zp_data_server->GetTotalStat(StatType::kSync, stat);
+  uint64_t sync_querys = stat.querys;
+  server_qps += stat.last_qps;
+
+  LOG(INFO) << " ClientQueryNum: " << server_querys
+      << " SyncCmdNum: " << sync_querys
+      << " ServerCurrentQps: " << server_qps;
+
+  //zp_data_server->DumpTablePartitions();
+  zp_data_server->DumpBinlogSendTask();
+}

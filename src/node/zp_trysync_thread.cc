@@ -48,7 +48,7 @@ void ZPTrySyncThread::TrySyncTask(const std::string& table_name, int partition_i
       || !SendTrySync(table_name, partition_id)) {
     // Need one more trysync, since error happenning or waiting for db sync
     LOG(WARNING) << "SendTrySync delay " << kTrySyncInterval
-      << "(s) to ReSchedule for table:" << table_name
+      << "(ms) to ReSchedule for table:" << table_name
       << ", partition:" << partition_id;
     zp_data_server->AddSyncTask(table_name, partition_id, kTrySyncInterval);
   }

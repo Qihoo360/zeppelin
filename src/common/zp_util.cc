@@ -68,14 +68,14 @@ Statistic::Statistic(const Statistic& stat)
     last_querys(stat.last_querys), querys(stat.querys), last_qps(stat.last_qps),
     used_disk(stat.used_disk), free_disk(stat.free_disk) {}
 
-    void Statistic::Reset() {
-      table_name.clear();
-      last_querys = 0;
-      querys = 0;
-      last_qps = 0;
-      used_disk = 0;
-      free_disk = 0;
-    }
+void Statistic::Reset() {
+  table_name.clear();
+  last_querys = 0;
+  querys = 0;
+  last_qps = 0;
+  used_disk = 0;
+  free_disk = 0;
+}
 
 void Statistic::Add(const Statistic& stat) {
   last_querys += stat.last_querys;
