@@ -66,8 +66,8 @@ ZPDataServer::ZPDataServer()
         kBinlogReceiverCronInterval,
         sync_handle_);
 
-    // TODO(anan) receiver should not check keepalive
-    //zp_binlog_receiver_thread_->set_keepalive_timeout(0);
+    // binlog Reiver don't check keepalive 
+    zp_binlog_receiver_thread_->set_keepalive_timeout(0);
     zp_binlog_receiver_thread_->set_thread_name("ZPDataSyncDispatch");
 
     // Binlog send
@@ -86,6 +86,7 @@ ZPDataServer::ZPDataServer()
         kDispatchCronInterval,
         client_handle_);
 
+    // KeepAlive in seconds
     zp_dispatch_thread_->set_keepalive_timeout(kKeepAlive);
     zp_dispatch_thread_->set_thread_name("ZPDataDispatch");
 
