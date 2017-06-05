@@ -1,25 +1,37 @@
 #include <iostream>
 #include <assert.h>
 #include <string.h>
-#include <leveldb/db.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <google/protobuf/text_format.h>
 
 #include "zp_meta.pb.h"
 
-leveldb::DB* db;
+#include "db_nemo_impl.h"
+
+rocksdb::DBNemo* db;
 
 int main(int argc, char* argv[]){
 
-  if (argc != 2) {
-    std::cout << "Usage: ./check_meta path_to_leveldb_db" << std::endl;
+  if (argc != 2 && argc != 3) {
+    std::cout << "Usage:\n"
+        << "    ./check_meta path_to_nemo-rocks_db        --- do not print detail\n"
+        << "    ./check_meta path_to_nemo-rocks_db detail --- print detail table_info\n";
     return -1;
   }
-  leveldb::Options options;
+
+  bool detail = false;
+  if (argc == 3 && strcmp(argv[2], "detail") == 0) {
+    detail = true;
+  }
+  // Create DB
+  rocksdb::Options options;
   options.create_if_missing = true;
-  leveldb::Status status = leveldb::DB::Open(options,argv[1], &db);
-  assert(status.ok());
+  rocksdb::Status status = rocksdb::DBNemo::Open(options, argv[1], &db);
+  if (!status.ok()) {
+    std::cout << "Open db failed! path: " << argv[1] << ", " << status.ToString();
+    return -1;
+  }
 
   ZPMeta::TableName table_name;
   ZPMeta::TableName new_table_name;
@@ -28,7 +40,7 @@ int main(int argc, char* argv[]){
 
   std::string text_format;
 
-  leveldb::Iterator* it = db->NewIterator(leveldb::ReadOptions());
+  rocksdb::Iterator* it = db->NewIterator(rocksdb::ReadOptions());
   int table_num = 0;
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
     if (it->key().ToString() == "##tables") {
@@ -61,10 +73,12 @@ int main(int argc, char* argv[]){
       }
       new_table_name.add_name(table_info.name());
       table_num++;
-      //       google::protobuf::TextFormat::PrintToString(table_info, &text_format);
-      //       std::cout << "----------------------------------------------" << std::endl;
-      //       std::cout << "Print TableInfo ====> " << std::endl << std::endl;
-      //       std::cout << text_format;
+      if (detail) {
+        google::protobuf::TextFormat::PrintToString(table_info, &text_format);
+        std::cout << "----------------------------------------------" << std::endl;
+        std::cout << "Print TableInfo ====> " << std::endl << std::endl;
+        std::cout << text_format;
+      }
     }
   }
 
@@ -80,7 +94,7 @@ int main(int argc, char* argv[]){
       std::cout << "Serialization new_table_name failed, value: " <<  value << std::endl;
       return -1;
     }
-    status = db->Put(leveldb::WriteOptions(), "##tables", value);
+    status = db->Put(rocksdb::WriteOptions(), "##tables", value);
     if (!status.ok()) {
       std::cout << "Update NewTableList Error: " << status.ToString() << std::endl;
       return -1;

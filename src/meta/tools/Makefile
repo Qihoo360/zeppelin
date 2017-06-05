@@ -1,22 +1,36 @@
 CXX = g++
-CXXFLAGS = -O0 -g -pipe -fPIC -W -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -gdwarf-2 -Wno-redundant-decls
+CXXFLAGS = -O0 -g -pipe -fPIC -W -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -gdwarf-2 -Wno-redundant-decls -DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX -DOS_LINUX
 
 SRC_DIR = ./
 PB_DIR = ../../../src/common/
 
 LEVELDB_PATH = ../../../third/floyd/third/leveldb
 
-INCLUDE_PATH = -I$(LEVELDB_PATH)/ \
-							 -I$(LEVELDB_PATH)/include/ \
+THIRD_PATH = ../../../third
+
+ifndef NEMODB_PATH
+NEMODB_PATH = $(realpath $(THIRD_PATH)/nemo-rocksdb)
+endif
+
+
+INCLUDE_PATH = -I$(NEMODB_PATH)/ \
+							 -I$(NEMODB_PATH)/rocksdb \
+							 -I$(NEMODB_PATH)/rocksdb/include \
+							 -I$(NEMODB_PATH)/output/include/ \
 							 -I../../../include/
 
 
-LIB_PATH = -L$(LEVELDB_PATH)/out-static
+LIB_PATH = -L$(NEMODB_PATH)/output/lib/
 
 LIBS = -lpthread \
-	     -lprotobuf \
-	     -lleveldb \
-		   -lsnappy
+			 -lprotobuf \
+			 -lnemodb \
+			 -lrocksdb \
+			 -lz \
+			 -lbz2 \
+			 -lsnappy \
+			 -lrt
+
 
 .PHONY: all clean
 
