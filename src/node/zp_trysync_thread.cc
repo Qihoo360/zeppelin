@@ -49,7 +49,7 @@ void ZPTrySyncThread::TrySyncTask(const std::string& table_name, int partition_i
     // Need one more trysync, since error happenning or waiting for db sync
     LOG(WARNING) << "SendTrySync delay " << kTrySyncInterval
       << "(ms) to ReSchedule for table:" << table_name
-      << ", partition:" << partition_id;
+      << ", partition:" << partition_id << ",  meta_epoch:" << zp_data_server->meta_epoch();
     zp_data_server->AddSyncTask(table_name, partition_id, kTrySyncInterval);
   }
 }
@@ -153,6 +153,7 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name, int partition_i
   if (!partition
       || !partition->opened()) {
     // Partition maybe deleted or closed, no need to rescheule again
+    DLOG(INFO) << "SendTrySync closed or deleted Partition " << table_name << "_" << partition_id;
     return true;
   }
 
