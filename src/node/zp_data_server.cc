@@ -123,7 +123,7 @@ ZPDataServer::~ZPDataServer() {
     while (iter != peers_.end()) {
       iter->second->Close();
       delete iter->second;
-      iter++;
+      ++iter;
     }
   }
   LOG(INFO) << "Peers client exit!";
@@ -227,7 +227,7 @@ Status ZPDataServer::Start() {
   auto iter = g_zp_conf->meta_addr().begin();
   while (iter != g_zp_conf->meta_addr().end()) {
     LOG(INFO) << "seed is: " << *iter;
-    iter++;
+    ++iter;
   }
 
   while (!should_exit_) {
@@ -281,7 +281,7 @@ void ZPDataServer::DumpTablePartitions() {
   slash::RWLock l(&table_rw_, false);
 
   LOG(INFO) << "TablePartition==========================";
-  for (auto iter = tables_.begin(); iter != tables_.end(); iter++) {
+  for (auto iter = tables_.begin(); iter != tables_.end(); ++iter) {
     iter->second->Dump();
   }
   LOG(INFO) << "TablePartition--------------------------";
@@ -500,7 +500,7 @@ void ZPDataServer::ResetLastStat(const StatType type) {
 
 bool ZPDataServer::GetAllTableName(std::set<std::string>* table_names) {
   slash::RWLock l(&table_rw_, false);
-  for (auto iter = tables_.begin(); iter != tables_.end(); iter++) {
+  for (auto iter = tables_.begin(); iter != tables_.end(); ++iter) {
     table_names->insert(iter->first);
   }
   return true;

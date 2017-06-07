@@ -59,7 +59,7 @@ void ZpConf::Dump() const {
   auto iter = meta_addr_.begin();
   while (iter != meta_addr_.end()) {
     fprintf(stderr, "    Config.meta_addr   : %s\n", iter->c_str());
-    iter++;
+    ++iter;
   }
   fprintf (stderr, "    Config.local_ip    : %s\n", local_ip_.c_str());
   fprintf (stderr, "    Config.local_port  : %d\n", local_port_);
