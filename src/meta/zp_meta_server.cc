@@ -148,7 +148,7 @@ Cmd* ZPMetaServer::GetCmd(const int op) {
 
 void ZPMetaServer::AddMetaUpdateTaskDequeFromFront(const ZPMetaUpdateTaskDeque &task_deque) {
   slash::MutexLock l(&task_mutex_);
-  for (auto iter = task_deque.rbegin(); iter != task_deque.rend(); iter++) {
+  for (auto iter = task_deque.rbegin(); iter != task_deque.rend(); ++iter) {
     task_deque_.push_front(*iter);
   }
 
@@ -497,7 +497,7 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
 
   std::string ip;
   int port;
-  for (auto iter = meta_nodes.begin(); iter != meta_nodes.end(); iter++) {
+  for (auto iter = meta_nodes.begin(); iter != meta_nodes.end(); ++iter) {
     if (slash::ParseIpPortString(*iter, ip, port)) {
       if (ret && ip == leader_ip && port-kMetaPortShiftFY == leader_port) {
         continue;
@@ -704,7 +704,7 @@ Status ZPMetaServer::DropTable(const std::string &name) {
     return s;
   }
 
-  for (auto iter = nodes_.begin(); iter != nodes_.end(); iter++) {
+  for (auto iter = nodes_.begin(); iter != nodes_.end(); ++iter) {
     iter->second.erase(name);
   }
 
@@ -805,7 +805,7 @@ bool ZPMetaServer::IsLeader() {
 }
 
 void ZPMetaServer::DebugNodes() {
-  for (auto iter = nodes_.begin(); iter != nodes_.end(); iter++) {
+  for (auto iter = nodes_.begin(); iter != nodes_.end(); ++iter) {
     std::string str = iter->first + " :";
     for (auto it = iter->second.begin(); it != iter->second.end(); it++) {
       str += (" " + *it);
@@ -816,7 +816,7 @@ void ZPMetaServer::DebugNodes() {
 
 void ZPMetaServer::DebugOffset() {
   slash::MutexLock l(&offset_mutex_);
-  for (auto iter = offset_.begin(); iter != offset_.end(); iter++) {
+  for (auto iter = offset_.begin(); iter != offset_.end(); ++iter) {
     std::string str = iter->first + " :\n";
     for (auto ite = iter->second.begin(); ite != iter->second.end(); ite++) {
       str += ("    " + ite->first + " : ");
@@ -882,7 +882,7 @@ bool ZPMetaServer::ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque
   *should_update_version = false;
   std::string ip;
   int port = 0;
-  for (auto iter = task_deque.begin(); iter != task_deque.end(); iter++) {
+  for (auto iter = task_deque.begin(); iter != task_deque.end(); ++iter) {
     LOG(INFO) << "process task in ProcessUpdateTableInfo: " << iter->ip_port << ", " << iter->op;
     if (!slash::ParseIpPortString(iter->ip_port, ip, port)) {
       return false;
@@ -918,7 +918,7 @@ bool ZPMetaServer::ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque
 }
 
 static bool IsAlive(std::vector<ZPMeta::NodeStatus> &alive_nodes, const std::string &ip, const int port) {
-  for (auto iter = alive_nodes.begin(); iter != alive_nodes.end(); iter++) {
+  for (auto iter = alive_nodes.begin(); iter != alive_nodes.end(); ++iter) {
     if (iter->node().ip() == ip && iter->node().port() == port) {
       return true;
     }
@@ -1149,7 +1149,7 @@ bool ZPMetaServer::ProcessUpdateNodes(const ZPMetaUpdateTaskDeque task_deque, ZP
   bool should_update_nodes = false;
   std::string ip;
   int port = 0;
-  for (auto iter = task_deque.begin(); iter != task_deque.end(); iter++) {
+  for (auto iter = task_deque.begin(); iter != task_deque.end(); ++iter) {
     LOG(INFO) << "process task in ProcessUpdateNode: " << iter->ip_port << ", " << iter->op;
     if (!slash::ParseIpPortString(iter->ip_port, ip, port)) {
       return false;
@@ -1182,7 +1182,7 @@ bool ZPMetaServer::ProcessUpdateNodes(const ZPMetaUpdateTaskDeque task_deque, ZP
 }
 
 void ZPMetaServer::AddClearStuckTaskIfNeeded(const ZPMetaUpdateTaskDeque &task_deque) {
-  for (auto iter = task_deque.begin(); iter != task_deque.end(); iter++) {
+  for (auto iter = task_deque.begin(); iter != task_deque.end(); ++iter) {
     if (iter->op == ZPMetaUpdateOP::kOpSetMaster) {
       UpdateTask task = *iter;
       task.op = ZPMetaUpdateOP::kOpClearStuck;
@@ -1193,7 +1193,7 @@ void ZPMetaServer::AddClearStuckTaskIfNeeded(const ZPMetaUpdateTaskDeque &task_d
 }
 
 bool ZPMetaServer::ShouldRetryAddVersion(const ZPMetaUpdateTaskDeque task_deque) {
-  for (auto iter = task_deque.begin(); iter != task_deque.end(); iter++) {
+  for (auto iter = task_deque.begin(); iter != task_deque.end(); ++iter) {
     if (iter->op == ZPMetaUpdateOP::kOpAddVersion) {
       return true;
     }
@@ -1224,7 +1224,7 @@ bool ZPMetaServer::GetSlaveOffset(const std::string &table, const std::string &i
 void ZPMetaServer::Reorganize(const std::vector<ZPMeta::NodeStatus> &t_alive_nodes, std::vector<ZPMeta::NodeStatus> *alive_nodes) {
   std::map<std::string, std::vector<ZPMeta::NodeStatus> >m;
 
-  for (auto iter_v = t_alive_nodes.begin(); iter_v != t_alive_nodes.end(); iter_v++) {
+  for (auto iter_v = t_alive_nodes.begin(); iter_v != t_alive_nodes.end(); ++iter_v) {
     auto iter_m = m.find(iter_v->node().ip());
     if (iter_m != m.end()) {
       iter_m->second.push_back(*iter_v);
@@ -1239,7 +1239,7 @@ void ZPMetaServer::Reorganize(const std::vector<ZPMeta::NodeStatus> &t_alive_nod
   int empty_count = 0;
   bool done = false;
   while (!done) {
-    for (auto iter_m = m.begin(); iter_m != m.end(); iter_m++) {
+    for (auto iter_m = m.begin(); iter_m != m.end(); ++iter_m) {
       if (iter_m->second.empty()) {
         empty_count++;
         if (empty_count == msize) {
@@ -1315,7 +1315,7 @@ void ZPMetaServer::RestoreNodeAlive(const std::vector<ZPMeta::NodeStatus> &alive
   auto iter = alive_nodes.begin();
   while (iter != alive_nodes.end()) {
     node_alive_[slash::IpPortString(iter->node().ip(), iter->node().port())] = now;
-    iter++;
+    ++iter;
   }
 }
 

@@ -115,7 +115,7 @@ void Table::Dump() {
   slash::RWLock l(&partition_rw_, false);
   LOG(INFO) << "=========================";
   LOG(INFO) << "    Table : " << table_name_;
-  for (auto iter = partitions_.begin(); iter != partitions_.end(); iter++) {
+  for (auto iter = partitions_.begin(); iter != partitions_.end(); ++iter) {
     iter->second->Dump();
   }
   LOG(INFO) << "--------------------------";
