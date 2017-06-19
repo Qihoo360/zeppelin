@@ -12,6 +12,20 @@ ZPPingThread::~ZPPingThread() {
   delete cli_;
   LOG(INFO) << " Ping thread " << pthread_self() << " exit!!!";
 }
+ 
+/*
+ * Try to update last offset, return true if has changed
+ */
+bool ZPPingThread::TryOffsetUpdate(const std::string table_name,
+    int partition_id, const BinlogOffset &new_offset) {
+  if (last_offsets_.find(table_name) == last_offsets_.end()                                 // no such table
+      || last_offsets_[table_name].find(partition_id) == last_offsets_[table_name].end()    // no such partition
+      || last_offsets_[table_name][partition_id] != new_offset) {                           // offset changed
+    last_offsets_[table_name][partition_id] = new_offset;
+    return true;
+  }
+  return false;
+}
 
 slash::Status ZPPingThread::Send() {
   ZPMeta::MetaCmd request;
@@ -23,15 +37,19 @@ slash::Status ZPPingThread::Send() {
   node->set_port(zp_data_server->local_port());
   request.set_type(ZPMeta::Type::PING);
   
-  std::unordered_map<std::string, std::vector<PartitionBinlogOffset>> all_offset;
-  zp_data_server->DumpTableBinlogOffsets("", all_offset);
+  TablePartitionOffsets all_offset;
+  zp_data_server->DumpTableBinlogOffsets("", &all_offset);
   for (auto& item : all_offset) {
     for(auto& p : item.second) {
+      if (!TryOffsetUpdate(item.first, p.first, p.second)) {
+        // no change happend
+        continue;
+      }
       ZPMeta::SyncOffset *offset = ping->add_offset();
       offset->set_table_name(item.first);
-      offset->set_partition(p.partition_id);
-      offset->set_filenum(p.filenum);
-      offset->set_offset(p.offset);
+      offset->set_partition(p.first);
+      offset->set_filenum(p.second.filenum);
+      offset->set_offset(p.second.offset);
     }
   }
 

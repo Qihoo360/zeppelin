@@ -3,7 +3,6 @@
 
 #include <set>
 #include <atomic>
-#include <vector>
 #include <memory>
 
 #include "include/zp_util.h"
@@ -14,7 +13,7 @@
 
 class Table;
 class Partition;
-class PartitionBinlogOffset;
+class BinlogOffset;
 
 std::shared_ptr<Table> NewTable(const std::string &table_name,
     const std::string log_path, const std::string data_path);
@@ -36,7 +35,7 @@ class Table {
 
   void Dump();
   void DoTimingTask();
-  void DumpPartitionBinlogOffsets(std::vector<PartitionBinlogOffset> &offset);
+  void DumpPartitionBinlogOffsets(std::map<int, BinlogOffset> *offset);
   void GetCapacity(Statistic *stat);
   void GetReplInfo(client::CmdResponse_InfoRepl* repl_info);
 

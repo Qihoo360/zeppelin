@@ -4,7 +4,9 @@
 #include <memory>
 #include <functional>
 #include <unordered_set>
+#include <unordered_map>
 #include <set>
+#include <map>
 
 #include "include/db_nemo_impl.h"
 #include "include/db_nemo_checkpoint.h"
@@ -42,11 +44,18 @@ struct SlaveItem {
     }
 };
 
-struct PartitionBinlogOffset {
-  int partition_id;
+struct BinlogOffset {
   uint32_t filenum;
   uint64_t offset;
+  bool operator== (const BinlogOffset& rhs) const {
+    return (filenum == rhs.filenum && offset == rhs.offset);
+  }
+  bool operator!= (const BinlogOffset& rhs) const {
+    return (filenum != rhs.filenum || offset != rhs.offset);
+  }
 };
+
+typedef std::unordered_map<std::string, std::map<int, BinlogOffset>> TablePartitionOffsets;
 
 struct PartitionSyncOption {
   client::SyncType type;

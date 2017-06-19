@@ -129,13 +129,12 @@ void Table::DoTimingTask() {
   }
 }
 
-void Table::DumpPartitionBinlogOffsets(std::vector<PartitionBinlogOffset> &offset) {
+void Table::DumpPartitionBinlogOffsets(std::map<int, BinlogOffset> *offset) {
   slash::RWLock l(&partition_rw_, false);
-  PartitionBinlogOffset tboffset;
+  BinlogOffset tboffset;
   for (auto& pair : partitions_) {
-    tboffset.partition_id = pair.first;
     (pair.second)->GetBinlogOffsetWithLock(&(tboffset.filenum), &(tboffset.offset));
-    offset.push_back(tboffset);
+    offset->insert(std::pair<int, BinlogOffset>(pair.first, tboffset));
   }
 }
 

@@ -141,8 +141,8 @@ ZPDataServer::~ZPDataServer() {
 
   // Statistic result
   for (int i = 0; i < 2; i++) {
-    slash::MutexLock l(&(stats[i].mu));
-    for (auto& item : stats[i].table_stats) {
+    slash::MutexLock l(&(stats_[i].mu));
+    for (auto& item : stats_[i].table_stats) {
       delete item.second;
     }
   }
@@ -350,23 +350,22 @@ std::shared_ptr<Table> ZPDataServer::GetTable(const std::string &table_name) {
 
 // We will dump all tables when table_name is empty.
 void ZPDataServer::DumpTableBinlogOffsets(const std::string &table_name,
-    std::unordered_map<std::string,
-    std::vector<PartitionBinlogOffset>> &all_offset) {
+    TablePartitionOffsets *all_offset) {
   slash::RWLock l(&table_rw_, false);
   if (table_name.empty()) {
     for (auto& item : tables_) {
-      std::vector<PartitionBinlogOffset> poffset;
-      (item.second)->DumpPartitionBinlogOffsets(poffset);
-      all_offset.insert(std::pair<std::string,
-          std::vector<PartitionBinlogOffset>>(item.first, poffset));
+      std::map<int, BinlogOffset> poffset;
+      (item.second)->DumpPartitionBinlogOffsets(&poffset);
+      all_offset->insert(std::pair<std::string,
+          std::map<int, BinlogOffset>>(item.first, poffset));
     }
   } else {
     auto it = tables_.find(table_name);
     if (it != tables_.end()) {
-      std::vector<PartitionBinlogOffset> poffset;
-      it->second->DumpPartitionBinlogOffsets(poffset);
-      all_offset.insert(std::pair<std::string,
-          std::vector<PartitionBinlogOffset>>(it->first, poffset));
+      std::map<int, BinlogOffset> poffset;
+      it->second->DumpPartitionBinlogOffsets(&poffset);
+      all_offset->insert(std::pair<std::string,
+          std::map<int, BinlogOffset>>(it->first, poffset));
     }
   }
 }
@@ -453,9 +452,9 @@ void ZPDataServer::DispatchBinlogBGWorker(ZPBinlogReceiveTask *task) {
 bool ZPDataServer::GetStat(const StatType type, const std::string &table, Statistic& stat) {
   stat.Reset();
 
-  slash::MutexLock l(&(stats[type].mu));
-  auto it = stats[type].table_stats.find(table);
-  if (it == stats[type].table_stats.end()) {
+  slash::MutexLock l(&(stats_[type].mu));
+  auto it = stats_[type].table_stats.find(table);
+  if (it == stats_[type].table_stats.end()) {
     return false;
   }
   stat = *(it->second);
@@ -463,16 +462,16 @@ bool ZPDataServer::GetStat(const StatType type, const std::string &table, Statis
 }
 
 void ZPDataServer::PlusStat(const StatType type, const std::string &table) {
-  slash::MutexLock l(&(stats[type].mu));
+  slash::MutexLock l(&(stats_[type].mu));
   if (table.empty()) {
-    stats[type].other_stat.querys++;
+    stats_[type].other_stat.querys++;
   } else {
-    auto it = stats[type].table_stats.find(table);
-    if (it == stats[type].table_stats.end()) {
+    auto it = stats_[type].table_stats.find(table);
+    if (it == stats_[type].table_stats.end()) {
       Statistic* pstat = new Statistic;
       pstat->table_name = table;
       pstat->querys++;
-      stats[type].table_stats[table] = pstat;
+      stats_[type].table_stats[table] = pstat;
     } else {
       (it->second)->querys++;
     }
@@ -481,21 +480,21 @@ void ZPDataServer::PlusStat(const StatType type, const std::string &table) {
 
 void ZPDataServer::ResetLastStat(const StatType type) {
   uint64_t cur_time_us = slash::NowMicros();
-  slash::MutexLock l(&(stats[type].mu));
+  slash::MutexLock l(&(stats_[type].mu));
   // TODO(anan) debug;
-  for (auto it = stats[type].table_stats.begin();
-       it != stats[type].table_stats.end(); it++) {
+  for (auto it = stats_[type].table_stats.begin();
+       it != stats_[type].table_stats.end(); it++) {
     auto stat = it->second;
     stat->last_qps = ((stat->querys - stat->last_querys) * 1000000
-                      / (cur_time_us - stats[type].last_time_us + 1));
+                      / (cur_time_us - stats_[type].last_time_us + 1));
     stat->last_querys = stat->querys;
     //stat->Dump();
   }
-  stats[type].other_stat.last_qps =
-      ((stats[type].other_stat.querys - stats[type].other_stat.last_querys)
-       * 1000000 / (cur_time_us - stats[type].last_time_us + 1));
-  stats[type].other_stat.last_querys = stats[type].other_stat.querys;
-  stats[type].last_time_us = cur_time_us;
+  stats_[type].other_stat.last_qps =
+      ((stats_[type].other_stat.querys - stats_[type].other_stat.last_querys)
+       * 1000000 / (cur_time_us - stats_[type].last_time_us + 1));
+  stats_[type].other_stat.last_querys = stats_[type].other_stat.querys;
+  stats_[type].last_time_us = cur_time_us;
 }
 
 bool ZPDataServer::GetAllTableName(std::set<std::string>* table_names) {
@@ -508,16 +507,17 @@ bool ZPDataServer::GetAllTableName(std::set<std::string>* table_names) {
 
 bool ZPDataServer::GetTotalStat(const StatType type, Statistic& stat) {
   stat.Reset();
-  slash::MutexLock l(&(stats[type].mu));
-  for (auto it = stats[type].table_stats.begin();
-       it != stats[type].table_stats.end(); it++) {
+  slash::MutexLock l(&(stats_[type].mu));
+  for (auto it = stats_[type].table_stats.begin();
+       it != stats_[type].table_stats.end(); it++) {
     stat.Add(*(it->second));
   }
-  stat.Add(stats[type].other_stat);
+  stat.Add(stats_[type].other_stat);
   return true;
 }
 
-bool ZPDataServer::GetTableStat(const StatType type, const std::string& table_name, std::vector<Statistic>& stats) {
+bool ZPDataServer::GetTableStat(const StatType type,
+    const std::string& table_name, std::vector<Statistic>& stats) {
   std::set<std::string> stat_tables;
   if (table_name.empty()) {
     GetAllTableName(&stat_tables);

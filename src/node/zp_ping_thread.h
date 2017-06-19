@@ -4,6 +4,8 @@
 #include "pink/include/pink_cli.h"
 #include "pink/include/pink_thread.h"
 
+#include "src/node/zp_data_partition.h"
+
 class ZPPingThread : public pink::Thread {
  public:
 
@@ -16,6 +18,10 @@ class ZPPingThread : public pink::Thread {
 
  private:
   pink::PinkCli *cli_;
+  TablePartitionOffsets last_offsets_;
+
+  bool TryOffsetUpdate(const std::string table_name,
+      int partition_id, const BinlogOffset &new_offset);
   slash::Status Send();
   slash::Status RecvProc();
   virtual void* ThreadMain();

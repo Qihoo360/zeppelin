@@ -35,8 +35,8 @@ class ZPDataServer;
 extern ZpConf* g_zp_conf;
 
 // For now, we only have 2 kinds of Statistics:
-//  stats[0] is client stats;
-//  stats[1] is sync stats;
+//  stats_[0] is client stats_;
+//  stats_[1] is sync stats_;
 enum StatType {
   kClient = 0,
   kSync = 1,
@@ -142,7 +142,7 @@ class ZPDataServer {
     return GetCmdFromTable(op, cmds_);
   }
   void DumpTableBinlogOffsets(const std::string &table_name,
-      std::unordered_map<std::string, std::vector<PartitionBinlogOffset>> &all_offset);
+      TablePartitionOffsets *all_offset);
 
   // Statistic related
   void PlusStat(const StatType type, const std::string &table);
@@ -222,7 +222,7 @@ class ZPDataServer {
       : last_time_us(slash::NowMicros()) {}
   };
 
-  ThreadStatistic stats[2];
+  ThreadStatistic stats_[2];
 
 
   bool GetStat(const StatType type, const std::string &table, Statistic& stat);
