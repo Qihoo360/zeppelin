@@ -158,6 +158,7 @@ void Table::GetCapacity(Statistic *stat) {
 }
 
 void Table::GetReplInfo(client::CmdResponse_InfoRepl* repl_info) {
+  slash::RWLock l(&partition_rw_, false);
   repl_info->set_table_name(table_name_);
   repl_info->set_partition_cnt(partition_cnt_);
   client::PartitionState* partition_state = NULL;

@@ -1,6 +1,7 @@
 #include "src/node/zp_ping_thread.h"
 
 #include <glog/logging.h>
+#include <google/protobuf/text_format.h>
 #include "src/node/zp_data_server.h"
 #include "include/zp_meta.pb.h"
 #include "include/zp_const.h"
@@ -53,9 +54,13 @@ slash::Status ZPPingThread::Send() {
     }
   }
 
+  std::string text_format;
+  google::protobuf::TextFormat::PrintToString(request, &text_format);
   DLOG(INFO) << "Ping Meta (" << zp_data_server->meta_ip()
     << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd
-    << ") with Epoch: " << meta_epoch;
+    << ") with Epoch: " << meta_epoch
+    << " offset content: [" << text_format << "]";
+
   return cli_->Send(&request);
 }
 

@@ -33,11 +33,13 @@ std::string ZPBinlogSendTaskName(const std::string& table, int32_t id, const Nod
 class ZPBinlogSendTask {
 public:
   static Status Create(uint64_t seq, const std::string &table_name, int32_t id,
-      const Node& target, uint32_t ifilenum,uint64_t ioffset,
+      const std::string& binlog_prefix, const Node& target,
+      uint32_t ifilenum,uint64_t ioffset,
       ZPBinlogSendTask** tptr);
 
   ZPBinlogSendTask(uint64_t seq, const std::string &table_name, int32_t id,
-      const Node& target, uint32_t ifilenum, uint64_t ioffset);
+      const std::string& binlog_prefix, const Node& target,
+      uint32_t ifilenum, uint64_t ioffset);
   ~ZPBinlogSendTask();
 
   bool send_next;
@@ -113,8 +115,9 @@ public:
 
   bool TaskExist(const std::string& task_name);
 
-  Status AddNewTask(const std::string &table, int32_t id, const Node& target,
-    uint32_t ifilenum, uint64_t ioffset, bool force);
+  Status AddNewTask(const std::string &table, int32_t id,
+      const std::string& binlog_filename, const Node& target,
+      uint32_t ifilenum, uint64_t ioffset, bool force);
   Status RemoveTask(const std::string &name);
   int32_t TaskFilenum(const std::string &name);
 

@@ -129,7 +129,8 @@ class ZPDataServer {
       uint64_t delay = 0);
   void AddMetacmdTask();
   Status AddBinlogSendTask(const std::string &table, int parititon_id,
-      const Node& node, int32_t filenum, int64_t offset);
+      const std::string& binlog_filename, const Node& node, int32_t filenum,
+      int64_t offset);
   Status RemoveBinlogSendTask(const std::string &table, int parititon_id,
       const Node& node);
   int32_t GetBinlogSendFilenum(const std::string &table, int partition_id,

@@ -159,7 +159,6 @@ class Partition {
   Status SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset);
   bool GetBinlogOffsetWithLock(uint32_t* filenum, uint64_t* offset);
   Status SetBinlogOffsetWithLock(uint32_t filenum, uint64_t offset);
-  std::string GetBinlogFilename();
 
   // State related
   void Dump();

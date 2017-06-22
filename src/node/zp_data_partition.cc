@@ -436,7 +436,7 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
 
   // Add binlog send task
   Status s = zp_data_server->AddBinlogSendTask(table_name_, partition_id_,
-      Node(node.ip, node.port + kPortShiftSync), filenum, offset);
+      logger_->filename(), Node(node.ip, node.port + kPortShiftSync), filenum, offset);
   if (s.ok()) {
     LOG(INFO) << "Success AddBinlogSendTask for Table " << table_name_
       << " Partition " << partition_id_ << " To "
@@ -643,14 +643,6 @@ bool Partition::GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) const {
   }
   logger_->GetProducerStatus(filenum, pro_offset);
   return true;
-}
-
-std::string Partition::GetBinlogFilename() {
-  slash::RWLock l(&state_rw_, false);
-  if (!opened_) {
-    return std::string();
-  }
-  return logger_->filename();
 }
 
 // Required: hold read mutex of status_rw_

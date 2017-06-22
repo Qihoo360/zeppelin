@@ -20,11 +20,12 @@ std::string ZPBinlogSendTaskName(const std::string& table, int32_t id, const Nod
  * ZPBinlogSendTask
  */
 Status ZPBinlogSendTask::Create(uint64_t seq, const std::string &table,
-    int32_t id, const Node& target, uint32_t ifilenum, uint64_t ioffset,
+    int32_t id, const std::string& binlog_prefix,
+    const Node& target, uint32_t ifilenum, uint64_t ioffset,
     ZPBinlogSendTask** tptr) {
   *tptr = NULL;
-  ZPBinlogSendTask* task = new ZPBinlogSendTask(seq, table, id, target,
-      ifilenum, ioffset);
+  ZPBinlogSendTask* task = new ZPBinlogSendTask(seq, table, id, binlog_prefix,
+      target, ifilenum, ioffset);
   Status s = task->Init();
   if (s.ok()) {
     *tptr = task;
@@ -35,7 +36,8 @@ Status ZPBinlogSendTask::Create(uint64_t seq, const std::string &table,
 }
 
 ZPBinlogSendTask::ZPBinlogSendTask(uint64_t seq, const std::string &table,
-    int32_t id, const Node& target, uint32_t ifilenum, uint64_t ioffset) :
+    int32_t id, const std::string& binlog_prefix, const Node& target,
+    uint32_t ifilenum, uint64_t ioffset) :
   send_next(true),
   sequence_(seq),
   table_name_(table),
@@ -45,7 +47,8 @@ ZPBinlogSendTask::ZPBinlogSendTask(uint64_t seq, const std::string &table,
   offset_(ioffset),
   pre_filenum_(0),
   pre_offset_(0),
-  pre_has_content_(false) {
+  pre_has_content_(false),
+  binlog_filename_(binlog_prefix) {
     name_ = ZPBinlogSendTaskName(table, partition_id_, target);
     pre_content_.reserve(1024 * 1024);
   }
@@ -56,17 +59,6 @@ ZPBinlogSendTask::~ZPBinlogSendTask() {
 }
 
 Status ZPBinlogSendTask::Init() {
-  std::shared_ptr<Partition> partition =
-    zp_data_server->GetTablePartitionById(table_name_, partition_id_);
-  if (partition == NULL) {
-    return Status::NotFound("partiiton not exist");
-  }
-
-  binlog_filename_ = partition->GetBinlogFilename();
-  if (binlog_filename_.empty()) {
-    return Status::Incomplete("partition not open yet");
-  }
-
   std::string confile = NewFileName(binlog_filename_, filenum_);
   if (!slash::NewSequentialFile(confile, &queue_).ok()) {
     return Status::IOError("ZPBinlogSendTask Init new sequtial file failed");
@@ -207,10 +199,11 @@ bool ZPBinlogSendTaskPool::TaskExist(const std::string& task_name) {
 
 // Create and add a new Task
 Status ZPBinlogSendTaskPool::AddNewTask(const std::string &table_name, int32_t id,
-    const Node& target, uint32_t ifilenum, uint64_t ioffset, bool force) {
+    const std::string& binlog_filename, const Node& target, uint32_t ifilenum,
+    uint64_t ioffset, bool force) {
   ZPBinlogSendTask* task_ptr = NULL;
   Status s = ZPBinlogSendTask::Create(next_sequence_++,
-      table_name, id, target, ifilenum, ioffset, &task_ptr);
+      table_name, id, binlog_filename, target, ifilenum, ioffset, &task_ptr);
   if (!s.ok()) {
     return s;
   }
