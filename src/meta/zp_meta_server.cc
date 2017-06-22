@@ -66,6 +66,7 @@ ZPMetaServer::ZPMetaServer()
       g_zp_conf->meta_thread_num(),
       conn_factory_,
       kMetaDispathCronInterval,
+      kMetaDispathQueueSize,
       server_handle_);
 
   server_thread_->set_thread_name("ZPMetaDispatch");
@@ -97,7 +98,7 @@ void ZPMetaServer::Start() {
     return;
   }
   std::string leader_ip;
-  int leader_port;
+  int leader_port = 0;
   while (!GetLeader(&leader_ip, &leader_port) && !should_exit_) {
     LOG(INFO) << "Wait leader ... ";
     // Wait leader election
@@ -364,7 +365,7 @@ Status ZPMetaServer::RemoveSlave(const std::string &table, int partition, const 
 
   if (valid) {
     UpdateTask task = {ZPMetaUpdateOP::kOpRemoveSlave, ip_port, table, partition};
-    LOG(INFO) << "RemoveSlave PushTask" << task.op << " " << ip_port << " " << table << " " << partition;
+    LOG(INFO) << "RemoveSlave PushTask" << static_cast<int>(task.op) << " " << ip_port << " " << table << " " << partition;
     AddMetaUpdateTask(task);
     return Status::OK();
   } else {
@@ -415,7 +416,7 @@ Status ZPMetaServer::SetMaster(const std::string &table, int partition, const ZP
 
   if (valid) {
     UpdateTask task = {ZPMetaUpdateOP::kOpSetMaster, ip_port, table, partition};
-    LOG(INFO) << "SetMaster PushTask" << task.op << " " << ip_port << " " << table << " " << partition;
+    LOG(INFO) << "SetMaster PushTask" << static_cast<int>(task.op) << " " << ip_port << " " << table << " " << partition;
     AddMetaUpdateTask(task);
     return Status::OK();
   } else {
@@ -469,7 +470,7 @@ Status ZPMetaServer::AddSlave(const std::string &table, int partition, const ZPM
 
   if (valid) {
     UpdateTask task = {ZPMetaUpdateOP::kOpAddSlave, ip_port, table, partition};
-    LOG(INFO) << "AddSlave PushTask" << task.op << " " << ip_port << " " << table << " " << partition;
+    LOG(INFO) << "AddSlave PushTask" << static_cast<int>(task.op) << " " << ip_port << " " << table << " " << partition;
     AddMetaUpdateTask(task);
     return Status::OK();
   } else {
@@ -486,7 +487,7 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
 
   ZPMeta::MetaNodes *p = nodes->mutable_nodes();
   std::string leader_ip;
-  int leader_port;
+  int leader_port = 0;
   bool ret = GetLeader(&leader_ip, &leader_port);
   if (ret) {
     ZPMeta::Node leader;
@@ -883,7 +884,7 @@ bool ZPMetaServer::ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque
   std::string ip;
   int port = 0;
   for (auto iter = task_deque.begin(); iter != task_deque.end(); iter++) {
-    LOG(INFO) << "process task in ProcessUpdateTableInfo: " << iter->ip_port << ", " << iter->op;
+    LOG(INFO) << "process task in ProcessUpdateTableInfo: " << iter->ip_port << ", " << static_cast<int>(iter->op);
     if (!slash::ParseIpPortString(iter->ip_port, ip, port)) {
       return false;
     }
@@ -1150,7 +1151,7 @@ bool ZPMetaServer::ProcessUpdateNodes(const ZPMetaUpdateTaskDeque task_deque, ZP
   std::string ip;
   int port = 0;
   for (auto iter = task_deque.begin(); iter != task_deque.end(); iter++) {
-    LOG(INFO) << "process task in ProcessUpdateNode: " << iter->ip_port << ", " << iter->op;
+    LOG(INFO) << "process task in ProcessUpdateNode: " << iter->ip_port << ", " << static_cast<int>(iter->op);
     if (!slash::ParseIpPortString(iter->ip_port, ip, port)) {
       return false;
     }

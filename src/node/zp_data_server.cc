@@ -84,6 +84,7 @@ ZPDataServer::ZPDataServer()
         g_zp_conf->data_thread_num(),
         client_factory_,
         kDispatchCronInterval,
+        kDispatchQueueSize,
         client_handle_);
 
     // KeepAlive in seconds

@@ -9,7 +9,7 @@
 
 class ZPSyncConn: public pink::PbConn {
 public:
-  ZPSyncConn(int fd, std::string ip_port, pink::Thread *thread);
+  ZPSyncConn(int fd, std::string ip_port, pink::ServerThread *thread);
   virtual ~ZPSyncConn();
   virtual int DealMessage() override;
 
@@ -31,9 +31,12 @@ class ZPSyncConnHandle : public pink::ServerHandle {
 
 class ZPSyncConnFactory : public pink::ConnFactory {
  public:
-  virtual pink::PinkConn *NewPinkConn(int connfd,
-      const std::string &ip_port, pink::Thread *thread) const {
-    return new ZPSyncConn(connfd, ip_port, thread);
+  virtual pink::PinkConn* NewPinkConn(
+      int connfd,
+      const std::string &ip_port,
+      pink::ServerThread *server_thread,
+      void* worker_private_data) const override {
+    return new ZPSyncConn(connfd, ip_port, server_thread);
   }
 };
 

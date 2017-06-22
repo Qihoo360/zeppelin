@@ -23,7 +23,8 @@ class ZPMetaServerHandle : public pink::ServerHandle {
 
 class ZPMetaClientConn : public pink::PbConn {
  public:
-  ZPMetaClientConn(int fd, const std::string& ip_port, pink::Thread* thread);
+  ZPMetaClientConn(int fd, const std::string& ip_port,
+      pink::ServerThread* server_thread);
   virtual ~ZPMetaClientConn();
   virtual int DealMessage();
 
@@ -37,8 +38,9 @@ class ZPMetaClientConnFactory : public pink::ConnFactory {
   explicit ZPMetaClientConnFactory() {}
 
   virtual pink::PinkConn *NewPinkConn(int connfd,
-      const std::string &ip_port, pink::Thread *thread) const override {
-    return new ZPMetaClientConn(connfd, ip_port, thread);
+      const std::string &ip_port, pink::ServerThread *server_thread,
+      void* worker_private_data) const override {
+    return new ZPMetaClientConn(connfd, ip_port, server_thread);
   }
 };
 

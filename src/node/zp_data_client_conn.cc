@@ -7,8 +7,8 @@ extern ZPDataServer* zp_data_server;
 
 ////// ZPDataClientConn //////
 ZPDataClientConn::ZPDataClientConn(int fd, std::string ip_port,
-    pink::Thread* thread) :
-  PbConn(fd, ip_port, thread) {
+    pink::ServerThread* server_thread) :
+  PbConn(fd, ip_port, server_thread) {
 }
 
 ZPDataClientConn::~ZPDataClientConn() {

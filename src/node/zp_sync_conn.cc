@@ -2,12 +2,11 @@
 
 #include <glog/logging.h>
 #include "src/node/zp_data_server.h"
-//#include "src/node/zp_data_partition.h"
 
 extern ZPDataServer* zp_data_server;
 
-ZPSyncConn::ZPSyncConn(int fd, std::string ip_port, pink::Thread* thread) :
-  PbConn(fd, ip_port, thread) {
+ZPSyncConn::ZPSyncConn(int fd, std::string ip_port, pink::ServerThread* server_thread) :
+  PbConn(fd, ip_port, server_thread) {
 }
 
 ZPSyncConn::~ZPSyncConn() {

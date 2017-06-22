@@ -10,7 +10,8 @@
 
 class ZPDataClientConn : public pink::PbConn {
  public:
-  ZPDataClientConn(int fd, std::string ip_port, pink::Thread *thread);
+  ZPDataClientConn(int fd, std::string ip_port,
+      pink::ServerThread *server_thread);
   virtual ~ZPDataClientConn();
 
   virtual int DealMessage();
@@ -35,9 +36,12 @@ class ZPDataClientConnHandle : public pink::ServerHandle {
 
 class ZPDataClientConnFactory : public pink::ConnFactory {
  public:
-  virtual pink::PinkConn *NewPinkConn(int connfd, const std::string &ip_port,
-      pink::Thread *thread) const {
-    return new ZPDataClientConn(connfd, ip_port, thread);
+  virtual pink::PinkConn* NewPinkConn(
+      int connfd,
+      const std::string &ip_port,
+      pink::ServerThread *server_thread,
+      void* worker_private_data /* Has set in ThreadEnvHandle */) const override {
+    return new ZPDataClientConn(connfd, ip_port, server_thread);
   }
 };
 
