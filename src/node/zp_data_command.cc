@@ -191,9 +191,6 @@ void InfoCmd::Do(const google::protobuf::Message *req,
       DLOG(INFO) << "InfoStat with " << stats.size() << " tables total";
 
       for (auto it = stats.begin(); it != stats.end(); it++) {
-        // TODO anan debug;
-        //DLOG(INFO) << "InfoStats ---->";
-        //it->Dump();
         client::CmdResponse_InfoStats* info_stat = response->add_info_stats();
         info_stat->set_table_name(it->table_name);
         info_stat->set_total_querys(it->querys);
@@ -208,9 +205,6 @@ void InfoCmd::Do(const google::protobuf::Message *req,
       DLOG(INFO) << "InfoCapacity with " << stats.size() << " tables total";
 
       for (auto it = stats.begin(); it != stats.end(); it++) {
-        // TODO anan debug;
-        //DLOG(INFO) << "InfoCapacity ---->";
-        //it->Dump();
         client::CmdResponse_InfoCapacity* info_cpct = response->add_info_capacity();
         info_cpct->set_table_name(it->table_name);
         info_cpct->set_used(it->used_disk);

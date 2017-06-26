@@ -106,11 +106,12 @@ enum StatusCode {
   kNotFound = 1,
   kWait = 2,
   kError = 3,
-  kFallback = 4
+  kFallback = 4,
+  kMove = 5
 };
 bool StatusCode_IsValid(int value);
 const StatusCode StatusCode_MIN = kOk;
-const StatusCode StatusCode_MAX = kFallback;
+const StatusCode StatusCode_MAX = kMove;
 const int StatusCode_ARRAYSIZE = StatusCode_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* StatusCode_descriptor();

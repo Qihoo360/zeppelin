@@ -27,13 +27,16 @@ int ZPDataClientConn::DealMessageInternal() {
     LOG(WARNING) << "Receive Client command " << static_cast<int>(request_.type())
       << " from (" << ip_port() << "), but the server is not availible yet";
     response_.set_type(request_.type());
-    response_.set_code(client::StatusCode::kError);
+    response_.set_code(client::StatusCode::kWait);
     response_.set_msg("server is not availible yet");
     return -1;
   }
 
   if (!request_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_)) {
     LOG(WARNING) << "Receive Client command, but parse error";
+    response_.set_type(request_.type());
+    response_.set_code(client::StatusCode::kError);
+    response_.set_msg("command parse error");
     return -1;
   }
 
@@ -67,7 +70,6 @@ int ZPDataClientConn::DealMessageInternal() {
     partition = zp_data_server->GetTablePartition(cmd->ExtractTable(&request_),
         cmd->ExtractKey(&request_));
   }
-
 
   if (partition == NULL) {
     // Partition not found

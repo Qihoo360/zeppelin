@@ -31,7 +31,6 @@ Partition::Partition(const std::string &table_name, const int partition_id,
   : table_name_(table_name),
   partition_id_(partition_id),
   opened_(false),
-  readonly_(false),
   pstate_(ZPMeta::PState::ACTIVE),
   role_(Role::kNodeSingle),
   repl_state_(ReplState::kNoConnect),
@@ -58,10 +57,11 @@ Partition::Partition(const std::string &table_name, const int partition_id,
       bgsave_path_.push_back('/');
     }
     
-    pthread_rwlock_init(&state_rw_, NULL);
     pthread_rwlockattr_t attr;
     pthread_rwlockattr_init(&attr);
     pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+    
+    pthread_rwlock_init(&state_rw_, &attr);
     pthread_rwlock_init(&suspend_rw_, &attr);
     
     pthread_rwlock_init(&purged_index_rw_, NULL);
@@ -472,7 +472,6 @@ void Partition::BecomeSingle() {
   LOG(INFO) << " Partition " << partition_id_ << " BecomeSingle";
   role_ = Role::kNodeSingle;
   repl_state_ = ReplState::kNoConnect;
-  readonly_ = true;
 }
 
 // Requeired: hold write lock of state_rw_
@@ -481,7 +480,6 @@ void Partition::BecomeMaster() {
   LOG(INFO) << " Partition " << partition_id_ << " BecomeMaster";
   role_ = Role::kNodeMaster;
   repl_state_ = ReplState::kNoConnect;
-  readonly_ = false;
   
   // Record binlog offset when I win the master for the later slave sync
   GetBinlogOffset(&win_filenum_, &win_offset_);
@@ -494,7 +492,6 @@ void Partition::BecomeSlave() {
     << " BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
   role_ = Role::kNodeSlave;
   repl_state_ = ReplState::kShouldConnect;
-  readonly_ = true;
 
   zp_data_server->AddSyncTask(table_name_, partition_id_);
 }
@@ -511,25 +508,12 @@ bool Partition::GetWinBinlogOffset(uint32_t* filenum, uint64_t* offset) {
   return true;
 }
 
-// Update partition state
-// and return current state
-// Requeired hold write lock of state_rw_
-ZPMeta::PState Partition::UpdateState(ZPMeta::PState state) {
-  // Notice: could not become ACTIVE from STUCK
-  // without master changed
-  if (state == ZPMeta::PState::STUCK) {
-    readonly_ == true;
-  }
-  pstate_ = state;
-  return pstate_;
-}
-
 void Partition::Update(ZPMeta::PState state, const Node &master,
     const std::set<Node> &slaves) {
   slash::RWLock l(&state_rw_, true);
 
   // Check Status first
-  if (ZPMeta::PState::ACTIVE != UpdateState(state)) {
+  if (ZPMeta::PState::ACTIVE != (pstate_ = state)) {
     // Do not update master and slaves for stuck partition,
     // which will be updated when it become active
     return;
@@ -754,29 +738,28 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
   std::string key = cmd->ExtractKey(&req);
 
   slash::RWLock l(&state_rw_, false);
-  if (!opened_) {
+  if (!opened_
+      || role_ != Role::kNodeMaster) {
     res.set_type(req.type());
-    res.set_code(client::StatusCode::kError);
-    res.set_msg("error data node");
+    res.set_code(client::StatusCode::kMove);
+    res.set_msg("Command Redirect");
 
     client::Node* node = res.mutable_redirect();
     node->set_ip(master_node_.ip);
     node->set_port(master_node_.port);
-    LOG(WARNING) << "Partition not opened, table:" << table_name_
-      << ", Partition: " << partition_id_;
+
+    LOG(WARNING) << "Should redirect, failed to DoCommand  at table: " << table_name_
+      << ", Partition: " << partition_id_
+      << " Role:" << RoleMsg[role_] << " redirect to master:" << node;
     return;
   }
-
-  if (cmd->is_write() && readonly_) {
+  
+  if (cmd->is_write() && pstate_ == ZPMeta::PState::STUCK) {
     res.set_type(req.type());
-    res.set_code(client::StatusCode::kError);
-    res.set_msg("readonly mode");
+    res.set_code(client::StatusCode::kWait);
+    res.set_msg("partition stucked");
 
-    client::Node* node = res.mutable_redirect();
-    node->set_ip(master_node_.ip);
-    node->set_port(master_node_.port);
-
-    LOG(WARNING) << "Readonly mode, failed to DoCommand  at table: " << table_name_
+    LOG(WARNING) << "Partition Stuck, failed to DoCommand  at table: " << table_name_
       << ", Partition: " << partition_id_
       << " Role:" << RoleMsg[role_] << " ParititionState:" << static_cast<int>(pstate_);
     return;

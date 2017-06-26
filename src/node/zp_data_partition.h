@@ -183,7 +183,6 @@ class Partition {
   std::atomic<bool> opened_;
   Node master_node_;
   std::set<Node> slave_nodes_;
-  std::atomic<bool> readonly_;
   ZPMeta::PState pstate_;
   Role role_;
   int repl_state_;
@@ -193,7 +192,6 @@ class Partition {
   void BecomeSingle();
   void BecomeMaster();
   void BecomeSlave();
-  ZPMeta::PState UpdateState(ZPMeta::PState state);
   bool CheckSyncOption(const PartitionSyncOption& option);
 
   // DB related

@@ -23,6 +23,7 @@ enum StatusCode {
   kWait = 2;
   kError = 3;
   kFallback = 4;
+  kMove = 5;
 }
 
 message Node {

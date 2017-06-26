@@ -636,9 +636,9 @@ void protobuf_AddDesc_client_2eproto() {
     "e\022\010\n\004SYNC\020\000\022\007\n\003SET\020\001\022\007\n\003GET\020\002\022\007\n\003DEL\020\003\022\r"
     "\n\tINFOSTATS\020\004\022\020\n\014INFOCAPACITY\020\005\022\014\n\010INFOR"
     "EPL\020\006\022\010\n\004MGET\020\007\022\016\n\nINFOSERVER\020\010*\035\n\010SyncT"
-    "ype\022\007\n\003CMD\020\000\022\010\n\004SKIP\020\001*J\n\nStatusCode\022\007\n\003"
+    "ype\022\007\n\003CMD\020\000\022\010\n\004SKIP\020\001*U\n\nStatusCode\022\007\n\003"
     "kOk\020\000\022\r\n\tkNotFound\020\001\022\t\n\005kWait\020\002\022\n\n\006kErro"
-    "r\020\003\022\r\n\tkFallback\020\004", 2418);
+    "r\020\003\022\r\n\tkFallback\020\004\022\t\n\005kMove\020\005", 2429);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "client.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -738,6 +738,7 @@ bool StatusCode_IsValid(int value) {
     case 2:
     case 3:
     case 4:
+    case 5:
       return true;
     default:
       return false;
