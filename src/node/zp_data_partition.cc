@@ -114,7 +114,10 @@ void Partition::Close() {
 }
 
 Partition::~Partition() {
+  {
+  slash::RWLock l(&state_rw_, true);
   Close();
+  }
   pthread_rwlock_destroy(&purged_index_rw_);
   pthread_rwlock_destroy(&suspend_rw_);
   pthread_rwlock_destroy(&state_rw_);
@@ -468,16 +471,18 @@ void Partition::CleanSlaves(const std::set<Node> &old_slaves) {
 
 // Requeired: hold write lock of state_rw_
 void Partition::BecomeSingle() {
-  Close();
-  LOG(INFO) << " Partition " << partition_id_ << " BecomeSingle";
+  LOG(INFO) << "Table: " << table_name_
+    << ", Partition " << partition_id_ << " BecomeSingle";
   role_ = Role::kNodeSingle;
   repl_state_ = ReplState::kNoConnect;
+  Close();
 }
 
 // Requeired: hold write lock of state_rw_
 void Partition::BecomeMaster() {
   Open();
-  LOG(INFO) << " Partition " << partition_id_ << " BecomeMaster";
+  LOG(INFO) << "Table: " << table_name_
+    << ", Partition " << partition_id_ << " BecomeMaster";
   role_ = Role::kNodeMaster;
   repl_state_ = ReplState::kNoConnect;
   
@@ -488,7 +493,8 @@ void Partition::BecomeMaster() {
 // Requeired: hold write lock of state_rw_
 void Partition::BecomeSlave() {
   Open();
-  LOG(INFO) << " Partition " << partition_id_
+  LOG(INFO) << "Table: " << table_name_
+    << ", Partition " << partition_id_
     << " BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
   role_ = Role::kNodeSlave;
   repl_state_ = ReplState::kShouldConnect;

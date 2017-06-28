@@ -56,6 +56,11 @@ class ZpConf {
     return log_path_;
   }
 
+  std::string trash_path() {
+    RWLock l(&rwlock_, false);
+    return trash_path_;
+  }
+
   bool daemonize() {
     RWLock l(&rwlock_, false);
     return daemonize_;
@@ -143,6 +148,7 @@ class ZpConf {
   int64_t timeout_;
   std::string data_path_;
   std::string log_path_;
+  std::string trash_path_;
   bool daemonize_;
   std::string pid_file_;
   std::string lock_file_;

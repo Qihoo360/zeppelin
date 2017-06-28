@@ -1,7 +1,6 @@
 #include "src/node/zp_data_command.h"
 
 #include <glog/logging.h>
-#include <google/protobuf/text_format.h>
 #include "slash/include/slash_string.h"
 
 #include "include/db_nemo_impl.h"

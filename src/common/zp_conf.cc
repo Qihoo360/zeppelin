@@ -33,6 +33,7 @@ ZpConf::ZpConf() {
   timeout_ = 100;
   data_path_ = std::string("./data/");
   log_path_ = std::string("./log/");
+  trash_path_ = std::string("./trash/");
   daemonize_ = false;
   pid_file_ = std::string("./pid");
   lock_file_ = std::string("./lock");
@@ -65,6 +66,7 @@ void ZpConf::Dump() const {
   fprintf (stderr, "    Config.local_port  : %d\n", local_port_);
   fprintf (stderr, "    Config.data_path   : %s\n", data_path_.c_str());
   fprintf (stderr, "    Config.log_path    : %s\n", log_path_.c_str());
+  fprintf (stderr, "    Config.trash_path    : %s\n", trash_path_.c_str());
   fprintf (stderr, "    Config.daemonize    : %s\n", daemonize_? "true":"false");
   fprintf (stderr, "    Config.pid_file    : %s\n", pid_file_.c_str());
   fprintf (stderr, "    Config.lock_file    : %s\n", lock_file_.c_str());
@@ -95,6 +97,7 @@ int ZpConf::Load(const std::string& path) {
   READCONF(conf_reader, local_port, local_port_, INT);
   READCONF(conf_reader, data_path, data_path_, STR);
   READCONF(conf_reader, log_path, log_path_, STR);
+  READCONF(conf_reader, trash_path, trash_path_, STR);
   READCONF(conf_reader, daemonize, daemonize_, BOOL);
   READCONF(conf_reader, meta_addr, meta_addr_, STRVEC);
   READCONF(conf_reader, max_file_descriptor_num, max_file_descriptor_num_, INT);
@@ -115,6 +118,9 @@ int ZpConf::Load(const std::string& path) {
   }
   if (log_path_.back() != '/') {
     log_path_.append("/");
+  }
+  if (trash_path_.back() != '/') {
+    trash_path_.append('/');
   }
   std::string lock_path = log_path_;
   pid_file_ = lock_path + "pid";
