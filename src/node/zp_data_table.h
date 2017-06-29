@@ -15,13 +15,14 @@ class Table;
 class Partition;
 class BinlogOffset;
 
-std::shared_ptr<Table> NewTable(const std::string &table_name,
-    const std::string log_path, const std::string data_path);
+std::shared_ptr<Table> NewTable(const std::string& table_name,
+    const std::string& log_path, const std::string& data_path,
+    const std::string& trash_path);
 
 class Table {
  public:
-  Table(const std::string& table_name,
-      const std::string &log_path, const std::string &data_path);
+  Table(const std::string& table_name, const std::string& log_path,
+      const std::string& data_path, const std::string& trash_path);
   ~Table();
 
   bool SetPartitionCount(int count);
@@ -43,6 +44,7 @@ class Table {
   std::string table_name_;
   std::string log_path_;
   std::string data_path_;
+  std::string trash_path_;
 
   std::atomic<int> partition_cnt_;
   pthread_rwlock_t partition_rw_;

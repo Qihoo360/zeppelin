@@ -8,8 +8,10 @@
 extern ZPDataServer* zp_data_server;
 
 std::shared_ptr<Table> NewTable(const std::string &table_name,
-    const std::string log_path, const std::string data_path) {
-  std::shared_ptr<Table> table(new Table(table_name, log_path, data_path));
+    const std::string& log_path, const std::string& data_path,
+    const std::string& trash_path) {
+  std::shared_ptr<Table> table(new Table(table_name, log_path, data_path,
+        trash_path));
   // TODO maybe need check
   return table;
 }
@@ -18,10 +20,11 @@ std::shared_ptr<Table> NewTable(const std::string &table_name,
 // Table
 //
 Table::Table(const std::string& table_name, const std::string &log_path,
-    const std::string &data_path)
+    const std::string &data_path, const std::string& trash_path)
   : table_name_(table_name),
   log_path_(log_path),
   data_path_(data_path),
+  trash_path_(trash_path),
   partition_cnt_(0) {
   if (log_path_.back() != '/') {
     log_path_.push_back('/');
@@ -29,11 +32,16 @@ Table::Table(const std::string& table_name, const std::string &log_path,
   if (data_path_.back() != '/') {
     data_path_.push_back('/');
   }
+  if (trash_path_.back() != '/') {
+    trash_path_.push_back('/');
+  }
   log_path_ += table_name_ + "/";
   data_path_ += table_name_ + "/";
+  trash_path_ += table_name_ + "/";
 
   slash::CreatePath(log_path_);
   slash::CreatePath(data_path_);
+  slash::CreatePath(trash_path_);
 
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
@@ -90,7 +98,7 @@ bool Table::UpdateOrAddPartition(const int partition_id,
 
   // New Partition
   std::shared_ptr<Partition> partition = NewPartition(table_name_,
-      log_path_, data_path_, partition_id, master, slaves);
+      log_path_, data_path_, trash_path_, partition_id, master, slaves);
   assert(partition != NULL);
 
   partition->Update(ZPMeta::PState::ACTIVE, master, slaves);

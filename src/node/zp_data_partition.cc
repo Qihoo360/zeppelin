@@ -26,8 +26,9 @@ struct PurgeArg {
   bool manual;
 };
 
-Partition::Partition(const std::string &table_name, const int partition_id,
-    const std::string &log_path, const std::string &data_path)
+Partition::Partition(const std::string& table_name, const int partition_id,
+    const std::string& log_path, const std::string& data_path,
+    const std::string& trash_path)
   : table_name_(table_name),
   partition_id_(partition_id),
   opened_(false),
@@ -41,22 +42,10 @@ Partition::Partition(const std::string &table_name, const int partition_id,
     // Partition related path
     log_path_ = NewPartitionPath(log_path, partition_id_);
     data_path_ = NewPartitionPath(data_path, partition_id_);
+    trash_path_ = NewPartitionPath(trash_path, partition_id_);
     sync_path_ = NewPartitionPath(zp_data_server->db_sync_path() + table_name_ + "/", partition_id_);
     bgsave_path_ = NewPartitionPath(zp_data_server->bgsave_path() + table_name_ + "/", partition_id_);
 
-    if (log_path_.back() != '/') {
-      log_path_.push_back('/');
-    }
-    if (data_path_.back() != '/') {
-      data_path_.push_back('/');
-    }
-    if (sync_path_.back() != '/') {
-      sync_path_.push_back('/');
-    }
-    if (bgsave_path_.back() != '/') {
-      bgsave_path_.push_back('/');
-    }
-    
     pthread_rwlockattr_t attr;
     pthread_rwlockattr_init(&attr);
     pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
@@ -110,6 +99,16 @@ void Partition::Close() {
   }
   delete db_;
   delete logger_;
+
+  // Move data and log to Trash
+  slash::CreatePath(trash_path_);
+  if (0 != slash::RenameFile(data_path_.c_str(), (trash_path_ + "db/").c_str())) {
+    LOG(WARNING) << "Failed to move db to trash, error: " << strerror(errno);
+  }
+  if (0 != slash::RenameFile(log_path_.c_str(), (trash_path_ + "log/").c_str())) {
+    LOG(WARNING) << "Failed to move db to trash, error: " << strerror(errno);
+  }
+
   opened_ = false;
 }
 
@@ -593,15 +592,15 @@ void Partition::Leave() {
 
 std::string NewPartitionPath(const std::string& name, const uint32_t current) {
   char buf[256];
-  snprintf(buf, sizeof(buf), "%s/%u", name.c_str(), current);
+  snprintf(buf, sizeof(buf), "%s/%u/", name.c_str(), current);
   return std::string(buf);
 }
 
 std::shared_ptr<Partition> NewPartition(const std::string &table_name,
-    const std::string& log_path, const std::string& data_path,
+    const std::string& log_path, const std::string& data_path, const std::string& trash_path,
     const int partition_id, const Node& master, const std::set<Node> &slaves) {
   std::shared_ptr<Partition> partition(new Partition(table_name,
-      partition_id, log_path, data_path));
+      partition_id, log_path, data_path, trash_path));
   return partition;
 }
 
@@ -935,7 +934,7 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
       continue;
     }
     // We need specify the speed limit for every single file
-    ret = slash::RsyncSendFile(*it, target_dir + "/" + target_path, remote);
+    ret = slash::RsyncSendFile(*it, target_dir + target_path, remote);
     if (0 != ret) {
       LOG(WARNING) << "rsync send file failed! From: " << *it
         << ", To: " << target_path
@@ -956,7 +955,7 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
   // Send info file at last
   if (0 == ret) {
     if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile,
-            target_dir + "/" + kBgsaveInfoFile, remote))) {
+            target_dir + kBgsaveInfoFile, remote))) {
       LOG(WARNING) << "send info file failed";
     }
   }

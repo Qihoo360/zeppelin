@@ -21,8 +21,9 @@
 
 class Partition;
 std::string NewPartitionPath(const std::string& name, const uint32_t current);
-std::shared_ptr<Partition> NewPartition(const std::string &table_name, const std::string& log_path, const std::string& data_path,
-                        const int partition_id, const Node& master, const std::set<Node> &slaves);
+std::shared_ptr<Partition> NewPartition(const std::string &table_name,
+    const std::string& log_path, const std::string& data_path, const std::string& trash_path,
+    const int partition_id, const Node& master, const std::set<Node> &slaves);
 
 // Slave item
 struct SlaveItem {
@@ -107,8 +108,9 @@ struct BGSaveInfo {
 
 class Partition {
   public:
-  Partition(const std::string &table_name, const int partition_id,
-      const std::string &log_path, const std::string &data_path);
+  Partition(const std::string& table_name, const int partition_id,
+      const std::string& log_path, const std::string& data_path,
+      const std::string& trash_path);
   ~Partition();
 
   int partition_id() const {
@@ -172,6 +174,7 @@ class Partition {
   int partition_id_;
   std::string log_path_;
   std::string data_path_;
+  std::string trash_path_;
   std::string sync_path_;
   std::string bgsave_path_;
 

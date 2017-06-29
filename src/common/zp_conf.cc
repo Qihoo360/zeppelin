@@ -120,7 +120,7 @@ int ZpConf::Load(const std::string& path) {
     log_path_.append("/");
   }
   if (trash_path_.back() != '/') {
-    trash_path_.append('/');
+    trash_path_.append("/");
   }
   std::string lock_path = log_path_;
   pid_file_ = lock_path + "pid";

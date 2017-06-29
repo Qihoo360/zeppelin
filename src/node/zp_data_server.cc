@@ -326,7 +326,7 @@ std::shared_ptr<Table> ZPDataServer::GetOrAddTable(const std::string &table_name
   }
 
   std::shared_ptr<Table> table = NewTable(table_name,
-      g_zp_conf->log_path(), g_zp_conf->data_path());
+      g_zp_conf->log_path(), g_zp_conf->data_path(), g_zp_conf->trash_path());
   tables_[table_name] = table;
   return table;
 }
