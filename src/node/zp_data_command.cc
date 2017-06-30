@@ -48,7 +48,9 @@ void SetCmd::Do(const google::protobuf::Message *req,
   if (!s.ok()) {
     response->set_code(client::StatusCode::kError);
     response->set_msg(s.ToString());
-    LOG(ERROR) << "command failed: Set, caz " << s.ToString();
+    LOG(WARNING) << "command failed: Set key(" << request->set().key()
+      << ") at " << ptr->table_name() << "_" << ptr->partition_id()
+      << ", caz:" << s.ToString();
   } else {
     response->set_code(client::StatusCode::kOk);
     DLOG(INFO) << "Set key(" << request->set().key() << ") at "
@@ -94,7 +96,7 @@ void GetCmd::Do(const google::protobuf::Message *req,
   } else {
     response->set_code(client::StatusCode::kError);
     response->set_msg(s.ToString());
-    LOG(ERROR) << "command failed: Get at "
+    LOG(WARNING) << "command failed: Get key(" << request->get().key() << ") at "
       << ptr->table_name() << "_"  << ptr->partition_id()
       << ", caz " << s.ToString();
   }
@@ -114,7 +116,9 @@ void DelCmd::Do(const google::protobuf::Message *req,
   if (!s.ok()) {
     response->set_code(client::StatusCode::kError);
     response->set_msg(s.ToString());
-    LOG(ERROR) << "command failed: Del, caz " << s.ToString();
+    LOG(WARNING) << "command failed: Del key(" << request->del().key()
+      << ") at " << ptr->table_name() << "_" << ptr->partition_id()
+      << ", caz:" << s.ToString();
   } else {
     response->set_code(client::StatusCode::kOk);
     DLOG(INFO) << "Del key(" << request->del().key()
@@ -154,7 +158,6 @@ void MgetCmd::Do(const google::protobuf::Message *req,
     partition->DoCommand(sub_cmd, sub_req, sub_res);
     if (sub_res.code() != client::StatusCode::kOk
         && sub_res.code() != client::StatusCode::kNotFound) {
-      LOG(WARNING) << "command failed: Mget, key:" << key << ", error:" << sub_res.msg();
       response->set_code(sub_res.code());
       response->set_msg(sub_res.msg());
       return;
@@ -238,7 +241,7 @@ void InfoCmd::Do(const google::protobuf::Message *req,
     default: {
       response->set_code(client::StatusCode::kError);
       response->set_msg("unsupported cmd type");
-      LOG(ERROR) << "unsupported cmd type" << static_cast<int>(request->type()); 
+      LOG(WARNING) << "unsupported cmd type" << static_cast<int>(request->type()); 
       return;
     }
   }
@@ -300,6 +303,27 @@ void SyncCmd::Do(const google::protobuf::Message *req,
   } else {
     response->set_code(client::StatusCode::kError);
     response->set_msg(s.ToString());
-    LOG(ERROR) << "command failed: Sync, caz " << s.ToString();
+    LOG(WARNING) << "command failed: Sync, caz " << s.ToString();
+  }
+}
+
+void FlushDBCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
+  client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+  Partition* ptr = static_cast<Partition*>(partition);
+  
+  response->Clear();
+  response->set_type(client::Type::FLUSHDB);
+  Status s = ptr->FlushDb();
+  if (!s.ok()) {
+    response->set_code(client::StatusCode::kError);
+    response->set_msg(s.ToString());
+    LOG(WARNING) << "command failed: FlushDB at "
+      << ptr->table_name() << "_" << ptr->partition_id()
+      << ", caz:" << s.ToString();
+  } else {
+    response->set_code(client::StatusCode::kOk);
+    DLOG(INFO) << "FlushDB at "
+      << ptr->table_name() << "_" << ptr->partition_id() << " ok";
   }
 }

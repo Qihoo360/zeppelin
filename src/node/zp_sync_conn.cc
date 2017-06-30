@@ -85,24 +85,33 @@ int ZPSyncConn::DealMessage() {
       return -1;
     }
 
-    DLOG(INFO) << "Receive sync cmd: " << cmd->name()
-      << ", table=" << cmd->ExtractTable(&crequest)
-      << " key=" << cmd->ExtractKey(&crequest);
-
     std::string table_name = cmd->ExtractTable(&crequest);
-    zp_data_server->PlusStat(StatType::kSync, table_name);
+    if (!cmd->is_single_paritition()) {
+      LOG(ERROR) << "SyncConn shouldn't receive multi partition command: "
+        << cmd->name() << ", table=" << table_name
+        << " key=" << cmd->ExtractKey(&crequest);
+      return -1;
+    }
+    DLOG(INFO) << "Receive sync cmd: " << cmd->name()
+      << ", table=" << table_name
+      << " key=" << cmd->ExtractKey(&crequest);
     
-    int partition_id = zp_data_server->KeyToPartition(table_name, cmd->ExtractKey(&crequest));
+    zp_data_server->PlusStat(StatType::kSync, table_name);
+
+    int partition_id = cmd->ExtractPartition(&crequest);
     if (partition_id < 0) {
-      LOG(ERROR) << "SyncConn Receive unknow table: " << table_name;
+      // Do not provice partition_id, calculate it by key
+      partition_id = zp_data_server->KeyToPartition(table_name, cmd->ExtractKey(&crequest));
+    }
+    if (partition_id < 0) {
+      LOG(ERROR) << "SyncConn can not find partition, table: " << table_name;
       return -1;
     }
 
     PartitionSyncOption option(
         request_.sync_type(),
         cmd->ExtractTable(&crequest),
-        ((cmd->ExtractPartition(&crequest) >= 0 )
-         ? cmd->ExtractPartition(&crequest) : partition_id),
+        partition_id,
         slash::IpPortString(request_.from().ip(), request_.from().port()),
         request_.sync_offset().filenum(),
         request_.sync_offset().offset());

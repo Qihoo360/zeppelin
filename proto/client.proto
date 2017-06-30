@@ -10,6 +10,7 @@ enum Type {
   INFOREPL= 6;
   MGET = 7;
   INFOSERVER = 8;
+  FLUSHDB = 9;
 }
 
 enum SyncType {
@@ -96,6 +97,12 @@ message CmdRequest {
     repeated string keys = 2;
   }
   optional Mget mget = 7;
+
+  message FlushDB {
+    required string table_name = 1;
+    required int32 partition_id = 2;
+  }
+  optional FlushDB flushdb = 8;
 
 }
 

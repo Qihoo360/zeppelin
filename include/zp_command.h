@@ -31,7 +31,6 @@ enum CmdFlags {
   kCmdFlagsWrite             = 1,
   kCmdFlagsKv                = 2,
   kCmdFlagsAdmin             = 4, 
-  // kCmdFlagsBit               = 12,
   kCmdFlagsNoLocal           = 0, //default nolocal
   kCmdFlagsLocal             = 16,
   kCmdFlagsNoSuspend         = 0, //default nosuspend

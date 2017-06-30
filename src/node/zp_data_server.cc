@@ -628,6 +628,9 @@ void ZPDataServer::InitClientCmdTable() {
   // MgetCmd
   Cmd* mgetptr = new MgetCmd(kCmdFlagsKv | kCmdFlagsRead | kCmdFlagsMultiPartition);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::MGET), mgetptr));
+  // FlushDBCmd
+  Cmd* flushdbptr = new FlushDBCmd(kCmdFlagsAdmin | kCmdFlagsWrite | kCmdFlagsSuspend);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::FLUSHDB), flushdbptr));
 }
 
 void ZPDataServer::DoTimingTask() {

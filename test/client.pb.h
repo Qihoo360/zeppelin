@@ -45,6 +45,7 @@ class CmdRequest_Get;
 class CmdRequest_Del;
 class CmdRequest_Info;
 class CmdRequest_Mget;
+class CmdRequest_FlushDB;
 class CmdResponse;
 class CmdResponse_Sync;
 class CmdResponse_Get;
@@ -65,11 +66,12 @@ enum Type {
   INFOCAPACITY = 5,
   INFOREPL = 6,
   MGET = 7,
-  INFOSERVER = 8
+  INFOSERVER = 8,
+  FLUSHDB = 9
 };
 bool Type_IsValid(int value);
 const Type Type_MIN = SYNC;
-const Type Type_MAX = INFOSERVER;
+const Type Type_MAX = FLUSHDB;
 const int Type_ARRAYSIZE = Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Type_descriptor();
@@ -1246,6 +1248,103 @@ class CmdRequest_Mget : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class CmdRequest_FlushDB : public ::google::protobuf::Message {
+ public:
+  CmdRequest_FlushDB();
+  virtual ~CmdRequest_FlushDB();
+
+  CmdRequest_FlushDB(const CmdRequest_FlushDB& from);
+
+  inline CmdRequest_FlushDB& operator=(const CmdRequest_FlushDB& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const CmdRequest_FlushDB& default_instance();
+
+  void Swap(CmdRequest_FlushDB* other);
+
+  // implements Message ----------------------------------------------
+
+  CmdRequest_FlushDB* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const CmdRequest_FlushDB& from);
+  void MergeFrom(const CmdRequest_FlushDB& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string table_name = 1;
+  inline bool has_table_name() const;
+  inline void clear_table_name();
+  static const int kTableNameFieldNumber = 1;
+  inline const ::std::string& table_name() const;
+  inline void set_table_name(const ::std::string& value);
+  inline void set_table_name(const char* value);
+  inline void set_table_name(const char* value, size_t size);
+  inline ::std::string* mutable_table_name();
+  inline ::std::string* release_table_name();
+  inline void set_allocated_table_name(::std::string* table_name);
+
+  // required int32 partition_id = 2;
+  inline bool has_partition_id() const;
+  inline void clear_partition_id();
+  static const int kPartitionIdFieldNumber = 2;
+  inline ::google::protobuf::int32 partition_id() const;
+  inline void set_partition_id(::google::protobuf::int32 value);
+
+  // @@protoc_insertion_point(class_scope:client.CmdRequest.FlushDB)
+ private:
+  inline void set_has_table_name();
+  inline void clear_has_table_name();
+  inline void set_has_partition_id();
+  inline void clear_has_partition_id();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* table_name_;
+  ::google::protobuf::int32 partition_id_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static CmdRequest_FlushDB* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class CmdRequest : public ::google::protobuf::Message {
  public:
   CmdRequest();
@@ -1304,6 +1403,7 @@ class CmdRequest : public ::google::protobuf::Message {
   typedef CmdRequest_Del Del;
   typedef CmdRequest_Info Info;
   typedef CmdRequest_Mget Mget;
+  typedef CmdRequest_FlushDB FlushDB;
 
   // accessors -------------------------------------------------------
 
@@ -1368,6 +1468,15 @@ class CmdRequest : public ::google::protobuf::Message {
   inline ::client::CmdRequest_Mget* release_mget();
   inline void set_allocated_mget(::client::CmdRequest_Mget* mget);
 
+  // optional .client.CmdRequest.FlushDB flushdb = 8;
+  inline bool has_flushdb() const;
+  inline void clear_flushdb();
+  static const int kFlushdbFieldNumber = 8;
+  inline const ::client::CmdRequest_FlushDB& flushdb() const;
+  inline ::client::CmdRequest_FlushDB* mutable_flushdb();
+  inline ::client::CmdRequest_FlushDB* release_flushdb();
+  inline void set_allocated_flushdb(::client::CmdRequest_FlushDB* flushdb);
+
   // @@protoc_insertion_point(class_scope:client.CmdRequest)
  private:
   inline void set_has_type();
@@ -1384,6 +1493,8 @@ class CmdRequest : public ::google::protobuf::Message {
   inline void clear_has_info();
   inline void set_has_mget();
   inline void clear_has_mget();
+  inline void set_has_flushdb();
+  inline void clear_has_flushdb();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -1393,10 +1504,11 @@ class CmdRequest : public ::google::protobuf::Message {
   ::client::CmdRequest_Del* del_;
   ::client::CmdRequest_Info* info_;
   ::client::CmdRequest_Mget* mget_;
+  ::client::CmdRequest_FlushDB* flushdb_;
   int type_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(8 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -4178,6 +4290,102 @@ CmdRequest_Mget::mutable_keys() {
 
 // -------------------------------------------------------------------
 
+// CmdRequest_FlushDB
+
+// required string table_name = 1;
+inline bool CmdRequest_FlushDB::has_table_name() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void CmdRequest_FlushDB::set_has_table_name() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void CmdRequest_FlushDB::clear_has_table_name() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void CmdRequest_FlushDB::clear_table_name() {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    table_name_->clear();
+  }
+  clear_has_table_name();
+}
+inline const ::std::string& CmdRequest_FlushDB::table_name() const {
+  return *table_name_;
+}
+inline void CmdRequest_FlushDB::set_table_name(const ::std::string& value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdRequest_FlushDB::set_table_name(const char* value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void CmdRequest_FlushDB::set_table_name(const char* value, size_t size) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CmdRequest_FlushDB::mutable_table_name() {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  return table_name_;
+}
+inline ::std::string* CmdRequest_FlushDB::release_table_name() {
+  clear_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = table_name_;
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CmdRequest_FlushDB::set_allocated_table_name(::std::string* table_name) {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    delete table_name_;
+  }
+  if (table_name) {
+    set_has_table_name();
+    table_name_ = table_name;
+  } else {
+    clear_has_table_name();
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required int32 partition_id = 2;
+inline bool CmdRequest_FlushDB::has_partition_id() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void CmdRequest_FlushDB::set_has_partition_id() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void CmdRequest_FlushDB::clear_has_partition_id() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void CmdRequest_FlushDB::clear_partition_id() {
+  partition_id_ = 0;
+  clear_has_partition_id();
+}
+inline ::google::protobuf::int32 CmdRequest_FlushDB::partition_id() const {
+  return partition_id_;
+}
+inline void CmdRequest_FlushDB::set_partition_id(::google::protobuf::int32 value) {
+  set_has_partition_id();
+  partition_id_ = value;
+}
+
+// -------------------------------------------------------------------
+
 // CmdRequest
 
 // required .client.Type type = 1;
@@ -4428,6 +4636,44 @@ inline void CmdRequest::set_allocated_mget(::client::CmdRequest_Mget* mget) {
     set_has_mget();
   } else {
     clear_has_mget();
+  }
+}
+
+// optional .client.CmdRequest.FlushDB flushdb = 8;
+inline bool CmdRequest::has_flushdb() const {
+  return (_has_bits_[0] & 0x00000080u) != 0;
+}
+inline void CmdRequest::set_has_flushdb() {
+  _has_bits_[0] |= 0x00000080u;
+}
+inline void CmdRequest::clear_has_flushdb() {
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline void CmdRequest::clear_flushdb() {
+  if (flushdb_ != NULL) flushdb_->::client::CmdRequest_FlushDB::Clear();
+  clear_has_flushdb();
+}
+inline const ::client::CmdRequest_FlushDB& CmdRequest::flushdb() const {
+  return flushdb_ != NULL ? *flushdb_ : *default_instance_->flushdb_;
+}
+inline ::client::CmdRequest_FlushDB* CmdRequest::mutable_flushdb() {
+  set_has_flushdb();
+  if (flushdb_ == NULL) flushdb_ = new ::client::CmdRequest_FlushDB;
+  return flushdb_;
+}
+inline ::client::CmdRequest_FlushDB* CmdRequest::release_flushdb() {
+  clear_has_flushdb();
+  ::client::CmdRequest_FlushDB* temp = flushdb_;
+  flushdb_ = NULL;
+  return temp;
+}
+inline void CmdRequest::set_allocated_flushdb(::client::CmdRequest_FlushDB* flushdb) {
+  delete flushdb_;
+  flushdb_ = flushdb;
+  if (flushdb) {
+    set_has_flushdb();
+  } else {
+    clear_has_flushdb();
   }
 }
 

@@ -156,6 +156,7 @@ class Partition {
   // Partition node related
   void Update(ZPMeta::PState state, const Node& master, const std::set<Node> &slaves);
   void Leave();
+  Status FlushDb();
 
   // Binlog related
   Status SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset);
@@ -241,7 +242,7 @@ class Partition {
   void TryDBSync(const std::string& ip, int port, int32_t top);
   void DBSync(const std::string& ip, int port);
   static void DoDBSync(void* arg);
-  bool ChangeDb(const std::string& new_path);
+  Status ChangeDb(const std::string& new_path);
   void DBSyncSendFile(const std::string& ip, int port);
 
   // Purge binlog related

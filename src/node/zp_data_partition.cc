@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <pthread.h>
 #include <vector>
 #include <fstream>
 #include <glog/logging.h>
@@ -43,6 +44,7 @@ Partition::Partition(const std::string& table_name, const int partition_id,
     log_path_ = NewPartitionPath(log_path, partition_id_);
     data_path_ = NewPartitionPath(data_path, partition_id_);
     trash_path_ = NewPartitionPath(trash_path, partition_id_);
+    slash::CreatePath(trash_path_);
     sync_path_ = NewPartitionPath(zp_data_server->db_sync_path() + table_name_ + "/", partition_id_);
     bgsave_path_ = NewPartitionPath(zp_data_server->bgsave_path() + table_name_ + "/", partition_id_);
 
@@ -101,10 +103,11 @@ void Partition::Close() {
   delete logger_;
 
   // Move data and log to Trash
-  slash::CreatePath(trash_path_);
+  slash::DeleteDirIfExist(trash_path_ + "db/");
   if (0 != slash::RenameFile(data_path_.c_str(), (trash_path_ + "db/").c_str())) {
     LOG(WARNING) << "Failed to move db to trash, error: " << strerror(errno);
   }
+  slash::DeleteDirIfExist(trash_path_ + "log/");
   if (0 != slash::RenameFile(log_path_.c_str(), (trash_path_ + "log/").c_str())) {
     LOG(WARNING) << "Failed to move db to trash, error: " << strerror(errno);
   }
@@ -161,41 +164,47 @@ void Partition::TrySyncDone() {
     ", Master Node:" << master_node_.ip << ":" << master_node_.port;
 }
 
-// Required: hold write mutex of status_rw_
-bool Partition::ChangeDb(const std::string& new_path) {
-  std::string tmp_path(data_path_);
-  if (tmp_path.back() == '/') {
-    tmp_path.resize(tmp_path.size() - 1);
-  }
-  tmp_path += "_bak";
+// Required: hold write mutex of state_rw_ or write mutex of suspend_rw_ as to block any other operation
+Status Partition::ChangeDb(const std::string& new_path) {
+  std::string tmp_path(trash_path_ + "obsolete");
   slash::DeleteDirIfExist(tmp_path);
   DLOG(INFO) << "Prepare change db from: " << tmp_path;
   delete db_;
-  if (0 != slash::RenameFile(data_path_.c_str(), tmp_path)) {
+  if (0 != slash::RenameFile(data_path_, tmp_path)) {
     LOG(WARNING) << "Failed to rename db path when change db, error: " << strerror(errno);
-    return false;
+    return Status::Corruption(strerror(errno));
   }
 
-  if (0 != slash::RenameFile(new_path.c_str(), data_path_.c_str())) {
+  if (0 != slash::RenameFile(new_path, data_path_)) {
     DLOG(INFO) << "Rename (" << new_path.c_str() << ", " << data_path_.c_str();
     LOG(WARNING) << "Failed to rename new db path when change db, error: " << strerror(errno);
-    return false;
+    return Status::Corruption(strerror(errno));
   }
   rocksdb::Status s = rocksdb::DBNemo::Open(*(zp_data_server->db_options()),
       data_path_, &db_);
   if (!s.ok()) {
     LOG(WARNING) << "Failed to change to new db error: " << s.ToString();
+    return Status::Corruption(s.ToString());
   }
-  slash::DeleteDirIfExist(tmp_path);
   LOG(INFO) << "Change Parition " << table_name_ << "_" << partition_id_ << " db success";
-  return true;
+  return Status::OK();
+}
+
+// Required: hold read mutex of state_rw_
+Status Partition::FlushDb() {
+  std::string empty_path(trash_path_ + "null");
+  slash::DeleteDirIfExist(empty_path);
+  slash::CreatePath(empty_path);
+
+  slash::RWLock l(&suspend_rw_, true);
+  return ChangeDb(empty_path);
 }
 
 
 ////// BGSave //////
 
 // Prepare env
-// Required: hold read mutex of status_rw_
+// Required: hold read mutex of state_rw_
 bool Partition::InitBgsaveEnv() {
   slash::MutexLock l(&bgsave_protector_);
   // Prepare for bgsave dir
@@ -221,7 +230,7 @@ bool Partition::InitBgsaveEnv() {
 }
 
 // Prepare bgsave env
-// Required: hold read mutex of status_rw_
+// Required: hold read mutex of state_rw_
 bool Partition::InitBgsaveContent(rocksdb::DBNemoCheckpoint* cp,
     CheckpointContent* content) {
   rocksdb::Status s;
@@ -394,7 +403,7 @@ bool Partition::TryUpdateMasterOffset() {
   }
 
   slash::DeleteFile(info_path);
-  if (!ChangeDb(sync_path_)) {
+  if (!ChangeDb(sync_path_).ok()) {
     return false;
   }
 
@@ -609,7 +618,7 @@ Status Partition::SetBinlogOffsetWithLock(uint32_t filenum, uint64_t offset) {
   return SetBinlogOffset(filenum, offset);
 }
 
-// Required: hold read mutex of status_rw_
+// Required: hold read mutex of state_rw_
 Status Partition::SetBinlogOffset(uint32_t filenum, uint64_t offset) {
   uint64_t actual = 0;
   Status s = logger_->SetProducerStatus(filenum, offset, &actual);
@@ -625,7 +634,7 @@ bool Partition::GetBinlogOffsetWithLock(uint32_t* filenum, uint64_t* offset) {
   return GetBinlogOffset(filenum, offset);
 }
 
-// Required: hold read mutex of status_rw_
+// Required: hold read mutex of state_rw_
 bool Partition::GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) const {
   if (!opened_) {
     return false;
@@ -634,7 +643,7 @@ bool Partition::GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) const {
   return true;
 }
 
-// Required: hold read mutex of status_rw_
+// Required: hold read mutex of state_rw_
 bool Partition::CheckSyncOption(const PartitionSyncOption& option) {
   // Check current status
   if (!opened_
@@ -846,7 +855,7 @@ void Partition::DoTimingTask() {
   }
 }
 
-// Required: hold read mutex of status_rw_
+// Required: hold read mutex of state_rw_
 void Partition::TryDBSync(const std::string& ip, int port, int32_t top) {
   DLOG(INFO) << "TryDBSync " << ip << ":" << port << ", top=" << top << " Partition:" << partition_id_;
 
@@ -868,7 +877,7 @@ void Partition::TryDBSync(const std::string& ip, int port, int32_t top) {
   DBSync(ip, port);
 }
 
-// Required: hold read mutex of status_rw_
+// Required: hold read mutex of state_rw_
 void Partition::DBSync(const std::string& ip, int port) {
   // Only one DBSync task for every ip_port
   std::string ip_port = slash::IpPortString(ip, port);
@@ -1028,7 +1037,7 @@ bool Partition::PurgeFiles(uint32_t to, bool manual)
   for (it = binlogs.begin(); it != binlogs.end(); ++it) {
     if ((manual && it->first <= to) ||           // Argument bound
         remain_expire_num > 0 ||                 // Expire num trigger
-        (stat(((log_path_ + "/" + it->second)).c_str(), &file_stat) == 0 &&     
+        (stat(((log_path_ + it->second)).c_str(), &file_stat) == 0 &&     
          file_stat.st_mtime < time(NULL) - kBinlogRemainMaxDay*24*3600)) // Expire time trigger
     {
       // We check this every time to avoid lock when we do file deletion
@@ -1038,7 +1047,7 @@ bool Partition::PurgeFiles(uint32_t to, bool manual)
       }
 
       // Do delete
-      slash::Status s = slash::DeleteFile(log_path_ + "/" + it->second);
+      slash::Status s = slash::DeleteFile(log_path_ + it->second);
       if (s.ok()) {
         ++delete_num;
         --remain_expire_num;
