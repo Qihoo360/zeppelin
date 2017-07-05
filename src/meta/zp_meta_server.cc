@@ -51,8 +51,7 @@ ZPMetaServer::ZPMetaServer()
   }
   fy_options.local_ip = g_zp_conf->local_ip();
   fy_options.local_port = g_zp_conf->local_port() + kMetaPortShiftFY;
-  fy_options.data_path = g_zp_conf->data_path();
-  fy_options.log_path = g_zp_conf->log_path();
+  fy_options.path = g_zp_conf->data_path();
 
   floyd::Floyd::Open(fy_options, &floyd_);
 
@@ -92,11 +91,6 @@ ZPMetaServer::~ZPMetaServer() {
 void ZPMetaServer::Start() {
   LOG(INFO) << "ZPMetaServer started on port:" << g_zp_conf->local_port();
 
-  Status s = floyd_->Start();
-  if (!s.ok()) {
-    LOG(ERROR) << "Start floyd failed: " << s.ToString();
-    return;
-  }
   std::string leader_ip;
   int leader_port = 0;
   while (!GetLeader(&leader_ip, &leader_port) && !should_exit_) {
@@ -108,8 +102,7 @@ void ZPMetaServer::Start() {
   if (!should_exit_) {
     LOG(INFO) << "Got Leader: " << leader_ip << ":" << leader_port;
     while (!should_exit_) {
-      s = InitVersion();
-      if (s.ok()) {
+      if (InitVersion().ok()) {
         break;
       }
       sleep(1);
