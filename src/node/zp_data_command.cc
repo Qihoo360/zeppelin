@@ -1,19 +1,36 @@
+// Copyright 2017 Qihoo
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http:// www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 #include "src/node/zp_data_command.h"
 
 #include <glog/logging.h>
+#include <memory>
+#include <vector>
+#include <unordered_map>
 #include "slash/include/slash_string.h"
 
 #include "include/db_nemo_impl.h"
 #include "src/node/zp_data_server.h"
 
-
 extern ZPDataServer *zp_data_server;
 
 void SetCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
-  const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
+  const client::CmdRequest* request =
+    static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
-  // User raw pointer instead of shared_ptr, since it is surely be existed during this caller
+  // User raw pointer instead of shared_ptr,
+  // since it is surely be existed during this caller
   Partition* ptr = static_cast<Partition*>(partition);
 
   response->Clear();
@@ -60,7 +77,8 @@ void SetCmd::Do(const google::protobuf::Message *req,
 
 bool SetCmd::GenerateLog(const google::protobuf::Message *req,
     std::string* log_raw) const {
-  const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
+  const client::CmdRequest* request =
+    static_cast<const client::CmdRequest*>(req);
   if (request->set().has_expire()) {
     client::CmdRequest log_req(*request);
     log_req.mutable_set()->mutable_expire()->set_base(time(NULL));
@@ -71,7 +89,8 @@ bool SetCmd::GenerateLog(const google::protobuf::Message *req,
 
 void GetCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
-  const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
+  const client::CmdRequest* request =
+    static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
 
@@ -91,20 +110,24 @@ void GetCmd::Do(const google::protobuf::Message *req,
       << " ok, value is (" << value << ")";
   } else if (s.IsNotFound()) {
     response->set_code(client::StatusCode::kNotFound);
-    DLOG(INFO) << "Get key(" << request->get().key() <<
-      ") at " << ptr->table_name() << "_" << ptr->partition_id() << " not found!";
+    DLOG(INFO) << "Get key(" << request->get().key()
+      << ") at " << ptr->table_name() << "_"
+      << ptr->partition_id() << " not found!";
   } else {
     response->set_code(client::StatusCode::kError);
     response->set_msg(s.ToString());
-    LOG(WARNING) << "command failed: Get key(" << request->get().key() << ") at "
-      << ptr->table_name() << "_"  << ptr->partition_id()
+    LOG(WARNING) << "command failed: Get key("
+      << request->get().key() << ") at "
+      << ptr->table_name() << "_"
+      << ptr->partition_id()
       << ", caz " << s.ToString();
   }
 }
 
 void DelCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
-  const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
+  const client::CmdRequest* request =
+    static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
 
@@ -128,7 +151,8 @@ void DelCmd::Do(const google::protobuf::Message *req,
 
 void MgetCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* ptr) const {
-  const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
+  const client::CmdRequest* request =
+    static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   response->Clear();
   response->set_type(client::Type::MGET);
@@ -175,7 +199,8 @@ void MgetCmd::Do(const google::protobuf::Message *req,
 
 void InfoCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* p) const {
-  const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
+  const client::CmdRequest* request =
+    static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
 
   response->Clear();
@@ -207,7 +232,8 @@ void InfoCmd::Do(const google::protobuf::Message *req,
       DLOG(INFO) << "InfoCapacity with " << stats.size() << " tables total";
 
       for (auto it = stats.begin(); it != stats.end(); it++) {
-        client::CmdResponse_InfoCapacity* info_cpct = response->add_info_capacity();
+        client::CmdResponse_InfoCapacity* info_cpct =
+          response->add_info_capacity();
         info_cpct->set_table_name(it->table_name);
         info_cpct->set_used(it->used_disk);
         info_cpct->set_remain(it->free_disk);
@@ -241,7 +267,8 @@ void InfoCmd::Do(const google::protobuf::Message *req,
     default: {
       response->set_code(client::StatusCode::kError);
       response->set_msg("unsupported cmd type");
-      LOG(WARNING) << "unsupported cmd type" << static_cast<int>(request->type()); 
+      LOG(WARNING) << "unsupported cmd type"
+        << static_cast<int>(request->type());
       return;
     }
   }
@@ -252,7 +279,8 @@ void InfoCmd::Do(const google::protobuf::Message *req,
 // Sync between nodes
 void SyncCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
-  const client::CmdRequest* request = static_cast<const client::CmdRequest*>(req);
+  const client::CmdRequest* request =
+    static_cast<const client::CmdRequest*>(req);
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
 
@@ -311,7 +339,7 @@ void FlushDBCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
   client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
   Partition* ptr = static_cast<Partition*>(partition);
-  
+
   response->Clear();
   response->set_type(client::Type::FLUSHDB);
   Status s = ptr->FlushDb();

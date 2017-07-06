@@ -1,5 +1,18 @@
-#ifndef ZP_BINLOG_SENDER
-#define ZP_BINLOG_SENDER
+// Copyright 2017 Qihoo
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http:// www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+#ifndef SRC_NODE_ZP_BINLOG_SENDER_H_
+#define SRC_NODE_ZP_BINLOG_SENDER_H_
 #include <list>
 #include <string>
 #include <unordered_map>
@@ -19,22 +32,23 @@ using slash::Slice;
 class ZPBinlogSendTask;
 struct ZPBinlogSendTaskHandle {
   std::list< ZPBinlogSendTask* >::iterator iter;
-  uint64_t sequence; // use squence to distinguish task with same name
+  uint64_t sequence;  // use squence to distinguish task with same name
 };
 
 typedef std::unordered_map< std::string,
         ZPBinlogSendTaskHandle > ZPBinlogSendTaskIndex;
 
-std::string ZPBinlogSendTaskName(const std::string& table, int32_t id, const Node& target);
+std::string ZPBinlogSendTaskName(const std::string& table,
+    int32_t id, const Node& target);
 
 /**
  * ZPBinlogSendTask
  */
-class ZPBinlogSendTask {
-public:
+class ZPBinlogSendTask  {
+ public:
   static Status Create(uint64_t seq, const std::string &table_name, int32_t id,
       const std::string& binlog_prefix, const Node& target,
-      uint32_t ifilenum,uint64_t ioffset,
+      uint32_t ifilenum, uint64_t ioffset,
       ZPBinlogSendTask** tptr);
 
   ZPBinlogSendTask(uint64_t seq, const std::string &table_name, int32_t id,
@@ -78,10 +92,10 @@ public:
   Status ProcessTask();
   void BuildSyncRequest(client::SyncRequest *msg) const;
 
-private:
+ private:
   uint64_t sequence_;
-  std::string name_; // Name of the task
-  const std::string table_name_; // Name of its table
+  std::string name_;  // Name of the task
+  const std::string table_name_;  // Name of its table
   const int32_t partition_id_;
   const Node node_;
   uint32_t filenum_;
@@ -92,7 +106,7 @@ private:
   uint64_t pre_offset_;
   std::string pre_content_;
   bool pre_has_content_;
-  std::string binlog_filename_; // Name of the binlog file
+  std::string binlog_filename_;  // Name of the binlog file
   slash::SequentialFile *queue_;
   BinlogReader *reader_;
   Status Init();
@@ -104,12 +118,11 @@ private:
   }
 };
 
-
 //
 // ZPBinlogSendTaskPool
 //
-class ZPBinlogSendTaskPool {
-public:
+class ZPBinlogSendTaskPool  {
+ public:
   ZPBinlogSendTaskPool();
   ~ZPBinlogSendTaskPool();
 
@@ -128,9 +141,9 @@ public:
 
   void Dump();
 
-private:
+ private:
   pthread_rwlock_t tasks_rwlock_;
-  uint64_t next_sequence_; // Give every task a unique sequence
+  uint64_t next_sequence_;  // Give every task a unique sequence
   ZPBinlogSendTaskIndex task_ptrs_;
   std::list<ZPBinlogSendTask*> tasks_;
   Status AddTask(ZPBinlogSendTask* task);
@@ -139,14 +152,14 @@ private:
 /**
  * ZPBinlogSendThread
  */
-class ZPBinlogSendThread : public pink::Thread {
-public:
-  ZPBinlogSendThread(ZPBinlogSendTaskPool *pool);
+class ZPBinlogSendThread : public pink::Thread  {
+ public:
+  explicit ZPBinlogSendThread(ZPBinlogSendTaskPool *pool);
   virtual ~ZPBinlogSendThread();
 
-private:
+ private:
   ZPBinlogSendTaskPool *pool_;
   virtual void* ThreadMain();
 };
 
-#endif //ZP_BINLOG_SENDER
+#endif  // SRC_NODE_ZP_BINLOG_SENDER_H_
