@@ -19,6 +19,7 @@
 #include <sys/resource.h>
 #include <google/protobuf/text_format.h>
 
+#include "rocksdb/table.h"
 #include "slash/include/rsync.h"
 
 #include "src/node/zp_sync_conn.h"

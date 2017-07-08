@@ -46,6 +46,10 @@ ifndef FLOYD_PATH
 FLOYD_PATH = $(realpath $(THIRD_PATH)/floyd)
 endif
 
+ifndef ROCKSDB_PATH
+ROCKSDB_PATH = $(realpath $(THIRD_PATH)/rocksdb)
+endif
+
 COMMON_SRC = $(wildcard $(COMMON_SRC_PATH)/*.cc)
 COMMON_OBJS = $(patsubst %.cc,%.o,$(COMMON_SRC))
 
@@ -67,8 +71,8 @@ OBJS = $(COMMON_OBJS) $(META_OBJS) $(NODE_OBJS)
 INCLUDE_PATH = -I./ \
 							 -I$(THIRD_PATH)/glog/src/ \
 							 -I$(NEMODB_PATH)/ \
-							 -I$(NEMODB_PATH)/rocksdb \
-							 -I$(NEMODB_PATH)/rocksdb/include \
+							 -I$(ROCKSDB_PATH)/ \
+							 -I$(ROCKSDB_PATH)/include \
 							 -I$(SLASH_PATH)/ \
 							 -I$(PINK_PATH)/ \
 							 -I$(FLOYD_PATH)/
@@ -78,6 +82,7 @@ LIB_PATH = -L./ \
 					 -L$(SLASH_PATH)/slash/lib/ \
 					 -L$(PINK_PATH)/pink/lib/ \
 					 -L$(NEMODB_PATH)/output/lib/ \
+					 -L$(ROCKSDB_PATH)/ \
 					 -L$(THIRD_PATH)/glog/.libs/
 
 LIBS = -lpthread \
@@ -91,7 +96,6 @@ LIBS = -lpthread \
 			 -lrt
 
 METALIBS = -lfloyd \
-					 -lnemodb \
 					 -lrocksdb
 
 NODELIBS = -lnemodb \
@@ -140,10 +144,11 @@ $(OBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) $(VERSION)
 
 $(FLOYD):
-	make -C $(FLOYD_PATH)/floyd/ __PERF=$(__PERF) SLASH_PATH=$(SLASH_PATH) PINK_PATH=$(PINK_PATH) NEMODB_PATH=$(NEMODB_PATH)
+	make -C $(FLOYD_PATH)/floyd/ __PERF=$(__PERF) SLASH_PATH=$(SLASH_PATH) PINK_PATH=$(PINK_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH)
 
 $(NEMODB):
-	make -C $(NEMODB_PATH)/
+	make -C $(NEMODB_PATH)/ ROCKSDB_PATH=$(ROCKSDB_PATH)
+
 
 $(SLASH):
 	make -C $(SLASH_PATH)/slash/ __PERF=$(__PERF)
@@ -175,4 +180,5 @@ distclean: clean
 	make -C $(SLASH_PATH)/slash/ clean
 	make -C $(NEMODB_PATH)/ clean
 	make -C $(FLOYD_PATH)/floyd/ clean
+	#make clean -C $(ROCKSDB_PATH)/
 

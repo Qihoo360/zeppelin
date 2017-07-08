@@ -8,7 +8,7 @@
 #include <set>
 #include <map>
 
-#include "include/db_nemo_impl.h"
+#include "include/db_nemo.h"
 #include "include/db_nemo_checkpoint.h"
 
 #include "include/zp_const.h"

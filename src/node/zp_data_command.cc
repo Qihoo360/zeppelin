@@ -19,7 +19,7 @@
 #include <unordered_map>
 #include "slash/include/slash_string.h"
 
-#include "include/db_nemo_impl.h"
+#include "include/db_nemo.h"
 #include "src/node/zp_data_server.h"
 
 extern ZPDataServer *zp_data_server;

@@ -13,3 +13,6 @@
 [submodule "third/nemo-rocksdb"]
 	path = third/nemo-rocksdb
   url = https://github.com/Qihoo360/nemo-rocksdb.git
+[submodule "third/rocksdb"]
+	path = third/rocksdb
+	url = git@github.com:facebook/rocksdb.git

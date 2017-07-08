@@ -18,6 +18,8 @@
 #include <memory>
 #include <unordered_map>
 
+#include "rocksdb/options.h"
+
 #include "pink/include/bg_thread.h"
 #include "pink/include/server_thread.h"
 #include "pink/include/pb_conn.h"
