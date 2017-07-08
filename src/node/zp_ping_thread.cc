@@ -26,15 +26,15 @@ ZPPingThread::~ZPPingThread() {
   delete cli_;
   LOG(INFO) << " Ping thread " << pthread_self() << " exit!!!";
 }
- 
+
 /*
  * Try to update last offset, return true if has changed
  */
 bool ZPPingThread::TryOffsetUpdate(const std::string table_name,
     int partition_id, const BinlogOffset &new_offset) {
-  if (last_offsets_.find(table_name) == last_offsets_.end()                                 // no such table
-      || last_offsets_[table_name].find(partition_id) == last_offsets_[table_name].end()    // no such partition
-      || last_offsets_[table_name][partition_id] != new_offset) {                           // offset changed
+  if (last_offsets_.find(table_name) == last_offsets_.end()  // no such table
+      || last_offsets_[table_name].find(partition_id) == last_offsets_[table_name].end()  // no such partition
+      || last_offsets_[table_name][partition_id] != new_offset) {  // offset changed
     last_offsets_[table_name][partition_id] = new_offset;
     return true;
   }
@@ -50,11 +50,11 @@ slash::Status ZPPingThread::Send() {
   node->set_ip(zp_data_server->local_ip());
   node->set_port(zp_data_server->local_port());
   request.set_type(ZPMeta::Type::PING);
-  
+
   TablePartitionOffsets all_offset;
   zp_data_server->DumpTableBinlogOffsets("", &all_offset);
   for (auto& item : all_offset) {
-    for(auto& p : item.second) {
+    for (auto& p : item.second) {
       if (!TryOffsetUpdate(item.first, p.first, p.second)) {
         // no change happend
         continue;
@@ -80,7 +80,7 @@ slash::Status ZPPingThread::Send() {
 slash::Status ZPPingThread::RecvProc() {
   slash::Status result;
   ZPMeta::MetaCmdResponse response;
-  result = cli_->Recv(&response); 
+  result = cli_->Recv(&response);
   DLOG(INFO) << "Ping Recv from Meta (" << zp_data_server->meta_ip() << ":"
     << zp_data_server->meta_port() + kMetaPortShiftCmd << ")";
   if (!result.ok()) {
@@ -119,7 +119,8 @@ void* ZPPingThread::ThreadMain() {
       while (!should_stop()) {
         gettimeofday(&now, NULL);
         if (now.tv_sec - last_interaction.tv_sec > kNodeMetaTimeoutN) {
-          LOG(WARNING) << "Ping meta ("<< meta_ip << ":" << meta_port << ") timeout, reconnect!";
+          LOG(WARNING) << "Ping meta ("<< meta_ip << ":" << meta_port
+            << ") timeout, reconnect!";
           break;
         }
         sleep(kPingInterval);
@@ -127,25 +128,30 @@ void* ZPPingThread::ThreadMain() {
         // Send ping to meta
         s = Send();
         if (!s.ok()) {
-          LOG(WARNING) << "Ping send to ("<< meta_ip << ":" << meta_port << ") failed! caz: " << s.ToString();
+          LOG(WARNING) << "Ping send to ("<< meta_ip << ":" << meta_port
+            << ") failed! caz: " << s.ToString();
           continue;
         }
-        DLOG(INFO) << "Ping send to ("<< meta_ip << ":" << meta_port << ") success!";
+        DLOG(INFO) << "Ping send to ("<< meta_ip << ":" << meta_port
+          << ") success!";
 
         // Recv from meta
         s = RecvProc();
         if (!s.ok()) {
-          LOG(WARNING) << "Ping recv from ("<< meta_ip << ":" << meta_port << ") failed! caz: " << s.ToString();
+          LOG(WARNING) << "Ping recv from ("<< meta_ip << ":" << meta_port
+            << ") failed! caz: " << s.ToString();
           continue;
         }
 
         gettimeofday(&last_interaction, NULL);
-        DLOG(INFO) << "Ping recv from ("<< meta_ip << ":" << meta_port << ") success!";
+        DLOG(INFO) << "Ping recv from ("<< meta_ip << ":" << meta_port
+          << ") success!";
       }
 
       cli_->Close();
     } else {
-      LOG(WARNING) << "Ping connect ("<< meta_ip << ":" << meta_port << ") failed!";
+      LOG(WARNING) << "Ping connect ("<< meta_ip << ":" << meta_port
+        << ") failed!";
     }
     sleep(kPingInterval);
   }

@@ -13,11 +13,13 @@
 // limitations under the License.
 #include "src/node/zp_data_server.h"
 
-#include <fstream>
-#include <random>
 #include <glog/logging.h>
 #include <sys/resource.h>
 #include <google/protobuf/text_format.h>
+#include <map>
+#include <random>
+#include <utility>
+#include <fstream>
 
 #include "rocksdb/table.h"
 #include "slash/include/rsync.h"
@@ -33,7 +35,8 @@ ZPDataServer::ZPDataServer()
     pthread_rwlock_init(&meta_state_rw_, NULL);
     pthread_rwlockattr_t attr;
     pthread_rwlockattr_init(&attr);
-    pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+    pthread_rwlockattr_setkind_np(&attr,
+        PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
     pthread_rwlock_init(&table_rw_, &attr);
 
     LOG(INFO) << "ZPMetaServer start initialization";
@@ -46,14 +49,18 @@ ZPDataServer::ZPDataServer()
         // changeable only by root.
         rlim_t previous_limit = limit.rlim_cur;
         limit.rlim_cur = g_zp_conf->max_file_descriptor_num();
-        if(limit.rlim_cur > limit.rlim_max) {
+        if (limit.rlim_cur > limit.rlim_max) {
           limit.rlim_max = g_zp_conf->max_file_descriptor_num();
         }
         if (setrlimit(RLIMIT_NOFILE, &limit) != -1) {
-          LOG(WARNING) << "your 'limit -n ' of " << previous_limit << " is not enough for zeppelin to start, zeppelin have successfully reconfig it to " << limit.rlim_cur;
+          LOG(WARNING) << "your 'limit -n ' of " << previous_limit
+            << " is not enough, successfully reconfiged it to "
+            << limit.rlim_cur;
         } else {
-          LOG(FATAL) << "your 'limit -n ' of " << previous_limit << " is not enough for zeppelin to start, but zeppelin can not reconfig it: " << strerror(errno) <<" do it by yourself";
-        };
+          LOG(FATAL) << "your 'limit -n ' of " << previous_limit
+            << " is not enough, and failed to reconfig it: "
+            << strerror(errno) <<" do it by yourself";
+        }
       }
     } else {
       LOG(WARNING) << "getrlimir error: " << strerror(errno);
@@ -64,9 +71,9 @@ ZPDataServer::ZPDataServer()
     InitClientCmdTable();
 
     // Create thread
-    zp_metacmd_bgworker_= new ZPMetacmdBGWorker();
+    zp_metacmd_bgworker_ = new ZPMetacmdBGWorker();
     zp_trysync_thread_ = new ZPTrySyncThread();
-    
+
     // Binlog receive
     for (int j = 0; j < g_zp_conf->sync_recv_thread_num(); j++) {
       zp_binlog_receive_bgworkers_.push_back(
@@ -80,7 +87,7 @@ ZPDataServer::ZPDataServer()
         kBinlogReceiverCronInterval,
         sync_handle_);
 
-    // binlog Reiver don't check keepalive 
+    // binlog Reiver don't check keepalive
     zp_binlog_receiver_thread_->set_keepalive_timeout(0);
     zp_binlog_receiver_thread_->set_thread_name("ZPDataSyncDispatch");
 
@@ -147,7 +154,7 @@ ZPDataServer::~ZPDataServer() {
   delete zp_binlog_receiver_thread_;
   LOG(INFO) << "Binlig receiver thread exit!";
   auto binlogbg_iter = zp_binlog_receive_bgworkers_.begin();
-  while(binlogbg_iter != zp_binlog_receive_bgworkers_.end()){
+  while (binlogbg_iter != zp_binlog_receive_bgworkers_.end()) {
     delete (*binlogbg_iter);
     ++binlogbg_iter;
   }
@@ -184,30 +191,31 @@ void ZPDataServer::InitDBOptions() {
   // memtable max
   db_options_.write_buffer_manager.reset(
       new rocksdb::WriteBufferManager(g_zp_conf->db_max_write_buffer() * 1024));
-  
+
   // sst file size
-  db_options_.target_file_size_base = g_zp_conf->db_target_file_size_base() * 1024;
- 
+  db_options_.target_file_size_base =
+    g_zp_conf->db_target_file_size_base() * 1024;
+
   // suppose 50% compression radio
   db_options_.max_bytes_for_level_base = 2 * db_options_.write_buffer_size;
-  
-  // speed up db open 
+
+  // speed up db open
   db_options_.skip_stats_update_on_db_open = true;
-  
+
   db_options_.compaction_readahead_size = 2 * 1024 * 1024;
-  
+
   db_options_.max_open_files = g_zp_conf->db_max_open_files();
 
   rocksdb::BlockBasedTableOptions block_based_table_options;
-  
+
   block_based_table_options.block_size = g_zp_conf->db_block_size() * 1024;
 
   db_options_.table_factory.reset(
      NewBlockBasedTableFactory(block_based_table_options));
-  
+
   db_options_.max_background_flushes = g_zp_conf->max_background_flushes();
-  db_options_.max_background_compactions = g_zp_conf->max_background_compactions();
-  
+  db_options_.max_background_compactions
+    = g_zp_conf->max_background_compactions();
 
   db_options_.create_if_missing = true;
 }
@@ -228,7 +236,8 @@ Status ZPDataServer::Start() {
     return Status::Corruption("Ping thread start failed!");
   }
 
-  std::vector<ZPBinlogSendThread*>::iterator bsit = binlog_send_workers_.begin();
+  std::vector<ZPBinlogSendThread*>::iterator bsit
+    = binlog_send_workers_.begin();
   for (; bsit != binlog_send_workers_.end(); ++bsit) {
     LOG(INFO) << "Start one binlog send worker thread";
     if (pink::RetCode::kSuccess != (*bsit)->StartThread()) {
@@ -237,7 +246,7 @@ Status ZPDataServer::Start() {
     }
   }
 
-  // TEST 
+  // TEST
   LOG(INFO) << "ZPDataServer started on port:" <<  g_zp_conf->local_port();
   auto iter = g_zp_conf->meta_addr().begin();
   while (iter != g_zp_conf->meta_addr().end()) {
@@ -248,7 +257,7 @@ Status ZPDataServer::Start() {
   while (!should_exit_) {
     DoTimingTask();
     int sleep_count = kNodeCronWaitCount;
-    while (!should_exit_ && sleep_count-- > 0){
+    while (!should_exit_ && sleep_count-- > 0) {
       usleep(kNodeCronInterval * 1000);
     }
   }
@@ -287,7 +296,7 @@ void ZPDataServer::PickMeta() {
   if (pos != std::string::npos) {
     meta_ip_ = addr.substr(0, pos);
     auto str_port = addr.substr(pos+1);
-    slash::string2l(str_port.data(), str_port.size(), &meta_port_); 
+    slash::string2l(str_port.data(), str_port.size(), &meta_port_);
   }
   LOG(INFO) << "PickMeta ip: " << meta_ip_ << " port: " << meta_port_;
 }
@@ -302,12 +311,14 @@ void ZPDataServer::DumpTablePartitions() {
   LOG(INFO) << "TablePartition--------------------------";
 }
 
-Status ZPDataServer::SendToPeer(const Node &node, const client::SyncRequest &msg) {
+Status ZPDataServer::SendToPeer(const Node &node,
+    const client::SyncRequest &msg) {
   pink::Status res;
   std::string ip_port = slash::IpPortString(node.ip, node.port);
 
   slash::MutexLock pl(&mutex_peers_);
-  std::unordered_map<std::string, pink::PinkCli*>::iterator iter = peers_.find(ip_port);
+  std::unordered_map<std::string, pink::PinkCli*>::iterator iter
+    = peers_.find(ip_port);
   if (iter == peers_.end()) {
     pink::PinkCli *cli = pink::NewPbCli();
     res = cli->Connect(node.ip, node.port);
@@ -318,9 +329,10 @@ Status ZPDataServer::SendToPeer(const Node &node, const client::SyncRequest &msg
     }
     cli->set_send_timeout(1000);
     cli->set_recv_timeout(1000);
-    iter = (peers_.insert(std::pair<std::string, pink::PinkCli*>(ip_port, cli))).first;
+    iter = (peers_.insert(std::pair<std::string,
+          pink::PinkCli*>(ip_port, cli))).first;
   }
-  
+
   res = iter->second->Send(const_cast<client::SyncRequest*>(&msg));
   if (!res.ok()) {
     // Remove when second Failed, retry outside
@@ -332,16 +344,16 @@ Status ZPDataServer::SendToPeer(const Node &node, const client::SyncRequest &msg
   return Status::OK();
 }
 
-std::shared_ptr<Table> ZPDataServer::GetOrAddTable(const std::string &table_name) {
+std::shared_ptr<Table> ZPDataServer::GetOrAddTable(const std::string &tname) {
   slash::RWLock l(&table_rw_, true);
-  auto it = tables_.find(table_name);
+  auto it = tables_.find(tname);
   if (it != tables_.end()) {
     return it->second;
   }
 
-  std::shared_ptr<Table> table = NewTable(table_name,
+  std::shared_ptr<Table> table = NewTable(tname,
       g_zp_conf->log_path(), g_zp_conf->data_path(), g_zp_conf->trash_path());
-  tables_[table_name] = table;
+  tables_[tname] = table;
   return table;
 }
 
@@ -420,9 +432,9 @@ void ZPDataServer::BGPurgeTaskSchedule(void (*function)(void*), void* arg) {
 
 // Add Task, remove first if already exist
 // Return Status::InvalidArgument means the filenum and offset is Invalid
-Status ZPDataServer::AddBinlogSendTask(const std::string &table, int partition_id,
-    const std::string& binlog_filename, const Node& node, int32_t filenum,
-    int64_t offset) {
+Status ZPDataServer::AddBinlogSendTask(const std::string &table,
+    int partition_id, const std::string& binlog_filename,
+    const Node& node, int32_t filenum, int64_t offset) {
   return binlog_send_pool_.AddNewTask(table, partition_id, binlog_filename,
       node, filenum, offset, true);
 }
@@ -461,22 +473,24 @@ void ZPDataServer::AddMetacmdTask() {
 // So that the task within same partition will be located on same thread
 // So there could be no lock in DoBinlogReceiveTask to keep binlogs order
 void ZPDataServer::DispatchBinlogBGWorker(ZPBinlogReceiveTask *task) {
-    size_t index = task->option.partition_id % zp_binlog_receive_bgworkers_.size();
+    size_t index
+      = task->option.partition_id % zp_binlog_receive_bgworkers_.size();
     zp_binlog_receive_bgworkers_[index]->AddTask(task);
 }
 
 //
 // Statistic related
 //
-bool ZPDataServer::GetStat(const StatType type, const std::string &table, Statistic& stat) {
-  stat.Reset();
+bool ZPDataServer::GetStat(const StatType type,
+    const std::string &table, Statistic* stat) {
+  stat->Reset();
 
   slash::MutexLock l(&(stats_[type].mu));
   auto it = stats_[type].table_stats.find(table);
   if (it == stats_[type].table_stats.end()) {
     return false;
   }
-  stat = *(it->second);
+  *stat = *(it->second);
   return true;
 }
 
@@ -507,7 +521,7 @@ void ZPDataServer::ResetLastStat(const StatType type) {
     stat->last_qps = ((stat->querys - stat->last_querys) * 1000000
                       / (cur_time_us - stats_[type].last_time_us + 1));
     stat->last_querys = stat->querys;
-    //stat->Dump();
+    // stat->Dump();
   }
   stats_[type].other_stat.last_qps =
       ((stats_[type].other_stat.querys - stats_[type].other_stat.last_querys)
@@ -524,19 +538,19 @@ bool ZPDataServer::GetAllTableName(std::set<std::string>* table_names) {
   return true;
 }
 
-bool ZPDataServer::GetTotalStat(const StatType type, Statistic& stat) {
-  stat.Reset();
+bool ZPDataServer::GetTotalStat(const StatType type, Statistic* stat) {
+  stat->Reset();
   slash::MutexLock l(&(stats_[type].mu));
   for (auto it = stats_[type].table_stats.begin();
        it != stats_[type].table_stats.end(); it++) {
-    stat.Add(*(it->second));
+    stat->Add(*(it->second));
   }
-  stat.Add(stats_[type].other_stat);
+  stat->Add(stats_[type].other_stat);
   return true;
 }
 
 bool ZPDataServer::GetTableStat(const StatType type,
-    const std::string& table_name, std::vector<Statistic>& stats) {
+    const std::string& table_name, std::vector<Statistic>* stats) {
   std::set<std::string> stat_tables;
   if (table_name.empty()) {
     GetAllTableName(&stat_tables);
@@ -546,21 +560,21 @@ bool ZPDataServer::GetTableStat(const StatType type,
 
   for (auto it = stat_tables.begin(); it != stat_tables.end(); it++) {
     Statistic sum;
-    GetStat(type, *it, sum);
-    stats.push_back(sum);
+    GetStat(type, *it, &sum);
+    stats->push_back(sum);
   }
   return true;
 }
 
 bool ZPDataServer::GetTableCapacity(const std::string& table_name,
-    std::vector<Statistic>& capacity_stats) {
+    std::vector<Statistic>* capacity_stats) {
   slash::RWLock l(&table_rw_, false);
   if (table_name.empty()) {
     for (auto& item : tables_) {
       Statistic tmp;
       tmp.table_name = item.first;
       (item.second)->GetCapacity(&tmp);
-      capacity_stats.push_back(tmp);
+      capacity_stats->push_back(tmp);
     }
   } else {
     auto it = tables_.find(table_name);
@@ -568,7 +582,7 @@ bool ZPDataServer::GetTableCapacity(const std::string& table_name,
       Statistic tmp;
       tmp.table_name = it->first;
       it->second->GetCapacity(&tmp);
-      capacity_stats.push_back(tmp);
+      capacity_stats->push_back(tmp);
     }
   }
   return true;
@@ -588,7 +602,7 @@ bool ZPDataServer::GetTableReplInfo(const std::string& table_name,
           table_name, info_repl));
     return true;
   }
-  
+
   // All table
   for (auto& table : tables_) {
     table.second->GetReplInfo(&info_repl);
@@ -616,35 +630,51 @@ bool ZPDataServer::GetServerInfo(client::CmdResponse_InfoServer* info_server) {
   return true;
 }
 
-
 void ZPDataServer::InitClientCmdTable() {
   // SetCmd
   Cmd* setptr = new SetCmd(kCmdFlagsKv | kCmdFlagsWrite);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SET), setptr));
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::SET), setptr));
   // GetCmd
   Cmd* getptr = new GetCmd(kCmdFlagsKv | kCmdFlagsRead);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::GET), getptr));
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::GET), getptr));
   // DelCmd
   Cmd* delptr = new DelCmd(kCmdFlagsKv | kCmdFlagsWrite);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::DEL), delptr));
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::DEL), delptr));
   // One InfoCmd handle many type queries;
-  Cmd* infostatsptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOSTATS), infostatsptr));
-  Cmd* infocapacityptr = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOCAPACITY), infocapacityptr));
-  Cmd* inforepl = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOREPL), inforepl));
-  Cmd* infoserver = new InfoCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::INFOSERVER), infoserver));
+  Cmd* infostatsptr = new InfoCmd(
+      kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::INFOSTATS), infostatsptr));
+  Cmd* infocapacityptr = new InfoCmd(
+      kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::INFOCAPACITY), infocapacityptr));
+  Cmd* inforepl = new InfoCmd(
+      kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::INFOREPL), inforepl));
+  Cmd* infoserver = new InfoCmd(
+      kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::INFOSERVER), infoserver));
   // SyncCmd
-  Cmd* syncptr = new SyncCmd(kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsSuspend);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::SYNC), syncptr));
+  Cmd* syncptr = new SyncCmd(
+      kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsSuspend);
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::SYNC), syncptr));
   // MgetCmd
-  Cmd* mgetptr = new MgetCmd(kCmdFlagsKv | kCmdFlagsRead | kCmdFlagsMultiPartition);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::MGET), mgetptr));
+  Cmd* mgetptr = new MgetCmd(
+      kCmdFlagsKv | kCmdFlagsRead | kCmdFlagsMultiPartition);
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::MGET), mgetptr));
   // FlushDBCmd
-  Cmd* flushdbptr = new FlushDBCmd(kCmdFlagsAdmin | kCmdFlagsWrite | kCmdFlagsSuspend);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(client::Type::FLUSHDB), flushdbptr));
+  Cmd* flushdbptr = new FlushDBCmd(
+      kCmdFlagsAdmin | kCmdFlagsWrite | kCmdFlagsSuspend);
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::FLUSHDB), flushdbptr));
 }
 
 void ZPDataServer::DoTimingTask() {

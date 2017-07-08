@@ -15,9 +15,9 @@
 #include <signal.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <glog/logging.h>
 #include <iostream>
 #include <sstream>
-#include <glog/logging.h>
 
 #include "slash/include/env.h"
 #include "src/node/zp_data_server.h"
@@ -48,7 +48,6 @@ static void GlogInit() {
 
 static void IntSigHandle(const int sig) {
   LOG(INFO) << "Catch Signal " << sig << ", cleanup...";
-  //zp_data_server->server_mutex_.Unlock();
   zp_data_server->Exit();
   LOG(INFO) << "data server Exit";
 }
@@ -79,7 +78,7 @@ void ZpConfInit(int argc, char* argv[]) {
   while (-1 != (c = getopt(argc, argv, "c:hv"))) {
     switch (c) {
       case 'c':
-        snprintf(path, 1024, "%s", optarg);
+        snprintf(path, sizeof(path), "%s", optarg);
         path_opt = true;
         break;
       case 'h':
@@ -97,7 +96,7 @@ void ZpConfInit(int argc, char* argv[]) {
   }
 
   if (path_opt == false) {
-    fprintf(stderr, "Please specify the conf file path\n" );
+    fprintf(stderr, "Please specify the conf file path\n");
     Usage();
     exit(-1);
   }

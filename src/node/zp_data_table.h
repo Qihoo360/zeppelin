@@ -11,12 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#ifndef ZP_DATA_TABLE_H
-#define ZP_DATA_TABLE_H
+#ifndef SRC_NODE_ZP_DATA_TABLE_H_
+#define SRC_NODE_ZP_DATA_TABLE_H_
 
 #include <set>
+#include <map>
 #include <atomic>
 #include <memory>
+#include <string>
 
 #include "include/zp_util.h"
 #include "include/zp_const.h"
@@ -32,7 +34,7 @@ std::shared_ptr<Table> NewTable(const std::string& table_name,
     const std::string& log_path, const std::string& data_path,
     const std::string& trash_path);
 
-class Table {
+class Table  {
  public:
   Table(const std::string& table_name, const std::string& log_path,
       const std::string& data_path, const std::string& trash_path);
@@ -44,7 +46,7 @@ class Table {
   bool UpdateOrAddPartition(int partition_id, ZPMeta::PState state,
       const Node& master, const std::set<Node>& slaves);
   void LeaveAllPartition();
-  
+
   uint32_t KeyToPartition(const std::string &key);
 
   void Dump();
@@ -67,4 +69,4 @@ class Table {
   void operator=(const Table&);
 };
 
-#endif
+#endif  // SRC_NODE_ZP_DATA_TABLE_H_

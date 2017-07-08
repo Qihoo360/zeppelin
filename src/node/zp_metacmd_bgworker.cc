@@ -15,6 +15,9 @@
 #include <string.h>
 #include <glog/logging.h>
 #include <google/protobuf/text_format.h>
+#include <set>
+#include <string>
+#include <memory>
 
 #include "src/node/zp_data_server.h"
 #include "include/zp_command.h"
@@ -48,7 +51,7 @@ void ZPMetacmdBGWorker::MetaUpdateTask(void* task) {
     return;
   }
 
-  if (worker->FetchMetaInfo(receive_epoch)) {
+  if (worker->FetchMetaInfo(&receive_epoch)) {
     // When we fetch OK, we will FinishPullMeta
     zp_data_server->FinishPullMeta(receive_epoch);
   } else {
@@ -73,7 +76,6 @@ pink::Status ZPMetacmdBGWorker::Send() {
   node->set_ip(zp_data_server->local_ip());
   node->set_port(zp_data_server->local_port());
 
-  // TODO rm
   std::string text_format;
   google::protobuf::TextFormat::PrintToString(request, &text_format);
   DLOG(INFO) << "MetacmdThread send pull: [" << text_format << "]";
@@ -81,12 +83,12 @@ pink::Status ZPMetacmdBGWorker::Send() {
   return cli_->Send(&request);
 }
 
-pink::Status ZPMetacmdBGWorker::Recv(int64_t &receive_epoch) {
+pink::Status ZPMetacmdBGWorker::Recv(int64_t* receive_epoch) {
   pink::Status result;
   ZPMeta::MetaCmdResponse response;
   std::string meta_ip = zp_data_server->meta_ip();
   int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;
-  result = cli_->Recv(&response); 
+  result = cli_->Recv(&response);
   if (result.ok()) {
     DLOG(INFO) << "succ MetacmdThread recv from MetaServer("
       << meta_ip << ":" << meta_port;
@@ -108,23 +110,23 @@ pink::Status ZPMetacmdBGWorker::Recv(int64_t &receive_epoch) {
 }
 
 pink::Status ZPMetacmdBGWorker::ParsePullResponse(
-    const ZPMeta::MetaCmdResponse &response, int64_t &receive_epoch) {
+    const ZPMeta::MetaCmdResponse &response, int64_t* receive_epoch) {
   if (response.code() != ZPMeta::StatusCode::OK) {
     return pink::Status::IOError(response.msg());
   }
 
-  receive_epoch = response.pull().version();
+  *receive_epoch = response.pull().version();
   ZPMeta::MetaCmdResponse_Pull pull = response.pull();
 
   DLOG(INFO) << "receive Pull message, will handle "
     << pull.info_size() << " Tables.";
-  std::set<std::string> miss_tables; // Tables I response for before but will not any more
+  std::set<std::string> miss_tables;  // response for before but not any more
   zp_data_server->GetAllTableName(&miss_tables);
 
   for (int i = 0; i < pull.info_size(); i++) {
     const ZPMeta::Table& table_info = pull.info(i);
     if (table_info.name().empty()) {
-      continue; // table name not null
+      continue;  // table name not null
     }
     DLOG(INFO) << " - handle Table " << table_info.name();
 
@@ -132,7 +134,8 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(
     miss_tables.erase(table_info.name());
 
     // Add or Update table info
-    std::shared_ptr<Table> table = zp_data_server->GetOrAddTable(table_info.name());
+    std::shared_ptr<Table> table
+      = zp_data_server->GetOrAddTable(table_info.name());
     assert(table != NULL);
 
     table->SetPartitionCount(table_info.partitions_size());
@@ -159,7 +162,7 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(
         LOG(WARNING) << "Failed to AddPartition " << partition.id()
           << ", State: " << static_cast<int>(partition.state())
           << ", partition master is " << partition.master().ip()
-          << ":" << partition.master().port() ;
+          << ":" << partition.master().port();
       }
     }
   }
@@ -168,20 +171,21 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(
   for (auto miss : miss_tables) {
     zp_data_server->DeleteTable(miss);
   }
-  
+
   // Print partitioin info
   zp_data_server->DumpTablePartitions();
   return pink::Status::OK();
-
 }
 
-bool ZPMetacmdBGWorker::FetchMetaInfo(int64_t &receive_epoch) {
+bool ZPMetacmdBGWorker::FetchMetaInfo(int64_t* receive_epoch) {
   pink::Status s;
   std::string meta_ip = zp_data_server->meta_ip();
   int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;
   // No more PickMeta, which should be done by ping thread
-  assert(!zp_data_server->meta_ip().empty() && zp_data_server->meta_port() != 0);
-  DLOG(INFO) << "MetacmdThread will connect ("<< meta_ip << ":" << meta_port << ")";
+  assert(!zp_data_server->meta_ip().empty()
+      && zp_data_server->meta_port() != 0);
+  DLOG(INFO) << "MetacmdThread will connect ("
+    << meta_ip << ":" << meta_port << ")";
   s = cli_->Connect(meta_ip, meta_port);
   if (s.ok()) {
     cli_->set_send_timeout(1000);
@@ -190,9 +194,10 @@ bool ZPMetacmdBGWorker::FetchMetaInfo(int64_t &receive_epoch) {
 
     s = Send();
     DLOG(INFO) << "Metacmd connect (" << meta_ip << ":" << meta_port << ") ok!";
-    
+
     if (!s.ok()) {
-      LOG(WARNING) << "Metacmd send to (" << meta_ip << ":" << meta_port << ") failed! caz:" << s.ToString();
+      LOG(WARNING) << "Metacmd send to (" << meta_ip << ":" << meta_port
+        << ") failed! caz:" << s.ToString();
       cli_->Close();
       return false;
     }
@@ -200,16 +205,20 @@ bool ZPMetacmdBGWorker::FetchMetaInfo(int64_t &receive_epoch) {
 
     s = Recv(receive_epoch);
     if (!s.ok()) {
-      LOG(WARNING) << "Metacmd recv from (" << meta_ip << ":" << meta_port << ") failed! caz:" << s.ToString();
-      LOG(WARNING) << "Metacmd recv from (" << meta_ip << ":" << meta_port << ") failed! errno:" << errno << " strerr:" << strerror(errno);
+      LOG(WARNING) << "Metacmd recv from (" << meta_ip << ":" << meta_port
+        << ") failed! caz:" << s.ToString();
+      LOG(WARNING) << "Metacmd recv from (" << meta_ip << ":" << meta_port
+        << ") failed! errno:" << errno << " strerr:" << strerror(errno);
       cli_->Close();
       return false;
     }
-    DLOG(INFO) << "Metacmd recv from (" << meta_ip << ":" << meta_port << ") ok";
+    DLOG(INFO) << "Metacmd recv from (" << meta_ip << ":" << meta_port
+      << ") ok";
     cli_->Close();
     return true;
   } else {
-    LOG(WARNING) << "Metacmd connect (" << meta_ip << ":" << meta_port << ") failed! caz:" << s.ToString();
+    LOG(WARNING) << "Metacmd connect (" << meta_ip << ":" << meta_port
+      << ") failed! caz:" << s.ToString();
     return false;
   }
 }

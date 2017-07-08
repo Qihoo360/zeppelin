@@ -29,7 +29,7 @@ ZPTrySyncThread::ZPTrySyncThread():
 ZPTrySyncThread::~ZPTrySyncThread() {
   bg_thread_->StopThread();
   delete bg_thread_;
-  for (auto &kv: client_pool_) {
+  for (auto &kv : client_pool_) {
     kv.second->Close();
     delete kv.second;
   }
@@ -42,7 +42,7 @@ void ZPTrySyncThread::TrySyncTaskSchedule(const std::string& table,
   slash::MutexLock l(&bg_thread_protector_);
   bg_thread_->StartThread();
   TrySyncTaskArg *targ = new TrySyncTaskArg(this, table, partition_id);
-  if (delay == 0) { // no delay
+  if (delay == 0) {  // no delay
     bg_thread_->Schedule(&DoTrySyncTask, static_cast<void*>(targ));
   } else {
     bg_thread_->DelaySchedule(delay, &DoTrySyncTask, static_cast<void*>(targ));
@@ -55,20 +55,23 @@ void ZPTrySyncThread::DoTrySyncTask(void* arg) {
   delete targ;
 }
 
-void ZPTrySyncThread::TrySyncTask(const std::string& table_name, int partition_id) {
-  
-  if (!zp_data_server->Availible() // server is not availible now
+void ZPTrySyncThread::TrySyncTask(const std::string& table_name,
+    int partition_id) {
+
+  if (!zp_data_server->Availible()  // server is not availible now
       || !SendTrySync(table_name, partition_id)) {
     // Need one more trysync, since error happenning or waiting for db sync
     LOG(WARNING) << "SendTrySync delay " << kTrySyncInterval
       << "(ms) to ReSchedule for table:" << table_name
-      << ", partition:" << partition_id << ",  meta_epoch:" << zp_data_server->meta_epoch();
+      << ", partition:" << partition_id
+      << ",  meta_epoch:" << zp_data_server->meta_epoch();
     zp_data_server->AddSyncTask(table_name, partition_id, kTrySyncInterval);
   }
 }
 
-bool ZPTrySyncThread::Send(std::shared_ptr<Partition> partition, pink::PinkCli* cli) {
-  // Generate Request 
+bool ZPTrySyncThread::Send(std::shared_ptr<Partition> partition,
+    pink::PinkCli* cli) {
+  // Generate Request
   client::CmdRequest request;
   client::CmdRequest_Sync* sync = request.mutable_sync();
   request.set_type(client::Type::SYNC);
@@ -92,18 +95,19 @@ bool ZPTrySyncThread::Send(std::shared_ptr<Partition> partition, pink::PinkCli* 
     << sync->node().ip() << ":" << sync->node().port()
     << ", " << filenum << ", " << offset << ")";
   if (!s.ok()) {
-    LOG(WARNING) << "TrySync send failed, Partition " << partition->table_name()
+    LOG(WARNING) << "TrySync send failed, Partition "
+      << partition->table_name()
       << "_" << partition->partition_id() << ", caz " << s.ToString();
     return false;
   }
   return true;
 }
 
-bool ZPTrySyncThread::Recv(std::shared_ptr<Partition> partition, pink::PinkCli* cli,
-    RecvResult* res) {
+bool ZPTrySyncThread::Recv(std::shared_ptr<Partition> partition,
+    pink::PinkCli* cli, RecvResult* res) {
   // Recv from client
   client::CmdResponse response;
-  Status result = cli->Recv(&response); 
+  Status result = cli->Recv(&response);
   if (!result.ok()) {
     LOG(WARNING) << "TrySync recv failed, Partition:"
       << partition->partition_id() << ", caz " << result.ToString();
@@ -117,7 +121,7 @@ bool ZPTrySyncThread::Recv(std::shared_ptr<Partition> partition, pink::PinkCli* 
       << partition->partition_id();
     return false;
   }
-  if (response.has_sync())  {
+  if (response.has_sync()) {
     res->filenum = response.sync().sync_offset().filenum();
     res->offset = response.sync().sync_offset().offset();
   }
@@ -160,13 +164,15 @@ void ZPTrySyncThread::DropConnection(const Node& node) {
 /*
  * Return false if one more trysync is needed
  */
-bool ZPTrySyncThread::SendTrySync(const std::string& table_name, int partition_id) {
+bool ZPTrySyncThread::SendTrySync(const std::string& table_name,
+    int partition_id) {
   std::shared_ptr<Partition> partition =
     zp_data_server->GetTablePartitionById(table_name, partition_id);
   if (!partition
       || !partition->opened()) {
     // Partition maybe deleted or closed, no need to rescheule again
-    DLOG(INFO) << "SendTrySync closed or deleted Partition " << table_name << "_" << partition_id;
+    DLOG(INFO) << "SendTrySync closed or deleted Partition "
+      << table_name << "_" << partition_id;
     return true;
   }
 
@@ -218,30 +224,30 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name, int partition_i
             break;
           case client::StatusCode::kWait:
             LOG(INFO) << "Receive wait dbsync wait";
-            RsyncRef(); // Keep the rsync deamon for sync file receive
+            RsyncRef();  // Keep the rsync deamon for sync file receive
             partition->SetWaitDBSync();
             break;
           default:
-            LOG(WARNING) << "TrySyncThread failed, " 
+            LOG(WARNING) << "TrySyncThread failed, "
               << partition->table_name() << "_" << partition->partition_id()
               << "_" << master_node.ip << ":" << master_node.port << "), Msg: "
               << res.message;
         }
       } else {
-        LOG(WARNING) << "TrySyncThread Recv failed, " 
+        LOG(WARNING) << "TrySyncThread Recv failed, "
           << partition->table_name() << "_" << partition->partition_id()
           << "_" << master_node.ip << ":" << master_node.port << ")";
         DropConnection(master_node);
       }
     } else {
-      LOG(WARNING) << "TrySyncThread Send failed, " 
+      LOG(WARNING) << "TrySyncThread Send failed, "
         << partition->table_name() << "_" << partition->partition_id()
         << "_" << master_node.ip << ":" << master_node.port << ")";
       DropConnection(master_node);
     }
     RsyncUnref();
   } else {
-    LOG(WARNING) << "TrySyncThread Connect failed (" 
+    LOG(WARNING) << "TrySyncThread Connect failed ("
       << partition->table_name() << "_" << partition->partition_id()
       << "_" << master_node.ip << ":" << master_node.port << ")";
   }
@@ -258,9 +264,11 @@ void ZPTrySyncThread::RsyncRef() {
     // We append the master ip port after module name
     // To make sure only data from current master is received
     int ret = slash::StartRsync(dbsync_path, kDBSyncModule,
-        zp_data_server->local_ip(), zp_data_server->local_port() + kPortShiftRsync);
+        zp_data_server->local_ip(),
+        zp_data_server->local_port() + kPortShiftRsync);
     if (0 != ret) {
-      LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
+      LOG(WARNING) << "Failed to start rsync, path:"
+        << dbsync_path << " error : " << ret;
     }
     LOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
   }

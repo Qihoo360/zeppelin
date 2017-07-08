@@ -179,7 +179,7 @@ void MgetCmd::Do(const google::protobuf::Message *req,
     client::CmdRequest_Get* get = sub_req.mutable_get();
     get->set_table_name(request->mget().table_name());
     get->set_key(key);
-    partition->DoCommand(sub_cmd, sub_req, sub_res);
+    partition->DoCommand(sub_cmd, sub_req, &sub_res);
     if (sub_res.code() != client::StatusCode::kOk
         && sub_res.code() != client::StatusCode::kNotFound) {
       response->set_code(sub_res.code());
@@ -214,7 +214,7 @@ void InfoCmd::Do(const google::protobuf::Message *req,
       response->set_type(client::Type::INFOSTATS);
 
       std::vector<Statistic> stats;
-      zp_data_server->GetTableStat(StatType::kClient, table_name, stats);
+      zp_data_server->GetTableStat(StatType::kClient, table_name, &stats);
       DLOG(INFO) << "InfoStat with " << stats.size() << " tables total";
 
       for (auto it = stats.begin(); it != stats.end(); it++) {
@@ -228,7 +228,7 @@ void InfoCmd::Do(const google::protobuf::Message *req,
     case client::Type::INFOCAPACITY: {
       response->set_type(client::Type::INFOCAPACITY);
       std::vector<Statistic> stats;
-      zp_data_server->GetTableCapacity(table_name, stats);
+      zp_data_server->GetTableCapacity(table_name, &stats);
       DLOG(INFO) << "InfoCapacity with " << stats.size() << " tables total";
 
       for (auto it = stats.begin(); it != stats.end(); it++) {

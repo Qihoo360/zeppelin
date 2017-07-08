@@ -1,5 +1,18 @@
-#ifndef ZP_DATA_PARTITION_H
-#define ZP_DATA_PARTITION_H
+// Copyright 2017 Qihoo
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http:// www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+#ifndef SRC_NODE_ZP_DATA_PARTITION_H_
+#define SRC_NODE_ZP_DATA_PARTITION_H_
 
 #include <memory>
 #include <functional>
@@ -7,6 +20,8 @@
 #include <unordered_map>
 #include <set>
 #include <map>
+#include <vector>
+#include <string>
 
 #include "include/db_nemo.h"
 #include "include/db_nemo_checkpoint.h"
@@ -18,12 +33,12 @@
 #include "include/zp_meta_utils.h"
 #include "include/zp_command.h"
 
-
 class Partition;
 std::string NewPartitionPath(const std::string& name, const uint32_t current);
 std::shared_ptr<Partition> NewPartition(const std::string &table_name,
-    const std::string& log_path, const std::string& data_path, const std::string& trash_path,
-    const int partition_id, const Node& master, const std::set<Node> &slaves);
+    const std::string& log_path, const std::string& data_path,
+    const std::string& trash_path, const int partition_id,
+    const Node& master, const std::set<Node> &slaves);
 
 // Slave item
 struct SlaveItem {
@@ -56,7 +71,8 @@ struct BinlogOffset {
   }
 };
 
-typedef std::unordered_map<std::string, std::map<int, BinlogOffset>> TablePartitionOffsets;
+typedef std::unordered_map<std::string,
+        std::map<int, BinlogOffset>> TablePartitionOffsets;
 
 struct PartitionSyncOption {
   client::SyncType type;
@@ -97,7 +113,7 @@ struct BGSaveInfo {
   std::string path;
   uint32_t filenum;
   uint64_t offset;
-  BGSaveInfo() : bgsaving(false), filenum(0), offset(0){}
+  BGSaveInfo() : bgsaving(false), filenum(0), offset(0) {}
   void Clear() {
     bgsaving = false;
     path.clear();
@@ -106,8 +122,8 @@ struct BGSaveInfo {
   }
 };
 
-class Partition {
-  public:
+class Partition  {
+ public:
   Partition(const std::string& table_name, const int partition_id,
       const std::string& log_path, const std::string& data_path,
       const std::string& trash_path);
@@ -142,7 +158,7 @@ class Partition {
   void DoBinlogCommand(const PartitionSyncOption& option,
       const Cmd* cmd, const client::CmdRequest &req);
   void DoCommand(const Cmd* cmd, const client::CmdRequest &req,
-      client::CmdResponse &res);
+      client::CmdResponse *res);
   void DoBinlogSkip(const PartitionSyncOption& option, uint64_t gap);
 
   // Status related
@@ -154,7 +170,8 @@ class Partition {
   void WaitDBSyncDone();
 
   // Partition node related
-  void Update(ZPMeta::PState state, const Node& master, const std::set<Node> &slaves);
+  void Update(ZPMeta::PState state, const Node& master,
+      const std::set<Node> &slaves);
   void Leave();
   Status FlushDb();
 
@@ -167,7 +184,7 @@ class Partition {
   void Dump();
   bool GetWinBinlogOffset(uint32_t* filenum, uint64_t* offset);
   void GetState(client::PartitionState* state);
-  
+
   void DoTimingTask();
 
  private:
@@ -181,9 +198,9 @@ class Partition {
 
   Status Open();
   void Close();
-  
+
   // State related
-  pthread_rwlock_t state_rw_; //protect partition status below
+  pthread_rwlock_t state_rw_;  // protect partition status below
   std::atomic<bool> opened_;
   Node master_node_;
   std::set<Node> slave_nodes_;
@@ -203,13 +220,13 @@ class Partition {
 
   // Binlog related
   Binlog* logger_;
-  bool CheckBinlogFiles(); // Check binlog availible and update purge_index_
+  bool CheckBinlogFiles();  // Check binlog availible and update purge_index_
   Status SetBinlogOffset(uint32_t filenum, uint64_t offset);
   bool GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) const;
 
   // DoCommand related
   slash::RecordMutex mutex_record_;
-  pthread_rwlock_t suspend_rw_; // Some command use suspend_rw to suspend others
+  pthread_rwlock_t suspend_rw_;  // To suspend others
 
   // Recover sync related
   std::atomic<bool> do_recovery_sync_;
@@ -249,9 +266,9 @@ class Partition {
   std::atomic<bool> purging_;
   // protect purge index between purge thread and trysync command
   // Notice purged_index_rw_ should lock after state_rw_
-  pthread_rwlock_t purged_index_rw_; 
-  uint32_t purged_index_; // binlog before which has or will be purged
-  bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
+  pthread_rwlock_t purged_index_rw_;
+  uint32_t purged_index_;  // binlog before which has or will be purged
+  bool GetBinlogFiles(std::map<uint32_t, std::string>* binlogs);
   static void DoPurgeLogs(void* arg);
   bool CouldPurge(uint32_t index);
   bool PurgeLogs(uint32_t to, bool manual);
@@ -268,4 +285,4 @@ class Partition {
   void operator=(const Partition&);
 };
 
-#endif
+#endif  // SRC_NODE_ZP_DATA_PARTITION_H_

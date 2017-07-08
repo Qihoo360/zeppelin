@@ -13,13 +13,14 @@
 // limitations under the License.
 #include "src/node/zp_data_partition.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <vector>
-#include <fstream>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <glog/logging.h>
+
+#include <fstream>
+#include <utility>
 
 #include "slash/include/rsync.h"
 #include "src/node/zp_data_server.h"
@@ -30,7 +31,7 @@ struct DBSyncArg {
   Partition* p;
   std::string ip;
   int port;
-  DBSyncArg(Partition* _p, const std::string& _ip, int &_port)
+  DBSyncArg(Partition* _p, const std::string& _ip, int _port)
     : p(_p), ip(_ip), port(_port) {}
 };
 
@@ -58,26 +59,28 @@ Partition::Partition(const std::string& table_name, const int partition_id,
     data_path_ = NewPartitionPath(data_path, partition_id_);
     trash_path_ = NewPartitionPath(trash_path, partition_id_);
     slash::CreatePath(trash_path_);
-    sync_path_ = NewPartitionPath(zp_data_server->db_sync_path() + table_name_ + "/", partition_id_);
-    bgsave_path_ = NewPartitionPath(zp_data_server->bgsave_path() + table_name_ + "/", partition_id_);
+    sync_path_ = NewPartitionPath(zp_data_server->db_sync_path()
+        + table_name_ + "/", partition_id_);
+    bgsave_path_ = NewPartitionPath(zp_data_server->bgsave_path()
+        + table_name_ + "/", partition_id_);
 
     pthread_rwlockattr_t attr;
     pthread_rwlockattr_init(&attr);
-    pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
-    
+    pthread_rwlockattr_setkind_np(&attr,
+        PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+
     pthread_rwlock_init(&state_rw_, &attr);
     pthread_rwlock_init(&suspend_rw_, &attr);
-    
-    pthread_rwlock_init(&purged_index_rw_, NULL);
 
+    pthread_rwlock_init(&purged_index_rw_, NULL);
   }
 
 // Requeired: hold write lock of state_rw_
 Status Partition::Open() {
-  if (opened_) { 
+  if (opened_) {
     return Status::OK();
   }
-  
+
   // Create db handle
   rocksdb::Status rs = rocksdb::DBNemo::Open(*(zp_data_server->db_options()),
       data_path_, &db_);
@@ -117,11 +120,13 @@ void Partition::Close() {
 
   // Move data and log to Trash
   slash::DeleteDirIfExist(trash_path_ + "db/");
-  if (0 != slash::RenameFile(data_path_.c_str(), (trash_path_ + "db/").c_str())) {
+  if (0 != slash::RenameFile(data_path_.c_str(),
+        (trash_path_ + "db/").c_str())) {
     LOG(WARNING) << "Failed to move db to trash, error: " << strerror(errno);
   }
   slash::DeleteDirIfExist(trash_path_ + "log/");
-  if (0 != slash::RenameFile(log_path_.c_str(), (trash_path_ + "log/").c_str())) {
+  if (0 != slash::RenameFile(log_path_.c_str(),
+        (trash_path_ + "log/").c_str())) {
     LOG(WARNING) << "Failed to move db to trash, error: " << strerror(errno);
   }
 
@@ -136,14 +141,17 @@ Partition::~Partition() {
   pthread_rwlock_destroy(&purged_index_rw_);
   pthread_rwlock_destroy(&suspend_rw_);
   pthread_rwlock_destroy(&state_rw_);
-  LOG(INFO) << " Partition " << table_name_ << "_" << partition_id_ << " exit!!!";
+  LOG(INFO) << " Partition " << table_name_ << "_"
+    << partition_id_ << " exit!!!";
 }
 
 bool Partition::ShouldWaitDBSync() {
   slash::RWLock l(&state_rw_, false);
-  DLOG(INFO) << " Partition: " << table_name_ << "_" << partition_id_ << " ShouldWaitDBSync " 
+  DLOG(INFO) << " Partition: " << table_name_ << "_" << partition_id_
+    << " ShouldWaitDBSync "
     << (repl_state_ == ReplState::kWaitDBSync ? "true" : "false")
-    << ", repl_state: " << ReplStateMsg[repl_state_] << " role: " << RoleMsg[role_];
+    << ", repl_state: " << ReplStateMsg[repl_state_]
+    << " role: " << RoleMsg[role_];
   return repl_state_ == ReplState::kWaitDBSync;
 }
 
@@ -157,13 +165,15 @@ void Partition::WaitDBSyncDone() {
   slash::RWLock l(&state_rw_, true);
   assert(ReplState::kWaitDBSync == repl_state_);
   repl_state_ = ReplState::kShouldConnect;
-  LOG(INFO) << "Partition: " << table_name_ << "_" << partition_id_ << " WaitDBSyncDone  set repl_state: " << ReplStateMsg[repl_state_] <<
-    "Master Node:" << master_node_.ip << ":" << master_node_.port;
+  LOG(INFO) << "Partition: " << table_name_ << "_" << partition_id_
+    << " WaitDBSyncDone  set repl_state: " << ReplStateMsg[repl_state_]
+    << " Master Node:" << master_node_.ip << ":" << master_node_.port;
 }
 
 bool Partition::ShouldTrySync() {
   slash::RWLock l(&state_rw_, false);
-  DLOG(INFO) << "Partition: " << table_name_ << "_" << partition_id_ << " ShouldTrySync " 
+  DLOG(INFO) << "Partition: " << table_name_ << "_" << partition_id_
+    << " ShouldTrySync "
     << (repl_state_ == ReplState::kShouldConnect ? "true" : "false")
     <<  ", repl_state: " << ReplStateMsg[repl_state_];
   return repl_state_ == ReplState::kShouldConnect;
@@ -173,24 +183,28 @@ void Partition::TrySyncDone() {
   slash::RWLock l(&state_rw_, true);
   assert(ReplState::kShouldConnect == repl_state_);
   repl_state_ = ReplState::kConnected;
-  LOG(INFO) << " Partition: " << table_name_ << "_" << partition_id_ << " TrySyncDone  set repl_state: " << ReplStateMsg[repl_state_] <<
-    ", Master Node:" << master_node_.ip << ":" << master_node_.port;
+  LOG(INFO) << " Partition: " << table_name_ << "_" << partition_id_
+    << " TrySyncDone  set repl_state: " << ReplStateMsg[repl_state_]
+    <<", Master Node:" << master_node_.ip << ":" << master_node_.port;
 }
 
-// Required: hold write mutex of state_rw_ or write mutex of suspend_rw_ as to block any other operation
+// Required: hold write mutex of state_rw_ or write mutex of suspend_rw_
+// as to block any other operation
 Status Partition::ChangeDb(const std::string& new_path) {
   std::string tmp_path(trash_path_ + "obsolete");
   slash::DeleteDirIfExist(tmp_path);
   DLOG(INFO) << "Prepare change db from: " << tmp_path;
   delete db_;
   if (0 != slash::RenameFile(data_path_, tmp_path)) {
-    LOG(WARNING) << "Failed to rename db path when change db, error: " << strerror(errno);
+    LOG(WARNING) << "Failed to rename db path when change db, error: "
+      << strerror(errno);
     return Status::Corruption(strerror(errno));
   }
 
   if (0 != slash::RenameFile(new_path, data_path_)) {
     DLOG(INFO) << "Rename (" << new_path.c_str() << ", " << data_path_.c_str();
-    LOG(WARNING) << "Failed to rename new db path when change db, error: " << strerror(errno);
+    LOG(WARNING) << "Failed to rename new db path when change db, error: "
+      << strerror(errno);
     return Status::Corruption(strerror(errno));
   }
   rocksdb::Status s = rocksdb::DBNemo::Open(*(zp_data_server->db_options()),
@@ -199,7 +213,8 @@ Status Partition::ChangeDb(const std::string& new_path) {
     LOG(WARNING) << "Failed to change to new db error: " << s.ToString();
     return Status::Corruption(s.ToString());
   }
-  LOG(INFO) << "Change Parition " << table_name_ << "_" << partition_id_ << " db success";
+  LOG(INFO) << "Change Parition " << table_name_ << "_" << partition_id_
+    << " db success";
   return Status::OK();
 }
 
@@ -213,8 +228,7 @@ Status Partition::FlushDb() {
   return ChangeDb(empty_path);
 }
 
-
-////// BGSave //////
+////// BGSave //// / /
 
 // Prepare env
 // Required: hold read mutex of state_rw_
@@ -223,19 +237,22 @@ bool Partition::InitBgsaveEnv() {
   // Prepare for bgsave dir
   bgsave_info_.start_time = time(NULL);
   char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
+  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S",
+      localtime(&bgsave_info_.start_time));
   bgsave_info_.s_start_time.assign(s_time, len);
   bgsave_info_.path = bgsave_path_;
   if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
-    LOG(WARNING) << "Remove exist bgsave dir failed, Partition:" << partition_id_;
+    LOG(WARNING) << "Remove exist bgsave dir failed, Partition:"
+      << partition_id_;
     return false;
   }
-  slash::CreatePath(bgsave_info_.path, 0755); // create parent directory
+  slash::CreatePath(bgsave_info_.path, 0755);  // create parent directory
   bgsave_info_.path += std::string(s_time, 8);
 
   // Prepare for failed dir
   if (!slash::DeleteDirIfExist(bgsave_info_.path + "_FAILED")) {
-    LOG(WARNING) << "remove exist fail bgsave dir failed, Partition:" << partition_id_;
+    LOG(WARNING) << "remove exist fail bgsave dir failed, Partition:"
+      << partition_id_;
     return false;
   }
 
@@ -257,7 +274,7 @@ bool Partition::InitBgsaveContent(rocksdb::DBNemoCheckpoint* cp,
         content->live_wal_files,
         content->manifest_file_size,
         content->sequence_number);
-    if (!s.ok()){
+    if (!s.ok()) {
       LOG(WARNING) << "set backup content failed " << s.ToString();
       return false;
     }
@@ -290,7 +307,8 @@ bool Partition::RunBgsave() {
   }
 
   BGSaveInfo info = bgsave_info();
-  DLOG(INFO) << "   bgsave_info: path=" << info.path << ",  filenum=" << info.filenum
+  DLOG(INFO) << "   bgsave_info: path=" << info.path
+    << ",  filenum=" << info.filenum
     << ", offset=" << info.offset;
 
   // Backup to tmp dir
@@ -331,13 +349,14 @@ void Partition::DoBgsave(void* arg) {
 
   BGSaveInfo info = p->bgsave_info();
   DLOG(INFO) << "DoBGSave info file " << zp_data_server->local_ip()
-    << ":" << zp_data_server->local_port() << " filenum=" << info.filenum << " offset=" << info.offset;
+    << ":" << zp_data_server->local_port() << " filenum=" << info.filenum
+    << " offset=" << info.offset;
   // Some output
   std::ofstream out;
   out.open(info.path + "/info", std::ios::in | std::ios::trunc);
   if (out.is_open()) {
     out << (time(NULL) - info.start_time) << "s\n"
-      << zp_data_server->local_ip() << "\n" 
+      << zp_data_server->local_ip() << "\n"
       << zp_data_server->local_port() << "\n"
       << info.filenum << "\n"
       << info.offset << "\n";
@@ -365,7 +384,8 @@ bool Partition::TryUpdateMasterOffset() {
   std::ifstream is(info_path);
   if (!is) {
     LOG(WARNING) << "Failed to open info file after db sync, table: "
-      << table_name_ << " Partition:" << partition_id_ << " info_path:" << info_path;
+      << table_name_ << " Partition:" << partition_id_
+      << " info_path:" << info_path;
     return false;
   }
   std::string line, master_ip;
@@ -382,9 +402,13 @@ bool Partition::TryUpdateMasterOffset() {
         is.close();
         return false;
       }
-      if (lineno == 3) { master_port = tmp; }
-      else if (lineno == 4) { filenum = tmp; }
-      else { offset = tmp; }
+      if (lineno == 3) {
+        master_port = tmp;
+      } else if (lineno == 4) {
+        filenum = tmp;
+      } else {
+        offset = tmp;
+      }
 
     } else if (lineno > 5) {
       LOG(WARNING) << "Format of info file after db sync error, Partition:"
@@ -394,7 +418,8 @@ bool Partition::TryUpdateMasterOffset() {
     }
   }
   is.close();
-  DLOG(INFO) << " info_path is " << info_path << ", sync_path_ is " << sync_path_;
+  DLOG(INFO) << " info_path is " << info_path
+    << ", sync_path_ is " << sync_path_;
   LOG(INFO) << "Information from dbsync info. Paritition: " << partition_id_
     << " master_ip: " << master_ip
     << ", master_port: " << master_port
@@ -411,7 +436,8 @@ bool Partition::TryUpdateMasterOffset() {
 
   if (master_ip != master_node_.ip || master_port != master_node_.port) {
     LOG(WARNING) << "Error master ip port: " << master_ip << ":" << master_port
-      << ". current master ip port: " << master_node_.ip <<":" << master_node_.port ;
+      << ". current master ip port: " << master_node_.ip
+      << ":" << master_node_.port;
     return false;
   }
 
@@ -430,7 +456,8 @@ bool Partition::TryUpdateMasterOffset() {
 // Return InvalidArgument when the offset is invalid
 // Return Incomplete when neet sync db
 // Required: state_rw hold and partition opened
-Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset) {
+Status Partition::SlaveAskSync(const Node &node, uint32_t filenum,
+    uint64_t offset) {
   // Check role
   if (role_ != Role::kNodeMaster
       || slave_nodes_.find(node) == slave_nodes_.end()) {
@@ -444,7 +471,8 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
   logger_->GetProducerStatus(&cur_filenum, &cur_offset);
-  if (cur_filenum < filenum || (cur_filenum == filenum && cur_offset < offset)) {
+  if (cur_filenum < filenum
+      || (cur_filenum == filenum && cur_offset < offset)) {
     return Status::EndFile("AddBinlogSender invalid binlog offset");
   }
 
@@ -460,7 +488,8 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offs
 
   // Add binlog send task
   Status s = zp_data_server->AddBinlogSendTask(table_name_, partition_id_,
-      logger_->filename(), Node(node.ip, node.port + kPortShiftSync), filenum, offset);
+      logger_->filename(), Node(node.ip, node.port + kPortShiftSync),
+      filenum, offset);
   if (s.ok()) {
     LOG(INFO) << "Success AddBinlogSendTask for Table " << table_name_
       << " Partition " << partition_id_ << " To "
@@ -506,7 +535,7 @@ void Partition::BecomeMaster() {
     << ", Partition " << partition_id_ << " BecomeMaster";
   role_ = Role::kNodeMaster;
   repl_state_ = ReplState::kNoConnect;
-  
+
   // Record binlog offset when I win the master for the later slave sync
   GetBinlogOffset(&win_filenum_, &win_offset_);
 }
@@ -516,7 +545,8 @@ void Partition::BecomeSlave() {
   Open();
   LOG(INFO) << "Table: " << table_name_
     << ", Partition " << partition_id_
-    << " BecomeSlave, master is " << master_node_.ip << ":" << master_node_.port;
+    << " BecomeSlave, master is " << master_node_.ip
+    << ":" << master_node_.port;
   role_ = Role::kNodeSlave;
   repl_state_ = ReplState::kShouldConnect;
 
@@ -560,7 +590,8 @@ void Partition::Update(ZPMeta::PState state, const Node &master,
     for (auto& slave : slaves) {
       slave_nodes_.insert(slave);
       // Remove those who also exist in the new slaves
-      // And what's remain in miss_slaves is those who will not be slave any more
+      // And what's remain in miss_slaves is those
+      // who will not be slave any more
       miss_slaves.erase(slave);
     }
   }
@@ -594,7 +625,7 @@ void Partition::Update(ZPMeta::PState state, const Node &master,
     } else if (new_role == Role::kNodeSlave) {
       BecomeSlave();
     } else {
-      BecomeSingle(); 
+      BecomeSingle();
     }
   } else if (change_master && role_ == Role::kNodeSlave) {
     // Change master
@@ -619,8 +650,9 @@ std::string NewPartitionPath(const std::string& name, const uint32_t current) {
 }
 
 std::shared_ptr<Partition> NewPartition(const std::string &table_name,
-    const std::string& log_path, const std::string& data_path, const std::string& trash_path,
-    const int partition_id, const Node& master, const std::set<Node> &slaves) {
+    const std::string& log_path, const std::string& data_path,
+    const std::string& trash_path,  const int partition_id,
+    const Node& master, const std::set<Node> &slaves) {
   std::shared_ptr<Partition> partition(new Partition(table_name,
       partition_id, log_path, data_path, trash_path));
   return partition;
@@ -642,13 +674,15 @@ Status Partition::SetBinlogOffset(uint32_t filenum, uint64_t offset) {
   return s;
 }
 
-bool Partition::GetBinlogOffsetWithLock(uint32_t* filenum, uint64_t* offset) {
+bool Partition::GetBinlogOffsetWithLock(uint32_t* filenum,
+    uint64_t* offset) {
   slash::RWLock l(&state_rw_, false);
   return GetBinlogOffset(filenum, offset);
 }
 
 // Required: hold read mutex of state_rw_
-bool Partition::GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) const {
+bool Partition::GetBinlogOffset(uint32_t* filenum,
+    uint64_t* pro_offset) const {
   if (!opened_) {
     return false;
   }
@@ -671,7 +705,8 @@ bool Partition::CheckSyncOption(const PartitionSyncOption& option) {
   }
 
   // Check from node
-  if (option.from_node != slash::IpPortString(master_node_.ip, master_node_.port)) {
+  if (option.from_node != slash::IpPortString(master_node_.ip,
+        master_node_.port)) {
     LOG(WARNING) << "Discard binlog item from " << option.from_node
       << ", partition:" << partition_id_
       << ", current my master is " << master_node_;
@@ -761,34 +796,35 @@ void Partition::DoBinlogSkip(const PartitionSyncOption& option,
 }
 
 void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
-    client::CmdResponse &res) {
+    client::CmdResponse *res) {
   std::string key = cmd->ExtractKey(&req);
 
   slash::RWLock l(&state_rw_, false);
   if (!opened_
       || role_ != Role::kNodeMaster) {
-    res.set_type(req.type());
-    res.set_code(client::StatusCode::kMove);
-    res.set_msg("Command Redirect");
+    res->set_type(req.type());
+    res->set_code(client::StatusCode::kMove);
+    res->set_msg("Command Redirect");
 
-    client::Node* node = res.mutable_redirect();
+    client::Node* node = res->mutable_redirect();
     node->set_ip(master_node_.ip);
     node->set_port(master_node_.port);
 
-    LOG(WARNING) << "Should redirect, failed to DoCommand  at table: " << table_name_
-      << ", Partition: " << partition_id_
+    LOG(WARNING) << "Should redirect, failed to DoCommand  at table: "
+      << table_name_ << ", Partition: " << partition_id_
       << " Role:" << RoleMsg[role_] << " redirect to master:" << node;
     return;
   }
-  
-  if (cmd->is_write() && pstate_ == ZPMeta::PState::STUCK) {
-    res.set_type(req.type());
-    res.set_code(client::StatusCode::kWait);
-    res.set_msg("partition stucked");
 
-    LOG(WARNING) << "Partition Stuck, failed to DoCommand  at table: " << table_name_
-      << ", Partition: " << partition_id_
-      << " Role:" << RoleMsg[role_] << " ParititionState:" << static_cast<int>(pstate_);
+  if (cmd->is_write() && pstate_ == ZPMeta::PState::STUCK) {
+    res->set_type(req.type());
+    res->set_code(client::StatusCode::kWait);
+    res->set_msg("partition stucked");
+
+    LOG(WARNING) << "Partition Stuck, failed to DoCommand  at table: "
+      << table_name_ << ", Partition: " << partition_id_
+      << " Role:" << RoleMsg[role_] << " ParititionState:"
+      << static_cast<int>(pstate_);
     return;
   }
 
@@ -805,14 +841,14 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
   if (cmd->is_write()) {
     mutex_record_.Lock(key);
   }
-  
-  cmd->Do(&req, &res, this);
+
+  cmd->Do(&req, res, this);
 
   if (cmd->is_write()) {
-    if (res.code() == client::StatusCode::kOk) {
+    if (res->code() == client::StatusCode::kOk) {
       // Restore Message
       std::string raw;
-      if(cmd->GenerateLog(&req, &raw)) {
+      if (cmd->GenerateLog(&req, &raw)) {
         logger_->Put(raw);
       }
     }
@@ -870,7 +906,8 @@ void Partition::DoTimingTask() {
 
 // Required: hold read mutex of state_rw_
 void Partition::TryDBSync(const std::string& ip, int port, int32_t top) {
-  DLOG(INFO) << "TryDBSync " << ip << ":" << port << ", top=" << top << " Partition:" << partition_id_;
+  DLOG(INFO) << "TryDBSync " << ip << ":" << port
+    << ", top=" << top << " Partition:" << partition_id_;
 
   std::string bg_path;
   uint32_t bg_filenum = 0;
@@ -880,9 +917,10 @@ void Partition::TryDBSync(const std::string& ip, int port, int32_t top) {
     bg_filenum = bgsave_info_.filenum;
   }
 
-  if (0 != slash::IsDir(bg_path) ||                               //Bgsaving dir exist
-      !slash::FileExists(NewFileName(logger_->filename(), bg_filenum)) ||  //filenum can be found in binglog
-      top - bg_filenum > kDBSyncMaxGap) {      //The file is not too old
+  if (0 != slash::IsDir(bg_path) ||  // Bgsaving dir exist
+      !slash::FileExists(NewFileName(logger_->filename(), bg_filenum)) ||
+                                      // filenum can be found in binglog
+      top - bg_filenum > kDBSyncMaxGap) {      // The file is not too old
     // Need Bgsave first
     Bgsave();
   }
@@ -914,11 +952,11 @@ void Partition::DoDBSync(void* arg) {
   DBSyncArg *psync = static_cast<DBSyncArg*>(arg);
   Partition* partition = psync->p;
 
-  //sleep(3);
+  // sleep(3);
   DLOG(INFO) << "DBSync begin sendfile " << psync->ip << ":" << psync->port;
   partition->DBSyncSendFile(psync->ip, psync->port);
-  
-  delete (DBSyncArg*)arg;
+
+  delete psync;
 }
 
 void Partition::DBSyncSendFile(const std::string& ip, int port) {
@@ -940,7 +978,8 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
     return;
   }
 
-  DLOG(INFO) << "DBSyncSendFile descendant size= " << descendant.size() << " bg_path=" << bg_path;
+  DLOG(INFO) << "DBSyncSendFile descendant size= " << descendant.size()
+    << " bg_path=" << bg_path;
 
   // Iterate to send files
   int ret = 0;
@@ -967,10 +1006,10 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
     if (!opened_) {
       LOG(WARNING) << "Partition has been closed when try to send dbsync"
         << ", Table:" << table_name_ << ", Partition: "<< partition_id_;
-      return; // Terminate as soon as possible
+      return;  // Terminate as soon as possible
     }
   }
- 
+
   // Clear target path
   slash::RsyncSendClearTarget(bg_path, target_dir, remote);
 
@@ -1021,22 +1060,21 @@ void Partition::DoPurgeLogs(void* arg) {
   ps->PurgeFiles(ppurge->to, ppurge->manual);
 
   ps->purging_ = false;
-  delete (PurgeArg*)arg;
+  delete ppurge;
 }
 
-bool Partition::PurgeFiles(uint32_t to, bool manual)
-{
+bool Partition::PurgeFiles(uint32_t to, bool manual) {
   slash::RWLock l(&state_rw_, false);
   if (!opened_) {
     return true;
   }
 
   std::map<uint32_t, std::string> binlogs;
-  if (!GetBinlogFiles(binlogs)) {
+  if (!GetBinlogFiles(&binlogs)) {
     LOG(WARNING) << "Could not get binlog files!";
     return false;
   }
-  
+
   if (binlogs.size() <= kBinlogRemainMinCount) {
     // No neet purge
     return true;
@@ -1050,12 +1088,10 @@ bool Partition::PurgeFiles(uint32_t to, bool manual)
   for (it = binlogs.begin(); it != binlogs.end(); ++it) {
     if ((manual && it->first <= to) ||           // Argument bound
         remain_expire_num > 0 ||                 // Expire num trigger
-        (stat(((log_path_ + it->second)).c_str(), &file_stat) == 0 &&     
-         file_stat.st_mtime < time(NULL) - kBinlogRemainMaxDay*24*3600)) // Expire time trigger
-    {
+        (stat(((log_path_ + it->second)).c_str(), &file_stat) == 0 &&
+         file_stat.st_mtime < time(NULL) - kBinlogRemainMaxDay*24*3600)) {  // Expire time trigger
       // We check this every time to avoid lock when we do file deletion
       if (!CouldPurge(it->first)) {
-        //LOG(WARNING) << "Could not purge "<< (it->first) << ", since it is already be used";
         return false;
       }
 
@@ -1065,7 +1101,8 @@ bool Partition::PurgeFiles(uint32_t to, bool manual)
         ++delete_num;
         --remain_expire_num;
       } else {
-        LOG(WARNING) << "Purge log file : " << (it->second) <<  " failed! error:" << s.ToString();
+        LOG(WARNING) << "Purge log file : " << (it->second)
+          << " failed! error:" << s.ToString();
       }
     } else {
       // Break when face the first one not satisfied
@@ -1074,7 +1111,8 @@ bool Partition::PurgeFiles(uint32_t to, bool manual)
     }
   }
   if (delete_num) {
-    LOG(INFO) << "Success purge "<< delete_num << " for " << table_name_ << "_" << partition_id_;
+    LOG(INFO) << "Success purge "<< delete_num << " for "
+      << table_name_ << "_" << partition_id_;
   }
 
   return true;
@@ -1084,8 +1122,9 @@ bool Partition::PurgeFiles(uint32_t to, bool manual)
 bool Partition::CheckBinlogFiles() {
   std::vector<std::string> children;
   int ret = slash::GetChildren(log_path_, children);
-  if (ret != 0){
-    LOG(WARNING) << "CheckBinlogFiles Get all files in log path failed! Partition:" << partition_id_ << " Error:" << ret; 
+  if (ret != 0) {
+    LOG(WARNING) << "CheckBinlogFiles Get all files in log path failed! Partition:"
+      << partition_id_ << " Error:" << ret;
     return false;
   }
 
@@ -1099,19 +1138,22 @@ bool Partition::CheckBinlogFiles() {
     }
     sindex = (*it).substr(kBinlogPrefixLen);
     if (slash::string2l(sindex.c_str(), sindex.size(), &index) == 1) {
-      binlog_nums.insert(index); 
+      binlog_nums.insert(index);
     }
   }
-  std::set<uint32_t>::iterator num_it = binlog_nums.begin(), pre_num_it = binlog_nums.begin();
+  std::set<uint32_t>::iterator num_it = binlog_nums.begin(),
+    pre_num_it = binlog_nums.begin();
   {
     slash::RWLock lp(&purged_index_rw_, true);
-    purged_index_ = *num_it++; // update the purged_index_
+    purged_index_ = *num_it++;  // update the purged_index_
   }
-  DLOG(INFO) << "Partition: " << partition_id_ << " Update purged index to " << purged_index_; 
+  DLOG(INFO) << "Partition: " << partition_id_
+    << " Update purged index to " << purged_index_;
   for (; num_it != binlog_nums.end(); ++num_it, ++pre_num_it) {
     if (*num_it != *pre_num_it + 1) {
       LOG(ERROR) << "Partiton : " << partition_id_
-        << " There is a hole among the binglogs between " <<  *num_it << " and "  << *pre_num_it; 
+        << " There is a hole among the binglogs between "
+        <<  *num_it << " and "  << *pre_num_it;
       // there is a hole
       return false;
     }
@@ -1120,11 +1162,11 @@ bool Partition::CheckBinlogFiles() {
 }
 
 // Required: hold read lock of state_rw_ and partition opened
-bool Partition::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
+bool Partition::GetBinlogFiles(std::map<uint32_t, std::string>* binlogs) {
   std::vector<std::string> children;
   int ret = slash::GetChildren(log_path_, children);
-  if (ret != 0){
-    LOG(WARNING) << "GetBinlogFiles Get all files in log path failed! error:" << ret; 
+  if (ret != 0) {
+    LOG(WARNING) << "GetBinlogFiles Get all files in log path failed! error:" << ret;
     return false;
   }
 
@@ -1137,12 +1179,12 @@ bool Partition::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
     }
     sindex = (*it).substr(kBinlogPrefixLen);
     if (slash::string2l(sindex.c_str(), sindex.size(), &index) == 1) {
-      binlogs.insert(std::pair<uint32_t, std::string>(static_cast<uint32_t>(index), *it)); 
+      binlogs->insert(std::pair<uint32_t, std::string>(
+            static_cast<uint32_t>(index), *it));
     }
   }
   return true;
 }
-
 
 // Required: hold read lock of state_rw_ and partition opened
 bool Partition::CouldPurge(uint32_t index) {
@@ -1158,10 +1200,7 @@ bool Partition::CouldPurge(uint32_t index) {
   for (it = slave_nodes_.begin(); it != slave_nodes_.end(); ++it) {
     int32_t filenum = zp_data_server->GetBinlogSendFilenum(table_name_,
         partition_id_, Node((*it).ip, (*it).port + kPortShiftSync));
-    //LOG(WARNING) << "slave node : " << Node((*it).ip, (*it).port + kPortShiftSync)
-    //  << "filenum : " << filenum 
-    //  << "index : " << index << index;
-    if (filenum < 0 || index >= static_cast<uint32_t>(filenum)) { 
+    if (filenum < 0 || index >= static_cast<uint32_t>(filenum)) {
       return false;
     }
   }

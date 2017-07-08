@@ -11,16 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#ifndef ZP_METACMD_BGWORKER_H
-#define ZP_METACMD_BGWORKER_H
+#ifndef SRC_NODE_ZP_METACMD_BGWORKER_H_
+#define SRC_NODE_ZP_METACMD_BGWORKER_H_
 #include "pink/include/bg_thread.h"
 #include "pink/include/pink_cli.h"
 
 #include "include/zp_meta.pb.h"
 
-class ZPMetacmdBGWorker {
+class ZPMetacmdBGWorker  {
  public:
-
   ZPMetacmdBGWorker();
   virtual ~ZPMetacmdBGWorker();
   void AddTask();
@@ -31,10 +30,9 @@ class ZPMetacmdBGWorker {
   static void MetaUpdateTask(void* task);
 
   Status ParsePullResponse(const ZPMeta::MetaCmdResponse &response,
-      int64_t &epoch);
+      int64_t* epoch);
   Status Send();
-  Status Recv(int64_t &receive_epoch);
-  bool FetchMetaInfo(int64_t &receive_epoch);
-
+  Status Recv(int64_t* receive_epoch);
+  bool FetchMetaInfo(int64_t* receive_epoch);
 };
-#endif //ZP_METACMD_BGWORKER_H
+#endif  // SRC_NODE_ZP_METACMD_BGWORKER_H_

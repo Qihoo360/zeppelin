@@ -94,7 +94,7 @@ int ZPDataClientConn::DealMessageInternal() {
     return -1;
   }
 
-  partition->DoCommand(cmd, request_, response_);
+  partition->DoCommand(cmd, request_, &response_);
 
   return 0;
 }
@@ -105,11 +105,11 @@ void ZPDataClientConnHandle::CronHandle() const {
   zp_data_server->ResetLastStat(StatType::kClient);
 
   Statistic stat;
-  zp_data_server->GetTotalStat(StatType::kClient, stat);
+  zp_data_server->GetTotalStat(StatType::kClient, &stat);
   uint64_t server_querys = stat.querys;
   uint64_t server_qps = stat.last_qps;
 
-  zp_data_server->GetTotalStat(StatType::kSync, stat);
+  zp_data_server->GetTotalStat(StatType::kSync, &stat);
   uint64_t sync_querys = stat.querys;
   server_qps += stat.last_qps;
 

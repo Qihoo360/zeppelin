@@ -1,19 +1,32 @@
-#ifndef ZP_PING_THREAD_H
-#define ZP_PING_THREAD_H
+// Copyright 2017 Qihoo
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http:// www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+#ifndef SRC_NODE_ZP_PING_THREAD_H_
+#define SRC_NODE_ZP_PING_THREAD_H_
+#include <string>
 #include "slash/include/slash_status.h"
 #include "pink/include/pink_cli.h"
 #include "pink/include/pink_thread.h"
 
 #include "src/node/zp_data_partition.h"
 
-class ZPPingThread : public pink::Thread {
+class ZPPingThread : public pink::Thread  {
  public:
-
   ZPPingThread() {
-        cli_ = pink::NewPbCli();
-        cli_->set_connect_timeout(1500);
-        set_thread_name("ZPDataPing");
-      }
+    cli_ = pink::NewPbCli();
+    cli_->set_connect_timeout(1500);
+    set_thread_name("ZPDataPing");
+  }
   virtual ~ZPPingThread();
 
  private:
@@ -26,5 +39,4 @@ class ZPPingThread : public pink::Thread {
   slash::Status RecvProc();
   virtual void* ThreadMain();
 };
-
-#endif
+#endif  // SRC_NODE_ZP_PING_THREAD_H_

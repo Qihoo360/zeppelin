@@ -11,9 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#ifndef ZP_DATA_SERVER_H
-#define ZP_DATA_SERVER_H
+#ifndef SRC_NODE_ZP_DATA_SERVER_H_
+#define SRC_NODE_ZP_DATA_SERVER_H_
 
+#include <set>
+#include <vector>
 #include <string>
 #include <memory>
 #include <unordered_map>
@@ -41,11 +43,10 @@
 #include "src/node/zp_data_table.h"
 #include "src/node/zp_data_partition.h"
 
-
 using slash::Status;
 
 class ZPDataServer;
-//class ZPDataServerConn;
+// class ZPDataServerConn;
 
 extern ZpConf* g_zp_conf;
 
@@ -57,10 +58,9 @@ enum StatType {
   kSync = 1,
 };
 
-class ZPDataServer {
+class ZPDataServer  {
  public:
-
-  explicit ZPDataServer();
+  ZPDataServer();
   virtual ~ZPDataServer();
   Status Start();
 
@@ -92,7 +92,7 @@ class ZPDataServer {
   std::string bgsave_path() {
     return g_zp_conf->data_path() + "/dump/";
   }
-  
+
   const rocksdb::Options* db_options() const {
     return &db_options_;
   }
@@ -120,23 +120,23 @@ class ZPDataServer {
     slash::MutexLock l(&mutex_epoch_);
     return meta_epoch_ >= 0;
   }
-  
+
   // Table related
   std::shared_ptr<Table> GetOrAddTable(const std::string &table_name);
   void DeleteTable(const std::string &table_name);
 
-  std::shared_ptr<Partition> GetTablePartition(const std::string &table_name,
-      const std::string &key);
-  std::shared_ptr<Partition> GetTablePartitionById(const std::string &table_name,
-      const int partition_id);
+  std::shared_ptr<Partition> GetTablePartition(
+      const std::string &table_name, const std::string &key);
+  std::shared_ptr<Partition> GetTablePartitionById(
+      const std::string &table_name, const int partition_id);
   int KeyToPartition(const std::string& table_name, const std::string &key);
 
   void DumpTablePartitions();
   void DumpBinlogSendTask();
-  
+
   // Peer Client
   Status SendToPeer(const Node &node, const client::SyncRequest &msg);
-  
+
   // Backgroud thread
   void BGSaveTaskSchedule(void (*function)(void*), void* arg);
   void BGPurgeTaskSchedule(void (*function)(void*), void* arg);
@@ -152,7 +152,6 @@ class ZPDataServer {
       const Node& node);
   void DispatchBinlogBGWorker(ZPBinlogReceiveTask *task);
 
-
   // Command related
   Cmd* CmdGet(const int op) {
     return GetCmdFromTable(op, cmds_);
@@ -163,18 +162,18 @@ class ZPDataServer {
   // Statistic related
   void PlusStat(const StatType type, const std::string &table);
   void ResetLastStat(const StatType type);
-  bool GetTotalStat(const StatType type, Statistic& stat);
+  bool GetTotalStat(const StatType type, Statistic* stat);
 
   bool GetAllTableName(std::set<std::string>* table_names);
-  bool GetTableStat(const StatType type, const std::string& table_name, std::vector<Statistic>& stats);
+  bool GetTableStat(const StatType type, const std::string& table_name,
+      std::vector<Statistic>* stats);
   bool GetTableCapacity(const std::string& table_name,
-      std::vector<Statistic>& capacity_stats);
+      std::vector<Statistic>* capacity_stats);
   bool GetTableReplInfo(const std::string& table_name,
-      std::unordered_map<std::string, client::CmdResponse_InfoRepl>* info_repls);
+      std::unordered_map<std::string, client::CmdResponse_InfoRepl>* repls);
   bool GetServerInfo(client::CmdResponse_InfoServer* info_server);
 
  private:
-
   slash::Mutex server_mutex_;
   std::unordered_map<int, Cmd*> cmds_;
 
@@ -212,7 +211,7 @@ class ZPDataServer {
   pthread_rwlock_t meta_state_rw_;
   std::string meta_ip_;
   long meta_port_;
-  
+
   slash::Mutex mutex_epoch_;
   int64_t meta_epoch_;
   bool should_pull_meta_;
@@ -240,12 +239,11 @@ class ZPDataServer {
 
   ThreadStatistic stats_[2];
 
-
-  bool GetStat(const StatType type, const std::string &table, Statistic& stat);
+  bool GetStat(const StatType type, const std::string &table,
+      Statistic* stat);
 
   rocksdb::Options db_options_;
   void InitDBOptions();
-
 };
 
-#endif
+#endif  // SRC_NODE_ZP_DATA_SERVER_H_

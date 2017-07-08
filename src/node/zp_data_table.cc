@@ -11,12 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include "zp_data_table.h"
+#include "src/node/zp_data_table.h"
 
 #include <sys/statvfs.h>
 #include <glog/logging.h>
+#include <utility>
 
-#include "zp_data_server.h"
+#include "src/node/zp_data_server.h"
+
 
 extern ZPDataServer* zp_data_server;
 
@@ -25,7 +27,6 @@ std::shared_ptr<Table> NewTable(const std::string &table_name,
     const std::string& trash_path) {
   std::shared_ptr<Table> table(new Table(table_name, log_path, data_path,
         trash_path));
-  // TODO maybe need check
   return table;
 }
 
@@ -58,7 +59,8 @@ Table::Table(const std::string& table_name, const std::string &log_path,
 
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
-  pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+  pthread_rwlockattr_setkind_np(&attr,
+      PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
   pthread_rwlock_init(&partition_rw_, &attr);
 }
 
@@ -69,7 +71,8 @@ Table::~Table() {
 
 bool Table::SetPartitionCount(const int count) {
   partition_cnt_ = count;
-  DLOG(INFO) << " Set Table: " << table_name_ << " with " << partition_cnt_ << " partitions.";
+  DLOG(INFO) << " Set Table: " << table_name_
+    << " with " << partition_cnt_ << " partitions.";
   return true;
 }
 
@@ -99,7 +102,7 @@ bool Table::UpdateOrAddPartition(const int partition_id,
   slash::RWLock l(&partition_rw_, true);
   auto iter = partitions_.find(partition_id);
   if (iter != partitions_.end()) {
-    //Exist partition: update it
+    // Exist partition: update it
     (iter->second)->Update(state, master, slaves);
     return true;
   }
@@ -142,7 +145,6 @@ void Table::Dump() {
   LOG(INFO) << "--------------------------";
 }
 
-
 void Table::DoTimingTask() {
   slash::RWLock l(&partition_rw_, false);
   for (auto pair : partitions_) {
@@ -154,7 +156,8 @@ void Table::DumpPartitionBinlogOffsets(std::map<int, BinlogOffset> *offset) {
   slash::RWLock l(&partition_rw_, false);
   BinlogOffset tboffset;
   for (auto& pair : partitions_) {
-    (pair.second)->GetBinlogOffsetWithLock(&(tboffset.filenum), &(tboffset.offset));
+    (pair.second)->GetBinlogOffsetWithLock(&(tboffset.filenum),
+        &(tboffset.offset));
     offset->insert(std::pair<int, BinlogOffset>(pair.first, tboffset));
   }
 }
@@ -171,7 +174,7 @@ void Table::GetCapacity(Statistic *stat) {
   stat->Reset();
   stat->table_name = table_name_;
   stat->used_disk = slash::Du(data_path_) + slash::Du(log_path_);
-  // TODO anan: we will support table based disk; 
+  // TODO(anan): we will support table based disk;
   // For now, just use node's free disk instead.
   stat->free_disk = Df(data_path_);
   DLOG(INFO) << "GetCapacity for table " << table_name_ << ":";
@@ -188,5 +191,4 @@ void Table::GetReplInfo(client::CmdResponse_InfoRepl* repl_info) {
     p.second->GetState(partition_state);
   }
 }
-
 

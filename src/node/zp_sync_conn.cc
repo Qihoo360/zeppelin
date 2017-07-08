@@ -18,7 +18,8 @@
 
 extern ZPDataServer* zp_data_server;
 
-ZPSyncConn::ZPSyncConn(int fd, std::string ip_port, pink::ServerThread* server_thread) :
+ZPSyncConn::ZPSyncConn(int fd, std::string ip_port,
+    pink::ServerThread* server_thread) :
   PbConn(fd, ip_port, server_thread) {
 }
 
@@ -29,13 +30,16 @@ void ZPSyncConn::DebugReceive(const client::CmdRequest &crequest) const {
   // Debug info
   switch (crequest.type()) {
     case client::Type::SET:
-      DLOG(INFO) << "SyncConn Receive Set cmd, table=" << crequest.set().table_name() << " key=" << crequest.set().key();
+      DLOG(INFO) << "SyncConn Receive Set cmd, table="
+        << crequest.set().table_name() << " key=" << crequest.set().key();
       break;
     case client::Type::GET:
-      DLOG(INFO) << "SyncConn Receive Get cmd, table=" << crequest.get().table_name() << " key=" << crequest.get().key();
+      DLOG(INFO) << "SyncConn Receive Get cmd, table="
+        << crequest.get().table_name() << " key=" << crequest.get().key();
       break;
     case client::Type::DEL:
-      DLOG(INFO) << "SyncConn Receive Del cmd, table=" << crequest.del().table_name() << " key=" << crequest.del().key();
+      DLOG(INFO) << "SyncConn Receive Del cmd, table="
+        << crequest.del().table_name() << " key=" << crequest.del().key();
       break;
     case client::Type::SYNC:
       DLOG(INFO) << "SyncConn Receive Sync cmd";
@@ -49,7 +53,7 @@ void ZPSyncConn::DebugReceive(const client::CmdRequest &crequest) const {
 
 int ZPSyncConn::DealMessage() {
   if (!zp_data_server->Availible()) {
-    LOG(WARNING) << "Receive Binlog command, but the server is not availible yet";
+    LOG(WARNING) << "Receive Binlog command, but the server is not availible";
     return -1;
   }
 
@@ -57,12 +61,14 @@ int ZPSyncConn::DealMessage() {
     LOG(WARNING) << "Receive Binlog command, but parse error";
     return -1;
   }
-  
+
   // Check request
   if (request_.epoch() < zp_data_server->meta_epoch()) {
-    LOG(WARNING) << "Receive Binlog command with expired epoch:" << request_.epoch()
+    LOG(WARNING) << "Receive Binlog command with expired epoch:"
+      << request_.epoch()
       << ", my current epoch :" << zp_data_server->meta_epoch()
-      << ", from: (" << request_.from().ip() << ", " << request_.from().port() << ")";
+      << ", from: (" << request_.from().ip() << ", "
+      << request_.from().port() << ")";
     return -1;
   }
 
@@ -91,10 +97,9 @@ int ZPSyncConn::DealMessage() {
     client::CmdRequest crequest = request_.request();
     DebugReceive(crequest);
 
-
     Cmd* cmd = zp_data_server->CmdGet(static_cast<int>(crequest.type()));
     if (cmd == NULL) {
-      LOG(ERROR) << "unsupported type: " << (int)crequest.type();
+      LOG(ERROR) << "unsupported type: " << static_cast<int>(crequest.type());
       return -1;
     }
 
@@ -108,13 +113,14 @@ int ZPSyncConn::DealMessage() {
     DLOG(INFO) << "Receive sync cmd: " << cmd->name()
       << ", table=" << table_name
       << " key=" << cmd->ExtractKey(&crequest);
-    
+
     zp_data_server->PlusStat(StatType::kSync, table_name);
 
     int partition_id = cmd->ExtractPartition(&crequest);
     if (partition_id < 0) {
       // Do not provice partition_id, calculate it by key
-      partition_id = zp_data_server->KeyToPartition(table_name, cmd->ExtractKey(&crequest));
+      partition_id = zp_data_server->KeyToPartition(table_name,
+          cmd->ExtractKey(&crequest));
     }
     if (partition_id < 0) {
       LOG(ERROR) << "SyncConn can not find partition, table: " << table_name;
@@ -137,7 +143,8 @@ int ZPSyncConn::DealMessage() {
         cmd,
         crequest);
   } else {
-    LOG(ERROR) << "Unknow Sync Request Type: " << static_cast<int>(request_.sync_type());
+    LOG(ERROR) << "Unknow Sync Request Type: "
+      << static_cast<int>(request_.sync_type());
     return -1;
   }
 
@@ -147,7 +154,7 @@ int ZPSyncConn::DealMessage() {
   return 0;
 }
 
-////// ZPSyncConnHandle //////
+////// ZPSyncConnHandle ///// /
 void ZPSyncConnHandle::CronHandle() const {
   // Note: ServerCurrentQPS is the sum of client qps and sync qps;
   zp_data_server->ResetLastStat(StatType::kSync);
