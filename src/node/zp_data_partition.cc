@@ -118,19 +118,27 @@ void Partition::Close() {
   delete db_;
   delete logger_;
 
-  // Move data and log to Trash
-  slash::DeleteDirIfExist(trash_path_ + "db/");
-  if (0 != slash::RenameFile(data_path_.c_str(),
-        (trash_path_ + "db/").c_str())) {
-    LOG(WARNING) << "Failed to move db to trash, error: " << strerror(errno);
-  }
-  slash::DeleteDirIfExist(trash_path_ + "log/");
-  if (0 != slash::RenameFile(log_path_.c_str(),
-        (trash_path_ + "log/").c_str())) {
-    LOG(WARNING) << "Failed to move db to trash, error: " << strerror(errno);
+  opened_ = false;
+}
+
+// Requeired: hold write lock of state_rw_
+void Partition::MoveToTrash() {
+  if (opened_) {
+    return;
   }
 
-  opened_ = false;
+  // Move data and log to Trash
+  std::string db_trash(trash_path_ + "db/"), log_trash(trash_path_ + "log/");
+  slash::DeleteDirIfExist(db_trash);
+  if (0 != slash::RenameFile(data_path_.c_str(),
+        db_trash.c_str())) {
+    LOG(WARNING) << "Failed to move db to trash, error: " << strerror(errno);
+  }
+  slash::DeleteDirIfExist(log_trash);
+  if (0 != slash::RenameFile(log_path_.c_str(),
+        log_trash.c_str())) {
+    LOG(WARNING) << "Failed to move db to trash, error: " << strerror(errno);
+  }
 }
 
 Partition::~Partition() {
@@ -526,6 +534,7 @@ void Partition::BecomeSingle() {
   role_ = Role::kNodeSingle;
   repl_state_ = ReplState::kNoConnect;
   Close();
+  MoveToTrash();
 }
 
 // Requeired: hold write lock of state_rw_

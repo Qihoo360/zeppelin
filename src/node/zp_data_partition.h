@@ -198,6 +198,7 @@ class Partition  {
 
   Status Open();
   void Close();
+  void MoveToTrash();
 
   // State related
   pthread_rwlock_t state_rw_;  // protect partition status below
