@@ -709,7 +709,7 @@ Status ZPMetaServer::DropTable(const std::string &name) {
 
 Status ZPMetaServer::InitVersionIfNeeded() {
   std::string value;
-  int version = -1;
+  int version = -2;
   Status fs = floyd_->DirtyRead(kMetaVersion, value);
   if (fs.ok()) {
     version = std::stoi(value);
@@ -718,7 +718,7 @@ Status ZPMetaServer::InitVersionIfNeeded() {
   }
 
   slash::MutexLock l(&node_mutex_);
-  if (version != version_) {
+  if (!fs.ok() || (version != version_)) {
     return InitVersion();
   }
   return Status::OK();
