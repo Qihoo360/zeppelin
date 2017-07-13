@@ -409,7 +409,7 @@ Status ZPMetaServer::SetMaster(const std::string &table, int partition, const ZP
 
   if (valid) {
     UpdateTask task = {ZPMetaUpdateOP::kOpSetMaster, ip_port, table, partition};
-    LOG(INFO) << "SetMaster PushTask" << static_cast<int>(task.op) << " " << ip_port << " " << table << " " << partition;
+    LOG(INFO) << "SetMaster PushTask " << static_cast<int>(task.op) << " " << ip_port << " " << table << " " << partition;
     AddMetaUpdateTask(task);
     return Status::OK();
   } else {
@@ -873,7 +873,6 @@ void ZPMetaServer::InitClientCmdTable() {
 bool ZPMetaServer::ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque, const ZPMeta::Nodes &nodes, ZPMeta::Table *table_info, bool *should_update_version) {
 
   bool should_update_table_info = false;
-  *should_update_version = false;
   std::string ip;
   int port = 0;
   for (auto iter = task_deque.begin(); iter != task_deque.end(); iter++) {
@@ -886,13 +885,13 @@ bool ZPMetaServer::ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque
     } else if (iter->op == ZPMetaUpdateOP::kOpRemove) {
       DoDownNodeForTableInfo(nodes, table_info, ip, port, &should_update_table_info);
     } else if (iter->op == ZPMetaUpdateOP::kOpSetMaster) {
-      DoSetMasterForTableInfo(table_info, iter->partition, ip, port, &should_update_table_info);
+      DoSetMasterForTableInfo(table_info, iter->table, iter->partition, ip, port, &should_update_table_info);
     } else if (iter->op == ZPMetaUpdateOP::kOpClearStuck) {
-      DoClearStuckForTableInfo(table_info, iter->partition, &should_update_table_info);
+      DoClearStuckForTableInfo(table_info, iter->table, iter->partition, &should_update_table_info);
     } else if (iter->op == ZPMetaUpdateOP::kOpAddSlave) {
-      DoAddSlaveForTableInfo(table_info, iter->partition, ip, port, &should_update_table_info);
+      DoAddSlaveForTableInfo(table_info, iter->table, iter->partition, ip, port, &should_update_table_info);
     } else if (iter->op == ZPMetaUpdateOP::kOpRemoveSlave) {
-      DoRemoveSlaveForTableInfo(table_info, iter->partition, ip, port, &should_update_table_info);
+      DoRemoveSlaveForTableInfo(table_info, iter->table, iter->partition, ip, port, &should_update_table_info);
     }
   }
 
@@ -973,7 +972,10 @@ void ZPMetaServer::DoDownNodeForTableInfo(const ZPMeta::Nodes &nodes, ZPMeta::Ta
   }
 }
 
-void ZPMetaServer::DoRemoveSlaveForTableInfo(ZPMeta::Table *table_info, int partition, const std::string &ip, int port, bool *should_update_table_info) {
+void ZPMetaServer::DoRemoveSlaveForTableInfo(ZPMeta::Table *table_info, const std::string& table, int partition, const std::string &ip, int port, bool *should_update_table_info) {
+  if (table_info->name() != table) {
+    return;
+  }
 
   if (partition < 0 || partition >= table_info->partitions_size()) {
     LOG(ERROR) << "invalid partition num in DoRemoveSlaveForTableInfo for " << table_info->name() << " : " << partition;
@@ -1033,8 +1035,10 @@ void ZPMetaServer::DoRemoveSlaveForTableInfo(ZPMeta::Table *table_info, int part
 
 }
 
-void ZPMetaServer::DoSetMasterForTableInfo(ZPMeta::Table *table_info, int partition, const std::string &ip, int port, bool *should_update_table_info) {
-  
+void ZPMetaServer::DoSetMasterForTableInfo(ZPMeta::Table *table_info, const std::string& table, int partition, const std::string &ip, int port, bool *should_update_table_info) {
+  if (table_info->name() != table) {
+    return;
+  }
 
   if (partition < 0 || partition >= table_info->partitions_size()) {
     LOG(ERROR) << "invalid partition num in DoSetMasterForTableInfo for " << table_info->name() << " : " << partition;
@@ -1064,7 +1068,10 @@ void ZPMetaServer::DoSetMasterForTableInfo(ZPMeta::Table *table_info, int partit
   }
 }
 
-void ZPMetaServer::DoAddSlaveForTableInfo(ZPMeta::Table *table_info, int partition, const std::string &ip, int port, bool *should_update_table_info) {
+void ZPMetaServer::DoAddSlaveForTableInfo(ZPMeta::Table *table_info, const std::string& table, int partition, const std::string &ip, int port, bool *should_update_table_info) {
+  if (table_info->name() != table) {
+    return;
+  }
 
   if (partition < 0 || partition >= table_info->partitions_size()) {
     LOG(ERROR) << "invalid partition num in DoAddSlaveForTableInfo for " << table_info->name() << " : " << partition;
@@ -1126,7 +1133,11 @@ void ZPMetaServer::DoUpNodeForTableInfo(ZPMeta::Table *table_info, const std::st
   }
 }
 
-void ZPMetaServer::DoClearStuckForTableInfo(ZPMeta::Table *table_info, int partition, bool *should_update_table_info) {
+void ZPMetaServer::DoClearStuckForTableInfo(ZPMeta::Table *table_info, const std::string& table, int partition, bool *should_update_table_info) {
+  if (table_info->name() != table) {
+    return;
+  }
+
   ZPMeta::Partitions* p = table_info->mutable_partitions(partition);
   if (p->state() == ZPMeta::PState::STUCK) {
     p->set_state(ZPMeta::PState::ACTIVE);
