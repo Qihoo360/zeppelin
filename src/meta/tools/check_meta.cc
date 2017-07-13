@@ -7,16 +7,17 @@
 
 #include "zp_meta.pb.h"
 
-#include "db_nemo_impl.h"
+#include "rocksdb/db.h"
+#include "rocksdb/options.h"
 
-rocksdb::DBNemo* db;
+rocksdb::DB* db;
 
 int main(int argc, char* argv[]){
 
   if (argc != 2 && argc != 3) {
     std::cout << "Usage:\n"
-        << "    ./check_meta path_to_nemo-rocks_db        --- do not print detail\n"
-        << "    ./check_meta path_to_nemo-rocks_db detail --- print detail table_info\n";
+        << "    ./check_meta path_to_RocksDB        --- do not print detail\n"
+        << "    ./check_meta path_to_RocksDB detail --- print detail table_info\n";
     return -1;
   }
 
@@ -27,7 +28,7 @@ int main(int argc, char* argv[]){
   // Create DB
   rocksdb::Options options;
   options.create_if_missing = true;
-  rocksdb::Status status = rocksdb::DBNemo::Open(options, argv[1], &db);
+  rocksdb::Status status = rocksdb::DB::Open(options, argv[1], &db);
   if (!status.ok()) {
     std::cout << "Open db failed! path: " << argv[1] << ", " << status.ToString();
     return -1;

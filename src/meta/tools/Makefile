@@ -12,19 +12,19 @@ ifndef NEMODB_PATH
 NEMODB_PATH = $(realpath $(THIRD_PATH)/nemo-rocksdb)
 endif
 
+ifndef ROCKSDB_PATH
+ROCKSDB_PATH = $(realpath $(THIRD_PATH)/rocksdb)
+endif
 
-INCLUDE_PATH = -I$(NEMODB_PATH)/ \
-							 -I$(NEMODB_PATH)/rocksdb \
-							 -I$(NEMODB_PATH)/rocksdb/include \
-							 -I$(NEMODB_PATH)/output/include/ \
+INCLUDE_PATH = -I$(ROCKSDB_PATH)/ \
+							 -I$(ROCKSDB_PATH)/include \
 							 -I../../../include/
 
 
-LIB_PATH = -L$(NEMODB_PATH)/output/lib/
+LIB_PATH = -L$(ROCKSDB_PATH)/
 
 LIBS = -lpthread \
 			 -lprotobuf \
-			 -lnemodb \
 			 -lrocksdb \
 			 -lz \
 			 -lbz2 \
