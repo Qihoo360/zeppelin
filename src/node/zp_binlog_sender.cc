@@ -232,6 +232,13 @@ Status ZPBinlogSendTaskPool::AddNewTask(const std::string &table_name,
   if (!s.ok()) {
     delete task_ptr;
   }
+  LOG(INFO) << "Add BinlogTask for Table:" << task_ptr->name()
+    << ", partition: " << task_ptr->partition_id()
+    << ", target: " << task_ptr->node()
+    << ", sequence: " << task_ptr->sequence()
+    << ", filenum: " << task_ptr->filenum()
+    << ", ioffset: " << task_ptr->offset()
+    << ", result: " << s.ToString(); 
   return s;
 }
 
@@ -245,7 +252,7 @@ Status ZPBinlogSendTaskPool::AddTask(ZPBinlogSendTask* task) {
   // index point to the last one just push back
   task_ptrs_[task->name()].iter = tasks_.end();
   --(task_ptrs_[task->name()].iter);
-  task_ptrs_[task->name()].sequence = task->sequence();
+  task_ptrs_[task->name()].sequence = task->sequence(); // the latest one
   return Status::OK();
 }
 
@@ -303,9 +310,15 @@ Status ZPBinlogSendTaskPool::PutBack(ZPBinlogSendTask* task) {
   slash::RWLock l(&tasks_rwlock_, true);
   ZPBinlogSendTaskIndex::iterator it = task_ptrs_.find(task->name());
   if (it == task_ptrs_.end()              // task has been removed
-      || (it->second.iter != tasks_.end() ||
-        it->second.sequence != task->sequence())) { // task belong to
+      || it->second.iter != tasks_.end()
+        || it->second.sequence != task->sequence()) { // task belong to
                                                     // same partition exist
+    LOG(INFO) << "Remove BinlogTask when put back for Table:" << task->name()
+      << ", partition: " << task->partition_id()
+      << ", target: " << task->node()
+      << ", sequence: " << task->sequence()
+      << ", filenum: " << task->filenum()
+      << ", ioffset: " << task->offset();
     delete task;
     return Status::NotFound("Task may have been deleted");
   }
@@ -323,8 +336,8 @@ void ZPBinlogSendTaskPool::Dump() {
     std::list<ZPBinlogSendTask*>::iterator tptr = it->second.iter;
     LOG(INFO) << "----------------------------";
     LOG(INFO) << "+Binlog Send Task" << it->first;
+    LOG(INFO) << "  +Sequence  " << it->second.sequence;
     if (tptr != tasks_.end()) {
-      LOG(INFO) << "  +Sequence  " << it->second.sequence;
       LOG(INFO) << "  +Table  " << (*tptr)->table_name();
       LOG(INFO) << "  +Partition  " << (*tptr)->partition_id();
       LOG(INFO) << "  +Node  " << (*tptr)->node();
@@ -413,6 +426,7 @@ void* ZPBinlogSendThread::ThreadMain() {
             << task->partition_id()
             << ", filenum:" << task->pre_filenum()
             << ", offset:" << task->pre_offset()
+            << ", thread:" << pthread_self()
             << ", Error: " << item_s.ToString();
           task->send_next = false;
           sleep(kBinlogSendInterval);

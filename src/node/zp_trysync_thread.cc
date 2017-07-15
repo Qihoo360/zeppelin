@@ -171,7 +171,7 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name,
   if (!partition
       || !partition->opened()) {
     // Partition maybe deleted or closed, no need to rescheule again
-    DLOG(INFO) << "SendTrySync closed or deleted Partition "
+    LOG(INFO) << "SendTrySync closed or deleted Partition "
       << table_name << "_" << partition_id;
     return true;
   }
@@ -267,10 +267,11 @@ void ZPTrySyncThread::RsyncRef() {
         zp_data_server->local_ip(),
         zp_data_server->local_port() + kPortShiftRsync);
     if (0 != ret) {
-      LOG(WARNING) << "Failed to start rsync, path:"
-        << dbsync_path << " error : " << ret;
+      LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path
+        << " error : " << ret;
+    } else {
+      LOG(INFO) << "Success start rsync, path:" << dbsync_path;
     }
-    LOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
   }
   rsync_flag_++;
 }
@@ -279,6 +280,13 @@ void ZPTrySyncThread::RsyncUnref() {
   assert(rsync_flag_ >= 0);
   rsync_flag_--;
   if (0 == rsync_flag_) {
-    slash::StopRsync(zp_data_server->db_sync_path());
+    std::string dbsync_path = zp_data_server->db_sync_path();
+    int ret = slash::StopRsync(dbsync_path);
+    if (0 != ret) {
+      LOG(WARNING) << "Failed to stop rsync, path:" << dbsync_path
+        << " error : " << ret;
+    } else {
+      LOG(INFO) << "Success stop rsync, path:" << dbsync_path;
+    }
   }
 }

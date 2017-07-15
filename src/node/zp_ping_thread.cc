@@ -69,7 +69,7 @@ slash::Status ZPPingThread::Send() {
 
   std::string text_format;
   google::protobuf::TextFormat::PrintToString(request, &text_format);
-  DLOG(INFO) << "Ping Meta (" << zp_data_server->meta_ip()
+  LOG(INFO) << "Ping Meta (" << zp_data_server->meta_ip()
     << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd
     << ") with Epoch: " << meta_epoch
     << " offset content: [" << text_format << "]";

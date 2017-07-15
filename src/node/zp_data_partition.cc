@@ -703,9 +703,9 @@ bool Partition::GetBinlogOffset(uint32_t* filenum,
 bool Partition::CheckSyncOption(const PartitionSyncOption& option) {
   // Check current status
   if (!opened_
-      ||role_ != Role::kNodeSlave
+      || role_ != Role::kNodeSlave
       || repl_state_ != ReplState::kConnected) {
-    LOG(WARNING) << "Discard binlog item from " << option.from_node
+    DLOG(WARNING) << "Discard binlog item from " << option.from_node
       << ", is opened:" << opened_
       << ", partition:" << partition_id_
       << ", my current role: " << static_cast<int>(role_)
@@ -716,7 +716,7 @@ bool Partition::CheckSyncOption(const PartitionSyncOption& option) {
   // Check from node
   if (option.from_node != slash::IpPortString(master_node_.ip,
         master_node_.port)) {
-    LOG(WARNING) << "Discard binlog item from " << option.from_node
+    DLOG(WARNING) << "Discard binlog item from " << option.from_node
       << ", partition:" << partition_id_
       << ", current my master is " << master_node_;
     return false;
@@ -727,7 +727,7 @@ bool Partition::CheckSyncOption(const PartitionSyncOption& option) {
   uint64_t cur_offset = 0;
   logger_->GetProducerStatus(&cur_filenum, &cur_offset);
   if (option.filenum != cur_filenum || option.offset != cur_offset) {
-    LOG(WARNING) << "Discard binlog item from " << option.from_node
+    DLOG(WARNING) << "Discard binlog item from " << option.from_node
       << ", partition:" << partition_id_
       << ", with offset (" << option.filenum << ", " << option.offset << ")"
       << ", my current offset: (" << cur_filenum << ", " << cur_offset << ")";
