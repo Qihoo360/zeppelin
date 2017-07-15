@@ -69,7 +69,7 @@ slash::Status ZPPingThread::Send() {
 
   std::string text_format;
   google::protobuf::TextFormat::PrintToString(request, &text_format);
-  LOG(INFO) << "Ping Meta (" << zp_data_server->meta_ip()
+  DLOG(INFO) << "Ping Meta (" << zp_data_server->meta_ip()
     << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd
     << ") with Epoch: " << meta_epoch
     << " offset content: [" << text_format << "]";
@@ -106,7 +106,7 @@ void* ZPPingThread::ThreadMain() {
     std::string meta_ip = zp_data_server->meta_ip();
     int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;
     // Connect with heartbeat port
-    DLOG(INFO) << "Ping will connect ("<< meta_ip << ":" << meta_port << ")";
+    LOG(INFO) << "Ping will connect ("<< meta_ip << ":" << meta_port << ")";
     s = cli_->Connect(meta_ip, meta_port);
     if (s.ok()) {
       DLOG(INFO) << "Ping connect ("<< meta_ip << ":" << meta_port << ") ok!";

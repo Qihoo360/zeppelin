@@ -126,8 +126,10 @@ const std::string kMetaTables = "##tables";
 const std::string kMetaNodes = "##nodes";
 const std::string kMetaVersion = "##version";
 
-// timeout between node and meta server, the one for meta should large than node
-const int kNodeMetaTimeoutN = 10;
-const int kNodeMetaTimeoutM= 15;
+// timeout between node and meta server
+// the one for meta should large than for node
+// and both larger than kPingInterval
+const int kNodeMetaTimeoutN = 6;
+const int kNodeMetaTimeoutM= 18;
 
 #endif
