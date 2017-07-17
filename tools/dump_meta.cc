@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <google/protobuf/text_format.h>
 
-#include "zp_meta.pb.h"
+#include "include/zp_meta.pb.h"
 
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
@@ -16,8 +16,8 @@ int main(int argc, char* argv[]){
 
   if (argc != 2 && argc != 3) {
     std::cout << "Usage:\n"
-        << "    ./check_meta path_to_RocksDB        --- do not print detail\n"
-        << "    ./check_meta path_to_RocksDB detail --- print detail table_info\n";
+        << "    ./dump_meta path_to_RocksDB        --- do not print detail\n"
+        << "    ./dump_meta path_to_RocksDB detail --- print detail table_info\n";
     return -1;
   }
 
