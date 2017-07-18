@@ -1052,6 +1052,7 @@ bool Partition::PurgeLogs(uint32_t to, bool manual) {
 
   slash::RWLock l(&state_rw_, false);
   if (!opened_) {
+    purging_ = false;
     return true;
   }
   PurgeArg *arg = new PurgeArg();
