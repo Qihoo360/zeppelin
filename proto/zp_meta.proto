@@ -18,6 +18,8 @@ enum Type {
   LISTMETA = 9;
   DROPTABLE = 10;
   METASTATUS = 11;
+  MIGRATE = 12;
+  CANCELMIGRATE = 13;
 }
 
 enum PState {
@@ -66,11 +68,30 @@ message BasicCmdUnit {
   required Node node = 3;
 }
 
+message RelationCmdUnit {
+  required string table = 1;
+  required int32 partition = 2;
+  required Node left = 3;
+  required Node right = 4;
+}
+
 message SyncOffset {
   required string table_name = 1;
   required int32 partition = 2;
   optional int32 filenum = 3;
   optional int64 offset = 4;
+}
+
+message MigrateStatus {
+  required int64 begin_time = 1;
+  required int32 complete_proportion = 2;
+}
+
+// Internal use by meta
+message MigrateHead {
+  required int64 begin_time = 1;
+  required int32 init_size = 2;
+  repeated string diff_name = 3;
 }
 
 message MetaCmd {
@@ -118,6 +139,17 @@ message MetaCmd {
     required string name = 1;
   }
   optional DropTable drop_table = 8;
+
+  message Migrate {
+    required int32 origin_epoch = 1;
+    repeated RelationCmdUnit diff = 2;
+  }
+  optional Migrate migrate = 9;
+
+  message CancelMigrate {
+    repeated string table = 1;
+  }
+  optional CancelMigrate cancel_migrate = 10;
 }
 
 message MetaCmdResponse {
@@ -156,4 +188,12 @@ message MetaCmdResponse {
     required MetaNodes nodes = 1;  
   }
   optional ListMeta list_meta = 8;
+
+  // MetaStatus
+  message MetaStatus {
+    required int32 version = 1;
+    required string consistency_stautus = 2;
+    optional MigrateStatus migrate_status = 3; // has means is migrating
+  }
+  optional MetaStatus meta_status = 9;
 }
