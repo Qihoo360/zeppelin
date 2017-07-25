@@ -16,6 +16,7 @@ enum Type {
 enum SyncType {
   CMD = 0;
   SKIP = 1;
+  LEASE = 2;
 }
 
 enum StatusCode {
@@ -172,11 +173,18 @@ message BinlogSkip {
   required int64 gap = 3;
 }
 
+message SyncLease {
+  required string table_name = 1; 
+  required int32 partition_id = 2; 
+  required int64 lease = 3;
+}
+
 message SyncRequest {
   required SyncType sync_type = 1;
   required int64 epoch = 2;
   required Node from = 3;
-  required SyncOffset sync_offset = 4;
+  optional SyncOffset sync_offset = 4;
   optional CmdRequest request = 5;
   optional BinlogSkip binlog_skip = 6;
+  optional SyncLease sync_lease = 7;
 }

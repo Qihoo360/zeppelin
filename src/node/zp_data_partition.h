@@ -26,6 +26,7 @@
 #include "include/db_nemo.h"
 #include "include/db_nemo_checkpoint.h"
 
+#include "slash/include/env.h"
 #include "include/zp_const.h"
 #include "include/client.pb.h"
 #include "include/zp_conf.h"
@@ -160,6 +161,7 @@ class Partition  {
   void DoCommand(const Cmd* cmd, const client::CmdRequest &req,
       client::CmdResponse *res);
   void DoBinlogSkip(const PartitionSyncOption& option, uint64_t gap);
+  void DoBinlogLeaseRenew(const PartitionSyncOption& option, uint64_t lease);
 
   // Status related
   bool ShouldTrySync();
@@ -214,7 +216,7 @@ class Partition  {
   void BecomeSingle();
   void BecomeMaster();
   void BecomeSlave();
-  bool CheckSyncOption(const PartitionSyncOption& option);
+  bool CheckSyncOption(const PartitionSyncOption& option, bool has_offset = true);
 
   // DB related
   rocksdb::DBNemo *db_;
@@ -230,11 +232,15 @@ class Partition  {
   pthread_rwlock_t suspend_rw_;  // To suspend others
 
   // Recover sync related
+  // Be used only in the role of kNodeSlave
   std::atomic<bool> do_recovery_sync_;
   std::atomic<int> recover_sync_flag_;
   void TryRecoverSync();
-  void CancelRecoverSync();
-  void MaybeRecoverSync();
+  void ResetRecoverSync();
+  bool NeedRecoverSync();
+  std::atomic<uint64_t> last_sync_time_;
+  std::atomic<uint64_t> sync_lease_;  // use dynamic lease
+                                      //set by masters' binlog sender
 
   // BGSave related
   slash::Mutex bgsave_protector_;

@@ -52,6 +52,8 @@ Partition::Partition(const std::string& table_name, const int partition_id,
   repl_state_(ReplState::kNoConnect),
   do_recovery_sync_(false),
   recover_sync_flag_(0),
+  last_sync_time_(slash::NowMicros()),
+  sync_lease_(kBinlogDefaultLease),
   purging_(false),
   purged_index_(0) {
     // Partition related path
@@ -560,6 +562,11 @@ void Partition::BecomeSlave() {
   repl_state_ = ReplState::kShouldConnect;
 
   zp_data_server->AddSyncTask(table_name_, partition_id_);
+
+  // Reset sync related status;
+  last_sync_time_ = slash::NowMicros();
+  sync_lease_ = kBinlogDefaultLease;
+  ResetRecoverSync();
 }
 
 // Get binlog offset when I win the election
@@ -700,7 +707,17 @@ bool Partition::GetBinlogOffset(uint32_t* filenum,
 }
 
 // Required: hold read mutex of state_rw_
-bool Partition::CheckSyncOption(const PartitionSyncOption& option) {
+bool Partition::CheckSyncOption(const PartitionSyncOption& option,
+    bool has_offset) {
+  // Check from node
+  if (option.from_node != slash::IpPortString(master_node_.ip,
+        master_node_.port)) {
+    DLOG(WARNING) << "Discard binlog item from " << option.from_node
+      << ", partition:" << partition_id_
+      << ", current my master is " << master_node_;
+    return false;
+  }
+
   // Check current status
   if (!opened_
       || role_ != Role::kNodeSlave
@@ -713,16 +730,13 @@ bool Partition::CheckSyncOption(const PartitionSyncOption& option) {
     return false;
   }
 
-  // Check from node
-  if (option.from_node != slash::IpPortString(master_node_.ip,
-        master_node_.port)) {
-    DLOG(WARNING) << "Discard binlog item from " << option.from_node
-      << ", partition:" << partition_id_
-      << ", current my master is " << master_node_;
-    return false;
-  }
+  // Update last sync_time
+  last_sync_time_ = slash::NowMicros();
 
   // Check offset
+  if (!has_offset) {
+    return true;
+  }
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
   logger_->GetProducerStatus(&cur_filenum, &cur_offset);
@@ -739,7 +753,7 @@ bool Partition::CheckSyncOption(const PartitionSyncOption& option) {
     }
     return false;
   }
-  CancelRecoverSync();
+  ResetRecoverSync();
   return true;
 }
 
@@ -802,6 +816,15 @@ void Partition::DoBinlogSkip(const PartitionSyncOption& option,
       << ", partition: " << partition_id_
       << ", gap: " << gap;
   }
+}
+
+void Partition::DoBinlogLeaseRenew(const PartitionSyncOption& option,
+    uint64_t lease) {
+  slash::RWLock l(&state_rw_, false);
+  if (!CheckSyncOption(option)) {
+    return;
+  }
+  sync_lease_ = lease;
 }
 
 void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
@@ -881,35 +904,44 @@ inline void Partition::TryRecoverSync() {
   do_recovery_sync_ = true;
 }
 
-inline void Partition::CancelRecoverSync() {
+inline void Partition::ResetRecoverSync() {
   // no mutex protect this two together
   // since we can tolerant the inconsistence
   do_recovery_sync_ = false;
   recover_sync_flag_ = 0;
 }
 
-void Partition::MaybeRecoverSync() {
+bool Partition::NeedRecoverSync() {
+  // Recover trigger by serially error binlog
   if (do_recovery_sync_) {
     recover_sync_flag_++;
     if (recover_sync_flag_ > kRecoverSyncDelayCronCount) {
-      recover_sync_flag_ = 0;
-      do_recovery_sync_ = false;
-      slash::RWLock l(&state_rw_, true);
-      BecomeSlave();
+      // will be reset when BecomeSlave
+      return true;
     }
-  } else {
-      recover_sync_flag_ = 0;
   }
+
+  // Recover trigger by lease timeout
+  if (slash::NowMicros() - last_sync_time_ > sync_lease_) {
+    // We know last_sync_time_ and sync_lease is not atomic here,
+    // but it's not critical, there will be one more trysync at worse
+    return true;
+  }
+  return false;
 }
 
 void Partition::DoTimingTask() {
-  // Maybe trysync
-  MaybeRecoverSync();
-
   // Purge log
   if (!PurgeLogs(0, false)) {
     DLOG(WARNING) << "Auto purge failed";
     return;
+  }
+
+  // Maybe trysync
+  slash::RWLock l(&state_rw_, true);
+  if (role_ == Role::kNodeSlave
+      && NeedRecoverSync()) {
+    BecomeSlave();
   }
 }
 
@@ -928,7 +960,7 @@ void Partition::TryDBSync(const std::string& ip, int port, int32_t top) {
 
   if (0 != slash::IsDir(bg_path) ||  // Bgsaving dir exist
       !slash::FileExists(NewFileName(logger_->filename(), bg_filenum)) ||
-                                      // filenum can be found in binglog
+      // filenum can be found in binglog
       top - bg_filenum > kDBSyncMaxGap) {      // The file is not too old
     // Need Bgsave first
     Bgsave();

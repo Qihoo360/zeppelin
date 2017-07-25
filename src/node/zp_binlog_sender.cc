@@ -18,6 +18,8 @@
 #include <limits>
 #include <memory>
 
+#include "slash/include/env.h"
+
 #include "include/zp_const.h"
 #include "src/node/zp_data_server.h"
 #include "src/node/zp_data_partition.h"
@@ -61,6 +63,7 @@ ZPBinlogSendTask::ZPBinlogSendTask(uint64_t seq, const std::string &table,
   node_(target),
   filenum_(ifilenum),
   offset_(ioffset),
+  last_lease_send_time_(slash::NowMicros()),
   pre_filenum_(0),
   pre_offset_(0),
   pre_has_content_(false),
@@ -161,8 +164,23 @@ Status ZPBinlogSendTask::ProcessTask() {
   return Status::OK();
 }
 
-// Build SyncRequest by ZPBinlogSendTask
-void ZPBinlogSendTask::BuildSyncRequest(client::SyncRequest *msg) const {
+// Build LEASE SyncRequest
+void ZPBinlogSendTask::BuildLeaseSyncRequest(int64_t lease_time,
+    client::SyncRequest* msg) const {
+  msg->set_sync_type(client::SyncType::LEASE);
+  msg->set_epoch(zp_data_server->meta_epoch());
+  client::Node *node = msg->mutable_from();
+  node->set_ip(zp_data_server->local_ip());
+  node->set_port(zp_data_server->local_port());
+
+  client::SyncLease* lease = msg->mutable_sync_lease();
+  lease->set_table_name(table_name_);
+  lease->set_partition_id(partition_id_);
+  lease->set_lease(lease_time);
+}
+
+// Build CMD or SKIP SyncRequest by ZPBinlogSendTask
+void ZPBinlogSendTask::BuildCommonSyncRequest(client::SyncRequest *msg) const {
   // Common part
   msg->set_epoch(zp_data_server->meta_epoch());
   client::Node *node = msg->mutable_from();
@@ -366,43 +384,91 @@ ZPBinlogSendThread::~ZPBinlogSendThread() {
   LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
   }
 
+// Send LEASE SyncRequest to peer
+bool ZPBinlogSendThread::RenewPeerLease(ZPBinlogSendTask* task) {
+  if (slash::NowMicros() - task->last_lease_send_time()
+      < kBinlogSendInterval * 1000000) {
+    // Avoid lease package flooding
+    return false;
+  }
+
+  // In terms of the most conservative estimation,
+  // current task will be fetch out from the pool
+  // and be process again after lease_time
+  int64_t lease_time = (pool_->Size() * kBinlogTimeSlice)
+    / zp_data_server->binlog_sender_count() + kBinlogRedundantLease;
+  if (lease_time < kBinlogMinLease) {
+    // Set lower limit to avoid frequentlly trysync
+    lease_time = kBinlogMinLease;
+  }
+
+  client::SyncRequest sreq;
+  task->BuildLeaseSyncRequest(lease_time, &sreq);
+  Status s = zp_data_server->SendToPeer(task->node(), sreq);
+  if (!s.ok()) {
+    LOG(WARNING) << "Failed to send lease to peer " << task->node()
+      << ", table:" << task->table_name() << ", partition:"
+      << task->partition_id()
+      << ", filenum:" << task->pre_filenum()
+      << ", offset:" << task->pre_offset()
+      << ", thread:" << pthread_self()
+      << ", Error: " << s.ToString();
+    return false;
+  }
+
+  task->renew_last_lease_send_time();
+  return true;
+}
+
 void* ZPBinlogSendThread::ThreadMain() {
   // Wait until the server is availible
   while (!should_stop() && !zp_data_server->Availible()) {
     sleep(kBinlogSendInterval);
   }
 
-  struct timeval begin, now;
+  uint64_t last_task_seq = 0;
+  bool last_task_error = false;
   while (!should_stop()) {
-    sleep(kBinlogSendInterval);
     ZPBinlogSendTask* task = NULL;
     Status s = pool_->FetchOut(&task);
     if (!s.ok()) {
-      // LOG(INFO) << "No task to be processed";
+      // No task to be processed
+      sleep(kBinlogSendInterval);
       continue;
+    }
+    
+    if (last_task_seq == task->sequence()
+        && last_task_error) {
+      // Fetch out the task who was processed by current sender the last time,
+      // And error happened. Means no much availible task left in the task queue,
+      // So sleep to avoid rapidly loop
+      sleep(kBinlogSendInterval);
     }
 
     // Fetched one task, process it
-    gettimeofday(&begin, NULL);
+    last_task_seq = task->sequence();
+    last_task_error = false;
+    Status item_s = Status::OK();
+    uint64_t time_begin = slash::NowMicros();
     while (!should_stop()) {
-      Status item_s = Status::OK();
-      // Record offset of current binlog item for sending later
       if (task->send_next) {
         // Process ProcessTask
         item_s = task->ProcessTask();
+        if (item_s.IsEndFile()) {
+          RenewPeerLease(task);
+        }
+
         if (!item_s.ok()) {
-          // LOG(INFO) << "Error happened when process task: "
-          // << task->table_name()
-          // << " parititon: " << task->partition_id()
-          // << ", status:" << item_s.ToString();
           pool_->PutBack(task);
+          last_task_error = true;
           break;
         }
+        // ProcessTask OK here
       }
 
       // Construct SyncRequest
       client::SyncRequest sreq;
-      task->BuildSyncRequest(&sreq);
+      task->BuildCommonSyncRequest(&sreq);
 
       // Send SyncRequest
       if (!sreq.IsInitialized()) {
@@ -436,9 +502,9 @@ void* ZPBinlogSendThread::ThreadMain() {
       }
 
       // Check if need to switch task
-      gettimeofday(&now, NULL);
-      if (now.tv_sec - begin.tv_sec > kBinlogTimeSlice) {
+      if (slash::NowMicros() - time_begin > kBinlogTimeSlice * 1000000) {
         // Switch Task
+        RenewPeerLease(task);
         pool_->PutBack(task);
         break;
       }

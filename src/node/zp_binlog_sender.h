@@ -5,7 +5,6 @@
 // You may obtain a copy of the License at
 //
 //     http:// www.apache.org/licenses/LICENSE-2.0
-//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -79,6 +78,12 @@ class ZPBinlogSendTask  {
   uint64_t offset() const {
     return offset_;
   }
+  uint64_t last_lease_send_time() const {
+    return last_lease_send_time_;
+  }
+  void renew_last_lease_send_time() {
+    last_lease_send_time_ = slash::NowMicros();
+  }
   uint32_t pre_filenum() const {
     return pre_filenum_;
   }
@@ -90,7 +95,9 @@ class ZPBinlogSendTask  {
   }
 
   Status ProcessTask();
-  void BuildSyncRequest(client::SyncRequest *msg) const;
+  void BuildLeaseSyncRequest(int64_t lease_time,
+      client::SyncRequest* msg) const;
+  void BuildCommonSyncRequest(client::SyncRequest *msg) const;
 
  private:
   uint64_t sequence_;
@@ -100,6 +107,8 @@ class ZPBinlogSendTask  {
   const Node node_;
   uint32_t filenum_;
   uint64_t offset_;
+  uint64_t last_lease_send_time_;
+  
   // Record The last item filenum and offset
   // For sending use later
   uint32_t pre_filenum_;
@@ -133,6 +142,10 @@ class ZPBinlogSendTaskPool  {
       uint32_t ifilenum, uint64_t ioffset, bool force);
   Status RemoveTask(const std::string &name);
   int32_t TaskFilenum(const std::string &name);
+  size_t Size() {
+    slash::RWLock l(&tasks_rwlock_, false);
+    return task_ptrs_.size();
+  }
 
   // Use by Task Worker
   // Who Fetchout one task, process it, and then PutBack
@@ -160,6 +173,7 @@ class ZPBinlogSendThread : public pink::Thread  {
  private:
   ZPBinlogSendTaskPool *pool_;
   virtual void* ThreadMain();
+  bool RenewPeerLease(ZPBinlogSendTask* task);
 };
 
 #endif  // SRC_NODE_ZP_BINLOG_SENDER_H_

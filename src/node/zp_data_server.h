@@ -97,6 +97,10 @@ class ZPDataServer  {
     return &db_options_;
   }
 
+  size_t binlog_sender_count() {
+    return binlog_send_workers_.size();
+  }
+
   void Exit() {
     should_exit_ = true;
   }
