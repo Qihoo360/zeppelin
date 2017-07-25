@@ -83,29 +83,30 @@ Status Partition::Open() {
     return Status::OK();
   }
 
+  // Check and update purged_index_
+  if (!CheckBinlogFiles()) {
+    // Binlog unavailable
+    LOG(FATAL) << "CheckBinlogFiles failed. table: " << table_name_
+      << ", partition_id: " << partition_id_;
+    return Status::Corruption("Check binlog file failed!");
+  }
+
   // Create db handle
   rocksdb::Status rs = rocksdb::DBNemo::Open(*(zp_data_server->db_options()),
       data_path_, &db_);
   if (!rs.ok()) {
-    LOG(ERROR) << "DBNemo open failed: " << rs.ToString();
+    LOG(FATAL) << "DBNemo open failed. table: " << table_name_
+      << ", partition_id: " << partition_id_ << ", error: " << rs.ToString();
     return Status::Corruption(rs.ToString());
   }
 
   // Binlog
   Status s = Binlog::Create(log_path_, kBinlogSize, &logger_);
   if (!s.ok()) {
-    LOG(ERROR) << "Create binlog failed: " << s.ToString();
+    LOG(FATAL) << "Create binlog failed. table: " << table_name_
+      << ", partition_id: " << partition_id_ << ", error: " << s.ToString();
     delete db_;
     return s;
-  }
-
-  // Check and update purged_index_
-  if (!CheckBinlogFiles()) {
-    // Binlog unavailable
-    LOG(ERROR) << "CheckBinlogFiles failed: " << s.ToString();
-    delete db_;
-    delete logger_;
-    return Status::Corruption("Check binlog file failed!");
   }
 
   opened_ = true;
@@ -917,6 +918,8 @@ bool Partition::NeedRecoverSync() {
     recover_sync_flag_++;
     if (recover_sync_flag_ > kRecoverSyncDelayCronCount) {
       // will be reset when BecomeSlave
+      LOG(INFO) << "Serially error binlog received, would redo trysync."
+        << " table: " << table_name_ << ", partition_id: " << partition_id_;
       return true;
     }
   }
@@ -925,6 +928,9 @@ bool Partition::NeedRecoverSync() {
   if (slash::NowMicros() - last_sync_time_ > sync_lease_) {
     // We know last_sync_time_ and sync_lease is not atomic here,
     // but it's not critical, there will be one more trysync at worse
+    LOG(INFO) << "Sync lease timeout, lease:" << sync_lease_
+      << ", would redo trysync" << " table: " << table_name_
+      << ", partition_id: " << partition_id_;
     return true;
   }
   return false;
