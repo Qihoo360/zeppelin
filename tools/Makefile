@@ -29,7 +29,6 @@ INCLUDE_PATH = -I$(ROCKSDB_PATH)/ \
 							 -I$(PINK_PATH)/ \
 							 -I..
 
-
 LIB_PATH = -L$(ROCKSDB_PATH)/ \
 					 -L$(SLASH_PATH)/slash/lib \
 					 -L$(PINK_PATH)/pink/lib

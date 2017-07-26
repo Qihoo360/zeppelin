@@ -1,4 +1,5 @@
 #include <set>
+#include <map>
 #include <vector>
 #include <string>
 #include <iostream>
@@ -6,14 +7,20 @@
 #include "slash/include/slash_string.h"
 #include "include/zp_const.h"
 
-bool CheckBinlogFiles(const std::string& log_path) {
+struct hole {
+  uint32_t left;
+  uint32_t right;
+};
+
+bool ExistBinlogHole(const std::string& log_path, struct hole* h) {
   // Got all files
   std::vector<std::string> children;
   int ret = slash::GetChildren(log_path, children);
   if (ret != 0) {
-    std::cout << "CheckBinlogFiles Get all files in log path failed! Error:"
-      << ret << std::endl;
-    return false;
+    std::cout << "ExistBinlogHole Get all files in log path failed!"
+      << ", log_path: " << log_path
+      << ", Error: " << ret << std::endl;
+    exit(-1);
   }
 
   // Got parititon id
@@ -36,12 +43,12 @@ bool CheckBinlogFiles(const std::string& log_path) {
     pre_num_it = binlog_nums.begin();
   for (++num_it; num_it != binlog_nums.end(); ++num_it, ++pre_num_it) {
     if (*num_it != *pre_num_it + 1) {
-      std::cout << " There is a hole among the binglogs between "
-        <<  *num_it << " and "  << *pre_num_it << std::endl;
-      return false;
+      h->left = *num_it;
+      h->right = *pre_num_it;
+      return true;
     }
   }
-  return true;
+  return false;
 }
 
 void print_usage_exit() {
@@ -68,7 +75,8 @@ int main(int argc, char* argv[]) {
   }
 
   std::string table_path, partition_path;
-  std::vector<std::string> partitions, failed_db;
+  std::vector<std::string> partitions;
+  std::map<std::string, struct hole> failed_db;
   for (auto& table : tables) {
     table_path = log_path + "/" + table;
     if (!slash::IsDir(table_path)) {
@@ -81,14 +89,22 @@ int main(int argc, char* argv[]) {
       }
       for (auto& p : partitions) {
         partition_path = table_path + "/" + p;
-        if (1 == slash::IsDir(partition_path)) {
-          continue;
+        char* endptr = NULL;
+        strtol(p.c_str(), &endptr, 10);
+        if (slash::IsDir(partition_path) != 0
+            || endptr == p.data()) {
+          std::cout << "Not a Partition Dir:" <<  partition_path << std::endl;
+          return -1;
         }
         std::cout << "Check binlog files of: " << partition_path
           << std::endl;
-        if (!CheckBinlogFiles(partition_path)) {
+        struct hole binlog_hole;
+        if (ExistBinlogHole(partition_path, &binlog_hole)) {
           std::cout << "Failed!" << std::endl;
-          failed_db.push_back(partition_path);
+          failed_db.insert(std::pair<std::string, struct hole>(partition_path,
+                binlog_hole));
+        } else {
+          std::cout << "Success!" << std::endl;
         }
         std::cout << std::endl;
       }
@@ -96,9 +112,12 @@ int main(int argc, char* argv[]) {
   }
   
   std::cout << "--------------------------------------------------------" << std::endl;
-  std::cout << "Error path:" << std::endl;
+  std::cout << "| Error path          | hole_left | hole_right |" << std::endl;
   for (auto& f : failed_db) {
-    std::cout << f << std::endl;
+    std::cout << "| " << f.first
+      << "   |   " << f.second.left
+      << "   |   " << f.second.right
+      << " | " << std::endl;
   }
 
   return 1;

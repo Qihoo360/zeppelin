@@ -1168,6 +1168,10 @@ bool Partition::PurgeFiles(uint32_t to, bool manual) {
 
 // Required hold read lock of state_rw_ and  partition opened
 bool Partition::CheckBinlogFiles() {
+  if (!slash::FileExists(log_path_)) {
+    return true;
+  }
+
   std::vector<std::string> children;
   int ret = slash::GetChildren(log_path_, children);
   if (ret != 0) {
