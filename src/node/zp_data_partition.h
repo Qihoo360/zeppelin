@@ -234,13 +234,16 @@ class Partition  {
   // Recover sync related
   // Be used only in the role of kNodeSlave
   std::atomic<bool> do_recovery_sync_;
-  std::atomic<int> recover_sync_flag_;
+  std::atomic<int> recover_sync_flag_;  // how many cron times
+                                        // stay in do_recovery_sync_
   void TryRecoverSync();
   void ResetRecoverSync();
   bool NeedRecoverSync();
   std::atomic<uint64_t> last_sync_time_;
   std::atomic<uint64_t> sync_lease_;  // use dynamic lease
                                       //set by masters' binlog sender
+  std::atomic<int> stuck_recover_sync_flag_;  // how mand cron times
+                                              // stuck out of kConnect
 
   // BGSave related
   slash::Mutex bgsave_protector_;

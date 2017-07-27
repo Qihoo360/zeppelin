@@ -22,3 +22,7 @@ Usage:
 ./dump_meta path_to_RocksDB        --- do not print detail
 ./dump_meta path_to_RocksDB detail --- print detail table_info
 
+#### log_flat.sh
+unzip all log file in gz format into log_tmp dir
+cd log_path && sh log_flat.sh 
+

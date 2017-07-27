@@ -52,6 +52,7 @@ const int kMetaPortShiftFY = 100;
 
 // TrySync Delay time := kRecoverSyncDelayCronCount * (kNodeCronInterval * kNodeCronWaitCount)
 const int kRecoverSyncDelayCronCount = 7;
+const int kStuckRecoverSyncDelayCronCount = 450; // for slave stuck out of kConnected
 const int kTrySyncInterval = 3000;  // mili seconds
 const int kBinlogSendInterval = 1;
 const int kBinlogRedundantLease = 10;  // some more lease time for redundance

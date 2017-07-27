@@ -54,6 +54,7 @@ Partition::Partition(const std::string& table_name, const int partition_id,
   recover_sync_flag_(0),
   last_sync_time_(slash::NowMicros()),
   sync_lease_(kBinlogDefaultLease),
+  stuck_recover_sync_flag_(0),
   purging_(false),
   purged_index_(0) {
     // Partition related path
@@ -568,6 +569,7 @@ void Partition::BecomeSlave() {
   last_sync_time_ = slash::NowMicros();
   sync_lease_ = kBinlogDefaultLease;
   ResetRecoverSync();
+  stuck_recover_sync_flag_ = 0;
 }
 
 // Get binlog offset when I win the election
@@ -912,7 +914,26 @@ inline void Partition::ResetRecoverSync() {
   recover_sync_flag_ = 0;
 }
 
+// Required: hold write mutex of state_rw_
 bool Partition::NeedRecoverSync() {
+  if (role_ != Role::kNodeSlave) {
+    return false;
+  }
+
+  // Recover trigger by stucking out of kConnected state
+  if (repl_state_ != ReplState::kConnected) {
+    // repl state mybe one of kNoConnect, kShouldConnect or kWaitDBSync
+    stuck_recover_sync_flag_++;
+    if (stuck_recover_sync_flag_ > kStuckRecoverSyncDelayCronCount) {
+      LOG(INFO) << "Slave stuck out of kConnected for more than "
+        << kStuckRecoverSyncDelayCronCount << " cron times, would redo trysync."
+        << " table: " << table_name_ << ", partition_id: " << partition_id_;
+      return true;
+    }
+    return false;
+  }
+
+  // kConnected
   // Recover trigger by serially error binlog
   if (do_recovery_sync_) {
     recover_sync_flag_++;
@@ -945,8 +966,7 @@ void Partition::DoTimingTask() {
 
   // Maybe trysync
   slash::RWLock l(&state_rw_, true);
-  if (role_ == Role::kNodeSlave
-      && NeedRecoverSync()) {
+  if (NeedRecoverSync()) {
     BecomeSlave();
   }
 }
