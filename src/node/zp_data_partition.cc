@@ -208,25 +208,32 @@ Status Partition::ChangeDb(const std::string& new_path) {
   DLOG(INFO) << "Prepare change db from: " << tmp_path;
   delete db_;
   if (0 != slash::RenameFile(data_path_, tmp_path)) {
-    LOG(WARNING) << "Failed to rename db path when change db, error: "
-      << strerror(errno);
+    LOG(FATAL) << "Failed to rename db path: " << data_path_
+      << " to tmp path " << tmp_path << " when change db, table: "
+      << table_name_ << "_" << partition_id_
+      << ", error: " << strerror(errno);
     return Status::Corruption(strerror(errno));
   }
 
   if (0 != slash::RenameFile(new_path, data_path_)) {
     DLOG(INFO) << "Rename (" << new_path.c_str() << ", " << data_path_.c_str();
-    LOG(WARNING) << "Failed to rename new db path when change db, error: "
-      << strerror(errno);
+    LOG(FATAL) << "Failed to rename new db path: " << new_path
+      << " to db path: " << data_path_ << " when change db, table: "
+      << table_name_ << "_" << partition_id_
+      << ", error: " << strerror(errno);
     return Status::Corruption(strerror(errno));
   }
   rocksdb::Status s = rocksdb::DBNemo::Open(*(zp_data_server->db_options()),
       data_path_, &db_);
   if (!s.ok()) {
-    LOG(WARNING) << "Failed to change to new db error: " << s.ToString();
+    LOG(FATAL) << "Failed to open new db: " << data_path_
+      << " when change db, table: "
+      << table_name_ << "_" << partition_id_
+      << ", error: " << strerror(errno);
     return Status::Corruption(s.ToString());
   }
-  LOG(INFO) << "Change Parition " << table_name_ << "_" << partition_id_
-    << " db success";
+  LOG(WARNING) << "Success to Changedb: " << data_path_
+    << ", table: "<< table_name_ << "_" << partition_id_;
   return Status::OK();
 }
 
@@ -237,6 +244,7 @@ Status Partition::FlushDb() {
   slash::CreatePath(empty_path);
 
   slash::RWLock l(&suspend_rw_, true);
+  LOG(WARNING) << "FlushDb: "<< table_name_ << "_" << partition_id_;
   return ChangeDb(empty_path);
 }
 
@@ -454,6 +462,8 @@ bool Partition::TryUpdateMasterOffset() {
   }
 
   slash::DeleteFile(info_path);
+  LOG(WARNING) << "Change db after db sync for " << table_name_
+    << "_" << partition_id_;
   if (!ChangeDb(sync_path_).ok()) {
     return false;
   }
@@ -1062,9 +1072,13 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
       continue;
     }
     // We need specify the speed limit for every single file
-    ret = slash::RsyncSendFile(*it, target_dir + target_path, remote);
+    int retry_count = kDBSyncRetryTime;
+    do {
+      ret = slash::RsyncSendFile(*it, target_dir + target_path, remote);
+    } while (0 != ret && retry_count--);
+
     if (0 != ret) {
-      LOG(WARNING) << "rsync send file failed! From: " << *it
+      LOG(WARNING) << "rsync send file failed after retry! From: " << *it
         << ", To: " << target_path
         << ", At: " << ip << ":" << port
         << ", Error: " << ret;

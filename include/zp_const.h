@@ -115,6 +115,7 @@ const int kMaxBitOpInputBit = 21;
 const uint32_t kDBSyncMaxGap = 1000;
 const std::string kDBSyncModule = "document";
 const uint32_t kDBSyncSpeedLimit = 126; //MBPS
+const int kDBSyncRetryTime = 5;    // retry time to send single file for DBSync
 const std::string kBgsaveInfoFile = "info";
 
 // Purge binlog
