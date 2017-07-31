@@ -1158,7 +1158,7 @@ bool Partition::PurgeFiles(uint32_t to, bool manual) {
   }
 
   if (binlogs.size() <= kBinlogRemainMinCount) {
-    // No neet purge
+    // No need purge
     return true;
   }
 

@@ -166,6 +166,7 @@ private:
 
   Status Init();
   void MaybeRoll();
+  Status RemoveBetween(int lbound, int rbound);
   
   
   // No copying allowed
