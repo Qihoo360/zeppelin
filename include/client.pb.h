@@ -37,6 +37,7 @@ void protobuf_ShutdownFile_client_2eproto();
 class Node;
 class SyncOffset;
 class KeyExpire;
+class SlaveFallback;
 class PartitionState;
 class CmdRequest;
 class CmdRequest_Sync;
@@ -421,6 +422,112 @@ class KeyExpire : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class SlaveFallback : public ::google::protobuf::Message {
+ public:
+  SlaveFallback();
+  virtual ~SlaveFallback();
+
+  SlaveFallback(const SlaveFallback& from);
+
+  inline SlaveFallback& operator=(const SlaveFallback& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SlaveFallback& default_instance();
+
+  void Swap(SlaveFallback* other);
+
+  // implements Message ----------------------------------------------
+
+  SlaveFallback* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const SlaveFallback& from);
+  void MergeFrom(const SlaveFallback& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required int64 time = 1;
+  inline bool has_time() const;
+  inline void clear_time();
+  static const int kTimeFieldNumber = 1;
+  inline ::google::protobuf::int64 time() const;
+  inline void set_time(::google::protobuf::int64 value);
+
+  // required .client.SyncOffset before = 2;
+  inline bool has_before() const;
+  inline void clear_before();
+  static const int kBeforeFieldNumber = 2;
+  inline const ::client::SyncOffset& before() const;
+  inline ::client::SyncOffset* mutable_before();
+  inline ::client::SyncOffset* release_before();
+  inline void set_allocated_before(::client::SyncOffset* before);
+
+  // required .client.SyncOffset after = 3;
+  inline bool has_after() const;
+  inline void clear_after();
+  static const int kAfterFieldNumber = 3;
+  inline const ::client::SyncOffset& after() const;
+  inline ::client::SyncOffset* mutable_after();
+  inline ::client::SyncOffset* release_after();
+  inline void set_allocated_after(::client::SyncOffset* after);
+
+  // @@protoc_insertion_point(class_scope:client.SlaveFallback)
+ private:
+  inline void set_has_time();
+  inline void clear_has_time();
+  inline void set_has_before();
+  inline void clear_has_before();
+  inline void set_has_after();
+  inline void clear_has_after();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::int64 time_;
+  ::client::SyncOffset* before_;
+  ::client::SyncOffset* after_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static SlaveFallback* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class PartitionState : public ::google::protobuf::Message {
  public:
   PartitionState();
@@ -536,6 +643,15 @@ class PartitionState : public ::google::protobuf::Message {
   inline ::client::SyncOffset* release_sync_offset();
   inline void set_allocated_sync_offset(::client::SyncOffset* sync_offset);
 
+  // required .client.SlaveFallback fallback = 7;
+  inline bool has_fallback() const;
+  inline void clear_fallback();
+  static const int kFallbackFieldNumber = 7;
+  inline const ::client::SlaveFallback& fallback() const;
+  inline ::client::SlaveFallback* mutable_fallback();
+  inline ::client::SlaveFallback* release_fallback();
+  inline void set_allocated_fallback(::client::SlaveFallback* fallback);
+
   // @@protoc_insertion_point(class_scope:client.PartitionState)
  private:
   inline void set_has_partition_id();
@@ -548,6 +664,8 @@ class PartitionState : public ::google::protobuf::Message {
   inline void clear_has_master();
   inline void set_has_sync_offset();
   inline void clear_has_sync_offset();
+  inline void set_has_fallback();
+  inline void clear_has_fallback();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -556,10 +674,11 @@ class PartitionState : public ::google::protobuf::Message {
   ::client::Node* master_;
   ::google::protobuf::RepeatedPtrField< ::client::Node > slaves_;
   ::client::SyncOffset* sync_offset_;
+  ::client::SlaveFallback* fallback_;
   ::google::protobuf::int32 partition_id_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -3052,6 +3171,108 @@ inline void KeyExpire::set_ttl(::google::protobuf::int32 value) {
 
 // -------------------------------------------------------------------
 
+// SlaveFallback
+
+// required int64 time = 1;
+inline bool SlaveFallback::has_time() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void SlaveFallback::set_has_time() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void SlaveFallback::clear_has_time() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void SlaveFallback::clear_time() {
+  time_ = GOOGLE_LONGLONG(0);
+  clear_has_time();
+}
+inline ::google::protobuf::int64 SlaveFallback::time() const {
+  return time_;
+}
+inline void SlaveFallback::set_time(::google::protobuf::int64 value) {
+  set_has_time();
+  time_ = value;
+}
+
+// required .client.SyncOffset before = 2;
+inline bool SlaveFallback::has_before() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void SlaveFallback::set_has_before() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void SlaveFallback::clear_has_before() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void SlaveFallback::clear_before() {
+  if (before_ != NULL) before_->::client::SyncOffset::Clear();
+  clear_has_before();
+}
+inline const ::client::SyncOffset& SlaveFallback::before() const {
+  return before_ != NULL ? *before_ : *default_instance_->before_;
+}
+inline ::client::SyncOffset* SlaveFallback::mutable_before() {
+  set_has_before();
+  if (before_ == NULL) before_ = new ::client::SyncOffset;
+  return before_;
+}
+inline ::client::SyncOffset* SlaveFallback::release_before() {
+  clear_has_before();
+  ::client::SyncOffset* temp = before_;
+  before_ = NULL;
+  return temp;
+}
+inline void SlaveFallback::set_allocated_before(::client::SyncOffset* before) {
+  delete before_;
+  before_ = before;
+  if (before) {
+    set_has_before();
+  } else {
+    clear_has_before();
+  }
+}
+
+// required .client.SyncOffset after = 3;
+inline bool SlaveFallback::has_after() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void SlaveFallback::set_has_after() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void SlaveFallback::clear_has_after() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void SlaveFallback::clear_after() {
+  if (after_ != NULL) after_->::client::SyncOffset::Clear();
+  clear_has_after();
+}
+inline const ::client::SyncOffset& SlaveFallback::after() const {
+  return after_ != NULL ? *after_ : *default_instance_->after_;
+}
+inline ::client::SyncOffset* SlaveFallback::mutable_after() {
+  set_has_after();
+  if (after_ == NULL) after_ = new ::client::SyncOffset;
+  return after_;
+}
+inline ::client::SyncOffset* SlaveFallback::release_after() {
+  clear_has_after();
+  ::client::SyncOffset* temp = after_;
+  after_ = NULL;
+  return temp;
+}
+inline void SlaveFallback::set_allocated_after(::client::SyncOffset* after) {
+  delete after_;
+  after_ = after;
+  if (after) {
+    set_has_after();
+  } else {
+    clear_has_after();
+  }
+}
+
+// -------------------------------------------------------------------
+
 // PartitionState
 
 // required int32 partition_id = 1;
@@ -3314,6 +3535,44 @@ inline void PartitionState::set_allocated_sync_offset(::client::SyncOffset* sync
     set_has_sync_offset();
   } else {
     clear_has_sync_offset();
+  }
+}
+
+// required .client.SlaveFallback fallback = 7;
+inline bool PartitionState::has_fallback() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+inline void PartitionState::set_has_fallback() {
+  _has_bits_[0] |= 0x00000040u;
+}
+inline void PartitionState::clear_has_fallback() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline void PartitionState::clear_fallback() {
+  if (fallback_ != NULL) fallback_->::client::SlaveFallback::Clear();
+  clear_has_fallback();
+}
+inline const ::client::SlaveFallback& PartitionState::fallback() const {
+  return fallback_ != NULL ? *fallback_ : *default_instance_->fallback_;
+}
+inline ::client::SlaveFallback* PartitionState::mutable_fallback() {
+  set_has_fallback();
+  if (fallback_ == NULL) fallback_ = new ::client::SlaveFallback;
+  return fallback_;
+}
+inline ::client::SlaveFallback* PartitionState::release_fallback() {
+  clear_has_fallback();
+  ::client::SlaveFallback* temp = fallback_;
+  fallback_ = NULL;
+  return temp;
+}
+inline void PartitionState::set_allocated_fallback(::client::SlaveFallback* fallback) {
+  delete fallback_;
+  fallback_ = fallback;
+  if (fallback) {
+    set_has_fallback();
+  } else {
+    clear_has_fallback();
   }
 }
 

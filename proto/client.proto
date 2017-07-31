@@ -44,13 +44,20 @@ message KeyExpire {
   required int32 ttl = 2;
 }
 
+message SlaveFallback {
+  required int64 time = 1;
+  required SyncOffset before = 2;
+  required SyncOffset after = 3;
+}
+
 message PartitionState {
   required int32 partition_id = 1; 
   required string role = 2;
   required string repl_state = 3;
   required Node master = 4;
   repeated Node slaves = 5;
-  required SyncOffset sync_offset = 6; 
+  required SyncOffset sync_offset = 6;
+  optional SlaveFallback fallback = 7;
 }
 
 message CmdRequest {

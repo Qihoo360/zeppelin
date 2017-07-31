@@ -291,13 +291,13 @@ void SyncCmd::Do(const google::protobuf::Message *req,
   Node node(sync_req.node().ip(), sync_req.node().port());
   response->set_type(client::Type::SYNC);
 
-  uint32_t s_filenum = sync_req.sync_offset().filenum();
-  uint64_t s_offset = sync_req.sync_offset().offset();
+  BinlogOffset s_boffset(sync_req.sync_offset().filenum(),
+      sync_req.sync_offset().offset());
   LOG(INFO) << "SyncCmd with a new node ("
     << ptr->table_name() << "_"  << ptr->partition_id()
     << "_" << node.ip << ":" << node.port << ", "
-    << s_filenum << ", " << s_offset << ")";
-  s = ptr->SlaveAskSync(node, s_filenum, s_offset);
+    << s_boffset.filenum << ", " << s_boffset.offset << ")";
+  s = ptr->SlaveAskSync(node, s_boffset);
 
   if (s.ok()) {
     response->set_code(client::StatusCode::kOk);
@@ -310,7 +310,7 @@ void SyncCmd::Do(const google::protobuf::Message *req,
     client::SyncOffset *offset = sync_res->mutable_sync_offset();
     if (s.IsEndFile()) {
       // Peer's offset is larger than me, send fallback offset
-      ptr->GetWinBinlogOffset(&s_filenum, &s_offset);
+      ptr->GetWinBinlogOffset(&s_boffset);
       DLOG(INFO) << "SyncCmd with offset larger than me, node:"
         << sync_req.node().ip() << ":" << sync_req.node().port();
     } else {
@@ -318,11 +318,11 @@ void SyncCmd::Do(const google::protobuf::Message *req,
       DLOG(INFO) << "SyncCmd with offset invalid, node:"
         << sync_req.node().ip() << ":" << sync_req.node().port();
     }
-    offset->set_filenum(s_filenum);
-    s_offset = BinlogBlockStart(s_offset);
-    offset->set_offset(s_offset);
+    offset->set_filenum(s_boffset.filenum);
+    s_boffset.offset= BinlogBlockStart(s_boffset.offset);
+    offset->set_offset(s_boffset.offset);
     DLOG(INFO) << "Send back fallback binlog point: "
-      << s_filenum << ", " << s_offset << " To: "
+      << s_boffset.filenum << ", " << s_boffset.offset << " To: "
       << sync_req.node().ip() << ":" << sync_req.node().port();
   } else if (s.IsIncomplete()) {
     // Slave should wait for db sync

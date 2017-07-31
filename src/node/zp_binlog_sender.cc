@@ -97,16 +97,15 @@ Status ZPBinlogSendTask::ProcessTask() {
   }
 
   // Check task position
-  uint32_t curnum = 0;
-  uint64_t curoffset = 0;
+  BinlogOffset boffset;
   std::shared_ptr<Partition> partition =
     zp_data_server->GetTablePartitionById(table_name_, partition_id_);
   if (partition == NULL
       || !partition->opened()) {
     return Status::InvalidArgument("Error no exist or closed partition");
   }
-  partition->GetBinlogOffsetWithLock(&curnum, &curoffset);
-  if (filenum_ == curnum && offset_ == curoffset) {
+  partition->GetBinlogOffsetWithLock(&boffset);
+  if (filenum_ == boffset.filenum && offset_ == boffset.offset) {
     // No more binlog item in current task, switch to others
     return Status::EndFile("no more binlog item");
   }

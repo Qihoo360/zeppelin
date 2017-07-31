@@ -76,6 +76,8 @@ Partition::Partition(const std::string& table_name, const int partition_id,
     pthread_rwlock_init(&suspend_rw_, &attr);
 
     pthread_rwlock_init(&purged_index_rw_, NULL);
+    
+    pthread_rwlock_init(&fallback_rw_, &attr);
   }
 
 // Requeired: hold write lock of state_rw_
@@ -111,6 +113,9 @@ Status Partition::Open() {
   }
 
   opened_ = true;
+
+  slash::RWLock l(&fallback_rw_, true);
+  fallback_.time = 0;
   return s;
 }
 
@@ -150,6 +155,7 @@ Partition::~Partition() {
   slash::RWLock l(&state_rw_, true);
   Close();
   }
+  pthread_rwlock_destroy(&fallback_rw_);
   pthread_rwlock_destroy(&purged_index_rw_);
   pthread_rwlock_destroy(&suspend_rw_);
   pthread_rwlock_destroy(&state_rw_);
@@ -469,7 +475,7 @@ bool Partition::TryUpdateMasterOffset() {
   }
 
   // Update master offset
-  SetBinlogOffset(filenum, offset);
+  SetBinlogOffset(BinlogOffset(filenum, offset));
   return true;
 }
 
@@ -478,8 +484,7 @@ bool Partition::TryUpdateMasterOffset() {
 // Return InvalidArgument when the offset is invalid
 // Return Incomplete when neet sync db
 // Required: state_rw hold and partition opened
-Status Partition::SlaveAskSync(const Node &node, uint32_t filenum,
-    uint64_t offset) {
+Status Partition::SlaveAskSync(const Node &node, BinlogOffset boffset) {
   // Check role
   if (role_ != Role::kNodeMaster
       || slave_nodes_.find(node) == slave_nodes_.end()) {
@@ -493,17 +498,18 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum,
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
   logger_->GetProducerStatus(&cur_filenum, &cur_offset);
-  if (cur_filenum < filenum
-      || (cur_filenum == filenum && cur_offset < offset)) {
+  if (cur_filenum < boffset.filenum
+      || (cur_filenum == boffset.filenum && cur_offset < boffset.offset)) {
     return Status::EndFile("AddBinlogSender invalid binlog offset");
   }
 
   // Binlog already be purged
   slash::RWLock lp(&purged_index_rw_, false);
   LOG(INFO) << "Partition:" << table_name_ << "_" << partition_id_
-    << ", We " << (purged_index_ > filenum ? "will" : "won't")
-    << " TryDBSync, purged_index_=" << purged_index_ << ", filenum=" << filenum;
-  if (purged_index_ > filenum) {
+    << ", We " << (purged_index_ > boffset.filenum ? "will" : "won't")
+    << " TryDBSync, purged_index_=" << purged_index_
+    << ", filenum=" << boffset.filenum;
+  if (purged_index_ > boffset.filenum) {
     TryDBSync(node.ip, node.port + kPortShiftRsync, cur_filenum);
     return Status::Incomplete("Bgsaving and DBSync first");
   }
@@ -511,21 +517,24 @@ Status Partition::SlaveAskSync(const Node &node, uint32_t filenum,
   // Add binlog send task
   Status s = zp_data_server->AddBinlogSendTask(table_name_, partition_id_,
       logger_->filename(), Node(node.ip, node.port + kPortShiftSync),
-      filenum, offset);
+      boffset.filenum, boffset.offset);
   if (s.ok()) {
     LOG(INFO) << "Success AddBinlogSendTask for Table " << table_name_
       << " Partition " << partition_id_ << " To "
-      << node.ip << ":" << node.port << " at " << filenum << ", " << offset;
+      << node.ip << ":" << node.port << " at "
+      << boffset.filenum << ", " << boffset.offset;
   } else if (s.IsInvalidArgument()) {
     // Invalid filenum and offset
     LOG(INFO) << "Failed AddBinlogSendTask for Table " << table_name_
       << " Partition " << partition_id_ << " To " << node.ip << ":" << node.port
-      << " Since the Invalid Offset : " << filenum << ", " << offset;
+      << " Since the Invalid Offset : " << boffset.filenum
+      << ", " << boffset.offset;
   } else {
     LOG(WARNING) << "Failed AddBinlogSendTask for Table " << table_name_
       << " Partition " << partition_id_ << " To " << node.ip << ":" << node.port
-      << " at " << filenum << ", " << offset << ", Error:" << s.ToString()
-      << ", cur filenum:" << cur_filenum << ", cur offset" << cur_offset;
+      << " at " << boffset.filenum << ", " << boffset.offset
+      << ", Error:" << s.ToString() << ", cur filenum:" << cur_filenum
+      << ", cur offset" << cur_offset;
   }
   return s;
 }
@@ -560,7 +569,7 @@ void Partition::BecomeMaster() {
   repl_state_ = ReplState::kNoConnect;
 
   // Record binlog offset when I win the master for the later slave sync
-  GetBinlogOffset(&win_filenum_, &win_offset_);
+  GetBinlogOffset(&win_boffset_);
 }
 
 // Requeired: hold write lock of state_rw_
@@ -584,13 +593,12 @@ void Partition::BecomeSlave() {
 
 // Get binlog offset when I win the election
 // Return false if I'm not a master
-bool Partition::GetWinBinlogOffset(uint32_t* filenum, uint64_t* offset) {
+bool Partition::GetWinBinlogOffset(BinlogOffset* win) {
   slash::RWLock l(&state_rw_, false);
   if (role_ != Role::kNodeMaster) {
     return false;
   }
-  *filenum = win_filenum_;
-  *offset = win_offset_;
+  *win = win_boffset_;
   return true;
 }
 
@@ -687,35 +695,46 @@ std::shared_ptr<Partition> NewPartition(const std::string &table_name,
   return partition;
 }
 
-Status Partition::SetBinlogOffsetWithLock(uint32_t filenum, uint64_t offset) {
+Status Partition::SetBinlogOffsetWithLock(const BinlogOffset& target) {
   slash::RWLock l(&state_rw_, false);
-  return SetBinlogOffset(filenum, offset);
+  return SetBinlogOffset(target);
 }
 
 // Required: hold read mutex of state_rw_
-Status Partition::SetBinlogOffset(uint32_t filenum, uint64_t offset) {
-  uint64_t actual = 0;
-  Status s = logger_->SetProducerStatus(filenum, offset, &actual);
-  if (offset != actual) {
-    LOG(WARNING) << "SetBinlogOffset actual small than expected"
-      << ", expect:" << offset << ", actual:" << actual;
+Status Partition::SetBinlogOffset(const BinlogOffset& target) {
+  uint64_t actual_offset = 0;
+  BinlogOffset old;
+  Status s = logger_->SetProducerStatus(target.filenum, target.offset,
+      &actual_offset, &old.filenum, &old.offset);
+  if (target.offset != actual_offset) {
+    LOG(WARNING) << "SetBinlogOffset actual_offset small than expected"
+      << ", expect:" << target.offset << ", actual_offset:" << actual_offset;
+  }
+
+  if (target < old) {
+    // Fallback to a smaller sync point, record for later checking
+    LOG(WARNING) << "SetBinlogOffset fallback to a smaller sync point"
+      << ", from:" << old.filenum << "_" << old.offset
+      << ", to:" << target.filenum << "_" << target.offset;
+    slash::RWLock l(&fallback_rw_, true);
+    fallback_.time = slash::NowMicros();
+    fallback_.before = old;
+    fallback_.after = target;
   }
   return s;
 }
 
-bool Partition::GetBinlogOffsetWithLock(uint32_t* filenum,
-    uint64_t* offset) {
+bool Partition::GetBinlogOffsetWithLock(BinlogOffset* boffset) {
   slash::RWLock l(&state_rw_, false);
-  return GetBinlogOffset(filenum, offset);
+  return GetBinlogOffset(boffset);
 }
 
 // Required: hold read mutex of state_rw_
-bool Partition::GetBinlogOffset(uint32_t* filenum,
-    uint64_t* pro_offset) const {
+bool Partition::GetBinlogOffset(BinlogOffset* boffset) const {
   if (!opened_) {
     return false;
   }
-  logger_->GetProducerStatus(filenum, pro_offset);
+  logger_->GetProducerStatus(&boffset->filenum, &boffset->offset);
   return true;
 }
 
@@ -1319,9 +1338,12 @@ void Partition::Dump() {
   }
 }
 
-void Partition::GetState(client::PartitionState* state) {
+bool Partition::GetState(client::PartitionState* state) {
   state->set_partition_id(partition_id_);
   slash::RWLock l(&state_rw_, false);
+  if (!opened_) {
+    return false;
+  }
   state->set_role(RoleMsg[role_]);
   state->set_repl_state(ReplStateMsg[repl_state_]);
   state->mutable_master()->set_ip(master_node_.ip);
@@ -1331,11 +1353,30 @@ void Partition::GetState(client::PartitionState* state) {
     slave->set_ip(s.ip);
     slave->set_port(s.port);
   }
+
+  // SyncOffset
   client::SyncOffset* sync_offset = state->mutable_sync_offset();
-  uint32_t filenum = 0;
-  uint64_t offset = 0;
-  GetBinlogOffset(&filenum, &offset);
-  sync_offset->set_filenum(filenum);
-  sync_offset->set_offset(offset);
+  BinlogOffset boffset;
+  GetBinlogOffset(&boffset);
+  sync_offset->set_filenum(boffset.filenum);
+  sync_offset->set_offset(boffset.offset);
+
+  // Fallback
+  if (role_ == Role::kNodeSlave) {
+    slash::RWLock l(&fallback_rw_, false);
+    if (fallback_.time == 0) {
+      // No fallback
+      return true;
+    }
+    client::SlaveFallback* fallback = state->mutable_fallback();
+    fallback->set_time(fallback_.time);
+    client::SyncOffset* before = fallback->mutable_before();
+    before->set_filenum(fallback_.before.filenum);
+    before->set_offset(fallback_.before.offset);
+    client::SyncOffset* after = fallback->mutable_after();
+    after->set_filenum(fallback_.after.filenum);
+    after->set_offset(fallback_.after.offset);
+  }
+  return true;
 }
 

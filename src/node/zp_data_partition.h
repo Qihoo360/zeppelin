@@ -8,8 +8,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  // See the License for the specific language governing permissions and
 // limitations under the License.
 #ifndef SRC_NODE_ZP_DATA_PARTITION_H_
 #define SRC_NODE_ZP_DATA_PARTITION_H_
@@ -64,11 +63,25 @@ struct SlaveItem {
 struct BinlogOffset {
   uint32_t filenum;
   uint64_t offset;
+  BinlogOffset()
+    : filenum(0), offset(0) {}
+  
+  BinlogOffset(uint32_t num, uint64_t off)
+    : filenum(num), offset(off) {}
+
   bool operator== (const BinlogOffset& rhs) const {
     return (filenum == rhs.filenum && offset == rhs.offset);
   }
   bool operator!= (const BinlogOffset& rhs) const {
     return (filenum != rhs.filenum || offset != rhs.offset);
+  }
+  bool operator< (const BinlogOffset& rhs) const {
+    return (filenum < rhs.filenum ||
+        (filenum == rhs.filenum && offset < rhs.offset));
+  }
+  bool operator> (const BinlogOffset& rhs) const {
+    return (filenum > rhs.filenum ||
+        (filenum == rhs.filenum && offset > rhs.offset));
   }
 };
 
@@ -121,6 +134,12 @@ struct BGSaveInfo {
     filenum = 0;
     offset = 0;
   }
+};
+
+struct FallbackInfo {
+  uint64_t time;  // 0 means no fallback
+  BinlogOffset before;
+  BinlogOffset after;
 };
 
 class Partition  {
@@ -178,14 +197,14 @@ class Partition  {
   Status FlushDb();
 
   // Binlog related
-  Status SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset);
-  bool GetBinlogOffsetWithLock(uint32_t* filenum, uint64_t* offset);
-  Status SetBinlogOffsetWithLock(uint32_t filenum, uint64_t offset);
+  Status SlaveAskSync(const Node &node, BinlogOffset boffset);
+  bool GetBinlogOffsetWithLock(BinlogOffset* boffset);
+  Status SetBinlogOffsetWithLock(const BinlogOffset& target);
 
   // State related
   void Dump();
-  bool GetWinBinlogOffset(uint32_t* filenum, uint64_t* offset);
-  void GetState(client::PartitionState* state);
+  bool GetWinBinlogOffset(BinlogOffset* win);
+  bool GetState(client::PartitionState* state);
 
   void DoTimingTask();
 
@@ -210,8 +229,7 @@ class Partition  {
   ZPMeta::PState pstate_;
   Role role_;
   int repl_state_;
-  uint32_t win_filenum_;
-  uint64_t win_offset_;
+  BinlogOffset win_boffset_;
   void CleanSlaves(const std::set<Node> &old_slaves);
   void BecomeSingle();
   void BecomeMaster();
@@ -224,8 +242,8 @@ class Partition  {
   // Binlog related
   Binlog* logger_;
   bool CheckBinlogFiles();  // Check binlog availible and update purge_index_
-  Status SetBinlogOffset(uint32_t filenum, uint64_t offset);
-  bool GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) const;
+  Status SetBinlogOffset(const BinlogOffset& target);
+  bool GetBinlogOffset(BinlogOffset* boffset) const;
 
   // DoCommand related
   slash::RecordMutex mutex_record_;
@@ -284,12 +302,17 @@ class Partition  {
   bool PurgeLogs(uint32_t to, bool manual);
   bool PurgeFiles(uint32_t to, bool manual);
 
+  // Fallback related
+  pthread_rwlock_t fallback_rw_;  // protect partition status below
+  FallbackInfo fallback_;
+
   // Lock order:
   // state_rw_      >       suspend_rw_         >       bgsave_protector_
   // state_rw_      >       suspend_rw_         >       mutex_record_
   // state_rw_      >       bgsave_protector_
   // state_rw_      >       db_sync_protector_
   // state_rw_      >       purged_index_rw_
+  // state_rw_      >       fallback_rw_
 
   Partition(const Partition&);
   void operator=(const Partition&);

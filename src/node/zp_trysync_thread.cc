@@ -79,21 +79,20 @@ bool ZPTrySyncThread::Send(std::shared_ptr<Partition> partition,
   node->set_ip(zp_data_server->local_ip());
   node->set_port(zp_data_server->local_port());
 
-  uint32_t filenum = 0;
-  uint64_t offset = 0;
-  partition->GetBinlogOffsetWithLock(&filenum, &offset);
+  BinlogOffset boffset;
+  partition->GetBinlogOffsetWithLock(&boffset);
   sync->set_table_name(partition->table_name());
   client::SyncOffset *sync_offset = sync->mutable_sync_offset();
   sync_offset->set_partition(partition->partition_id());
-  sync_offset->set_filenum(filenum);
-  sync_offset->set_offset(offset);
+  sync_offset->set_filenum(boffset.filenum);
+  sync_offset->set_offset(boffset.offset);
 
   // Send through client
   slash::Status s = cli->Send(&request);
   DLOG(INFO) << "TrySync: Partition " << partition->table_name() << "_"
     << partition->partition_id() << " with SyncPoint ("
     << sync->node().ip() << ":" << sync->node().port()
-    << ", " << filenum << ", " << offset << ")";
+    << ", " << boffset.filenum << ", " << boffset.offset << ")";
   if (!s.ok()) {
     LOG(WARNING) << "TrySync send failed, Partition "
       << partition->table_name()
@@ -213,9 +212,10 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name,
             RsyncUnref();
             return true;
           case client::StatusCode::kFallback:
-            LOG(INFO) << "Receive sync offset fallback to : "
+            LOG(WARNING) << "Receive sync offset fallback to : "
               << res.filenum << "_" << res.offset;
-            s = partition->SetBinlogOffsetWithLock(res.filenum, res.offset);
+            s = partition->SetBinlogOffsetWithLock(BinlogOffset(res.filenum,
+                  res.offset));
             if (!s.ok()) {
               LOG(WARNING) << "Set sync offset fallback to : "
                 << res.filenum << "_" << res.offset

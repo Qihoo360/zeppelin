@@ -147,11 +147,12 @@ public:
   Status Put(const std::string &item);
   Status PutBlank(uint64_t len);
 
-  void GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset) const {
+  void GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset) {
+    slash::MutexLock l(&mutex_);
     version_->Fetch(filenum, pro_offset);
   }
   Status SetProducerStatus(uint32_t pro_num, uint64_t pro_offset,
-      uint64_t* actual_offset);
+      uint64_t* actual_offset, uint32_t* cur_num, uint64_t* cur_offset);
 
 private:
   slash::Mutex mutex_;

@@ -520,41 +520,40 @@ Status Binlog::RemoveBetween(int lbound, int rbound) {
 }
 
 // Set binlog to point pro_num pro_offset
-// Actual offset may small than pro_offset
-// since we don't want to append any blank content into binlog
-// instead of that, this could be fill by the subsequence sync
+// actual_offset: Actual offset may small than pro_offset
+//    since we don't want to append any blank content into binlog
+//    instead of that, this could be fill by the subsequence sync
+// cur_num and cur_offset, return the old point
 Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset,
-    uint64_t* actual_offset) {
+    uint64_t* actual_offset, uint32_t* cur_num, uint64_t* cur_offset) {
   slash::MutexLock l(&mutex_);
 
   // Create binlog file if needed
-  uint32_t cur_num = 0;
-  uint64_t cur_offset = 0;
-  version_->Fetch(&cur_num, &cur_offset);
-  if (cur_num != pro_num) {
+  version_->Fetch(cur_num, cur_offset);
+  if (*cur_num != pro_num) {
     delete queue_;
     delete writer_;
 
     std::string profile = NewFileName(filename_, pro_num);
     slash::NewWritableFile(profile, &queue_);
     writer_ = new BinlogWriter(queue_);
-    cur_offset = 0;
+    *cur_offset = 0;
   }
 
   // Clear old invalid file
-  if (cur_num < pro_num) {
+  if (*cur_num < pro_num) {
     // delele all binlog before cur_num
-    RemoveBetween(0, cur_num);
-  } else if (cur_num > pro_num) {
+    RemoveBetween(0, *cur_num);
+  } else if (*cur_num > pro_num) {
     // delete all binlog between pro_num and cur_num
-    RemoveBetween(pro_num + 1, cur_num);
+    RemoveBetween(pro_num + 1, *cur_num);
   }
 
   // Avoid to append any blank content into binlog
   if (pro_offset < kHeaderSize) {
     pro_offset = 0;
   }
-  pro_offset = (pro_offset > cur_offset) ? cur_offset : pro_offset;
+  pro_offset = (pro_offset > *cur_offset) ? *cur_offset : pro_offset;
   Status s = writer_->Fallback(pro_offset);
   if (s.ok()) {
     version_->Save(pro_num, pro_offset);
