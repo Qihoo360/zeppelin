@@ -20,8 +20,13 @@
 
 extern ZPDataServer* zp_data_server;
 
-ZPTrySyncThread::ZPTrySyncThread():
-  rsync_flag_(0) {
+static std::string TablePartitionString(const std::string& table, int id) {
+  char buf[256];
+  snprintf(buf, sizeof(buf), "%s_%u", table.c_str(), id);
+  return std::string(buf);
+}
+
+ZPTrySyncThread::ZPTrySyncThread() {
     bg_thread_ = new pink::BGThread();
     bg_thread_->set_thread_name("ZPDataTrySync");
 }
@@ -165,6 +170,7 @@ void ZPTrySyncThread::DropConnection(const Node& node) {
  */
 bool ZPTrySyncThread::SendTrySync(const std::string& table_name,
     int partition_id) {
+  std::string index = TablePartitionString(table_name, partition_id);
   std::shared_ptr<Partition> partition =
     zp_data_server->GetTablePartitionById(table_name, partition_id);
   if (!partition
@@ -172,6 +178,7 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name,
     // Partition maybe deleted or closed, no need to rescheule again
     LOG(INFO) << "SendTrySync closed or deleted Partition "
       << table_name << "_" << partition_id;
+    RsyncUnref(index);
     return true;
   }
 
@@ -180,13 +187,14 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name,
       return false;
     }
     partition->WaitDBSyncDone();
-    RsyncUnref();
+    RsyncUnref(index);
     LOG(INFO) << "Success Update Master Offset for Partition "
       << partition->table_name() << "_" << partition->partition_id();
   }
 
   if (!partition->ShouldTrySync()) {
     // Return true so that the trysync will not be reschedule
+    RsyncUnref(index);
     return true;
   }
 
@@ -200,7 +208,7 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name,
     cli->set_recv_timeout(1000);
 
     slash::CreatePath(partition->sync_path());
-    RsyncRef();
+    RsyncRef(index);
     // Send && Recv
     if (Send(partition, cli)) {
       Status s;
@@ -209,7 +217,7 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name,
         switch (res.code) {
           case client::StatusCode::kOk:
             partition->TrySyncDone();
-            RsyncUnref();
+            RsyncUnref(index);
             return true;
           case client::StatusCode::kFallback:
             LOG(WARNING) << "Receive sync offset fallback to : "
@@ -224,8 +232,8 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name,
             break;
           case client::StatusCode::kWait:
             LOG(INFO) << "Receive wait dbsync wait";
-            RsyncRef();  // Keep the rsync deamon for sync file receive
             partition->SetWaitDBSync();
+            return false;  // Keep the rsync deamon for sync file receive
             break;
           default:
             LOG(WARNING) << "TrySyncThread failed, "
@@ -245,7 +253,7 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name,
         << "_" << master_node.ip << ":" << master_node.port << ")";
       DropConnection(master_node);
     }
-    RsyncUnref();
+    RsyncUnref(index);
   } else {
     LOG(WARNING) << "TrySyncThread Connect failed ("
       << partition->table_name() << "_" << partition->partition_id()
@@ -254,10 +262,9 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name,
   return false;
 }
 
-void ZPTrySyncThread::RsyncRef() {
-  assert(rsync_flag_ >= 0);
+void ZPTrySyncThread::RsyncRef(const std::string& index) {
   // Start Rsync
-  if (0 == rsync_flag_) {
+  if (rsync_ref_.empty()) {
     slash::StopRsync(zp_data_server->db_sync_path());
     std::string dbsync_path = zp_data_server->db_sync_path();
 
@@ -269,17 +276,24 @@ void ZPTrySyncThread::RsyncRef() {
     if (0 != ret) {
       LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path
         << " error : " << ret;
+      return;
     } else {
       LOG(INFO) << "Success start rsync, path:" << dbsync_path;
     }
   }
-  rsync_flag_++;
+  
+  if (rsync_ref_.find(index) == rsync_ref_.end()) {
+    rsync_ref_.insert(index);
+  }
 }
 
-void ZPTrySyncThread::RsyncUnref() {
-  assert(rsync_flag_ >= 0);
-  rsync_flag_--;
-  if (0 == rsync_flag_) {
+void ZPTrySyncThread::RsyncUnref(const std::string& index) {
+  if (rsync_ref_.empty()) {
+    return;
+  }
+
+  rsync_ref_.erase(index);
+  if (rsync_ref_.empty()) {
     std::string dbsync_path = zp_data_server->db_sync_path();
     int ret = slash::StopRsync(dbsync_path);
     if (0 != ret) {

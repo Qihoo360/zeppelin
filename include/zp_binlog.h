@@ -21,7 +21,7 @@
 using slash::Status;
 using slash::Slice;
 
-std::string NewFileName(const std::string name, const uint32_t current);
+std::string NewFileName(const std::string& name, uint32_t current);
 
 // Find the nearest block start offset
 uint64_t BinlogBlockStart(uint64_t offset);

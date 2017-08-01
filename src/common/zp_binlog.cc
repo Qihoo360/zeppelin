@@ -6,7 +6,7 @@
 
 using slash::RWLock;
 
-std::string NewFileName(const std::string name, const uint32_t current) {
+std::string NewFileName(const std::string& name, uint32_t current) {
   char buf[256];
   snprintf(buf, sizeof(buf), "%s%u", name.c_str(), current);
   return std::string(buf);
