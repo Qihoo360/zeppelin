@@ -88,8 +88,7 @@ int ZPSyncConn::DealMessage() {
     arg = new ZPBinlogReceiveTask(
         option,
         slease.lease());
-  }
-  if (request_.sync_type() == client::SyncType::SKIP) {
+  } else if (request_.sync_type() == client::SyncType::SKIP) {
     // Receive a binlog skip request
     client::BinlogSkip bskip = request_.binlog_skip();
 

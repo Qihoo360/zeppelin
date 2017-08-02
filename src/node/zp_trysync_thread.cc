@@ -94,7 +94,7 @@ bool ZPTrySyncThread::Send(std::shared_ptr<Partition> partition,
 
   // Send through client
   slash::Status s = cli->Send(&request);
-  DLOG(INFO) << "TrySync: Partition " << partition->table_name() << "_"
+  LOG(INFO) << "TrySync: Partition " << partition->table_name() << "_"
     << partition->partition_id() << " with SyncPoint ("
     << sync->node().ip() << ":" << sync->node().port()
     << ", " << boffset.filenum << ", " << boffset.offset << ")";
@@ -114,6 +114,7 @@ bool ZPTrySyncThread::Recv(std::shared_ptr<Partition> partition,
   Status result = cli->Recv(&response);
   if (!result.ok()) {
     LOG(WARNING) << "TrySync recv failed, Partition:"
+      << partition->table_name() << "_"
       << partition->partition_id() << ", caz " << result.ToString();
     return false;
   }
@@ -122,7 +123,7 @@ bool ZPTrySyncThread::Recv(std::shared_ptr<Partition> partition,
   res->message = response.msg();
   if (response.type() != client::Type::SYNC) {
     LOG(WARNING) << "TrySync recv error type reponse, Partition:"
-      << partition->partition_id();
+      << partition->table_name() << "_" << partition->partition_id();
     return false;
   }
   if (response.has_sync()) {
@@ -141,7 +142,8 @@ pink::PinkCli* ZPTrySyncThread::GetConnection(const Node& node) {
     cli->set_connect_timeout(1500);
     Status s = cli->Connect(node.ip, node.port);
     if (!s.ok()) {
-      LOG(WARNING) << "Connect failed caz" << s.ToString();
+      LOG(WARNING) << "ZpTrySync Thread connect node: " << ip_port
+        <<" failed caz" << s.ToString();
       delete cli;
       return NULL;
     }
@@ -183,6 +185,9 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name,
   }
 
   if (partition->ShouldWaitDBSync()) {
+    LOG(INFO) << " Partition: " << partition->table_name()
+      << "_" << partition->partition_id() << " ShouldWaitDBSync.";
+    
     if (!partition->TryUpdateMasterOffset()) {
       return false;
     }
@@ -200,7 +205,7 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name,
 
   Node master_node = partition->master_node();
   pink::PinkCli* cli = GetConnection(master_node);
-  DLOG(INFO) << "TrySync connect(" << partition->table_name() << "_"
+  LOG(INFO) << "TrySync connect(" << partition->table_name() << "_"
     << partition->partition_id() << "_" << master_node.ip << ":"
     << master_node.port << ") " << (cli != NULL ? "ok" : "failed");
   if (cli) {
@@ -216,22 +221,29 @@ bool ZPTrySyncThread::SendTrySync(const std::string& table_name,
       if (Recv(partition, cli, &res)) {
         switch (res.code) {
           case client::StatusCode::kOk:
+            LOG(INFO) << "TrySync ok, Partition: "
+              << partition->table_name() << "_" << partition->partition_id();
             partition->TrySyncDone();
             RsyncUnref(index);
             return true;
           case client::StatusCode::kFallback:
             LOG(WARNING) << "Receive sync offset fallback to : "
-              << res.filenum << "_" << res.offset;
+              << res.filenum << "_" << res.offset << ", Partition: "
+              << partition->table_name() << "_" << partition->partition_id()
+              << ", back from: " << master_node.ip << ":" << master_node.port;
             s = partition->SetBinlogOffsetWithLock(BinlogOffset(res.filenum,
                   res.offset));
             if (!s.ok()) {
               LOG(WARNING) << "Set sync offset fallback to : "
-                << res.filenum << "_" << res.offset
+                << res.filenum << "_" << res.offset << ", Partition: "
+                << partition->table_name() << "_" << partition->partition_id()
                 << ", Faliled: " << s.ToString();
             }
             break;
           case client::StatusCode::kWait:
-            LOG(INFO) << "Receive wait dbsync wait";
+            LOG(INFO) << "Receive wait dbsync wait, Partition: "
+              << partition->table_name() << "_" << partition->partition_id()
+              << ", back from: " << master_node.ip << ":" << master_node.port;
             partition->SetWaitDBSync();
             return false;  // Keep the rsync deamon for sync file receive
             break;

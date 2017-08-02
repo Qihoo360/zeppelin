@@ -108,7 +108,8 @@ bool Table::UpdateOrAddPartition(const int partition_id,
   }
 
   if (state != ZPMeta::PState::ACTIVE) {
-    DLOG(WARNING) << "New Partition with no active state";
+    LOG(INFO) << "New Partition with no active state, skip until next epoch"
+      << ", Partition: " << table_name_ << "_" << partition_id; 
     return false;
   }
 

@@ -120,8 +120,8 @@ Status ZPBinlogSendTask::ProcessTask() {
     std::string confile = NewFileName(binlog_filename_, filenum_ + 1);
 
     if (slash::FileExists(confile)) {
-      DLOG(INFO) << "BinlogSender (" << node_ << ") roll to new binlog "
-        << confile;
+      LOG(INFO) << "BinlogSender to " << node_ << " roll to new binlog "
+        << confile << ", Partition: " << table_name_ << "_" << partition_id_;
       delete reader_;
       reader_ = NULL;
       delete queue_;
@@ -130,7 +130,8 @@ Status ZPBinlogSendTask::ProcessTask() {
       s = slash::NewSequentialFile(confile, &(queue_));
       if (!s.ok()) {
         LOG(WARNING) << "Failed to roll to next binlog file:" << (filenum_ + 1)
-          << " Error:" << s.ToString();
+          << " Error:" << s.ToString() << ", Partition: " << table_name_
+          << "_" << partition_id_;
         return s;
       }
       reader_ = new BinlogReader(queue_);
@@ -139,7 +140,8 @@ Status ZPBinlogSendTask::ProcessTask() {
       return ProcessTask();
     } else {
       LOG(WARNING) << "Read end of binlog file, but no next binlog exist:"
-        << (filenum_ + 1);
+        << (filenum_ + 1) << ", Partition: " << table_name_
+        << "_" << partition_id_;
       return s;
     }
   } else if (s.IsIncomplete()) {
@@ -328,8 +330,8 @@ Status ZPBinlogSendTaskPool::PutBack(ZPBinlogSendTask* task) {
   ZPBinlogSendTaskIndex::iterator it = task_ptrs_.find(task->name());
   if (it == task_ptrs_.end()              // task has been removed
       || it->second.iter != tasks_.end()
-        || it->second.sequence != task->sequence()) { // task belong to
-                                                    // same partition exist
+        || it->second.sequence != task->sequence()) {  // task belong to
+                                                       // same partition exist
     LOG(INFO) << "Remove BinlogTask when put back for Table:" << task->name()
       << ", partition: " << task->partition_id()
       << ", target: " << task->node()
@@ -473,7 +475,7 @@ void* ZPBinlogSendThread::ThreadMain() {
       if (!sreq.IsInitialized()) {
         std::string text_format;
         google::protobuf::TextFormat::PrintToString(sreq, &text_format);
-        DLOG(WARNING) << "Ignore error SyncRequest to be sent to: "
+        LOG(WARNING) << "Ignore error SyncRequest to be sent to: "
           << task->node() << ": [" << text_format << "]"
           << ", table:" << task->table_name()
           << ", partition:" << task->partition_id()
