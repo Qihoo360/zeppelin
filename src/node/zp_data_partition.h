@@ -258,7 +258,7 @@ class Partition  {
   void ResetRecoverSync();
   bool NeedRecoverSync();
   std::atomic<uint64_t> last_sync_time_;
-  std::atomic<uint64_t> sync_lease_;  // use dynamic lease
+  std::atomic<uint64_t> sync_lease_;  // (s) use dynamic lease
                                       //set by masters' binlog sender
   std::atomic<int> stuck_recover_sync_flag_;  // how mand cron times
                                               // stuck out of kConnect

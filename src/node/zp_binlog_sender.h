@@ -78,11 +78,11 @@ class ZPBinlogSendTask  {
   uint64_t offset() const {
     return offset_;
   }
-  uint64_t last_lease_send_time() const {
-    return last_lease_send_time_;
+  uint64_t process_error_time() const {
+    return process_error_time_;
   }
-  void renew_last_lease_send_time() {
-    last_lease_send_time_ = slash::NowMicros();
+  void renew_process_error_time() {
+    process_error_time_ = slash::NowMicros();
   }
   uint32_t pre_filenum() const {
     return pre_filenum_;
@@ -107,7 +107,7 @@ class ZPBinlogSendTask  {
   const Node node_;
   uint32_t filenum_;
   uint64_t offset_;
-  uint64_t last_lease_send_time_;
+  uint64_t process_error_time_;
   
   // Record The last item filenum and offset
   // For sending use later

@@ -183,7 +183,7 @@ message BinlogSkip {
 message SyncLease {
   required string table_name = 1; 
   required int32 partition_id = 2; 
-  required int64 lease = 3;
+  required int64 lease = 3; // s
 }
 
 message SyncRequest {

@@ -63,7 +63,7 @@ ZPBinlogSendTask::ZPBinlogSendTask(uint64_t seq, const std::string &table,
   node_(target),
   filenum_(ifilenum),
   offset_(ioffset),
-  last_lease_send_time_(slash::NowMicros()),
+  process_error_time_(0),
   pre_filenum_(0),
   pre_offset_(0),
   pre_has_content_(false),
@@ -350,7 +350,6 @@ Status ZPBinlogSendTaskPool::PutBack(ZPBinlogSendTask* task) {
 void ZPBinlogSendTaskPool::Dump() {
   slash::RWLock l(&tasks_rwlock_, false);
   ZPBinlogSendTaskIndex::iterator it = task_ptrs_.begin();
-  LOG(INFO) << "----------------------------";
   for (; it != task_ptrs_.end(); ++it) {
     std::list<ZPBinlogSendTask*>::iterator tptr = it->second.iter;
     LOG(INFO) << "----------------------------";
@@ -367,7 +366,6 @@ void ZPBinlogSendTaskPool::Dump() {
     }
     LOG(INFO) << "----------------------------";
   }
-  LOG(INFO) << "----------------------------";
 }
 
 /**
@@ -387,12 +385,6 @@ ZPBinlogSendThread::~ZPBinlogSendThread() {
 
 // Send LEASE SyncRequest to peer
 bool ZPBinlogSendThread::RenewPeerLease(ZPBinlogSendTask* task) {
-  if (slash::NowMicros() - task->last_lease_send_time()
-      < kBinlogSendInterval * 1000000) {
-    // Avoid lease package flooding
-    return false;
-  }
-
   // In terms of the most conservative estimation,
   // current task will be fetch out from the pool
   // and be process again after lease_time
@@ -412,13 +404,12 @@ bool ZPBinlogSendThread::RenewPeerLease(ZPBinlogSendTask* task) {
       << task->partition_id()
       << ", filenum:" << task->pre_filenum()
       << ", offset:" << task->pre_offset()
+      << ", sequence:" << task->sequence()
       << ", thread:" << pthread_self()
       << ", Error: " << s.ToString();
-    return false;
   }
 
-  task->renew_last_lease_send_time();
-  return true;
+  return s.ok();
 }
 
 void* ZPBinlogSendThread::ThreadMain() {
@@ -427,8 +418,6 @@ void* ZPBinlogSendThread::ThreadMain() {
     sleep(kBinlogSendInterval);
   }
 
-  uint64_t last_task_seq = 0;
-  bool last_task_error = false;
   while (!should_stop()) {
     ZPBinlogSendTask* task = NULL;
     Status s = pool_->FetchOut(&task);
@@ -438,17 +427,15 @@ void* ZPBinlogSendThread::ThreadMain() {
       continue;
     }
     
-    if (last_task_seq == task->sequence()
-        && last_task_error) {
-      // Fetch out the task who was processed by current sender the last time,
-      // And error happened. Means no much availible task left in the task queue,
+    if (slash::NowMicros() - task->process_error_time()
+        < kBinlogSendInterval * 1000000) {
+      // Fetch out the task who was processed failed not far before
+      // Means no much availible task left in the task queue,
       // So sleep to avoid rapidly loop
       sleep(kBinlogSendInterval);
     }
 
     // Fetched one task, process it
-    last_task_seq = task->sequence();
-    last_task_error = false;
     Status item_s = Status::OK();
     uint64_t time_begin = slash::NowMicros();
     while (!should_stop()) {
@@ -456,12 +443,13 @@ void* ZPBinlogSendThread::ThreadMain() {
         // Process ProcessTask
         item_s = task->ProcessTask();
         if (item_s.IsEndFile()) {
+          LOG(INFO) << "RenewPeerLease when end of file: " << task->sequence();
           RenewPeerLease(task);
         }
 
         if (!item_s.ok()) {
           pool_->PutBack(task);
-          last_task_error = true;
+          task->renew_process_error_time();
           break;
         }
         // ProcessTask OK here
@@ -482,7 +470,8 @@ void* ZPBinlogSendThread::ThreadMain() {
           << ", filenum:" << task->pre_filenum()
           << ", offset:" << task->pre_offset()
           << ", next filenum:" << task->filenum()
-          << ", next offset:" << task->offset();
+          << ", next offset:" << task->offset()
+          << ", sequence:" << task->sequence();
         task->send_next = false;
         sleep(kBinlogSendInterval);
       } else {
@@ -493,6 +482,7 @@ void* ZPBinlogSendThread::ThreadMain() {
             << task->partition_id()
             << ", filenum:" << task->pre_filenum()
             << ", offset:" << task->pre_offset()
+            << ", sequence:" << task->sequence()
             << ", thread:" << pthread_self()
             << ", Error: " << item_s.ToString();
           task->send_next = false;
@@ -505,8 +495,10 @@ void* ZPBinlogSendThread::ThreadMain() {
       // Check if need to switch task
       if (slash::NowMicros() - time_begin > kBinlogTimeSlice * 1000000) {
         // Switch Task
+        LOG(INFO) << "RenewPeerLease when timeout";
         RenewPeerLease(task);
         pool_->PutBack(task);
+          sleep(kBinlogSendInterval);
         break;
       }
     }

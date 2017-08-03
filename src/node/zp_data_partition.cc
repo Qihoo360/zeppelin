@@ -975,10 +975,12 @@ bool Partition::NeedRecoverSync() {
   }
 
   // Recover trigger by lease timeout
-  if (slash::NowMicros() - last_sync_time_ > sync_lease_) {
+  uint64_t now_time = slash::NowMicros();
+  if (now_time - last_sync_time_ > sync_lease_ * 1000 * 1000) {
     // We know last_sync_time_ and sync_lease is not atomic here,
     // but it's not critical, there will be one more trysync at worse
     LOG(INFO) << "Sync lease timeout, lease:" << sync_lease_
+      << ", now: " << now_time << ", last sync: " << last_sync_time_
       << ", would redo trysync" << " table: " << table_name_
       << ", partition_id: " << partition_id_;
     return true;
