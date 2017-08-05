@@ -213,6 +213,7 @@ class ZPDataServer  {
 
   // Meta State related
   pthread_rwlock_t meta_state_rw_;
+  int meta_index_;
   std::string meta_ip_;
   long meta_port_;
 

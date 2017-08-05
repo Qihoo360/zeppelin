@@ -30,6 +30,8 @@
 ZPDataServer::ZPDataServer()
   : table_count_(0),
   should_exit_(false),
+  meta_index_(-1),
+  meta_port_(0),
   meta_epoch_(-1),
   should_pull_meta_(false) {
     pthread_rwlock_init(&meta_state_rw_, NULL);
@@ -290,12 +292,15 @@ void ZPDataServer::PickMeta() {
     return;
   }
 
-  std::random_device rd;
-  std::mt19937 mt(rd());
-  std::uniform_int_distribution<int> di(0, g_zp_conf->meta_addr().size()-1);
-  int index = di(mt);
+  if (meta_index_ == -1) {
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_int_distribution<int> di(0, g_zp_conf->meta_addr().size()-1);
+    meta_index_ = di(mt);
+  }
+  meta_index_ = (meta_index_ + 1) % g_zp_conf->meta_addr().size();
 
-  auto addr = g_zp_conf->meta_addr()[index];
+  auto addr = g_zp_conf->meta_addr()[meta_index_];
   auto pos = addr.find("/");
   if (pos != std::string::npos) {
     meta_ip_ = addr.substr(0, pos);
