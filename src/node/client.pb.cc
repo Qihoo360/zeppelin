@@ -663,7 +663,7 @@ void protobuf_AddDesc_client_2eproto() {
     "\022\n\nrepl_state\030\003 \002(\t\022\034\n\006master\030\004 \002(\0132\014.cl"
     "ient.Node\022\034\n\006slaves\030\005 \003(\0132\014.client.Node\022"
     "\'\n\013sync_offset\030\006 \002(\0132\022.client.SyncOffset"
-    "\022\'\n\010fallback\030\007 \002(\0132\025.client.SlaveFallbac"
+    "\022\'\n\010fallback\030\007 \001(\0132\025.client.SlaveFallbac"
     "k\"\351\005\n\nCmdRequest\022\032\n\004type\030\001 \002(\0162\014.client."
     "Type\022%\n\004sync\030\002 \001(\0132\027.client.CmdRequest.S"
     "ync\022#\n\003set\030\003 \001(\0132\026.client.CmdRequest.Set"
@@ -2152,7 +2152,7 @@ bool PartitionState::MergePartialFromCodedStream(
         break;
       }
 
-      // required .client.SlaveFallback fallback = 7;
+      // optional .client.SlaveFallback fallback = 7;
       case 7: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -2225,7 +2225,7 @@ void PartitionState::SerializeWithCachedSizes(
       6, this->sync_offset(), output);
   }
 
-  // required .client.SlaveFallback fallback = 7;
+  // optional .client.SlaveFallback fallback = 7;
   if (has_fallback()) {
     ::google::protobuf::internal::WireFormatLite::WriteMessageMaybeToArray(
       7, this->fallback(), output);
@@ -2285,7 +2285,7 @@ void PartitionState::SerializeWithCachedSizes(
         6, this->sync_offset(), target);
   }
 
-  // required .client.SlaveFallback fallback = 7;
+  // optional .client.SlaveFallback fallback = 7;
   if (has_fallback()) {
     target = ::google::protobuf::internal::WireFormatLite::
       WriteMessageNoVirtualToArray(
@@ -2338,7 +2338,7 @@ int PartitionState::ByteSize() const {
           this->sync_offset());
     }
 
-    // required .client.SlaveFallback fallback = 7;
+    // optional .client.SlaveFallback fallback = 7;
     if (has_fallback()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
@@ -2416,7 +2416,7 @@ void PartitionState::CopyFrom(const PartitionState& from) {
 }
 
 bool PartitionState::IsInitialized() const {
-  if ((_has_bits_[0] & 0x0000006f) != 0x0000006f) return false;
+  if ((_has_bits_[0] & 0x0000002f) != 0x0000002f) return false;
 
   if (has_master()) {
     if (!this->master().IsInitialized()) return false;

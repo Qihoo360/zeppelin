@@ -498,7 +498,6 @@ void* ZPBinlogSendThread::ThreadMain() {
         LOG(INFO) << "RenewPeerLease when timeout";
         RenewPeerLease(task);
         pool_->PutBack(task);
-          sleep(kBinlogSendInterval);
         break;
       }
     }

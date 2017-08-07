@@ -643,7 +643,7 @@ class PartitionState : public ::google::protobuf::Message {
   inline ::client::SyncOffset* release_sync_offset();
   inline void set_allocated_sync_offset(::client::SyncOffset* sync_offset);
 
-  // required .client.SlaveFallback fallback = 7;
+  // optional .client.SlaveFallback fallback = 7;
   inline bool has_fallback() const;
   inline void clear_fallback();
   static const int kFallbackFieldNumber = 7;
@@ -3538,7 +3538,7 @@ inline void PartitionState::set_allocated_sync_offset(::client::SyncOffset* sync
   }
 }
 
-// required .client.SlaveFallback fallback = 7;
+// optional .client.SlaveFallback fallback = 7;
 inline bool PartitionState::has_fallback() const {
   return (_has_bits_[0] & 0x00000040u) != 0;
 }
