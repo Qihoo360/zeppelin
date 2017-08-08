@@ -97,7 +97,7 @@ const std::string kManifest = "manifest";
 // The size of Binlogfile
 //
 //const uint64_t kBinlogSize = 128; 
-//const uint64_t kBinlogSize = 256;
+//const uint64_t kBinlogSize = 1024 * 100;
 const uint64_t kBinlogSize = 1024 * 1024 * 100;
 
 
@@ -119,9 +119,9 @@ const int kDBSyncRetryTime = 5;    // retry time to send single file for DBSync
 const std::string kBgsaveInfoFile = "info";
 
 // Purge binlog
-const uint32_t kBinlogRemainMinCount = 3;
-const uint32_t kBinlogRemainMaxCount = 50;
-const uint32_t kBinlogRemainMaxDay = 7;
+const uint32_t kBinlogRemainMinCount = 10;
+const uint32_t kBinlogRemainMaxCount = 60;
+const uint32_t kBinlogRemainMaxDay = 30;
 
 
 //

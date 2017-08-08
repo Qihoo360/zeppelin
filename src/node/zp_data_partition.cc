@@ -1049,6 +1049,12 @@ void Partition::DoDBSync(void* arg) {
   Partition* partition = psync->p;
 
   partition->DBSyncSendFile(psync->ip, psync->port);
+  
+  // remove slave
+  {
+    slash::MutexLock l(&(partition->db_sync_protector_));
+    partition->db_sync_slaves_.erase(slash::IpPortString(psync->ip, psync->port));
+  }
 
   delete psync;
 }
@@ -1123,12 +1129,6 @@ void Partition::DBSyncSendFile(const std::string& ip, int port) {
     }
   }
 
-  // remove slave
-  std::string ip_port = slash::IpPortString(ip, port);
-  {
-    slash::MutexLock l(&db_sync_protector_);
-    db_sync_slaves_.erase(ip_port);
-  }
   if (0 == ret) {
     LOG(INFO) << "rsync send files success" 
       << ", to node: " << ip << ":" << port << ", bg_path: " << bg_path

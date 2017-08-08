@@ -68,6 +68,7 @@ message CmdRequest {
     required Node node = 1;
     required string table_name = 2;
     required SyncOffset sync_offset = 3;
+    required int64 epoch = 4;
   }
   optional Sync sync = 2; 
 

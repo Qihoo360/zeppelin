@@ -32,6 +32,7 @@ class ZPBinlogSendTask;
 struct ZPBinlogSendTaskHandle {
   std::list< ZPBinlogSendTask* >::iterator iter;
   uint64_t sequence;  // use squence to distinguish task with same name
+  uint32_t filenum_snap;
 };
 
 typedef std::unordered_map< std::string,

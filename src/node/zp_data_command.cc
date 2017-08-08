@@ -295,9 +295,24 @@ void SyncCmd::Do(const google::protobuf::Message *req,
       sync_req.sync_offset().offset());
   LOG(INFO) << "SyncCmd with a new node (" << node.ip << ":" << node.port
     << "), Partition: " << ptr->table_name() << "_"  << ptr->partition_id()
-    << ", SyncPoint: " << s_boffset.filenum << "_" << s_boffset.offset;
-  s = ptr->SlaveAskSync(node, s_boffset);
+    << ", SyncPoint: " << s_boffset.filenum << "_" << s_boffset.offset
+    << ", with epoch: " << sync_req.epoch();
 
+  // Check epoch
+  if (sync_req.epoch() != zp_data_server->meta_epoch()) {
+    response->set_code(client::StatusCode::kError);
+    response->set_msg("epoch inequality");
+    LOG(WARNING) << "SyncCmd failed since epoch inequality"
+      << ", Node: " << node.ip << ":" << node.port
+      << ", Partition: " << ptr->table_name() << "_"  << ptr->partition_id()
+      << ", SyncPoint: " << s_boffset.filenum << "_" << s_boffset.offset
+      << ", Epoch: " << sync_req.epoch()
+      << ", My epoch: " << zp_data_server->meta_epoch();
+    return;
+  }
+
+  // Try add sync
+  s = ptr->SlaveAskSync(node, s_boffset);
   if (s.ok()) {
     response->set_code(client::StatusCode::kOk);
     LOG(INFO) << "SyncCmd add node ok (" << node.ip << ":" << node.port

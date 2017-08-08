@@ -773,6 +773,13 @@ class CmdRequest_Sync : public ::google::protobuf::Message {
   inline ::client::SyncOffset* release_sync_offset();
   inline void set_allocated_sync_offset(::client::SyncOffset* sync_offset);
 
+  // required int64 epoch = 4;
+  inline bool has_epoch() const;
+  inline void clear_epoch();
+  static const int kEpochFieldNumber = 4;
+  inline ::google::protobuf::int64 epoch() const;
+  inline void set_epoch(::google::protobuf::int64 value);
+
   // @@protoc_insertion_point(class_scope:client.CmdRequest.Sync)
  private:
   inline void set_has_node();
@@ -781,15 +788,18 @@ class CmdRequest_Sync : public ::google::protobuf::Message {
   inline void clear_has_table_name();
   inline void set_has_sync_offset();
   inline void clear_has_sync_offset();
+  inline void set_has_epoch();
+  inline void clear_has_epoch();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::client::Node* node_;
   ::std::string* table_name_;
   ::client::SyncOffset* sync_offset_;
+  ::google::protobuf::int64 epoch_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -3724,6 +3734,28 @@ inline void CmdRequest_Sync::set_allocated_sync_offset(::client::SyncOffset* syn
   } else {
     clear_has_sync_offset();
   }
+}
+
+// required int64 epoch = 4;
+inline bool CmdRequest_Sync::has_epoch() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void CmdRequest_Sync::set_has_epoch() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void CmdRequest_Sync::clear_has_epoch() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void CmdRequest_Sync::clear_epoch() {
+  epoch_ = GOOGLE_LONGLONG(0);
+  clear_has_epoch();
+}
+inline ::google::protobuf::int64 CmdRequest_Sync::epoch() const {
+  return epoch_;
+}
+inline void CmdRequest_Sync::set_epoch(::google::protobuf::int64 value) {
+  set_has_epoch();
+  epoch_ = value;
 }
 
 // -------------------------------------------------------------------

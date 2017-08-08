@@ -91,13 +91,16 @@ bool ZPTrySyncThread::Send(std::shared_ptr<Partition> partition,
   sync_offset->set_partition(partition->partition_id());
   sync_offset->set_filenum(boffset.filenum);
   sync_offset->set_offset(boffset.offset);
+  int64_t epoch = zp_data_server->meta_epoch();  // just use current epoch
+  sync->set_epoch(epoch);
 
   // Send through client
   slash::Status s = cli->Send(&request);
   LOG(INFO) << "TrySync: Partition " << partition->table_name() << "_"
     << partition->partition_id() << " with SyncPoint ("
     << sync->node().ip() << ":" << sync->node().port()
-    << ", " << boffset.filenum << ", " << boffset.offset << ")";
+    << ", " << boffset.filenum << ", " << boffset.offset << ")"
+    << ", epoch: " << epoch;
   if (!s.ok()) {
     LOG(WARNING) << "TrySync send failed, Partition "
       << partition->table_name()

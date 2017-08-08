@@ -215,10 +215,11 @@ void protobuf_AssignDesc_client_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(CmdRequest));
   CmdRequest_Sync_descriptor_ = CmdRequest_descriptor_->nested_type(0);
-  static const int CmdRequest_Sync_offsets_[3] = {
+  static const int CmdRequest_Sync_offsets_[4] = {
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest_Sync, node_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest_Sync, table_name_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest_Sync, sync_offset_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CmdRequest_Sync, epoch_),
   };
   CmdRequest_Sync_reflection_ =
     new ::google::protobuf::internal::GeneratedMessageReflection(
@@ -664,65 +665,65 @@ void protobuf_AddDesc_client_2eproto() {
     "ient.Node\022\034\n\006slaves\030\005 \003(\0132\014.client.Node\022"
     "\'\n\013sync_offset\030\006 \002(\0132\022.client.SyncOffset"
     "\022\'\n\010fallback\030\007 \001(\0132\025.client.SlaveFallbac"
-    "k\"\351\005\n\nCmdRequest\022\032\n\004type\030\001 \002(\0162\014.client."
+    "k\"\370\005\n\nCmdRequest\022\032\n\004type\030\001 \002(\0162\014.client."
     "Type\022%\n\004sync\030\002 \001(\0132\027.client.CmdRequest.S"
     "ync\022#\n\003set\030\003 \001(\0132\026.client.CmdRequest.Set"
     "\022#\n\003get\030\004 \001(\0132\026.client.CmdRequest.Get\022#\n"
     "\003del\030\005 \001(\0132\026.client.CmdRequest.Del\022%\n\004in"
     "fo\030\006 \001(\0132\027.client.CmdRequest.Info\022%\n\004mge"
     "t\030\007 \001(\0132\027.client.CmdRequest.Mget\022+\n\007flus"
-    "hdb\030\010 \001(\0132\032.client.CmdRequest.FlushDB\032_\n"
+    "hdb\030\010 \001(\0132\032.client.CmdRequest.FlushDB\032n\n"
     "\004Sync\022\032\n\004node\030\001 \002(\0132\014.client.Node\022\022\n\ntab"
     "le_name\030\002 \002(\t\022\'\n\013sync_offset\030\003 \002(\0132\022.cli"
-    "ent.SyncOffset\032f\n\003Set\022\022\n\ntable_name\030\001 \002("
-    "\t\022\013\n\003key\030\002 \002(\t\022\r\n\005value\030\003 \002(\014\022\014\n\004uuid\030\004 "
-    "\001(\t\022!\n\006expire\030\005 \001(\0132\021.client.KeyExpire\0324"
-    "\n\003Get\022\022\n\ntable_name\030\001 \002(\t\022\013\n\003key\030\002 \002(\t\022\014"
-    "\n\004uuid\030\003 \001(\t\0324\n\003Del\022\022\n\ntable_name\030\001 \002(\t\022"
-    "\013\n\003key\030\002 \002(\t\022\014\n\004uuid\030\003 \001(\t\032\032\n\004Info\022\022\n\nta"
-    "ble_name\030\001 \001(\t\032(\n\004Mget\022\022\n\ntable_name\030\001 \002"
-    "(\t\022\014\n\004keys\030\002 \003(\t\0323\n\007FlushDB\022\022\n\ntable_nam"
-    "e\030\001 \002(\t\022\024\n\014partition_id\030\002 \002(\005\"\226\007\n\013CmdRes"
-    "ponse\022\032\n\004type\030\001 \002(\0162\014.client.Type\022 \n\004cod"
-    "e\030\002 \002(\0162\022.client.StatusCode\022\013\n\003msg\030\003 \001(\t"
-    "\022&\n\004sync\030\004 \001(\0132\030.client.CmdResponse.Sync"
-    "\022$\n\003get\030\005 \001(\0132\027.client.CmdResponse.Get\022\036"
-    "\n\010redirect\030\006 \001(\0132\014.client.Node\0221\n\ninfo_s"
-    "tats\030\007 \003(\0132\035.client.CmdResponse.InfoStat"
-    "s\0227\n\rinfo_capacity\030\010 \003(\0132 .client.CmdRes"
-    "ponse.InfoCapacity\022/\n\tinfo_repl\030\t \003(\0132\034."
-    "client.CmdResponse.InfoRepl\022&\n\004mget\030\n \003("
-    "\0132\030.client.CmdResponse.Mget\0223\n\013info_serv"
-    "er\030\013 \001(\0132\036.client.CmdResponse.InfoServer"
-    "\032C\n\004Sync\022\022\n\ntable_name\030\001 \002(\t\022\'\n\013sync_off"
-    "set\030\002 \002(\0132\022.client.SyncOffset\032\024\n\003Get\022\r\n\005"
-    "value\030\001 \001(\014\032B\n\tInfoStats\022\022\n\ntable_name\030\001"
-    " \002(\t\022\024\n\014total_querys\030\002 \002(\003\022\013\n\003qps\030\003 \002(\005\032"
-    "@\n\014InfoCapacity\022\022\n\ntable_name\030\001 \002(\t\022\014\n\004u"
-    "sed\030\002 \002(\003\022\016\n\006remain\030\003 \002(\003\032f\n\010InfoRepl\022\022\n"
-    "\ntable_name\030\001 \002(\t\022\025\n\rpartition_cnt\030\002 \002(\003"
-    "\022/\n\017partition_state\030\003 \003(\0132\026.client.Parti"
-    "tionState\032\"\n\004Mget\022\013\n\003key\030\001 \002(\t\022\r\n\005value\030"
-    "\002 \002(\014\032g\n\nInfoServer\022\r\n\005epoch\030\001 \002(\003\022\023\n\013ta"
-    "ble_names\030\002 \003(\t\022\036\n\010cur_meta\030\003 \002(\0132\014.clie"
-    "nt.Node\022\025\n\rmeta_renewing\030\004 \002(\010\"C\n\nBinlog"
-    "Skip\022\022\n\ntable_name\030\001 \002(\t\022\024\n\014partition_id"
-    "\030\002 \002(\005\022\013\n\003gap\030\003 \002(\003\"D\n\tSyncLease\022\022\n\ntabl"
-    "e_name\030\001 \002(\t\022\024\n\014partition_id\030\002 \002(\005\022\r\n\005le"
-    "ase\030\003 \002(\003\"\373\001\n\013SyncRequest\022#\n\tsync_type\030\001"
-    " \002(\0162\020.client.SyncType\022\r\n\005epoch\030\002 \002(\003\022\032\n"
-    "\004from\030\003 \002(\0132\014.client.Node\022\'\n\013sync_offset"
-    "\030\004 \001(\0132\022.client.SyncOffset\022#\n\007request\030\005 "
-    "\001(\0132\022.client.CmdRequest\022\'\n\013binlog_skip\030\006"
-    " \001(\0132\022.client.BinlogSkip\022%\n\nsync_lease\030\007"
-    " \001(\0132\021.client.SyncLease*\201\001\n\004Type\022\010\n\004SYNC"
-    "\020\000\022\007\n\003SET\020\001\022\007\n\003GET\020\002\022\007\n\003DEL\020\003\022\r\n\tINFOSTA"
-    "TS\020\004\022\020\n\014INFOCAPACITY\020\005\022\014\n\010INFOREPL\020\006\022\010\n\004"
-    "MGET\020\007\022\016\n\nINFOSERVER\020\010\022\013\n\007FLUSHDB\020\t*(\n\010S"
-    "yncType\022\007\n\003CMD\020\000\022\010\n\004SKIP\020\001\022\t\n\005LEASE\020\002*U\n"
-    "\nStatusCode\022\007\n\003kOk\020\000\022\r\n\tkNotFound\020\001\022\t\n\005k"
-    "Wait\020\002\022\n\n\006kError\020\003\022\r\n\tkFallback\020\004\022\t\n\005kMo"
-    "ve\020\005", 2804);
+    "ent.SyncOffset\022\r\n\005epoch\030\004 \002(\003\032f\n\003Set\022\022\n\n"
+    "table_name\030\001 \002(\t\022\013\n\003key\030\002 \002(\t\022\r\n\005value\030\003"
+    " \002(\014\022\014\n\004uuid\030\004 \001(\t\022!\n\006expire\030\005 \001(\0132\021.cli"
+    "ent.KeyExpire\0324\n\003Get\022\022\n\ntable_name\030\001 \002(\t"
+    "\022\013\n\003key\030\002 \002(\t\022\014\n\004uuid\030\003 \001(\t\0324\n\003Del\022\022\n\nta"
+    "ble_name\030\001 \002(\t\022\013\n\003key\030\002 \002(\t\022\014\n\004uuid\030\003 \001("
+    "\t\032\032\n\004Info\022\022\n\ntable_name\030\001 \001(\t\032(\n\004Mget\022\022\n"
+    "\ntable_name\030\001 \002(\t\022\014\n\004keys\030\002 \003(\t\0323\n\007Flush"
+    "DB\022\022\n\ntable_name\030\001 \002(\t\022\024\n\014partition_id\030\002"
+    " \002(\005\"\226\007\n\013CmdResponse\022\032\n\004type\030\001 \002(\0162\014.cli"
+    "ent.Type\022 \n\004code\030\002 \002(\0162\022.client.StatusCo"
+    "de\022\013\n\003msg\030\003 \001(\t\022&\n\004sync\030\004 \001(\0132\030.client.C"
+    "mdResponse.Sync\022$\n\003get\030\005 \001(\0132\027.client.Cm"
+    "dResponse.Get\022\036\n\010redirect\030\006 \001(\0132\014.client"
+    ".Node\0221\n\ninfo_stats\030\007 \003(\0132\035.client.CmdRe"
+    "sponse.InfoStats\0227\n\rinfo_capacity\030\010 \003(\0132"
+    " .client.CmdResponse.InfoCapacity\022/\n\tinf"
+    "o_repl\030\t \003(\0132\034.client.CmdResponse.InfoRe"
+    "pl\022&\n\004mget\030\n \003(\0132\030.client.CmdResponse.Mg"
+    "et\0223\n\013info_server\030\013 \001(\0132\036.client.CmdResp"
+    "onse.InfoServer\032C\n\004Sync\022\022\n\ntable_name\030\001 "
+    "\002(\t\022\'\n\013sync_offset\030\002 \002(\0132\022.client.SyncOf"
+    "fset\032\024\n\003Get\022\r\n\005value\030\001 \001(\014\032B\n\tInfoStats\022"
+    "\022\n\ntable_name\030\001 \002(\t\022\024\n\014total_querys\030\002 \002("
+    "\003\022\013\n\003qps\030\003 \002(\005\032@\n\014InfoCapacity\022\022\n\ntable_"
+    "name\030\001 \002(\t\022\014\n\004used\030\002 \002(\003\022\016\n\006remain\030\003 \002(\003"
+    "\032f\n\010InfoRepl\022\022\n\ntable_name\030\001 \002(\t\022\025\n\rpart"
+    "ition_cnt\030\002 \002(\003\022/\n\017partition_state\030\003 \003(\013"
+    "2\026.client.PartitionState\032\"\n\004Mget\022\013\n\003key\030"
+    "\001 \002(\t\022\r\n\005value\030\002 \002(\014\032g\n\nInfoServer\022\r\n\005ep"
+    "och\030\001 \002(\003\022\023\n\013table_names\030\002 \003(\t\022\036\n\010cur_me"
+    "ta\030\003 \002(\0132\014.client.Node\022\025\n\rmeta_renewing\030"
+    "\004 \002(\010\"C\n\nBinlogSkip\022\022\n\ntable_name\030\001 \002(\t\022"
+    "\024\n\014partition_id\030\002 \002(\005\022\013\n\003gap\030\003 \002(\003\"D\n\tSy"
+    "ncLease\022\022\n\ntable_name\030\001 \002(\t\022\024\n\014partition"
+    "_id\030\002 \002(\005\022\r\n\005lease\030\003 \002(\003\"\373\001\n\013SyncRequest"
+    "\022#\n\tsync_type\030\001 \002(\0162\020.client.SyncType\022\r\n"
+    "\005epoch\030\002 \002(\003\022\032\n\004from\030\003 \002(\0132\014.client.Node"
+    "\022\'\n\013sync_offset\030\004 \001(\0132\022.client.SyncOffse"
+    "t\022#\n\007request\030\005 \001(\0132\022.client.CmdRequest\022\'"
+    "\n\013binlog_skip\030\006 \001(\0132\022.client.BinlogSkip\022"
+    "%\n\nsync_lease\030\007 \001(\0132\021.client.SyncLease*\201"
+    "\001\n\004Type\022\010\n\004SYNC\020\000\022\007\n\003SET\020\001\022\007\n\003GET\020\002\022\007\n\003D"
+    "EL\020\003\022\r\n\tINFOSTATS\020\004\022\020\n\014INFOCAPACITY\020\005\022\014\n"
+    "\010INFOREPL\020\006\022\010\n\004MGET\020\007\022\016\n\nINFOSERVER\020\010\022\013\n"
+    "\007FLUSHDB\020\t*(\n\010SyncType\022\007\n\003CMD\020\000\022\010\n\004SKIP\020"
+    "\001\022\t\n\005LEASE\020\002*U\n\nStatusCode\022\007\n\003kOk\020\000\022\r\n\tk"
+    "NotFound\020\001\022\t\n\005kWait\020\002\022\n\n\006kError\020\003\022\r\n\tkFa"
+    "llback\020\004\022\t\n\005kMove\020\005", 2819);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "client.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -2463,6 +2464,7 @@ void PartitionState::Swap(PartitionState* other) {
 const int CmdRequest_Sync::kNodeFieldNumber;
 const int CmdRequest_Sync::kTableNameFieldNumber;
 const int CmdRequest_Sync::kSyncOffsetFieldNumber;
+const int CmdRequest_Sync::kEpochFieldNumber;
 #endif  // !_MSC_VER
 
 CmdRequest_Sync::CmdRequest_Sync()
@@ -2486,6 +2488,7 @@ void CmdRequest_Sync::SharedCtor() {
   node_ = NULL;
   table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   sync_offset_ = NULL;
+  epoch_ = GOOGLE_LONGLONG(0);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -2537,6 +2540,7 @@ void CmdRequest_Sync::Clear() {
     if (has_sync_offset()) {
       if (sync_offset_ != NULL) sync_offset_->::client::SyncOffset::Clear();
     }
+    epoch_ = GOOGLE_LONGLONG(0);
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
@@ -2588,6 +2592,22 @@ bool CmdRequest_Sync::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
+        if (input->ExpectTag(32)) goto parse_epoch;
+        break;
+      }
+
+      // required int64 epoch = 4;
+      case 4: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_epoch:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int64, ::google::protobuf::internal::WireFormatLite::TYPE_INT64>(
+                 input, &epoch_)));
+          set_has_epoch();
+        } else {
+          goto handle_uninterpreted;
+        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -2631,6 +2651,11 @@ void CmdRequest_Sync::SerializeWithCachedSizes(
       3, this->sync_offset(), output);
   }
 
+  // required int64 epoch = 4;
+  if (has_epoch()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt64(4, this->epoch(), output);
+  }
+
   if (!unknown_fields().empty()) {
     ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
         unknown_fields(), output);
@@ -2663,6 +2688,11 @@ void CmdRequest_Sync::SerializeWithCachedSizes(
         3, this->sync_offset(), target);
   }
 
+  // required int64 epoch = 4;
+  if (has_epoch()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt64ToArray(4, this->epoch(), target);
+  }
+
   if (!unknown_fields().empty()) {
     target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
         unknown_fields(), target);
@@ -2693,6 +2723,13 @@ int CmdRequest_Sync::ByteSize() const {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
           this->sync_offset());
+    }
+
+    // required int64 epoch = 4;
+    if (has_epoch()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int64Size(
+          this->epoch());
     }
 
   }
@@ -2731,6 +2768,9 @@ void CmdRequest_Sync::MergeFrom(const CmdRequest_Sync& from) {
     if (from.has_sync_offset()) {
       mutable_sync_offset()->::client::SyncOffset::MergeFrom(from.sync_offset());
     }
+    if (from.has_epoch()) {
+      set_epoch(from.epoch());
+    }
   }
   mutable_unknown_fields()->MergeFrom(from.unknown_fields());
 }
@@ -2748,7 +2788,7 @@ void CmdRequest_Sync::CopyFrom(const CmdRequest_Sync& from) {
 }
 
 bool CmdRequest_Sync::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000007) != 0x00000007) return false;
+  if ((_has_bits_[0] & 0x0000000f) != 0x0000000f) return false;
 
   if (has_node()) {
     if (!this->node().IsInitialized()) return false;
@@ -2764,6 +2804,7 @@ void CmdRequest_Sync::Swap(CmdRequest_Sync* other) {
     std::swap(node_, other->node_);
     std::swap(table_name_, other->table_name_);
     std::swap(sync_offset_, other->sync_offset_);
+    std::swap(epoch_, other->epoch_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);
     std::swap(_cached_size_, other->_cached_size_);

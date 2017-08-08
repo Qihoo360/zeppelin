@@ -271,7 +271,8 @@ Status ZPBinlogSendTaskPool::AddTask(ZPBinlogSendTask* task) {
   // index point to the last one just push back
   task_ptrs_[task->name()].iter = tasks_.end();
   --(task_ptrs_[task->name()].iter);
-  task_ptrs_[task->name()].sequence = task->sequence(); // the latest one
+  task_ptrs_[task->name()].sequence = task->sequence();  // the latest one
+  task_ptrs_[task->name()].filenum_snap = task->filenum();  // current filenum
   return Status::OK();
 }
 
@@ -301,7 +302,8 @@ int32_t ZPBinlogSendTaskPool::TaskFilenum(const std::string &name) {
   }
   if (it->second.iter == tasks_.end()) {
     // The task is processing by some thread
-    return -1;
+    // return its snapshot of last time
+    return it->second.filenum_snap;
   }
   return (*(it->second.iter))->filenum();
 }
@@ -344,6 +346,7 @@ Status ZPBinlogSendTaskPool::PutBack(ZPBinlogSendTask* task) {
   tasks_.push_back(task);
   it->second.iter = tasks_.end();
   --(it->second.iter);
+  it->second.filenum_snap = task->filenum();
   return Status::OK();
 }
 
@@ -356,12 +359,10 @@ void ZPBinlogSendTaskPool::Dump() {
     LOG(INFO) << "+Binlog Send Task" << it->first;
     LOG(INFO) << "  +Sequence  " << it->second.sequence;
     if (tptr != tasks_.end()) {
-      LOG(INFO) << "  +Table  " << (*tptr)->table_name();
-      LOG(INFO) << "  +Partition  " << (*tptr)->partition_id();
-      LOG(INFO) << "  +Node  " << (*tptr)->node();
       LOG(INFO) << "  +filenum " << (*tptr)->filenum();
       LOG(INFO) << "  +offset " << (*tptr)->offset();
     } else {
+      LOG(INFO) << "  +filenum " << it->second.filenum_snap;
       LOG(INFO) << "  +Being occupied";
     }
     LOG(INFO) << "----------------------------";
