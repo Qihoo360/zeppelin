@@ -444,7 +444,6 @@ void* ZPBinlogSendThread::ThreadMain() {
         // Process ProcessTask
         item_s = task->ProcessTask();
         if (item_s.IsEndFile()) {
-          LOG(INFO) << "RenewPeerLease when end of file: " << task->sequence();
           RenewPeerLease(task);
         }
 
@@ -496,7 +495,6 @@ void* ZPBinlogSendThread::ThreadMain() {
       // Check if need to switch task
       if (slash::NowMicros() - time_begin > kBinlogTimeSlice * 1000000) {
         // Switch Task
-        LOG(INFO) << "RenewPeerLease when timeout";
         RenewPeerLease(task);
         pool_->PutBack(task);
         break;
