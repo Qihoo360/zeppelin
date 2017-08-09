@@ -130,6 +130,8 @@ const uint32_t kBinlogRemainMaxDay = 30;
 const std::string kMetaTables = "##tables";
 const std::string kMetaNodes = "##nodes";
 const std::string kMetaVersion = "##version";
+// Define in migrate source file
+// static const std::string kMigrateHead = "##migrate";
 
 // timeout between node and meta server
 // the one for meta should large than for node
