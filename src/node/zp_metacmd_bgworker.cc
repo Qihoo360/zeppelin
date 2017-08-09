@@ -64,7 +64,7 @@ void ZPMetacmdBGWorker::MetaUpdateTask(void* task) {
 pink::Status ZPMetacmdBGWorker::Send() {
   ZPMeta::MetaCmd request;
 
-  DLOG(INFO) << "MetacmdThread send pull to MetaServer("
+  LOG(INFO) << "MetacmdThread send pull to MetaServer("
     << zp_data_server->meta_ip() << ":"
     << zp_data_server->meta_port() + kMetaPortShiftCmd
     << ") with local("<< zp_data_server->local_ip() << ":"
@@ -78,7 +78,7 @@ pink::Status ZPMetacmdBGWorker::Send() {
 
   std::string text_format;
   google::protobuf::TextFormat::PrintToString(request, &text_format);
-  DLOG(INFO) << "MetacmdThread send pull: [" << text_format << "]";
+  LOG(INFO) << "MetacmdThread send pull: [" << text_format << "]";
 
   return cli_->Send(&request);
 }
@@ -90,11 +90,9 @@ pink::Status ZPMetacmdBGWorker::Recv(int64_t* receive_epoch) {
   int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;
   result = cli_->Recv(&response);
   if (result.ok()) {
-    DLOG(INFO) << "succ MetacmdThread recv from MetaServer("
-      << meta_ip << ":" << meta_port;
     std::string text_format;
     google::protobuf::TextFormat::PrintToString(response, &text_format);
-    DLOG(INFO) << "Receive from meta(" << meta_ip << ":" << meta_port
+    LOG(INFO) << "Receive from meta(" << meta_ip << ":" << meta_port
       << "), size: " << response.pull().info().size()
       << " Response:[" << text_format << "]";
 
@@ -118,8 +116,8 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(
   *receive_epoch = response.pull().version();
   ZPMeta::MetaCmdResponse_Pull pull = response.pull();
 
-  DLOG(INFO) << "receive Pull message, will handle "
-    << pull.info_size() << " Tables.";
+  LOG(INFO) << "Receive Pull message, new epoch: " << pull.version()
+    << ", will handle " << pull.info_size() << " tables.";
   std::set<std::string> miss_tables;  // response for before but not any more
   zp_data_server->GetAllTableName(&miss_tables);
 
@@ -159,7 +157,8 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(
       bool result = table->UpdateOrAddPartition(partition.id(),
           partition.state(), master_node, slave_nodes);
       if (!result) {
-        LOG(WARNING) << "Failed to AddPartition " << partition.id()
+        LOG(WARNING) << "Failed to AddPartition "
+          << table_info.name() << "_" << partition.id()
           << ", State: " << static_cast<int>(partition.state())
           << ", partition master is " << partition.master().ip()
           << ":" << partition.master().port();
@@ -169,6 +168,7 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(
 
   // Delete expired tables
   for (auto miss : miss_tables) {
+    LOG(WARNING) << "ZPMetaCmd delete expired table after recv pull: " << miss;
     zp_data_server->DeleteTable(miss);
   }
 
@@ -184,35 +184,31 @@ bool ZPMetacmdBGWorker::FetchMetaInfo(int64_t* receive_epoch) {
   // No more PickMeta, which should be done by ping thread
   assert(!zp_data_server->meta_ip().empty()
       && zp_data_server->meta_port() != 0);
-  DLOG(INFO) << "MetacmdThread will connect ("
+  LOG(INFO) << "MetacmdThread will connect ("
     << meta_ip << ":" << meta_port << ")";
   s = cli_->Connect(meta_ip, meta_port);
   if (s.ok()) {
     cli_->set_send_timeout(1000);
     cli_->set_recv_timeout(1000);
-    DLOG(INFO) << "Metacmd connect (" << meta_ip << ":" << meta_port << ") ok!";
+    LOG(INFO) << "Metacmd connect (" << meta_ip << ":" << meta_port << ") ok!";
 
     s = Send();
-    DLOG(INFO) << "Metacmd connect (" << meta_ip << ":" << meta_port << ") ok!";
-
     if (!s.ok()) {
       LOG(WARNING) << "Metacmd send to (" << meta_ip << ":" << meta_port
         << ") failed! caz:" << s.ToString();
       cli_->Close();
       return false;
     }
-    DLOG(INFO) << "Metacmd send to (" << meta_ip << ":" << meta_port << ") ok";
+    LOG(INFO) << "Metacmd send to (" << meta_ip << ":" << meta_port << ") ok";
 
     s = Recv(receive_epoch);
     if (!s.ok()) {
-      LOG(WARNING) << "Metacmd recv from (" << meta_ip << ":" << meta_port
-        << ") failed! caz:" << s.ToString();
       LOG(WARNING) << "Metacmd recv from (" << meta_ip << ":" << meta_port
         << ") failed! errno:" << errno << " strerr:" << strerror(errno);
       cli_->Close();
       return false;
     }
-    DLOG(INFO) << "Metacmd recv from (" << meta_ip << ":" << meta_port
+    LOG(INFO) << "Metacmd recv from (" << meta_ip << ":" << meta_port
       << ") ok";
     cli_->Close();
     return true;

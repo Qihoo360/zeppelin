@@ -52,9 +52,13 @@ const int kMetaPortShiftFY = 100;
 
 // TrySync Delay time := kRecoverSyncDelayCronCount * (kNodeCronInterval * kNodeCronWaitCount)
 const int kRecoverSyncDelayCronCount = 7;
+const int kStuckRecoverSyncDelayCronCount = 450; // for slave stuck out of kConnected
 const int kTrySyncInterval = 3000;  // mili seconds
 const int kBinlogSendInterval = 1;
-const int kBinlogTimeSlice = 3;    //should larger than kBinlogSendInterval
+const int kBinlogRedundantLease = 10;  // some more lease time for redundance
+const int kBinlogMinLease = 20;
+const int kBinlogDefaultLease = 20;
+const int kBinlogTimeSlice = 3;    // should larger than kBinlogSendInterval
 const int kPingInterval = 3;
 const int kMetacmdInterval = 3;
 const int kDispatchCronInterval = 5000;
@@ -93,7 +97,7 @@ const std::string kManifest = "manifest";
 // The size of Binlogfile
 //
 //const uint64_t kBinlogSize = 128; 
-//const uint64_t kBinlogSize = 256;
+//const uint64_t kBinlogSize = 1024 * 100;
 const uint64_t kBinlogSize = 1024 * 1024 * 100;
 
 
@@ -111,12 +115,13 @@ const int kMaxBitOpInputBit = 21;
 const uint32_t kDBSyncMaxGap = 1000;
 const std::string kDBSyncModule = "document";
 const uint32_t kDBSyncSpeedLimit = 126; //MBPS
+const int kDBSyncRetryTime = 5;    // retry time to send single file for DBSync
 const std::string kBgsaveInfoFile = "info";
 
 // Purge binlog
-const uint32_t kBinlogRemainMinCount = 3;
-const uint32_t kBinlogRemainMaxCount = 20;
-const uint32_t kBinlogRemainMaxDay = 7;
+const uint32_t kBinlogRemainMinCount = 10;
+const uint32_t kBinlogRemainMaxCount = 60;
+const uint32_t kBinlogRemainMaxDay = 30;
 
 
 //

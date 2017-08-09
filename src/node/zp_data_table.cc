@@ -108,7 +108,8 @@ bool Table::UpdateOrAddPartition(const int partition_id,
   }
 
   if (state != ZPMeta::PState::ACTIVE) {
-    DLOG(WARNING) << "New Partition with no active state";
+    LOG(INFO) << "New Partition with no active state, skip until next epoch"
+      << ", Partition: " << table_name_ << "_" << partition_id; 
     return false;
   }
 
@@ -156,8 +157,7 @@ void Table::DumpPartitionBinlogOffsets(std::map<int, BinlogOffset> *offset) {
   slash::RWLock l(&partition_rw_, false);
   BinlogOffset tboffset;
   for (auto& pair : partitions_) {
-    (pair.second)->GetBinlogOffsetWithLock(&(tboffset.filenum),
-        &(tboffset.offset));
+    (pair.second)->GetBinlogOffsetWithLock(&tboffset);
     offset->insert(std::pair<int, BinlogOffset>(pair.first, tboffset));
   }
 }
@@ -187,8 +187,11 @@ void Table::GetReplInfo(client::CmdResponse_InfoRepl* repl_info) {
   repl_info->set_partition_cnt(partition_cnt_);
   client::PartitionState* partition_state = NULL;
   for (auto& p : partitions_) {
-    partition_state = repl_info->add_partition_state();
-    p.second->GetState(partition_state);
+    client::PartitionState tmp;
+    if (p.second->GetState(&tmp)) {
+      partition_state = repl_info->add_partition_state();
+      partition_state->CopyFrom(tmp);
+    }
   }
 }
 

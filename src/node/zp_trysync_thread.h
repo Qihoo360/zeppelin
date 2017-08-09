@@ -16,6 +16,7 @@
 #include <map>
 #include <string>
 #include <memory>
+#include <unordered_set>
 #include "slash/include/slash_status.h"
 #include "slash/include/slash_mutex.h"
 #include "pink/include/pink_cli.h"
@@ -57,9 +58,9 @@ class ZPTrySyncThread  {
       RecvResult* res);
 
   // Rsync related
-  int rsync_flag_;
-  void RsyncRef();
-  void RsyncUnref();
+  std::unordered_set<std::string> rsync_ref_;
+  void RsyncRef(const std::string& index);
+  void RsyncUnref(const std::string& index);
 
   // Connection related
   std::map<std::string, pink::PinkCli*> client_pool_;

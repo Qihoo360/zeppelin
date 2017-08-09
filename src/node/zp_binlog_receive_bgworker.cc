@@ -63,7 +63,12 @@ void ZPBinlogReceiveBgWorker::DoBinlogReceiveTask(void* task) {
     case client::SyncType::SKIP:
       partition->DoBinlogSkip(
           option,
-          task_ptr->gap);
+          task_ptr->i);
+      break;
+    case client::SyncType::LEASE:
+      partition->DoBinlogLeaseRenew(
+          option,
+          task_ptr->i);
       break;
     default:
       LOG(WARNING) << "Unknown binlog sync type: "

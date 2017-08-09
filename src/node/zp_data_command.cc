@@ -291,47 +291,78 @@ void SyncCmd::Do(const google::protobuf::Message *req,
   Node node(sync_req.node().ip(), sync_req.node().port());
   response->set_type(client::Type::SYNC);
 
-  uint32_t s_filenum = sync_req.sync_offset().filenum();
-  uint64_t s_offset = sync_req.sync_offset().offset();
-  LOG(INFO) << "SyncCmd with a new node ("
-    << ptr->table_name() << "_"  << ptr->partition_id()
-    << "_" << node.ip << ":" << node.port << ", "
-    << s_filenum << ", " << s_offset << ")";
-  s = ptr->SlaveAskSync(node, s_filenum, s_offset);
+  BinlogOffset s_boffset(sync_req.sync_offset().filenum(),
+      sync_req.sync_offset().offset());
+  LOG(INFO) << "SyncCmd with a new node (" << node.ip << ":" << node.port
+    << "), Partition: " << ptr->table_name() << "_"  << ptr->partition_id()
+    << ", SyncPoint: " << s_boffset.filenum << "_" << s_boffset.offset
+    << ", with epoch: " << sync_req.epoch();
 
+  // Check epoch
+  if (sync_req.epoch() != zp_data_server->meta_epoch()) {
+    response->set_code(client::StatusCode::kError);
+    response->set_msg("epoch inequality");
+    LOG(WARNING) << "SyncCmd failed since epoch inequality"
+      << ", Node: " << node.ip << ":" << node.port
+      << ", Partition: " << ptr->table_name() << "_"  << ptr->partition_id()
+      << ", SyncPoint: " << s_boffset.filenum << "_" << s_boffset.offset
+      << ", Epoch: " << sync_req.epoch()
+      << ", My epoch: " << zp_data_server->meta_epoch();
+    return;
+  }
+
+  // Try add sync
+  s = ptr->SlaveAskSync(node, s_boffset);
   if (s.ok()) {
     response->set_code(client::StatusCode::kOk);
-    DLOG(INFO) << "SyncCmd add node ok";
+    LOG(INFO) << "SyncCmd add node ok (" << node.ip << ":" << node.port
+      << "), Partition: " << ptr->table_name() << "_"  << ptr->partition_id()
+      << ", SyncPoint: " << s_boffset.filenum << "_" << s_boffset.offset;
   } else if (s.IsEndFile() || s.IsInvalidArgument()) {
     // Need send fallback offset
     response->set_code(client::StatusCode::kFallback);
     client::CmdResponse_Sync *sync_res = response->mutable_sync();
     sync_res->set_table_name(sync_req.table_name());
     client::SyncOffset *offset = sync_res->mutable_sync_offset();
+    BinlogOffset new_boffset;
     if (s.IsEndFile()) {
       // Peer's offset is larger than me, send fallback offset
-      ptr->GetWinBinlogOffset(&s_filenum, &s_offset);
-      DLOG(INFO) << "SyncCmd with offset larger than me, node:"
-        << sync_req.node().ip() << ":" << sync_req.node().port();
+      ptr->GetWinBinlogOffset(&new_boffset);
+      LOG(WARNING) << "SyncCmd with offset larger than me"
+        << ", Node: " << node.ip << ":" << node.port
+        << ", Partition: " << ptr->table_name() << "_"  << ptr->partition_id()
+        << ", SyncPoint: " << s_boffset.filenum << "_" << s_boffset.offset
+        << ", My current point: " << new_boffset.filenum << "_" << new_boffset.offset;
     } else {
       // Invalid filenum an offset, sen fallback offset
-      DLOG(INFO) << "SyncCmd with offset invalid, node:"
-        << sync_req.node().ip() << ":" << sync_req.node().port();
+      LOG(WARNING) << "SyncCmd with offset invalid"
+        << ", Node: " << node.ip << ":" << node.port
+        << ", Partition: " << ptr->table_name() << "_"  << ptr->partition_id()
+        << ", SyncPoint: " << s_boffset.filenum << "_" << s_boffset.offset
+        << ", My current point: " << new_boffset.filenum << "_" << new_boffset.offset;
     }
-    offset->set_filenum(s_filenum);
-    s_offset = BinlogBlockStart(s_offset);
-    offset->set_offset(s_offset);
-    DLOG(INFO) << "Send back fallback binlog point: "
-      << s_filenum << ", " << s_offset << " To: "
-      << sync_req.node().ip() << ":" << sync_req.node().port();
+    offset->set_filenum(new_boffset.filenum);
+    new_boffset.offset= BinlogBlockStart(new_boffset.offset);
+    offset->set_offset(new_boffset.offset);
+    LOG(INFO) << "Send back fallback binlog point."
+      << ", Node: " << node.ip << ":" << node.port
+      << ", Partition: " << ptr->table_name() << "_"  << ptr->partition_id()
+      << ", SyncPoint: " << s_boffset.filenum << "_" << s_boffset.offset
+      << ", Fallback point: " << new_boffset.filenum << "_" << new_boffset.offset;
   } else if (s.IsIncomplete()) {
     // Slave should wait for db sync
     response->set_code(client::StatusCode::kWait);
-    DLOG(INFO) << "SyncCmd add node incomplete";
+    LOG(INFO) << "SyncCmd add node incomlete, slave should wait DBSync."
+      << ", Node: " << node.ip << ":" << node.port
+      << ", Partition: " << ptr->table_name() << "_"  << ptr->partition_id()
+      << ", SyncPoint: " << s_boffset.filenum << "_" << s_boffset.offset;
   } else {
     response->set_code(client::StatusCode::kError);
     response->set_msg(s.ToString());
-    LOG(WARNING) << "command failed: Sync, caz " << s.ToString();
+    LOG(WARNING) << "SyncCmd failed: Sync, caz " << s.ToString()
+      << ", Node: " << node.ip << ":" << node.port
+      << ", Partition: " << ptr->table_name() << "_"  << ptr->partition_id()
+      << ", SyncPoint: " << s_boffset.filenum << "_" << s_boffset.offset;
   }
 }
 
@@ -346,12 +377,12 @@ void FlushDBCmd::Do(const google::protobuf::Message *req,
   if (!s.ok()) {
     response->set_code(client::StatusCode::kError);
     response->set_msg(s.ToString());
-    LOG(WARNING) << "command failed: FlushDB at "
+    LOG(WARNING) << "FlushDBCmd failed at "
       << ptr->table_name() << "_" << ptr->partition_id()
       << ", caz:" << s.ToString();
   } else {
     response->set_code(client::StatusCode::kOk);
-    DLOG(INFO) << "FlushDB at "
-      << ptr->table_name() << "_" << ptr->partition_id() << " ok";
+    LOG(INFO) << "FlushDBCmd Success at "
+      << ptr->table_name() << "_" << ptr->partition_id();
   }
 }

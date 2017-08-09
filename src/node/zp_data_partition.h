@@ -8,8 +8,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  // See the License for the specific language governing permissions and
 // limitations under the License.
 #ifndef SRC_NODE_ZP_DATA_PARTITION_H_
 #define SRC_NODE_ZP_DATA_PARTITION_H_
@@ -26,6 +25,7 @@
 #include "include/db_nemo.h"
 #include "include/db_nemo_checkpoint.h"
 
+#include "slash/include/env.h"
 #include "include/zp_const.h"
 #include "include/client.pb.h"
 #include "include/zp_conf.h"
@@ -63,11 +63,25 @@ struct SlaveItem {
 struct BinlogOffset {
   uint32_t filenum;
   uint64_t offset;
+  BinlogOffset()
+    : filenum(0), offset(0) {}
+  
+  BinlogOffset(uint32_t num, uint64_t off)
+    : filenum(num), offset(off) {}
+
   bool operator== (const BinlogOffset& rhs) const {
     return (filenum == rhs.filenum && offset == rhs.offset);
   }
   bool operator!= (const BinlogOffset& rhs) const {
     return (filenum != rhs.filenum || offset != rhs.offset);
+  }
+  bool operator< (const BinlogOffset& rhs) const {
+    return (filenum < rhs.filenum ||
+        (filenum == rhs.filenum && offset < rhs.offset));
+  }
+  bool operator> (const BinlogOffset& rhs) const {
+    return (filenum > rhs.filenum ||
+        (filenum == rhs.filenum && offset > rhs.offset));
   }
 };
 
@@ -122,6 +136,12 @@ struct BGSaveInfo {
   }
 };
 
+struct FallbackInfo {
+  uint64_t time;  // 0 means no fallback
+  BinlogOffset before;
+  BinlogOffset after;
+};
+
 class Partition  {
  public:
   Partition(const std::string& table_name, const int partition_id,
@@ -160,6 +180,7 @@ class Partition  {
   void DoCommand(const Cmd* cmd, const client::CmdRequest &req,
       client::CmdResponse *res);
   void DoBinlogSkip(const PartitionSyncOption& option, uint64_t gap);
+  void DoBinlogLeaseRenew(const PartitionSyncOption& option, uint64_t lease);
 
   // Status related
   bool ShouldTrySync();
@@ -176,14 +197,14 @@ class Partition  {
   Status FlushDb();
 
   // Binlog related
-  Status SlaveAskSync(const Node &node, uint32_t filenum, uint64_t offset);
-  bool GetBinlogOffsetWithLock(uint32_t* filenum, uint64_t* offset);
-  Status SetBinlogOffsetWithLock(uint32_t filenum, uint64_t offset);
+  Status SlaveAskSync(const Node &node, BinlogOffset boffset);
+  bool GetBinlogOffsetWithLock(BinlogOffset* boffset);
+  Status SetBinlogOffsetWithLock(const BinlogOffset& target);
 
   // State related
   void Dump();
-  bool GetWinBinlogOffset(uint32_t* filenum, uint64_t* offset);
-  void GetState(client::PartitionState* state);
+  bool GetWinBinlogOffset(BinlogOffset* win);
+  bool GetState(client::PartitionState* state);
 
   void DoTimingTask();
 
@@ -208,13 +229,12 @@ class Partition  {
   ZPMeta::PState pstate_;
   Role role_;
   int repl_state_;
-  uint32_t win_filenum_;
-  uint64_t win_offset_;
+  BinlogOffset win_boffset_;
   void CleanSlaves(const std::set<Node> &old_slaves);
   void BecomeSingle();
   void BecomeMaster();
   void BecomeSlave();
-  bool CheckSyncOption(const PartitionSyncOption& option);
+  bool CheckSyncOption(const PartitionSyncOption& option, bool has_offset = true);
 
   // DB related
   rocksdb::DBNemo *db_;
@@ -222,19 +242,26 @@ class Partition  {
   // Binlog related
   Binlog* logger_;
   bool CheckBinlogFiles();  // Check binlog availible and update purge_index_
-  Status SetBinlogOffset(uint32_t filenum, uint64_t offset);
-  bool GetBinlogOffset(uint32_t* filenum, uint64_t* pro_offset) const;
+  Status SetBinlogOffset(const BinlogOffset& target);
+  bool GetBinlogOffset(BinlogOffset* boffset) const;
 
   // DoCommand related
   slash::RecordMutex mutex_record_;
   pthread_rwlock_t suspend_rw_;  // To suspend others
 
   // Recover sync related
+  // Be used only in the role of kNodeSlave
   std::atomic<bool> do_recovery_sync_;
-  std::atomic<int> recover_sync_flag_;
+  std::atomic<int> recover_sync_flag_;  // how many cron times
+                                        // stay in do_recovery_sync_
   void TryRecoverSync();
-  void CancelRecoverSync();
-  void MaybeRecoverSync();
+  void ResetRecoverSync();
+  bool NeedRecoverSync();
+  std::atomic<uint64_t> last_sync_time_;
+  std::atomic<uint64_t> sync_lease_;  // (s) use dynamic lease
+                                      //set by masters' binlog sender
+  std::atomic<int> stuck_recover_sync_flag_;  // how mand cron times
+                                              // stuck out of kConnect
 
   // BGSave related
   slash::Mutex bgsave_protector_;
@@ -275,12 +302,17 @@ class Partition  {
   bool PurgeLogs(uint32_t to, bool manual);
   bool PurgeFiles(uint32_t to, bool manual);
 
+  // Fallback related
+  pthread_rwlock_t fallback_rw_;  // protect partition status below
+  FallbackInfo fallback_;
+
   // Lock order:
   // state_rw_      >       suspend_rw_         >       bgsave_protector_
   // state_rw_      >       suspend_rw_         >       mutex_record_
   // state_rw_      >       bgsave_protector_
   // state_rw_      >       db_sync_protector_
   // state_rw_      >       purged_index_rw_
+  // state_rw_      >       fallback_rw_
 
   Partition(const Partition&);
   void operator=(const Partition&);

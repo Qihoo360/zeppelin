@@ -30,12 +30,11 @@ ZPPingThread::~ZPPingThread() {
 /*
  * Try to update last offset, return true if has changed
  */
-bool ZPPingThread::TryOffsetUpdate(const std::string table_name,
+bool ZPPingThread::CheckOffsetDelta(const std::string table_name,
     int partition_id, const BinlogOffset &new_offset) {
   if (last_offsets_.find(table_name) == last_offsets_.end()  // no such table
       || last_offsets_[table_name].find(partition_id) == last_offsets_[table_name].end()  // no such partition
       || last_offsets_[table_name][partition_id] != new_offset) {  // offset changed
-    last_offsets_[table_name][partition_id] = new_offset;
     return true;
   }
   return false;
@@ -55,7 +54,7 @@ slash::Status ZPPingThread::Send() {
   zp_data_server->DumpTableBinlogOffsets("", &all_offset);
   for (auto& item : all_offset) {
     for (auto& p : item.second) {
-      if (!TryOffsetUpdate(item.first, p.first, p.second)) {
+      if (!CheckOffsetDelta(item.first, p.first, p.second)) {
         // no change happend
         continue;
       }
@@ -74,7 +73,16 @@ slash::Status ZPPingThread::Send() {
     << ") with Epoch: " << meta_epoch
     << " offset content: [" << text_format << "]";
 
-  return cli_->Send(&request);
+  Status s = cli_->Send(&request);
+
+  // Update last_offsets only when send succ
+  if (s.ok()) {
+    for (auto& off : ping->offset()) {
+      last_offsets_[off.table_name()][off.partition()]
+        = BinlogOffset(off.filenum(), off.offset());
+    }
+  }
+  return s;
 }
 
 slash::Status ZPPingThread::RecvProc() {
@@ -112,6 +120,7 @@ void* ZPPingThread::ThreadMain() {
       DLOG(INFO) << "Ping connect ("<< meta_ip << ":" << meta_port << ") ok!";
       gettimeofday(&now, NULL);
       last_interaction = now;
+      last_offsets_.clear();  // should resend full dose offset after reconnect
       cli_->set_send_timeout(1000);
       cli_->set_recv_timeout(1000);
 

@@ -948,7 +948,10 @@ void ZPMetaServer::DoDownNodeForTableInfo(const ZPMeta::Nodes &nodes, ZPMeta::Ta
     for (j = 0; j < slaves_size; j++) {
       if (IsAlive(alive_nodes, p->slaves(j).ip(), p->slaves(j).port())) {
         bool ret = GetSlaveOffset(table_info->name(), slash::IpPortString(p->slaves(j).ip(), p->slaves(j).port()), i, &filenum, &offset);
-        if (ret && (filenum > max_filenum || (filenum == max_filenum && offset > max_offset))) {
+        if (ret
+            && (candidate == -1  // the first candidate
+              || filenum > max_filenum
+              || (filenum == max_filenum && offset > max_offset))) {
           candidate = j;
           max_filenum = filenum;
           max_offset = offset;
@@ -1206,7 +1209,9 @@ bool ZPMetaServer::ShouldRetryAddVersion(const ZPMetaUpdateTaskDeque task_deque)
   return false;
 }
 
-bool ZPMetaServer::GetSlaveOffset(const std::string &table, const std::string &ip_port, const int partition, int32_t *filenum, int64_t *offset) {
+bool ZPMetaServer::GetSlaveOffset(const std::string &table,
+    const std::string &ip_port, const int partition,
+    int32_t *filenum, int64_t *offset) {
   slash::MutexLock l(&offset_mutex_);
   auto iter = offset_.find(table);
   if (iter == offset_.end()) {

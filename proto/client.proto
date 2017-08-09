@@ -16,6 +16,7 @@ enum Type {
 enum SyncType {
   CMD = 0;
   SKIP = 1;
+  LEASE = 2;
 }
 
 enum StatusCode {
@@ -43,13 +44,20 @@ message KeyExpire {
   required int32 ttl = 2;
 }
 
+message SlaveFallback {
+  required int64 time = 1;
+  required SyncOffset before = 2;
+  required SyncOffset after = 3;
+}
+
 message PartitionState {
   required int32 partition_id = 1; 
   required string role = 2;
   required string repl_state = 3;
   required Node master = 4;
   repeated Node slaves = 5;
-  required SyncOffset sync_offset = 6; 
+  required SyncOffset sync_offset = 6;
+  optional SlaveFallback fallback = 7;
 }
 
 message CmdRequest {
@@ -60,6 +68,7 @@ message CmdRequest {
     required Node node = 1;
     required string table_name = 2;
     required SyncOffset sync_offset = 3;
+    required int64 epoch = 4;
   }
   optional Sync sync = 2; 
 
@@ -172,11 +181,18 @@ message BinlogSkip {
   required int64 gap = 3;
 }
 
+message SyncLease {
+  required string table_name = 1; 
+  required int32 partition_id = 2; 
+  required int64 lease = 3; // s
+}
+
 message SyncRequest {
   required SyncType sync_type = 1;
   required int64 epoch = 2;
   required Node from = 3;
-  required SyncOffset sync_offset = 4;
+  optional SyncOffset sync_offset = 4;
   optional CmdRequest request = 5;
   optional BinlogSkip binlog_skip = 6;
+  optional SyncLease sync_lease = 7;
 }

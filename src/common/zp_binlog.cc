@@ -6,7 +6,7 @@
 
 using slash::RWLock;
 
-std::string NewFileName(const std::string name, const uint32_t current) {
+std::string NewFileName(const std::string& name, uint32_t current) {
   char buf[256];
   snprintf(buf, sizeof(buf), "%s%u", name.c_str(), current);
   return std::string(buf);
@@ -497,33 +497,63 @@ Status Binlog::PutBlank(uint64_t len) {
   return s;
 }
 
+// Required hold mutex_
+// Remove Binlog file in the range [lboud, rbound]
+// Notice it's closed interval
+Status Binlog::RemoveBetween(int lbound, int rbound) {
+  Status s = Status::OK();
+  std::string target_name;
+  for (int i = lbound; i <= rbound; i++) {
+    target_name =  NewFileName(filename_, i);
+    if (!slash::FileExists(target_name)) {
+      continue;
+    }
+    s = slash::DeleteFile(target_name);
+    if (!s.ok()) {
+      LOG(WARNING) << "Remove binlog: " << filename_
+        << ", between " << lbound << " and " << rbound
+        << " Failed, error: " << s.ToString();
+      break;
+    }
+  }
+  return s;
+}
+
 // Set binlog to point pro_num pro_offset
-// Actual offset may small than pro_offset
-// since we don't want to append any blank content into binlog
-// instead of that, this could be fill by the subsequence sync
+// actual_offset: Actual offset may small than pro_offset
+//    since we don't want to append any blank content into binlog
+//    instead of that, this could be fill by the subsequence sync
+// cur_num and cur_offset, return the old point
 Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset,
-    uint64_t* actual_offset) {
+    uint64_t* actual_offset, uint32_t* cur_num, uint64_t* cur_offset) {
   slash::MutexLock l(&mutex_);
 
-  // offset smaller than the first header
-  if (pro_offset < kHeaderSize) {
-    pro_offset = 0;
-  }
-  
-  // Avoid to append any blank content into binlog
-  uint32_t cur_num = 0;
-  uint64_t cur_offset = 0;
-  version_->Fetch(&cur_num, &cur_offset);
-  if (cur_num != pro_num) {
+  // Create binlog file if needed
+  version_->Fetch(cur_num, cur_offset);
+  if (*cur_num != pro_num) {
     delete queue_;
     delete writer_;
 
     std::string profile = NewFileName(filename_, pro_num);
     slash::NewWritableFile(profile, &queue_);
     writer_ = new BinlogWriter(queue_);
-    cur_offset = 0;
+    *cur_offset = 0;
   }
-  pro_offset = (pro_offset > cur_offset) ? cur_offset : pro_offset;
+
+  // Clear old invalid file
+  if (*cur_num < pro_num) {
+    // delele all binlog before cur_num
+    RemoveBetween(0, *cur_num);
+  } else if (*cur_num > pro_num) {
+    // delete all binlog between pro_num and cur_num
+    RemoveBetween(pro_num + 1, *cur_num);
+  }
+
+  // Avoid to append any blank content into binlog
+  if (pro_offset < kHeaderSize) {
+    pro_offset = 0;
+  }
+  pro_offset = (pro_offset > *cur_offset) ? *cur_offset : pro_offset;
   Status s = writer_->Fallback(pro_offset);
   if (s.ok()) {
     version_->Save(pro_num, pro_offset);

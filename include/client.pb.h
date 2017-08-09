@@ -37,6 +37,7 @@ void protobuf_ShutdownFile_client_2eproto();
 class Node;
 class SyncOffset;
 class KeyExpire;
+class SlaveFallback;
 class PartitionState;
 class CmdRequest;
 class CmdRequest_Sync;
@@ -55,6 +56,7 @@ class CmdResponse_InfoRepl;
 class CmdResponse_Mget;
 class CmdResponse_InfoServer;
 class BinlogSkip;
+class SyncLease;
 class SyncRequest;
 
 enum Type {
@@ -86,11 +88,12 @@ inline bool Type_Parse(
 }
 enum SyncType {
   CMD = 0,
-  SKIP = 1
+  SKIP = 1,
+  LEASE = 2
 };
 bool SyncType_IsValid(int value);
 const SyncType SyncType_MIN = CMD;
-const SyncType SyncType_MAX = SKIP;
+const SyncType SyncType_MAX = LEASE;
 const int SyncType_ARRAYSIZE = SyncType_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* SyncType_descriptor();
@@ -419,6 +422,112 @@ class KeyExpire : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class SlaveFallback : public ::google::protobuf::Message {
+ public:
+  SlaveFallback();
+  virtual ~SlaveFallback();
+
+  SlaveFallback(const SlaveFallback& from);
+
+  inline SlaveFallback& operator=(const SlaveFallback& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SlaveFallback& default_instance();
+
+  void Swap(SlaveFallback* other);
+
+  // implements Message ----------------------------------------------
+
+  SlaveFallback* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const SlaveFallback& from);
+  void MergeFrom(const SlaveFallback& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required int64 time = 1;
+  inline bool has_time() const;
+  inline void clear_time();
+  static const int kTimeFieldNumber = 1;
+  inline ::google::protobuf::int64 time() const;
+  inline void set_time(::google::protobuf::int64 value);
+
+  // required .client.SyncOffset before = 2;
+  inline bool has_before() const;
+  inline void clear_before();
+  static const int kBeforeFieldNumber = 2;
+  inline const ::client::SyncOffset& before() const;
+  inline ::client::SyncOffset* mutable_before();
+  inline ::client::SyncOffset* release_before();
+  inline void set_allocated_before(::client::SyncOffset* before);
+
+  // required .client.SyncOffset after = 3;
+  inline bool has_after() const;
+  inline void clear_after();
+  static const int kAfterFieldNumber = 3;
+  inline const ::client::SyncOffset& after() const;
+  inline ::client::SyncOffset* mutable_after();
+  inline ::client::SyncOffset* release_after();
+  inline void set_allocated_after(::client::SyncOffset* after);
+
+  // @@protoc_insertion_point(class_scope:client.SlaveFallback)
+ private:
+  inline void set_has_time();
+  inline void clear_has_time();
+  inline void set_has_before();
+  inline void clear_has_before();
+  inline void set_has_after();
+  inline void clear_has_after();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::int64 time_;
+  ::client::SyncOffset* before_;
+  ::client::SyncOffset* after_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static SlaveFallback* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class PartitionState : public ::google::protobuf::Message {
  public:
   PartitionState();
@@ -534,6 +643,15 @@ class PartitionState : public ::google::protobuf::Message {
   inline ::client::SyncOffset* release_sync_offset();
   inline void set_allocated_sync_offset(::client::SyncOffset* sync_offset);
 
+  // optional .client.SlaveFallback fallback = 7;
+  inline bool has_fallback() const;
+  inline void clear_fallback();
+  static const int kFallbackFieldNumber = 7;
+  inline const ::client::SlaveFallback& fallback() const;
+  inline ::client::SlaveFallback* mutable_fallback();
+  inline ::client::SlaveFallback* release_fallback();
+  inline void set_allocated_fallback(::client::SlaveFallback* fallback);
+
   // @@protoc_insertion_point(class_scope:client.PartitionState)
  private:
   inline void set_has_partition_id();
@@ -546,6 +664,8 @@ class PartitionState : public ::google::protobuf::Message {
   inline void clear_has_master();
   inline void set_has_sync_offset();
   inline void clear_has_sync_offset();
+  inline void set_has_fallback();
+  inline void clear_has_fallback();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -554,10 +674,11 @@ class PartitionState : public ::google::protobuf::Message {
   ::client::Node* master_;
   ::google::protobuf::RepeatedPtrField< ::client::Node > slaves_;
   ::client::SyncOffset* sync_offset_;
+  ::client::SlaveFallback* fallback_;
   ::google::protobuf::int32 partition_id_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -652,6 +773,13 @@ class CmdRequest_Sync : public ::google::protobuf::Message {
   inline ::client::SyncOffset* release_sync_offset();
   inline void set_allocated_sync_offset(::client::SyncOffset* sync_offset);
 
+  // required int64 epoch = 4;
+  inline bool has_epoch() const;
+  inline void clear_epoch();
+  static const int kEpochFieldNumber = 4;
+  inline ::google::protobuf::int64 epoch() const;
+  inline void set_epoch(::google::protobuf::int64 value);
+
   // @@protoc_insertion_point(class_scope:client.CmdRequest.Sync)
  private:
   inline void set_has_node();
@@ -660,15 +788,18 @@ class CmdRequest_Sync : public ::google::protobuf::Message {
   inline void clear_has_table_name();
   inline void set_has_sync_offset();
   inline void clear_has_sync_offset();
+  inline void set_has_epoch();
+  inline void clear_has_epoch();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::client::Node* node_;
   ::std::string* table_name_;
   ::client::SyncOffset* sync_offset_;
+  ::google::protobuf::int64 epoch_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -2574,6 +2705,113 @@ class BinlogSkip : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class SyncLease : public ::google::protobuf::Message {
+ public:
+  SyncLease();
+  virtual ~SyncLease();
+
+  SyncLease(const SyncLease& from);
+
+  inline SyncLease& operator=(const SyncLease& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const SyncLease& default_instance();
+
+  void Swap(SyncLease* other);
+
+  // implements Message ----------------------------------------------
+
+  SyncLease* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const SyncLease& from);
+  void MergeFrom(const SyncLease& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required string table_name = 1;
+  inline bool has_table_name() const;
+  inline void clear_table_name();
+  static const int kTableNameFieldNumber = 1;
+  inline const ::std::string& table_name() const;
+  inline void set_table_name(const ::std::string& value);
+  inline void set_table_name(const char* value);
+  inline void set_table_name(const char* value, size_t size);
+  inline ::std::string* mutable_table_name();
+  inline ::std::string* release_table_name();
+  inline void set_allocated_table_name(::std::string* table_name);
+
+  // required int32 partition_id = 2;
+  inline bool has_partition_id() const;
+  inline void clear_partition_id();
+  static const int kPartitionIdFieldNumber = 2;
+  inline ::google::protobuf::int32 partition_id() const;
+  inline void set_partition_id(::google::protobuf::int32 value);
+
+  // required int64 lease = 3;
+  inline bool has_lease() const;
+  inline void clear_lease();
+  static const int kLeaseFieldNumber = 3;
+  inline ::google::protobuf::int64 lease() const;
+  inline void set_lease(::google::protobuf::int64 value);
+
+  // @@protoc_insertion_point(class_scope:client.SyncLease)
+ private:
+  inline void set_has_table_name();
+  inline void clear_has_table_name();
+  inline void set_has_partition_id();
+  inline void clear_has_partition_id();
+  inline void set_has_lease();
+  inline void clear_has_lease();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* table_name_;
+  ::google::protobuf::int64 lease_;
+  ::google::protobuf::int32 partition_id_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  friend void  protobuf_AddDesc_client_2eproto();
+  friend void protobuf_AssignDesc_client_2eproto();
+  friend void protobuf_ShutdownFile_client_2eproto();
+
+  void InitAsDefaultInstance();
+  static SyncLease* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class SyncRequest : public ::google::protobuf::Message {
  public:
   SyncRequest();
@@ -2651,7 +2889,7 @@ class SyncRequest : public ::google::protobuf::Message {
   inline ::client::Node* release_from();
   inline void set_allocated_from(::client::Node* from);
 
-  // required .client.SyncOffset sync_offset = 4;
+  // optional .client.SyncOffset sync_offset = 4;
   inline bool has_sync_offset() const;
   inline void clear_sync_offset();
   static const int kSyncOffsetFieldNumber = 4;
@@ -2678,6 +2916,15 @@ class SyncRequest : public ::google::protobuf::Message {
   inline ::client::BinlogSkip* release_binlog_skip();
   inline void set_allocated_binlog_skip(::client::BinlogSkip* binlog_skip);
 
+  // optional .client.SyncLease sync_lease = 7;
+  inline bool has_sync_lease() const;
+  inline void clear_sync_lease();
+  static const int kSyncLeaseFieldNumber = 7;
+  inline const ::client::SyncLease& sync_lease() const;
+  inline ::client::SyncLease* mutable_sync_lease();
+  inline ::client::SyncLease* release_sync_lease();
+  inline void set_allocated_sync_lease(::client::SyncLease* sync_lease);
+
   // @@protoc_insertion_point(class_scope:client.SyncRequest)
  private:
   inline void set_has_sync_type();
@@ -2692,6 +2939,8 @@ class SyncRequest : public ::google::protobuf::Message {
   inline void clear_has_request();
   inline void set_has_binlog_skip();
   inline void clear_has_binlog_skip();
+  inline void set_has_sync_lease();
+  inline void clear_has_sync_lease();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -2700,10 +2949,11 @@ class SyncRequest : public ::google::protobuf::Message {
   ::client::SyncOffset* sync_offset_;
   ::client::CmdRequest* request_;
   ::client::BinlogSkip* binlog_skip_;
+  ::client::SyncLease* sync_lease_;
   int sync_type_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
 
   friend void  protobuf_AddDesc_client_2eproto();
   friend void protobuf_AssignDesc_client_2eproto();
@@ -2927,6 +3177,108 @@ inline ::google::protobuf::int32 KeyExpire::ttl() const {
 inline void KeyExpire::set_ttl(::google::protobuf::int32 value) {
   set_has_ttl();
   ttl_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// SlaveFallback
+
+// required int64 time = 1;
+inline bool SlaveFallback::has_time() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void SlaveFallback::set_has_time() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void SlaveFallback::clear_has_time() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void SlaveFallback::clear_time() {
+  time_ = GOOGLE_LONGLONG(0);
+  clear_has_time();
+}
+inline ::google::protobuf::int64 SlaveFallback::time() const {
+  return time_;
+}
+inline void SlaveFallback::set_time(::google::protobuf::int64 value) {
+  set_has_time();
+  time_ = value;
+}
+
+// required .client.SyncOffset before = 2;
+inline bool SlaveFallback::has_before() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void SlaveFallback::set_has_before() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void SlaveFallback::clear_has_before() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void SlaveFallback::clear_before() {
+  if (before_ != NULL) before_->::client::SyncOffset::Clear();
+  clear_has_before();
+}
+inline const ::client::SyncOffset& SlaveFallback::before() const {
+  return before_ != NULL ? *before_ : *default_instance_->before_;
+}
+inline ::client::SyncOffset* SlaveFallback::mutable_before() {
+  set_has_before();
+  if (before_ == NULL) before_ = new ::client::SyncOffset;
+  return before_;
+}
+inline ::client::SyncOffset* SlaveFallback::release_before() {
+  clear_has_before();
+  ::client::SyncOffset* temp = before_;
+  before_ = NULL;
+  return temp;
+}
+inline void SlaveFallback::set_allocated_before(::client::SyncOffset* before) {
+  delete before_;
+  before_ = before;
+  if (before) {
+    set_has_before();
+  } else {
+    clear_has_before();
+  }
+}
+
+// required .client.SyncOffset after = 3;
+inline bool SlaveFallback::has_after() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void SlaveFallback::set_has_after() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void SlaveFallback::clear_has_after() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void SlaveFallback::clear_after() {
+  if (after_ != NULL) after_->::client::SyncOffset::Clear();
+  clear_has_after();
+}
+inline const ::client::SyncOffset& SlaveFallback::after() const {
+  return after_ != NULL ? *after_ : *default_instance_->after_;
+}
+inline ::client::SyncOffset* SlaveFallback::mutable_after() {
+  set_has_after();
+  if (after_ == NULL) after_ = new ::client::SyncOffset;
+  return after_;
+}
+inline ::client::SyncOffset* SlaveFallback::release_after() {
+  clear_has_after();
+  ::client::SyncOffset* temp = after_;
+  after_ = NULL;
+  return temp;
+}
+inline void SlaveFallback::set_allocated_after(::client::SyncOffset* after) {
+  delete after_;
+  after_ = after;
+  if (after) {
+    set_has_after();
+  } else {
+    clear_has_after();
+  }
 }
 
 // -------------------------------------------------------------------
@@ -3196,6 +3548,44 @@ inline void PartitionState::set_allocated_sync_offset(::client::SyncOffset* sync
   }
 }
 
+// optional .client.SlaveFallback fallback = 7;
+inline bool PartitionState::has_fallback() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+inline void PartitionState::set_has_fallback() {
+  _has_bits_[0] |= 0x00000040u;
+}
+inline void PartitionState::clear_has_fallback() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline void PartitionState::clear_fallback() {
+  if (fallback_ != NULL) fallback_->::client::SlaveFallback::Clear();
+  clear_has_fallback();
+}
+inline const ::client::SlaveFallback& PartitionState::fallback() const {
+  return fallback_ != NULL ? *fallback_ : *default_instance_->fallback_;
+}
+inline ::client::SlaveFallback* PartitionState::mutable_fallback() {
+  set_has_fallback();
+  if (fallback_ == NULL) fallback_ = new ::client::SlaveFallback;
+  return fallback_;
+}
+inline ::client::SlaveFallback* PartitionState::release_fallback() {
+  clear_has_fallback();
+  ::client::SlaveFallback* temp = fallback_;
+  fallback_ = NULL;
+  return temp;
+}
+inline void PartitionState::set_allocated_fallback(::client::SlaveFallback* fallback) {
+  delete fallback_;
+  fallback_ = fallback;
+  if (fallback) {
+    set_has_fallback();
+  } else {
+    clear_has_fallback();
+  }
+}
+
 // -------------------------------------------------------------------
 
 // CmdRequest_Sync
@@ -3344,6 +3734,28 @@ inline void CmdRequest_Sync::set_allocated_sync_offset(::client::SyncOffset* syn
   } else {
     clear_has_sync_offset();
   }
+}
+
+// required int64 epoch = 4;
+inline bool CmdRequest_Sync::has_epoch() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void CmdRequest_Sync::set_has_epoch() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void CmdRequest_Sync::clear_has_epoch() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void CmdRequest_Sync::clear_epoch() {
+  epoch_ = GOOGLE_LONGLONG(0);
+  clear_has_epoch();
+}
+inline ::google::protobuf::int64 CmdRequest_Sync::epoch() const {
+  return epoch_;
+}
+inline void CmdRequest_Sync::set_epoch(::google::protobuf::int64 value) {
+  set_has_epoch();
+  epoch_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -5986,6 +6398,124 @@ inline void BinlogSkip::set_gap(::google::protobuf::int64 value) {
 
 // -------------------------------------------------------------------
 
+// SyncLease
+
+// required string table_name = 1;
+inline bool SyncLease::has_table_name() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void SyncLease::set_has_table_name() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void SyncLease::clear_has_table_name() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void SyncLease::clear_table_name() {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    table_name_->clear();
+  }
+  clear_has_table_name();
+}
+inline const ::std::string& SyncLease::table_name() const {
+  return *table_name_;
+}
+inline void SyncLease::set_table_name(const ::std::string& value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void SyncLease::set_table_name(const char* value) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(value);
+}
+inline void SyncLease::set_table_name(const char* value, size_t size) {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  table_name_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* SyncLease::mutable_table_name() {
+  set_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    table_name_ = new ::std::string;
+  }
+  return table_name_;
+}
+inline ::std::string* SyncLease::release_table_name() {
+  clear_has_table_name();
+  if (table_name_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = table_name_;
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void SyncLease::set_allocated_table_name(::std::string* table_name) {
+  if (table_name_ != &::google::protobuf::internal::kEmptyString) {
+    delete table_name_;
+  }
+  if (table_name) {
+    set_has_table_name();
+    table_name_ = table_name;
+  } else {
+    clear_has_table_name();
+    table_name_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required int32 partition_id = 2;
+inline bool SyncLease::has_partition_id() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void SyncLease::set_has_partition_id() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void SyncLease::clear_has_partition_id() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void SyncLease::clear_partition_id() {
+  partition_id_ = 0;
+  clear_has_partition_id();
+}
+inline ::google::protobuf::int32 SyncLease::partition_id() const {
+  return partition_id_;
+}
+inline void SyncLease::set_partition_id(::google::protobuf::int32 value) {
+  set_has_partition_id();
+  partition_id_ = value;
+}
+
+// required int64 lease = 3;
+inline bool SyncLease::has_lease() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void SyncLease::set_has_lease() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void SyncLease::clear_has_lease() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void SyncLease::clear_lease() {
+  lease_ = GOOGLE_LONGLONG(0);
+  clear_has_lease();
+}
+inline ::google::protobuf::int64 SyncLease::lease() const {
+  return lease_;
+}
+inline void SyncLease::set_lease(::google::protobuf::int64 value) {
+  set_has_lease();
+  lease_ = value;
+}
+
+// -------------------------------------------------------------------
+
 // SyncRequest
 
 // required .client.SyncType sync_type = 1;
@@ -6071,7 +6601,7 @@ inline void SyncRequest::set_allocated_from(::client::Node* from) {
   }
 }
 
-// required .client.SyncOffset sync_offset = 4;
+// optional .client.SyncOffset sync_offset = 4;
 inline bool SyncRequest::has_sync_offset() const {
   return (_has_bits_[0] & 0x00000008u) != 0;
 }
@@ -6182,6 +6712,44 @@ inline void SyncRequest::set_allocated_binlog_skip(::client::BinlogSkip* binlog_
     set_has_binlog_skip();
   } else {
     clear_has_binlog_skip();
+  }
+}
+
+// optional .client.SyncLease sync_lease = 7;
+inline bool SyncRequest::has_sync_lease() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+inline void SyncRequest::set_has_sync_lease() {
+  _has_bits_[0] |= 0x00000040u;
+}
+inline void SyncRequest::clear_has_sync_lease() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline void SyncRequest::clear_sync_lease() {
+  if (sync_lease_ != NULL) sync_lease_->::client::SyncLease::Clear();
+  clear_has_sync_lease();
+}
+inline const ::client::SyncLease& SyncRequest::sync_lease() const {
+  return sync_lease_ != NULL ? *sync_lease_ : *default_instance_->sync_lease_;
+}
+inline ::client::SyncLease* SyncRequest::mutable_sync_lease() {
+  set_has_sync_lease();
+  if (sync_lease_ == NULL) sync_lease_ = new ::client::SyncLease;
+  return sync_lease_;
+}
+inline ::client::SyncLease* SyncRequest::release_sync_lease() {
+  clear_has_sync_lease();
+  ::client::SyncLease* temp = sync_lease_;
+  sync_lease_ = NULL;
+  return temp;
+}
+inline void SyncRequest::set_allocated_sync_lease(::client::SyncLease* sync_lease) {
+  delete sync_lease_;
+  sync_lease_ = sync_lease;
+  if (sync_lease) {
+    set_has_sync_lease();
+  } else {
+    clear_has_sync_lease();
   }
 }
 

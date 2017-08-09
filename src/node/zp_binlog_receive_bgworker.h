@@ -22,7 +22,7 @@ struct ZPBinlogReceiveTask {
   PartitionSyncOption option;
   const Cmd* cmd;
   client::CmdRequest request;
-  uint64_t gap;
+  uint64_t i;
 
   ZPBinlogReceiveTask(const PartitionSyncOption &opt,
       const Cmd* c, const client::CmdRequest &req)
@@ -31,9 +31,9 @@ struct ZPBinlogReceiveTask {
     request(req) {}
 
   ZPBinlogReceiveTask(const PartitionSyncOption &opt,
-      uint64_t g)
+      uint64_t integer)
     : option(opt),
-    gap(g) {}
+    i(integer) {}
 };
 
 class ZPBinlogReceiveBgWorker  {

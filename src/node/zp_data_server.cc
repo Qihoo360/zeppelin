@@ -30,6 +30,8 @@
 ZPDataServer::ZPDataServer()
   : table_count_(0),
   should_exit_(false),
+  meta_index_(-1),
+  meta_port_(0),
   meta_epoch_(-1),
   should_pull_meta_(false) {
     pthread_rwlock_init(&meta_state_rw_, NULL);
@@ -38,10 +40,10 @@ ZPDataServer::ZPDataServer()
     pthread_rwlockattr_setkind_np(&attr,
         PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
     pthread_rwlock_init(&table_rw_, &attr);
+    LOG(INFO) << "ZPNodeServer start initialization";
 
-    LOG(INFO) << "ZPMetaServer start initialization";
-
-    // Try to raise the file descriptor
+    // Try to raise the limit of open files
+    LOG(INFO) << "ZPNodeServer try to raise the limit of open files";
     struct  rlimit limit;
     if (getrlimit(RLIMIT_NOFILE, &limit) != -1) {
       if (limit.rlim_cur < (rlim_t)g_zp_conf->max_file_descriptor_num()) {
@@ -67,10 +69,12 @@ ZPDataServer::ZPDataServer()
     }
 
     // Command table
+    LOG(INFO) << "ZPNodeServer init client command table";
     cmds_.reserve(300);
     InitClientCmdTable();
 
     // Create thread
+    LOG(INFO) << "ZPNodeServer init thread";
     zp_metacmd_bgworker_ = new ZPMetacmdBGWorker();
     zp_trysync_thread_ = new ZPTrySyncThread();
 
@@ -116,11 +120,11 @@ ZPDataServer::ZPDataServer()
     zp_ping_thread_ = new ZPPingThread();
 
     InitDBOptions();
-    DLOG(INFO) << "ZPDataServer constructed";
+    LOG(INFO) << "ZPDataServer constructed";
   }
 
 ZPDataServer::~ZPDataServer() {
-  DLOG(INFO) << "~ZPDataServer destoryed";
+  LOG(INFO) << "ZPDataServer destoryed";
   // Order:
   // 1, Meta thread should before trysync thread
   // 2, binlog reciever should before recieve bgworker
@@ -222,35 +226,37 @@ void ZPDataServer::InitDBOptions() {
 
 Status ZPDataServer::Start() {
   if (pink::RetCode::kSuccess != zp_dispatch_thread_->StartThread()) {
-    LOG(INFO) << "Dispatch thread start failed";
+    LOG(FATAL) << "Dispatch thread start failed";
     return Status::Corruption("Dispatch thread start failed!");
   }
+  LOG(INFO) << "Dispatch thread started";
 
   if (pink::RetCode::kSuccess != zp_binlog_receiver_thread_->StartThread()) {
-    LOG(INFO) << "Binlog receiver thread start failed";
+    LOG(FATAL) << "Binlog receiver thread start failed";
     return Status::Corruption("Binlog receiver thread start failed!");
   }
+  LOG(INFO) << "Binlog receiver dispatch thread started";
 
   if (pink::RetCode::kSuccess != zp_ping_thread_->StartThread()) {
-    LOG(INFO) << "Ping thread start failed";
+    LOG(FATAL) << "Ping thread start failed";
     return Status::Corruption("Ping thread start failed!");
   }
+  LOG(INFO) << "Ping thread started";
 
   std::vector<ZPBinlogSendThread*>::iterator bsit
     = binlog_send_workers_.begin();
   for (; bsit != binlog_send_workers_.end(); ++bsit) {
     LOG(INFO) << "Start one binlog send worker thread";
     if (pink::RetCode::kSuccess != (*bsit)->StartThread()) {
-      LOG(INFO) << "Binlog send worker start failed";
+      LOG(FATAL) << "Binlog send worker start failed";
       return Status::Corruption("Binlog send worker start failed!");
     }
   }
+  LOG(INFO) << "Binlog sender thread started";
 
-  // TEST
-  LOG(INFO) << "ZPDataServer started on port:" <<  g_zp_conf->local_port();
   auto iter = g_zp_conf->meta_addr().begin();
   while (iter != g_zp_conf->meta_addr().end()) {
-    LOG(INFO) << "seed is: " << *iter;
+    LOG(INFO) << "Meta seed is: " << *iter;
     iter++;
   }
 
@@ -286,12 +292,15 @@ void ZPDataServer::PickMeta() {
     return;
   }
 
-  std::random_device rd;
-  std::mt19937 mt(rd());
-  std::uniform_int_distribution<int> di(0, g_zp_conf->meta_addr().size()-1);
-  int index = di(mt);
+  if (meta_index_ == -1) {
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_int_distribution<int> di(0, g_zp_conf->meta_addr().size()-1);
+    meta_index_ = di(mt);
+  }
+  meta_index_ = (meta_index_ + 1) % g_zp_conf->meta_addr().size();
 
-  auto addr = g_zp_conf->meta_addr()[index];
+  auto addr = g_zp_conf->meta_addr()[meta_index_];
   auto pos = addr.find("/");
   if (pos != std::string::npos) {
     meta_ip_ = addr.substr(0, pos);
@@ -514,14 +523,12 @@ void ZPDataServer::PlusStat(const StatType type, const std::string &table) {
 void ZPDataServer::ResetLastStat(const StatType type) {
   uint64_t cur_time_us = slash::NowMicros();
   slash::MutexLock l(&(stats_[type].mu));
-  // TODO(anan) debug;
   for (auto it = stats_[type].table_stats.begin();
        it != stats_[type].table_stats.end(); it++) {
     auto stat = it->second;
     stat->last_qps = ((stat->querys - stat->last_querys) * 1000000
                       / (cur_time_us - stats_[type].last_time_us + 1));
     stat->last_querys = stat->querys;
-    // stat->Dump();
   }
   stats_[type].other_stat.last_qps =
       ((stats_[type].other_stat.querys - stats_[type].other_stat.last_querys)

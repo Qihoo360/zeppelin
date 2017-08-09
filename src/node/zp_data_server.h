@@ -97,6 +97,10 @@ class ZPDataServer  {
     return &db_options_;
   }
 
+  size_t binlog_sender_count() {
+    return binlog_send_workers_.size();
+  }
+
   void Exit() {
     should_exit_ = true;
   }
@@ -209,6 +213,7 @@ class ZPDataServer  {
 
   // Meta State related
   pthread_rwlock_t meta_state_rw_;
+  int meta_index_;
   std::string meta_ip_;
   long meta_port_;
 

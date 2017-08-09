@@ -76,7 +76,19 @@ int ZPSyncConn::DealMessage() {
   set_is_reply(false);
 
   ZPBinlogReceiveTask *arg = NULL;
-  if (request_.sync_type() == client::SyncType::SKIP) {
+  if (request_.sync_type() == client::SyncType::LEASE) {
+    // Receive a lease renew request
+    client::SyncLease slease = request_.sync_lease();
+    PartitionSyncOption option(
+        request_.sync_type(),
+        slease.table_name(),
+        slease.partition_id(),
+        slash::IpPortString(request_.from().ip(), request_.from().port()),
+        0, 0);
+    arg = new ZPBinlogReceiveTask(
+        option,
+        slease.lease());
+  } else if (request_.sync_type() == client::SyncType::SKIP) {
     // Receive a binlog skip request
     client::BinlogSkip bskip = request_.binlog_skip();
 

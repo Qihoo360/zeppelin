@@ -18,6 +18,8 @@
 #include <limits>
 #include <memory>
 
+#include "slash/include/env.h"
+
 #include "include/zp_const.h"
 #include "src/node/zp_data_server.h"
 #include "src/node/zp_data_partition.h"
@@ -61,6 +63,7 @@ ZPBinlogSendTask::ZPBinlogSendTask(uint64_t seq, const std::string &table,
   node_(target),
   filenum_(ifilenum),
   offset_(ioffset),
+  process_error_time_(0),
   pre_filenum_(0),
   pre_offset_(0),
   pre_has_content_(false),
@@ -94,16 +97,15 @@ Status ZPBinlogSendTask::ProcessTask() {
   }
 
   // Check task position
-  uint32_t curnum = 0;
-  uint64_t curoffset = 0;
+  BinlogOffset boffset;
   std::shared_ptr<Partition> partition =
     zp_data_server->GetTablePartitionById(table_name_, partition_id_);
   if (partition == NULL
       || !partition->opened()) {
     return Status::InvalidArgument("Error no exist or closed partition");
   }
-  partition->GetBinlogOffsetWithLock(&curnum, &curoffset);
-  if (filenum_ == curnum && offset_ == curoffset) {
+  partition->GetBinlogOffsetWithLock(&boffset);
+  if (filenum_ == boffset.filenum && offset_ == boffset.offset) {
     // No more binlog item in current task, switch to others
     return Status::EndFile("no more binlog item");
   }
@@ -118,8 +120,8 @@ Status ZPBinlogSendTask::ProcessTask() {
     std::string confile = NewFileName(binlog_filename_, filenum_ + 1);
 
     if (slash::FileExists(confile)) {
-      DLOG(INFO) << "BinlogSender (" << node_ << ") roll to new binlog "
-        << confile;
+      LOG(INFO) << "BinlogSender to " << node_ << " roll to new binlog "
+        << confile << ", Partition: " << table_name_ << "_" << partition_id_;
       delete reader_;
       reader_ = NULL;
       delete queue_;
@@ -128,7 +130,8 @@ Status ZPBinlogSendTask::ProcessTask() {
       s = slash::NewSequentialFile(confile, &(queue_));
       if (!s.ok()) {
         LOG(WARNING) << "Failed to roll to next binlog file:" << (filenum_ + 1)
-          << " Error:" << s.ToString();
+          << " Error:" << s.ToString() << ", Partition: " << table_name_
+          << "_" << partition_id_;
         return s;
       }
       reader_ = new BinlogReader(queue_);
@@ -137,7 +140,8 @@ Status ZPBinlogSendTask::ProcessTask() {
       return ProcessTask();
     } else {
       LOG(WARNING) << "Read end of binlog file, but no next binlog exist:"
-        << (filenum_ + 1);
+        << (filenum_ + 1) << ", Partition: " << table_name_
+        << "_" << partition_id_;
       return s;
     }
   } else if (s.IsIncomplete()) {
@@ -161,8 +165,23 @@ Status ZPBinlogSendTask::ProcessTask() {
   return Status::OK();
 }
 
-// Build SyncRequest by ZPBinlogSendTask
-void ZPBinlogSendTask::BuildSyncRequest(client::SyncRequest *msg) const {
+// Build LEASE SyncRequest
+void ZPBinlogSendTask::BuildLeaseSyncRequest(int64_t lease_time,
+    client::SyncRequest* msg) const {
+  msg->set_sync_type(client::SyncType::LEASE);
+  msg->set_epoch(zp_data_server->meta_epoch());
+  client::Node *node = msg->mutable_from();
+  node->set_ip(zp_data_server->local_ip());
+  node->set_port(zp_data_server->local_port());
+
+  client::SyncLease* lease = msg->mutable_sync_lease();
+  lease->set_table_name(table_name_);
+  lease->set_partition_id(partition_id_);
+  lease->set_lease(lease_time);
+}
+
+// Build CMD or SKIP SyncRequest by ZPBinlogSendTask
+void ZPBinlogSendTask::BuildCommonSyncRequest(client::SyncRequest *msg) const {
   // Common part
   msg->set_epoch(zp_data_server->meta_epoch());
   client::Node *node = msg->mutable_from();
@@ -252,7 +271,8 @@ Status ZPBinlogSendTaskPool::AddTask(ZPBinlogSendTask* task) {
   // index point to the last one just push back
   task_ptrs_[task->name()].iter = tasks_.end();
   --(task_ptrs_[task->name()].iter);
-  task_ptrs_[task->name()].sequence = task->sequence(); // the latest one
+  task_ptrs_[task->name()].sequence = task->sequence();  // the latest one
+  task_ptrs_[task->name()].filenum_snap = task->filenum();  // current filenum
   return Status::OK();
 }
 
@@ -282,7 +302,8 @@ int32_t ZPBinlogSendTaskPool::TaskFilenum(const std::string &name) {
   }
   if (it->second.iter == tasks_.end()) {
     // The task is processing by some thread
-    return -1;
+    // return its snapshot of last time
+    return it->second.filenum_snap;
   }
   return (*(it->second.iter))->filenum();
 }
@@ -311,8 +332,8 @@ Status ZPBinlogSendTaskPool::PutBack(ZPBinlogSendTask* task) {
   ZPBinlogSendTaskIndex::iterator it = task_ptrs_.find(task->name());
   if (it == task_ptrs_.end()              // task has been removed
       || it->second.iter != tasks_.end()
-        || it->second.sequence != task->sequence()) { // task belong to
-                                                    // same partition exist
+        || it->second.sequence != task->sequence()) {  // task belong to
+                                                       // same partition exist
     LOG(INFO) << "Remove BinlogTask when put back for Table:" << task->name()
       << ", partition: " << task->partition_id()
       << ", target: " << task->node()
@@ -325,30 +346,27 @@ Status ZPBinlogSendTaskPool::PutBack(ZPBinlogSendTask* task) {
   tasks_.push_back(task);
   it->second.iter = tasks_.end();
   --(it->second.iter);
+  it->second.filenum_snap = task->filenum();
   return Status::OK();
 }
 
 void ZPBinlogSendTaskPool::Dump() {
   slash::RWLock l(&tasks_rwlock_, false);
   ZPBinlogSendTaskIndex::iterator it = task_ptrs_.begin();
-  LOG(INFO) << "----------------------------";
   for (; it != task_ptrs_.end(); ++it) {
     std::list<ZPBinlogSendTask*>::iterator tptr = it->second.iter;
     LOG(INFO) << "----------------------------";
     LOG(INFO) << "+Binlog Send Task" << it->first;
     LOG(INFO) << "  +Sequence  " << it->second.sequence;
     if (tptr != tasks_.end()) {
-      LOG(INFO) << "  +Table  " << (*tptr)->table_name();
-      LOG(INFO) << "  +Partition  " << (*tptr)->partition_id();
-      LOG(INFO) << "  +Node  " << (*tptr)->node();
       LOG(INFO) << "  +filenum " << (*tptr)->filenum();
       LOG(INFO) << "  +offset " << (*tptr)->offset();
     } else {
+      LOG(INFO) << "  +filenum " << it->second.filenum_snap;
       LOG(INFO) << "  +Being occupied";
     }
     LOG(INFO) << "----------------------------";
   }
-  LOG(INFO) << "----------------------------";
 }
 
 /**
@@ -366,56 +384,94 @@ ZPBinlogSendThread::~ZPBinlogSendThread() {
   LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
   }
 
+// Send LEASE SyncRequest to peer
+bool ZPBinlogSendThread::RenewPeerLease(ZPBinlogSendTask* task) {
+  // In terms of the most conservative estimation,
+  // current task will be fetch out from the pool
+  // and be process again after lease_time
+  int64_t lease_time = (pool_->Size() * kBinlogTimeSlice)
+    / zp_data_server->binlog_sender_count() + kBinlogRedundantLease;
+  if (lease_time < kBinlogMinLease) {
+    // Set lower limit to avoid frequentlly trysync
+    lease_time = kBinlogMinLease;
+  }
+
+  client::SyncRequest sreq;
+  task->BuildLeaseSyncRequest(lease_time, &sreq);
+  Status s = zp_data_server->SendToPeer(task->node(), sreq);
+  if (!s.ok()) {
+    LOG(WARNING) << "Failed to send lease to peer " << task->node()
+      << ", table:" << task->table_name() << ", partition:"
+      << task->partition_id()
+      << ", filenum:" << task->pre_filenum()
+      << ", offset:" << task->pre_offset()
+      << ", sequence:" << task->sequence()
+      << ", thread:" << pthread_self()
+      << ", Error: " << s.ToString();
+  }
+
+  return s.ok();
+}
+
 void* ZPBinlogSendThread::ThreadMain() {
   // Wait until the server is availible
   while (!should_stop() && !zp_data_server->Availible()) {
     sleep(kBinlogSendInterval);
   }
 
-  struct timeval begin, now;
   while (!should_stop()) {
-    sleep(kBinlogSendInterval);
     ZPBinlogSendTask* task = NULL;
     Status s = pool_->FetchOut(&task);
     if (!s.ok()) {
-      // LOG(INFO) << "No task to be processed";
+      // No task to be processed
+      sleep(kBinlogSendInterval);
       continue;
+    }
+    
+    if (slash::NowMicros() - task->process_error_time()
+        < kBinlogSendInterval * 1000000) {
+      // Fetch out the task who was processed failed not far before
+      // Means no much availible task left in the task queue,
+      // So sleep to avoid rapidly loop
+      sleep(kBinlogSendInterval);
     }
 
     // Fetched one task, process it
-    gettimeofday(&begin, NULL);
+    Status item_s = Status::OK();
+    uint64_t time_begin = slash::NowMicros();
     while (!should_stop()) {
-      Status item_s = Status::OK();
-      // Record offset of current binlog item for sending later
       if (task->send_next) {
         // Process ProcessTask
         item_s = task->ProcessTask();
+        if (item_s.IsEndFile()) {
+          RenewPeerLease(task);
+        }
+
         if (!item_s.ok()) {
-          // LOG(INFO) << "Error happened when process task: "
-          // << task->table_name()
-          // << " parititon: " << task->partition_id()
-          // << ", status:" << item_s.ToString();
           pool_->PutBack(task);
+          task->renew_process_error_time();
           break;
         }
+        // ProcessTask OK here
       }
 
       // Construct SyncRequest
       client::SyncRequest sreq;
-      task->BuildSyncRequest(&sreq);
+      task->BuildCommonSyncRequest(&sreq);
 
       // Send SyncRequest
       if (!sreq.IsInitialized()) {
         std::string text_format;
         google::protobuf::TextFormat::PrintToString(sreq, &text_format);
-        DLOG(WARNING) << "Ignore error SyncRequest to be sent to: "
+        LOG(WARNING) << "Ignore error SyncRequest to be sent to: "
           << task->node() << ": [" << text_format << "]"
           << ", table:" << task->table_name()
           << ", partition:" << task->partition_id()
           << ", filenum:" << task->pre_filenum()
           << ", offset:" << task->pre_offset()
           << ", next filenum:" << task->filenum()
-          << ", next offset:" << task->offset();
+          << ", next offset:" << task->offset()
+          << ", sequence:" << task->sequence();
         task->send_next = false;
         sleep(kBinlogSendInterval);
       } else {
@@ -426,6 +482,7 @@ void* ZPBinlogSendThread::ThreadMain() {
             << task->partition_id()
             << ", filenum:" << task->pre_filenum()
             << ", offset:" << task->pre_offset()
+            << ", sequence:" << task->sequence()
             << ", thread:" << pthread_self()
             << ", Error: " << item_s.ToString();
           task->send_next = false;
@@ -436,9 +493,9 @@ void* ZPBinlogSendThread::ThreadMain() {
       }
 
       // Check if need to switch task
-      gettimeofday(&now, NULL);
-      if (now.tv_sec - begin.tv_sec > kBinlogTimeSlice) {
+      if (slash::NowMicros() - time_begin > kBinlogTimeSlice * 1000000) {
         // Switch Task
+        RenewPeerLease(task);
         pool_->PutBack(task);
         break;
       }
