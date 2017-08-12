@@ -10,8 +10,10 @@
 #include "include/zp_conf.h"
 #include "include/zp_const.h"
 #include "src/meta/zp_meta_command.h"
+#include "src/meta/zp_meta_offset_map.h"
 #include "src/meta/zp_meta_update_thread.h"
 #include "src/meta/zp_meta_client_conn.h"
+#include "src/meta/zp_meta_migrate_register.h"
 
 #include "pink/include/server_thread.h"
 #include "slash/include/slash_status.h"
@@ -25,10 +27,6 @@ extern ZpConf* g_zp_conf;
 
 typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
 
-struct NodeOffset {
-  int32_t filenum;
-  int64_t offset;
-};
 
 struct StuckState {
   std::string table;
@@ -95,14 +93,22 @@ class ZPMetaServer {
   Status GetTableList(ZPMeta::MetaCmdResponse_ListTable *tables);
   Status GetAllNodes(ZPMeta::MetaCmdResponse_ListNode *nodes);
   Status Distribute(const std::string &table, int num);
-  void UpdateOffset(const ZPMeta::MetaCmd_Ping &ping);
   Status DropTable(const std::string &table);
   Status InitVersionIfNeeded();
+
+  // Migrate related
+  Status Migrate(int epoch, const std::vector<ZPMeta::RelationCmdUnit>& diffs);
+  Status CancelMigrate() {
+    return migrate_register_->Cancel();
+  }
+
+  // offset related
+  void UpdateOffset(const ZPMeta::MetaCmd_Ping &ping);
+
 
   // Leader related
   Status RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse *response);
   bool IsLeader();
-  void DebugOffset();
 
   // Statistic related
   uint64_t last_qps();
@@ -155,7 +161,6 @@ private:
   NodeAliveMap node_alive_;
 
   // Meta related
-  bool GetSlaveOffset(const std::string &table, const std::string &ip_port, const int partition, int32_t *filenum, int64_t *offset);
   void Reorganize(const std::vector<ZPMeta::NodeStatus> &t_alive_nodes, std::vector<ZPMeta::NodeStatus> *alive_nodes);
   void SetNodeStatus(ZPMeta::Nodes *nodes, const std::string &ip, int port, int status, bool *should_update_node);
   void GetAllAliveNode(const ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> *alive_nodes);
@@ -173,8 +178,17 @@ private:
   Status InitVersion();
   Status AddVersion();
 
+  // Migrate related
+  ZPMetaMigrateRegister* migrate_register_;
+  Status ProcessMigrate();
 
-  std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, NodeOffset> > > offset_;
+  // Offset related
+  bool GetSlaveOffset(const std::string &table, int partition,
+      const std::string ip, int port, NodeOffset* node_offset);
+  void DebugOffset();
+
+  //std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, NodeOffset> > > offset_;
+  NodeOffsetMap node_offsets_;
   std::unordered_map<std::string, std::set<std::string> > nodes_;
   std::vector<StuckState> stuck_;
   slash::Mutex offset_mutex_; //protect offset_ & stuck_

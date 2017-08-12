@@ -32,7 +32,7 @@ class ZPMetaMigrateRegister {
    Status Init(const std::vector<ZPMeta::RelationCmdUnit>& diffs);
    Status Check(ZPMeta::MigrateStatus* status);
    Status Erase(const std::string& diff_key);
-   Status GetN(int count, std::vector<ZPMeta::RelationCmdUnit>* items);
+   Status GetN(uint32_t count, std::vector<ZPMeta::RelationCmdUnit>* items);
    Status Cancel();
   
 

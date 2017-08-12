@@ -113,4 +113,35 @@ class DropTableCmd : public Cmd {
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
+class MigrateCmd : public Cmd {
+ public:
+  MigrateCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "Migrate"; 
+  }
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition = NULL) const;
+};
+
+class CancelMigrateCmd : public Cmd {
+ public:
+  CancelMigrateCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const override {
+    return "CancelMigrateTable"; 
+  }
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition = NULL) const;
+};
+
+// TODO (wk)
+//class CheckMigrateCmd : public Cmd {
+// public:
+//  CheckMigrateCmd(int flag) : Cmd(flag) {}
+//  virtual std::string name() const override {
+//    return "CheckMigrateTable"; 
+//  }
+//  virtual void Do(const google::protobuf::Message *req,
+//      google::protobuf::Message *res, void* partition = NULL) const;
+//};
+
 #endif

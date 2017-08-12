@@ -20,6 +20,7 @@ enum Type {
   METASTATUS = 11;
   MIGRATE = 12;
   CANCELMIGRATE = 13;
+  CHECKMIGRATE = 14;
 }
 
 enum PState {
@@ -145,11 +146,6 @@ message MetaCmd {
     repeated RelationCmdUnit diff = 2;
   }
   optional Migrate migrate = 9;
-
-  message CancelMigrate {
-    repeated string table = 1;
-  }
-  optional CancelMigrate cancel_migrate = 10;
 }
 
 message MetaCmdResponse {

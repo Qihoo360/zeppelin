@@ -13,6 +13,14 @@
 
 #include "slash/include/env.h"
 
+std::string NodeOffsetKey(const std::string& table, int partition_id,
+    const std::string& ip, int port) {
+  char buf[256];
+  snprintf(buf, sizeof(buf), "%s_%u_%s:%u",
+      table.c_str(), partition_id, ip.c_str(), port);
+  return std::string(buf);
+}
+
 ZPMetaServer::ZPMetaServer()
   : should_exit_(false), started_(false), version_(-1), leader_cli_(NULL), leader_first_time_(true), leader_ip_(""), leader_cmd_port_(0) {
   LOG(INFO) << "ZPMetaServer start initialization";
@@ -55,6 +63,11 @@ ZPMetaServer::ZPMetaServer()
 
   floyd::Floyd::Open(fy_options, &floyd_);
 
+  Status s = ZPMetaMigrateRegister::Create(floyd_, &migrate_register_);
+  if (!s.ok()) {
+    LOG(FATAL) << "Failed to create migrate register, error: " << s.ToString();
+  }
+
   cmds_.reserve(300);
   InitClientCmdTable();  
 
@@ -84,6 +97,7 @@ ZPMetaServer::~ZPMetaServer() {
   DestoryCmdTable(cmds_);
   delete update_thread_;
   CleanLeader();
+  delete migrate_register_;
   delete floyd_;
   LOG(INFO) << "ZPMetaServer Delete Done";
 }
@@ -640,38 +654,6 @@ Status ZPMetaServer::Distribute(const std::string &name, int num) {
   return Status::OK();
 }
 
-void ZPMetaServer::UpdateOffset(const ZPMeta::MetaCmd_Ping &ping) {
-  slash::MutexLock l(&offset_mutex_);
-  std::string ip_port;
-  std::string p;
-//  LOG(INFO) << "Size: " << ping.offset_size();
-  for (int i = 0; i < ping.offset_size(); i++) {
-//    LOG(INFO) << "process " << i;
-    auto iter = offset_.find(ping.offset(i).table_name());
-    if (iter == offset_.end()) {
-      LOG(INFO) << "Table: Not Found " << ping.offset(i).table_name() << ", insert!";
-      std::unordered_map<std::string, std::unordered_map<std::string, NodeOffset> > partition2node;
-      offset_.insert(std::unordered_map<std::string, std::unordered_map<std::string, std::unordered_map<std::string, NodeOffset> > >::value_type(ping.offset(i).table_name(), partition2node));
-      iter = offset_.find(ping.offset(i).table_name());
-    }
-    p = std::to_string(ping.offset(i).partition());
-
-    ip_port = slash::IpPortString(ping.node().ip(), ping.node().port()); 
-
-    NodeOffset node_offset = {ping.offset(i).filenum(), ping.offset(i).offset()};
-    auto it = iter->second.find(p);
-    if (it == iter->second.end()) {
-      LOG(INFO) << "Partition: Not Found " << p << ", insert!";
-      std::unordered_map<std::string, NodeOffset> node2offset;
-      node2offset.insert(std::unordered_map<std::string, NodeOffset>::value_type(ip_port, node_offset));
-      iter->second.insert(std::unordered_map<std::string, std::unordered_map<std::string, NodeOffset> >::value_type(p, node2offset));
-    } else {
-      it->second[ip_port] = node_offset;
-    }
-//    LOG(INFO) << "Insert " << ping.offset(i).table_name() << ", " << p << " : " << ip_port << " -> " << node_offset.filenum << ":" << node_offset.offset;
-  }
-}
-
 Status ZPMetaServer::DropTable(const std::string &name) {
   slash::MutexLock l(&node_mutex_);
   std::string value;
@@ -723,6 +705,61 @@ Status ZPMetaServer::InitVersionIfNeeded() {
   }
   return Status::OK();
 }
+
+Status ZPMetaServer::Migrate(int epoch, const std::vector<ZPMeta::RelationCmdUnit>& diffs) {
+  if (epoch != version_) {
+    return Status::InvalidArgument("Expired epoch");
+  }
+  
+  // Register
+  assert(!diffs.empty());
+  Status s = migrate_register_->Init(diffs);
+  if (!s.ok()) {
+    LOG(WARNING) << "Migrate register Init failed, error: " << s.ToString();
+    return s;
+  }
+
+  // retry some time to ProcessMigrate
+  int retry = kInitMigrateRetryNum;
+  do {
+    s = ProcessMigrate();
+  
+  } while (s.IsIncomplete() && retry-- > 0);
+  return s;
+}
+
+Status ZPMetaServer::ProcessMigrate() {
+  // Get next 
+  std::vector<ZPMeta::RelationCmdUnit> diffs;
+  Status s = migrate_register_->GetN(kMetaMigrateOnceCount, &diffs);
+  if (s.IsNotFound()) {
+    LOG(INFO) << "No migrate to be processed";
+  } else if (!s.ok()) {
+    LOG(WARNING) << "Get next N migrate diffs failed, error: " << s.ToString();
+    return s;
+  }
+
+  bool has_process = false;
+  for (const auto& diff : diffs) {
+    s = AddSlave(diff.table(), diff.partition(), diff.right());
+    if (!s.ok()) {
+      LOG(WARNING) << "AddSlave when process migrate failed: " << s.ToString()
+        << ", Partition: " << diff.table() << "_" << diff.partition()
+        << ", new node: " << diff.right().ip() << ":" << diff.right().port();
+      continue;
+    }
+    
+    // TODO(wk) Add WaitOffsetTask
+    has_process = true;
+  }
+
+  if (!has_process) {
+    LOG(WARNING) << "No migrate item be success begin";
+    return Status::Incomplete("no migrate item begin");
+  }
+  return Status::OK();
+}
+
 
 Status ZPMetaServer::RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse *response) {
   slash::MutexLock l(&leader_mutex_);
@@ -808,21 +845,6 @@ void ZPMetaServer::DebugNodes() {
   }
 }
 
-void ZPMetaServer::DebugOffset() {
-  slash::MutexLock l(&offset_mutex_);
-  for (auto iter = offset_.begin(); iter != offset_.end(); iter++) {
-    std::string str = iter->first + " :\n";
-    for (auto ite = iter->second.begin(); ite != iter->second.end(); ite++) {
-      str += ("    " + ite->first + " : ");
-      for (auto it = ite->second.begin(); it != ite->second.end(); it++) {
-        str += (it->first + " -> " + std::to_string(it->second.filenum) + ":" + std::to_string(it->second.offset) + "; ");
-      }
-      str += "\n";
-    }
-    LOG(INFO) << str;
-  } 
-}
-
 void ZPMetaServer::InitClientCmdTable() {
 
   // Ping Command
@@ -868,6 +890,21 @@ void ZPMetaServer::InitClientCmdTable() {
   //DropTable Command
   Cmd* droptableptr = new DropTableCmd(kCmdFlagsWrite);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::DROPTABLE), droptableptr));
+
+  // Migrate Command
+  Cmd* migrateptr = new MigrateCmd(kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::MIGRATE),
+        migrateptr));
+
+  // Cancel Migrate Command
+  Cmd* cancel_migrate_ptr = new CancelMigrateCmd(kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::CANCELMIGRATE),
+        cancel_migrate_ptr));
+  
+  //// Check Migrate Command
+  //Cmd* check_migrate_ptr = new CheckMigrateCmd(kCmdFlagsWrite);
+  //cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::CHECKMIGRATE),
+  //      check_migrate_ptr));
 }
 
 bool ZPMetaServer::ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque, const ZPMeta::Nodes &nodes, ZPMeta::Table *table_info, bool *should_update_version) {
@@ -938,23 +975,20 @@ void ZPMetaServer::DoDownNodeForTableInfo(const ZPMeta::Nodes &nodes, ZPMeta::Ta
     int slaves_size = p->slaves_size();
     LOG(INFO) << "slaves_size:" << slaves_size;
 
-    int32_t max_filenum = -1;
-    int64_t max_offset = -1;
-    int candidate = -1;
-
     int j = 0;
-    int32_t filenum;
-    int64_t offset;
+    int candidate = -1;
+    NodeOffset max_node_offset;
+    NodeOffset node_offset;
     for (j = 0; j < slaves_size; j++) {
       if (IsAlive(alive_nodes, p->slaves(j).ip(), p->slaves(j).port())) {
-        bool ret = GetSlaveOffset(table_info->name(), slash::IpPortString(p->slaves(j).ip(), p->slaves(j).port()), i, &filenum, &offset);
+        bool ret = GetSlaveOffset(table_info->name(), i, p->slaves(j).ip(), p->slaves(j).port(), &node_offset);
         if (ret
             && (candidate == -1  // the first candidate
-              || filenum > max_filenum
-              || (filenum == max_filenum && offset > max_offset))) {
+              || node_offset.filenum > max_node_offset.filenum
+              || (node_offset.filenum == max_node_offset.filenum
+                && node_offset.offset > max_node_offset.offset))) {
           candidate = j;
-          max_filenum = filenum;
-          max_offset = offset;
+          max_node_offset = node_offset;
         }
       }
     }
@@ -1207,28 +1241,6 @@ bool ZPMetaServer::ShouldRetryAddVersion(const ZPMetaUpdateTaskDeque task_deque)
     }
   }
   return false;
-}
-
-bool ZPMetaServer::GetSlaveOffset(const std::string &table,
-    const std::string &ip_port, const int partition,
-    int32_t *filenum, int64_t *offset) {
-  slash::MutexLock l(&offset_mutex_);
-  auto iter = offset_.find(table);
-  if (iter == offset_.end()) {
-    return false;
-  }
-  auto ite = iter->second.find(std::to_string(partition));
-  if (ite == iter->second.end()) {
-    return false;
-  }
-  auto it = ite->second.find(ip_port);
-  if (it == ite->second.end()) {
-    return false;
-  }
-
-  *filenum = it->second.filenum;
-  *offset = it->second.offset;
-  return true;
 }
 
 void ZPMetaServer::Reorganize(const std::vector<ZPMeta::NodeStatus> &t_alive_nodes, std::vector<ZPMeta::NodeStatus> *alive_nodes) {
@@ -1654,3 +1666,33 @@ void ZPMetaServer::ResetLastSecQueryNum() {
   last_query_num_ = query_num_.load();
   last_time_us_ = cur_time_us;
 }
+
+void ZPMetaServer::UpdateOffset(const ZPMeta::MetaCmd_Ping &ping) {
+  slash::MutexLock l(&(node_offsets_.mutex));
+  for (const auto& po : ping.offset()) {
+    std::string offset_key = NodeOffsetKey(po.table_name(), po.partition(),
+        ping.node().ip(), ping.node().port());
+    node_offsets_.offsets[offset_key] = NodeOffset(po.filenum(), po.offset());
+  }
+}
+
+bool ZPMetaServer::GetSlaveOffset(const std::string &table, int partition,
+    const std::string ip, int port, NodeOffset* node_offset) {
+  slash::MutexLock l(&(node_offsets_.mutex));
+  auto iter = node_offsets_.offsets.find(NodeOffsetKey(table,
+        partition, ip, port));
+  if (iter == node_offsets_.offsets.end()) {
+    return false;
+  }
+  *node_offset = iter->second;
+  return true;
+}
+
+void ZPMetaServer::DebugOffset() {
+  slash::MutexLock l(&(node_offsets_.mutex));
+  for (const auto& item : node_offsets_.offsets) {
+    LOG(INFO) << item.first << "->"
+      << item.second.filenum << "_" << item.second.offset; 
+  }
+}
+

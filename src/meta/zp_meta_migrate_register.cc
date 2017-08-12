@@ -136,6 +136,11 @@ Status ZPMetaMigrateRegister::Erase(const std::string& diff_key) {
     migrate_head.add_diff_name(key);
   }
 
+  if (migrate_head.diff_name_size() == 0) {
+    // Finished
+    return Cancel();
+  }
+
   std::string head_value;
   if (!migrate_head.SerializeToString(&head_value)) {
     LOG(WARNING) << "Serialization migrate head failed";
@@ -155,11 +160,15 @@ Status ZPMetaMigrateRegister::Erase(const std::string& diff_key) {
 
 // Get some diff item
 // Notice the actually diff item may less than count
-Status ZPMetaMigrateRegister::GetN(int count,
+Status ZPMetaMigrateRegister::GetN(uint32_t count,
     std::vector<ZPMeta::RelationCmdUnit>* diff_items) {
   slash::RWLock l(&migrate_rw_, false);
   if (!Exist()) {
     return Status::NotFound("No migrate exist");
+  }
+
+  if (diff_keys_.size() < count) {
+    count = diff_keys_.size();
   }
 
   std::string diff_value;

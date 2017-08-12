@@ -20,10 +20,6 @@ class Node {
   Node() {}
   Node(const std::string& str);
   Node(const std::string& _ip, const int& _port) : ip(_ip), port(_port) {}
-  // TODO test
- // ~Node() {
- //   printf ("~Node dstor: ip=%s, port=%d\n", ip.c_str(), port);
- // }
 
   Node(const Node& node)
       : ip(node.ip),
@@ -55,18 +51,5 @@ class Node {
     return stream;
   }
 };
-
-//class Leaders {
-//  Node primary;
-//  Node secondary[kReplicaNum - 1];
-//};
-
-
-//struct ClientInfo {
-//  int fd;
-//  std::string ip_port;
-//  int last_interaction;
-//};
-//
 
 #endif

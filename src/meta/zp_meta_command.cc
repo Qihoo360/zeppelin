@@ -257,3 +257,53 @@ void DropTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
     response->set_msg(s.ToString());
   }
 }
+
+void MigrateCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  
+  ZPMeta::MetaCmd_Migrate migrate = request->migrate();
+  response->set_type(ZPMeta::Type::MIGRATE);
+
+  std::vector<ZPMeta::RelationCmdUnit> diffs;
+  for (const auto& item : migrate.diff()) {
+    diffs.push_back(item);
+  }
+
+  if (diffs.empty()) {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg("No diff item provided");
+    return;
+  }
+
+  Status s = g_meta_server->Migrate(migrate.origin_epoch(), diffs);
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("Migrage OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
+}
+
+void CancelMigrateCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
+  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+
+  response->set_type(ZPMeta::Type::CANCELMIGRATE);
+  
+  Status s = g_meta_server->CancelMigrate();
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("CancelMigrage OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
+}
+
+//void CheckMigrateCmd::Do(const google::protobuf::Message *req,
+//    google::protobuf::Message *res, void* partition = NULL) const {
+//
+//}
