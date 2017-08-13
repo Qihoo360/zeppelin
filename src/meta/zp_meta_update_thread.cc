@@ -9,38 +9,49 @@
 extern ZPMetaServer* g_meta_server;
 
 ZPMetaUpdateThread::ZPMetaUpdateThread() {
-  worker_.set_thread_name("ZPMetaUpdate");
+  worker_ = new pink::BGThread();
+  worker_->set_thread_name("ZPMetaUpdate");
 }
 
 ZPMetaUpdateThread::~ZPMetaUpdateThread() {
-  worker_.StopThread();
+  worker_->StopThread();
+  delete worker_;
 }
 
-void ZPMetaUpdateThread::ScheduleUpdate(ZPMetaUpdateTaskDeque task_deque) {
-  ZPMetaUpdateArgs* arg = new ZPMetaUpdateArgs(this, task_deque);
-  worker_.StartThread();
-  LOG(INFO) << "Schedule to update thread worker, task num: " << task_deque.size();
-  worker_.Schedule(&DoMetaUpdate, static_cast<void*>(arg));
+void ZPMetaUpdateThread::PendingUpdate(const UpdateTask &task, bool priority) {
+  slash::MutexLock l(&task_mutex_);
+  if (priority) {
+    task_deque_.push_front(task);
+  } else {
+    task_deque_.push_back(task);
+  }
+
+  if (task_deque_.size() == 1) {
+    worker_->StartThread();
+    worker_->DelaySchedule(kMetaDispathCronInterval,
+        &DoMetaUpdate, static_cast<void*>(this));
+  }
 }
 
 void ZPMetaUpdateThread::DoMetaUpdate(void *p) {
-  ZPMetaUpdateThread::ZPMetaUpdateArgs *args = static_cast<ZPMetaUpdateThread::ZPMetaUpdateArgs*>(p);
-  ZPMetaUpdateThread *thread = args->thread;
-  thread->MetaUpdate(args->task_deque);
+  ZPMetaUpdateThread *thread = static_cast<ZPMetaUpdateThread*>(p);
 
-  delete args;
-}
+  ZPMetaUpdateTaskDeque tasks;
+  {
+    slash::MutexLock l(&task_mutex_);
+    tasks = task_queue_;
+    task_queue_.clear();
+  }
 
-slash::Status ZPMetaUpdateThread::MetaUpdate(ZPMetaUpdateTaskDeque task_deque) {
-  slash::Status s;
-  s = g_meta_server->DoUpdate(task_deque);
-  if (s.IsCorruption() && s.ToString() == "Corruption: AddVersion Error") {
-    UpdateTask task = {kOpAddVersion, "pad_ip:6666", "", -1};
-    g_meta_server->AddMetaUpdateTask(task);
+  // TODO(wk) implement in update thread
+  slash::Status s = g_meta_server->DoUpdate(tasks);
+  if (s.IsIncomplete()) {
+    thread->PendingUpdate(UpdateTask(kOpAddVersion, "pad_ip:6666", "", -1));
   }
   if (!s.ok()) {
-    sleep(1);
-    g_meta_server->AddMetaUpdateTaskDequeFromFront(task_deque);
+    for (const auto& t : tasks) {
+      thread->PendingUpdate(t, true);
+    }
   }
   return s;
 }

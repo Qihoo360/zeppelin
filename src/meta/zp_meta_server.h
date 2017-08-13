@@ -7,6 +7,11 @@
 #include <set>
 #include <atomic>
 
+#include "pink/include/server_thread.h"
+#include "slash/include/slash_status.h"
+#include "slash/include/slash_mutex.h"
+#include "floyd/include/floyd.h"
+
 #include "include/zp_conf.h"
 #include "include/zp_const.h"
 #include "src/meta/zp_meta_command.h"
@@ -14,19 +19,13 @@
 #include "src/meta/zp_meta_update_thread.h"
 #include "src/meta/zp_meta_client_conn.h"
 #include "src/meta/zp_meta_migrate_register.h"
-
-#include "pink/include/server_thread.h"
-#include "slash/include/slash_status.h"
-#include "slash/include/slash_mutex.h"
-
-#include "floyd/include/floyd.h"
+#include "src/meta/zp_meta_condition_cron.h"
 
 using slash::Status;
 
 extern ZpConf* g_zp_conf;
 
 typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
-
 
 struct StuckState {
   std::string table;
@@ -75,12 +74,9 @@ class ZPMetaServer {
   Cmd* GetCmd(const int op);
   
   // Node & Meta update related
-  void AddMetaUpdateTaskDequeFromFront(const ZPMetaUpdateTaskDeque &task_deque);
   Status DoUpdate(ZPMetaUpdateTaskDeque task_deque);
   Status AddNodeAlive(const std::string& ip_port);
-  void AddMetaUpdateTask(const UpdateTask &task);
   void CheckNodeAlive();
-  void ScheduleUpdate();
   
   // Meta related
   Status GetMSInfo(const std::set<std::string> &tables, ZPMeta::MetaCmdResponse_Pull *ms_info);
@@ -155,9 +151,7 @@ private:
   bool ShouldRetryAddVersion(const ZPMetaUpdateTaskDeque task_deque);
 
   ZPMetaUpdateThread* update_thread_;
-  ZPMetaUpdateTaskDeque task_deque_;
   slash::Mutex alive_mutex_;
-  slash::Mutex task_mutex_;
   NodeAliveMap node_alive_;
 
   // Meta related
@@ -181,6 +175,7 @@ private:
   // Migrate related
   ZPMetaMigrateRegister* migrate_register_;
   Status ProcessMigrate();
+  ZPMetaConditionCron* condition_cron_;
 
   // Offset related
   bool GetSlaveOffset(const std::string &table, int partition,

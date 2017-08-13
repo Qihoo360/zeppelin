@@ -7,11 +7,10 @@
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/repeated_field.h>
 
-#include "include/zp_meta.pb.h"
-
 #include "pink/include/pink_cli.h"
-
 #include "slash/include/env.h"
+
+#include "include/zp_meta.pb.h"
 
 std::string NodeOffsetKey(const std::string& table, int partition_id,
     const std::string& ip, int port) {
@@ -67,6 +66,8 @@ ZPMetaServer::ZPMetaServer()
   if (!s.ok()) {
     LOG(FATAL) << "Failed to create migrate register, error: " << s.ToString();
   }
+
+  condition_cron_ = new ZPMetaConditionCron(&offset_map_, update_thread_);
 
   cmds_.reserve(300);
   InitClientCmdTable();  
@@ -154,13 +155,6 @@ Cmd* ZPMetaServer::GetCmd(const int op) {
   return GetCmdFromTable(op, cmds_);
 }
 
-void ZPMetaServer::AddMetaUpdateTaskDequeFromFront(const ZPMetaUpdateTaskDeque &task_deque) {
-  slash::MutexLock l(&task_mutex_);
-  for (auto iter = task_deque.rbegin(); iter != task_deque.rend(); iter++) {
-    task_deque_.push_front(*iter);
-  }
-
-}
 
 Status ZPMetaServer::DoUpdate(ZPMetaUpdateTaskDeque task_deque) {
   ZPMeta::Table table_info;
@@ -226,7 +220,7 @@ Status ZPMetaServer::DoUpdate(ZPMetaUpdateTaskDeque task_deque) {
   if (should_update_version || ShouldRetryAddVersion(task_deque)) {
     s = AddVersion();
     if (!s.ok()) {
-      return s;
+      return Status::Incomplete("AddVersion Error");
     }
   }
 
@@ -262,15 +256,11 @@ Status ZPMetaServer::AddNodeAlive(const std::string& ip_port) {
   }
 
   LOG(INFO) << "Add Node Alive " << ip_port;
-  UpdateTask task = {ZPMetaUpdateOP::kOpAdd, ip_port, "", -1};
-  AddMetaUpdateTask(task);
+  update_thread_->PendingUpdate(UpdateTask(ZPMetaUpdateOP::kOpAdd,
+        ip_port, "", -1));
   return Status::OK();
 }
 
-void ZPMetaServer::AddMetaUpdateTask(const UpdateTask &task) {
-  slash::MutexLock l(&task_mutex_);
-  task_deque_.push_back(task);
-}
 
 void ZPMetaServer::CheckNodeAlive() {
   struct timeval now;
@@ -280,20 +270,12 @@ void ZPMetaServer::CheckNodeAlive() {
   auto it = node_alive_.begin();
   while (it != node_alive_.end()) {
     if (now.tv_sec - (it->second).tv_sec > kNodeMetaTimeoutM) {
-      UpdateTask task = {ZPMetaUpdateOP::kOpRemove, it->first, "", -1};
-      AddMetaUpdateTask(task);
+      update_thread_->PendingUpdate(UpdateTask(ZPMetaUpdateOP::kOpRemove,
+            it->first, "", -1));
       it = node_alive_.erase(it);
     } else {
       it++;
     }
-  }
-}
-
-void ZPMetaServer::ScheduleUpdate() {
-  slash::MutexLock l(&task_mutex_);
-  if (!task_deque_.empty()) {
-    update_thread_->ScheduleUpdate(task_deque_);
-    task_deque_.clear();
   }
 }
 
@@ -371,9 +353,8 @@ Status ZPMetaServer::RemoveSlave(const std::string &table, int partition, const 
   }
 
   if (valid) {
-    UpdateTask task = {ZPMetaUpdateOP::kOpRemoveSlave, ip_port, table, partition};
     LOG(INFO) << "RemoveSlave PushTask" << static_cast<int>(task.op) << " " << ip_port << " " << table << " " << partition;
-    AddMetaUpdateTask(task);
+    update_thread_->PendingUpdate(UpdateTask(ZPMetaUpdateOP::kOpRemoveSlave, ip_port, table, partition));
     return Status::OK();
   } else {
     return Status::Corruption("RemoveSlave: node & partition dismatch");
@@ -422,9 +403,8 @@ Status ZPMetaServer::SetMaster(const std::string &table, int partition, const ZP
   }
 
   if (valid) {
-    UpdateTask task = {ZPMetaUpdateOP::kOpSetMaster, ip_port, table, partition};
     LOG(INFO) << "SetMaster PushTask " << static_cast<int>(task.op) << " " << ip_port << " " << table << " " << partition;
-    AddMetaUpdateTask(task);
+    update_thread_->PendingUpdate(UpdateTask(ZPMetaUpdateOP::kOpSetMaster, ip_port, table, partition));
     return Status::OK();
   } else {
     return Status::Corruption("partition & node Dismatch");
@@ -476,9 +456,8 @@ Status ZPMetaServer::AddSlave(const std::string &table, int partition, const ZPM
   }
 
   if (valid) {
-    UpdateTask task = {ZPMetaUpdateOP::kOpAddSlave, ip_port, table, partition};
     LOG(INFO) << "AddSlave PushTask" << static_cast<int>(task.op) << " " << ip_port << " " << table << " " << partition;
-    AddMetaUpdateTask(task);
+    update_thread_->PendingUpdate(UpdateTask(ZPMetaUpdateOP::kOpAddSlave, ip_port, table, partition));
     return Status::OK();
   } else {
     return Status::Corruption("AddSlave: Already slave");
@@ -749,7 +728,14 @@ Status ZPMetaServer::ProcessMigrate() {
       continue;
     }
     
-    // TODO(wk) Add WaitOffsetTask
+    // Begin offset condition wait
+    condition_cron_.AddCronTask(
+        OffsetCondition(diff.table(), diff.partition(),
+          diff.left(), diff.right()),
+        UpdateTask(ZPMetaUpdateOP::kOpRemoveSlave,
+          slash::IpPortString(diff.left().ip(), diff.left().port()),
+          diff.table(), diff.parititon()));
+
     has_process = true;
   }
 
@@ -1229,7 +1215,7 @@ void ZPMetaServer::AddClearStuckTaskIfNeeded(const ZPMetaUpdateTaskDeque &task_d
       UpdateTask task = *iter;
       task.op = ZPMetaUpdateOP::kOpClearStuck;
       LOG(INFO) << "Add Clear Stuck Task for " << task.table << " : " << task.partition; 
-      AddMetaUpdateTask(task);
+      update_thread_->PendingUpdate(task);
     }
   }
 }

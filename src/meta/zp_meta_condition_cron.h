@@ -19,21 +19,17 @@
 #include "src/meta/zp_meta_offset_map.h"
 #include "include/zp_meta.pb.h"
 
-enum OffsetConditionType {
-  kOffsetEq = 0,
-};
-
 struct OffsetCondition {
-  OffsetConditionType type;
   std::string table;
   int partition_id;
   ZPMeta::Node left;
   ZPMeta::Node right;
-};
-
-struct OffsetConditionTask {
-  OffsetCondition condition;
-  UpdateTask update_task;
+  OffsetCondition(const std::string& t, int pid,
+      const ZPMeta::Node& l, const ZPMeta::Node& r)
+    : table(t), partition_id(pid) {
+      left.CopyFrom(l);
+      right.CopyFrom(r);
+    }
 };
 
 class ZPMetaConditionCron {
@@ -47,7 +43,19 @@ class ZPMetaConditionCron {
   pink::BGThread* bg_thread_;
   NodeOffsetMap* offset_map_;
   ZPMetaUpdateThread* update_thread_;
-  static void DoConditionTask(void *p);
+  static void CronFunc(void *p);
+  bool ChecknProcess(const OffsetCondition& condition,
+      const UpdateTask& update_task);
+
+  struct OffsetConditionArg {
+    ZPMetaConditionCron* cron;
+    OffsetCondition condition;
+    UpdateTask update_task;
+    OffsetConditionArg(ZPMetaConditionCron* cur,
+        OffsetCondition cond, UpdateTask t)
+      : cron(cur), condition(cond), update_task(t) {}
+  };
+
 };
 
 #endif  // SRC_META_ZP_META_CONDITION_CRON_H_

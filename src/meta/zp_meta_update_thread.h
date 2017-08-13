@@ -28,6 +28,9 @@ struct UpdateTask {
   std::string ip_port;
   std::string table;
   int partition;
+  UpdateTask(ZPMetaUpdateOP o, const std::string& ip,
+      const std::string&t, int p)
+    : op(o), ip_port(ip), table(t), partition(p) {}
 };
 
 typedef std::deque<UpdateTask> ZPMetaUpdateTaskDeque;
@@ -37,21 +40,14 @@ public:
   ZPMetaUpdateThread();
   ~ZPMetaUpdateThread();
 
-  void ScheduleUpdate(ZPMetaUpdateTaskDeque task_deque);
-  static void DoMetaUpdate(void *p);
+  void PendingUpdate(const UpdateTask& task, bool priority = false);
 
 private:
-  pink::BGThread worker_;
-  slash::Status MetaUpdate(ZPMetaUpdateTaskDeque task_deque);
-
-  struct ZPMetaUpdateArgs {
-    ZPMetaUpdateThread * thread;
-    ZPMetaUpdateTaskDeque task_deque;
-    ZPMetaUpdateArgs(ZPMetaUpdateThread *_thread, ZPMetaUpdateTaskDeque _task_deque) :
-      thread(_thread), task_deque(_task_deque) {}
-  };
+  pink::BGThread* worker_;
+  slash::Mutex task_mutex_;
+  ZPMetaUpdateTaskDeque task_deque_;
+  static void DoMetaUpdate(void *p);
 
 };
-
 
 #endif
