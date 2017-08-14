@@ -1060,16 +1060,18 @@ void Partition::DoDBSync(void* arg) {
 }
 
 void Partition::DBSyncSendFile(const std::string& ip, int port) {
-  slash::RWLock l(&state_rw_, false);
-  if (!opened_) {
-    LOG(WARNING) << "Partition has been closed when try to dbsync"
-      << ", Table:" << table_name_ << ", Partition: "<< partition_id_;
-    return;
-  }
   std::string bg_path;
   {
-    slash::MutexLock l(&bgsave_protector_);
-    bg_path = bgsave_info_.path;
+    slash::RWLock l(&state_rw_, false);
+    if (!opened_) {
+      LOG(WARNING) << "Partition has been closed when try to dbsync"
+        << ", Table:" << table_name_ << ", Partition: "<< partition_id_;
+      return;
+    }    
+    {    
+      slash::MutexLock l(&bgsave_protector_);
+      bg_path = bgsave_info_.path;
+    }    
   }
 
   // Get all files need to send
