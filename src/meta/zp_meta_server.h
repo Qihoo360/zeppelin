@@ -45,6 +45,28 @@ class ServerThread;
 class PinkCli;
 }
 
+struct LeaderJoint {
+  slash::Mutex mutex;
+  pink::PinkCli* cli;
+  std::string ip;
+  int port;
+  LeaderJoint()
+    : cli(NULL),
+    port(0) {
+    }
+
+  // Required: hold the lock of mutex
+  void CleanLeader() {
+    if (cli) {
+      cli->Close();
+      delete cli;
+      cli = NULL;
+    }
+    ip.clear();
+    port = 0;
+  }
+};
+
 class ZPMetaServer {
  public:
 
@@ -52,8 +74,9 @@ class ZPMetaServer {
   virtual ~ZPMetaServer();
   // Server related
   void Start();
-  void Stop();
-  void CleanUp();
+  void Stop() {
+    should_exit_ = true;
+  }
   std::string local_ip() {
     return local_ip_;
   }
@@ -66,8 +89,8 @@ class ZPMetaServer {
   int seed_port() {
     return seed_port_;
   }
-  int version() {
-    return version_;
+  int current_epoch() {
+    return info_store_->epoch();
   }
 
   //Cmd related
@@ -75,12 +98,15 @@ class ZPMetaServer {
   
   // Node & Meta update related
   Status DoUpdate(ZPMetaUpdateTaskDeque task_deque);
-  Status AddNodeAlive(const std::string& ip_port);
+  void UpdateNodeAlive(const std::string& ip_port);
   void CheckNodeAlive();
   
   // Meta related
-  Status GetMSInfo(const std::set<std::string> &tables, ZPMeta::MetaCmdResponse_Pull *ms_info);
-  Status GetTableListForNode(const std::string &ip_port, std::set<std::string> *tables);
+  Status GetMetaInfoByTable(const std::string& table,
+      ZPMeta::MetaCmdResponse_Pull *ms_info);
+  Status GetMetaInfoByNode(const std::string& ip_port,
+      ZPMeta::MetaCmdResponse_Pull *ms_info);
+
   Status RemoveSlave(const std::string &table, int partition, const ZPMeta::Node &node);
   Status SetMaster(const std::string &table, int partition, const ZPMeta::Node &node);
   Status AddSlave(const std::string &table, int partition, const ZPMeta::Node &node);
@@ -90,7 +116,6 @@ class ZPMetaServer {
   Status GetAllNodes(ZPMeta::MetaCmdResponse_ListNode *nodes);
   Status Distribute(const std::string &table, int num);
   Status DropTable(const std::string &table);
-  Status InitVersionIfNeeded();
 
   // Migrate related
   Status Migrate(int epoch, const std::vector<ZPMeta::RelationCmdUnit>& diffs);
@@ -130,7 +155,6 @@ private:
   std::atomic<bool> should_exit_;
   slash::Mutex server_mutex_;
   std::atomic<bool> started_;
-  std::atomic<int> version_;
 
   // Cmd related
   void InitClientCmdTable();
@@ -160,7 +184,6 @@ private:
   void GetAllAliveNode(const ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> *alive_nodes);
   Status GetTableInfo(const std::string &table, ZPMeta::Table *table_info);
   bool FindNode(const ZPMeta::Nodes &nodes, const std::string &ip, int port);
-  void RestoreNodeAlive(const std::vector<ZPMeta::NodeStatus> &alive_nodes);
   Status ExistInTableList(const std::string &name, bool *found);
   Status RemoveTableFromTableList(const std::string &name);
   Status GetTableList(std::vector<std::string> *tables);
@@ -171,6 +194,9 @@ private:
   Status GetAllNodes(ZPMeta::Nodes *nodes);
   Status InitVersion();
   Status AddVersion();
+
+  // InfoStore related
+  ZPMetaInfoStore* info_store_;
 
   // Migrate related
   ZPMetaMigrateRegister* migrate_register_;
@@ -198,14 +224,9 @@ private:
 
   // Leader slave
   bool GetLeader(std::string *ip, int *port);
-  Status BecomeLeader();
-  void CleanLeader();
 
-  slash::Mutex leader_mutex_;
-  pink::PinkCli* leader_cli_;
-  bool leader_first_time_;
-  std::string leader_ip_;
-  int leader_cmd_port_;
+  LeaderJoint leader_joint_;
+
 
   // Statistic related
   std::atomic<uint64_t> last_query_num_;

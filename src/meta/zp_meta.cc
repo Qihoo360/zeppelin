@@ -120,6 +120,14 @@ int main(int argc, char** argv) {
   g_meta_server = new ZPMetaServer();
   g_meta_server->Start();
 
+  delete g_meta_server;
+
+  if (g_zp_conf->daemonize()) {
+    unlink(g_zp_conf->pid_file().c_str());
+  }
+  delete g_zp_conf;
+  ::google::ShutdownGoogleLogging();
+
   printf("Exit\n");
   return 0;
 }

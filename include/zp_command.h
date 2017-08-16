@@ -24,23 +24,26 @@ enum CmdFlagsMask {
   kCmdFlagsMaskPrior               = 64,
   kCmdFlagsMaskAdminRequire        = 128,
   kCmdFlagsMaskSinglePartition     = 256,
+  kCmdFlagsMaskRedirect            = 512,
 };
 
 enum CmdFlags {
-  kCmdFlagsRead              = 0, //default rw
+  kCmdFlagsRead              = 0,  //default rw
   kCmdFlagsWrite             = 1,
   kCmdFlagsKv                = 2,
   kCmdFlagsAdmin             = 4, 
-  kCmdFlagsNoLocal           = 0, //default nolocal
+  kCmdFlagsNoLocal           = 0,  //default nolocal
   kCmdFlagsLocal             = 16,
-  kCmdFlagsNoSuspend         = 0, //default nosuspend
+  kCmdFlagsNoSuspend         = 0,  //default nosuspend
   kCmdFlagsSuspend           = 32,
-  kCmdFlagsNoPrior           = 0, //default noprior
+  kCmdFlagsNoPrior           = 0,  //default noprior
   kCmdFlagsPrior             = 64,
-  kCmdFlagsNoAdminRequire    = 0, //default no need admin
+  kCmdFlagsNoAdminRequire    = 0,  //default no need admin
   kCmdFlagsAdminRequire      = 128,
-  kCmdFlagsSinglePartition   = 0, //default single partition
+  kCmdFlagsSinglePartition   = 0,  //default single partition
   kCmdFlagsMultiPartition    = 256,
+  kCmdFlagsNoRedirect        = 0,  //default no redirect
+  kCmdFlagsRedirect          = 512,
 };
 
 
@@ -85,6 +88,10 @@ class Cmd {
 
   bool is_single_paritition() const {
     return ((flag_ & kCmdFlagsMaskSinglePartition) == kCmdFlagsSinglePartition);
+  }
+
+  bool is_redirect() const {
+    return ((flag_ & kCmdFlagsMaskRedirect) == kCmdFlagsRedirect);
   }
 
  private:

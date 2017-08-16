@@ -6,20 +6,8 @@
 #include "pink/include/pb_conn.h"
 #include "pink/include/server_thread.h"
 
-class ZPMetaServerHandle;
 class ZPMetaClientConn;
 class ZPMetaClientConnFactory;
-
-class ZPMetaServerHandle : public pink::ServerHandle {
- public:
-  explicit ZPMetaServerHandle() {}
-  virtual ~ZPMetaServerHandle() {}
-
-  virtual void CronHandle() const;
-  virtual bool AccessHandle(std::string& ip) const {
-    return true;
-  }
-};
 
 class ZPMetaClientConn : public pink::PbConn {
  public:

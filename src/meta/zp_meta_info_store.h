@@ -13,6 +13,10 @@
 // limitations under the License.
 #ifndef SRC_META_ZP_META_INFO_STORE_H_
 #define SRC_META_ZP_META_INFO_STORE_H_
+#include <set>
+#include <string>
+#include <unordered_map>
+
 #include "slash/include/slash_status.h"
 #include "floyd/include/floyd.h"
 #include "include/zp_meta.pb.h"
@@ -22,14 +26,34 @@ using slash::Status;
 class ZPMetaInfoStore {
  public:
    explicit ZPMetaInfoStore(floyd::Floyd* floyd);
-   static Status Create(floyd::Floyd* floyd, ZPMetaInfoStore** regist);
 
-   Status Load();
+   int epoch() {
+     return epoch_;
+   }
+   Status Refresh();
+   Status RestoreNodeAlive();
+   void FetchExpiredNode(std::set<std::string>* nodes);
+
+   Status GetTablesForNode(const std::string& ip_port,
+       std::set<std::string> *table_list) const;
+
+   Status GetTableMeta(const std::string& table,
+       ZPMeta::Table* table_meta) const {
 
  private:
    floyd::Floyd* floyd_;
+   std::atomic<int> epoch_;
+   // table => ZPMeta::Table set
+   std::unordered_map<std::string, ZPMeta::Table> table_info_;
+   // node => tables
+   std::unordered_map<std::string, std::set<std::string> > node_table_;
+   // node => alive time
+   std::unordered_map<std::string, uint64_t> node_alive_;
+   
+   void AddNodeTable(const std::string& ip_port,
+       const std::string& table);
+   void NodesDebug();
 
-   ZPMetaInfoStore();
    // No copying allowed
    ZPMetaInfoStore (const ZPMetaInfoStore&);
    void operator=(const ZPMetaInfoStore&);

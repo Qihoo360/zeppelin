@@ -30,7 +30,12 @@ struct UpdateTask {
   int partition;
   UpdateTask(ZPMetaUpdateOP o, const std::string& ip,
       const std::string&t, int p)
-    : op(o), ip_port(ip), table(t), partition(p) {}
+    : op(o), ip_port(ip), table(t), partition(p) {
+    }
+
+  UpdateTask(ZPMetaUpdateOP o, const std::string& ip)
+    : op(o), ip_port(ip), {
+    }
 };
 
 typedef std::deque<UpdateTask> ZPMetaUpdateTaskDeque;

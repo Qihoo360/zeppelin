@@ -11,76 +11,63 @@
 
 extern ZPMetaServer *g_meta_server;
 
-void PingCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+void PingCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
-  response->set_type(ZPMeta::Type::PING);
-  
   // Update Ping time
   std::string node = slash::IpPortString(request->ping().node().ip(),
-                                         request->ping().node().port());
-  
-  Status s  = g_meta_server->AddNodeAlive(node);
-  
-  if (s.ok()) {
-    response->set_code(ZPMeta::StatusCode::OK);
-    response->set_msg("Ping OK!");
-  } else {
-    response->set_code(ZPMeta::StatusCode::ERROR);
-    response->set_msg(s.ToString());
-  }
+      request->ping().node().port());
+  g_meta_server->UpdateNodeAlive(node);
 
+  // Update node offset
   g_meta_server->UpdateOffset(request->ping());
 
+  response->set_type(ZPMeta::Type::PING);
+  response->set_code(ZPMeta::StatusCode::OK);
+  response->set_msg("Ping OK!");
   ZPMeta::MetaCmdResponse_Ping* ping = response->mutable_ping();
   ping->set_version(g_meta_server->version());
 
   DLOG(INFO) << "Receive ping from node: " << request->ping().node().ip()
-             << ":" << request->ping().node().port() << ", version=" << request->ping().version()
-             << ", response version=" << g_meta_server->version();
+    << ":" << request->ping().node().port()
+    << ", version=" << request->ping().version()
+    << ", response version=" << g_meta_server->version();
 }
 
-void PullCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+void PullCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
-  std::set<std::string> tables;
-  g_meta_server->InitVersionIfNeeded();
+  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  response->set_type(ZPMeta::Type::PULL);
+  
+  Status s = Status::InvalidArgument("error argument");
+  ZPMeta::MetaCmdResponse_Pull* ms_info = response->mutable_pull();
   if (request->pull().has_name()) {
-    std::string name = request->pull().name();
-    tables.insert(slash::StringToLower(name));
+    std::string table = slash::StringToLower(request->pull().name());
+    s = g_meta_server->GetMetaInfoByTable(table, ms_info);
+    if (!s.ok()) {
+      LOG(WARNING) << "Pull by table failed: " << s.ToString()
+        << ", Table: " << table;
+    }
   } else if (request->pull().has_node()) {
-    std::string ip_port = request->pull().node().ip() + ":" + std::to_string(request->pull().node().port());
-    g_meta_server->GetTableListForNode(ip_port, &tables);
+    std::string ip_port = slash::IpPortString(request->pull().node().ip(),
+        request->pull().node().port());
+    s = g_meta_server->GetMetaInfoByNode(ip_port, ms_info);
+    if (!s.ok()) {
+      LOG(WARNING) << "Pull by node failed: " << s.ToString()
+        << ", Node: " << ip_port;
+    }
   }
 
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
-
-  response->set_type(ZPMeta::Type::PULL);
-
-  ZPMeta::MetaCmdResponse_Pull ms_info;
-  Status s = g_meta_server->GetMSInfo(tables, &ms_info);
-  LOG(INFO) << "Pull result to " << request->pull().node().ip()
-    << ":" << request->pull().node().port()
-    << ", response table num: " << tables.size()
-    << ", info size: " << ms_info.info_size();
   if (!s.ok() && !s.IsNotFound()) {
-    ms_info.set_version(-1);
     response->set_code(ZPMeta::StatusCode::ERROR);
     response->set_msg(s.ToString());
   } else {
     response->set_code(ZPMeta::StatusCode::OK);
     response->set_msg("Pull Ok!");
   }
-
-  ZPMeta::MetaCmdResponse_Pull* pull = response->mutable_pull();
-  pull->CopyFrom(ms_info);
-
-  std::string text_format;
-  google::protobuf::TextFormat::PrintToString(*pull, &text_format);
-  DLOG(INFO) << "pull : [" << text_format << "]";
-
-  
-  DLOG(INFO) << "Receive Pull from client";
 }
 
 void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
@@ -90,9 +77,9 @@ void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::INIT);
-  if (table == "") {
+  if (table.empty()) {
     response->set_code(ZPMeta::StatusCode::ERROR);
-    response->set_msg("TableName cannot be NULL");
+    response->set_msg("TableName cannot be empty");
     return;
   }
 
