@@ -143,16 +143,6 @@ ZPDataServer::~ZPDataServer() {
     delete *it;
   }
 
-  {
-    slash::MutexLock l(&mutex_peers_);
-    auto iter = peers_.begin();
-    while (iter != peers_.end()) {
-      iter->second->Close();
-      delete iter->second;
-      iter++;
-    }
-  }
-  LOG(INFO) << "Peers client exit!";
 
   zp_binlog_receiver_thread_->StopThread();
   delete zp_binlog_receiver_thread_;
@@ -320,38 +310,6 @@ void ZPDataServer::DumpTablePartitions() {
   LOG(INFO) << "TablePartition--------------------------";
 }
 
-Status ZPDataServer::SendToPeer(const Node &node,
-    const client::SyncRequest &msg) {
-  pink::Status res;
-  std::string ip_port = slash::IpPortString(node.ip, node.port);
-
-  slash::MutexLock pl(&mutex_peers_);
-  std::unordered_map<std::string, pink::PinkCli*>::iterator iter
-    = peers_.find(ip_port);
-  if (iter == peers_.end()) {
-    pink::PinkCli *cli = pink::NewPbCli();
-    res = cli->Connect(node.ip, node.port);
-    if (!res.ok()) {
-      cli->Close();
-      delete cli;
-      return Status::Corruption(res.ToString());
-    }
-    cli->set_send_timeout(1000);
-    cli->set_recv_timeout(1000);
-    iter = (peers_.insert(std::pair<std::string,
-          pink::PinkCli*>(ip_port, cli))).first;
-  }
-
-  res = iter->second->Send(const_cast<client::SyncRequest*>(&msg));
-  if (!res.ok()) {
-    // Remove when second Failed, retry outside
-    iter->second->Close();
-    delete iter->second;
-    peers_.erase(iter);
-    return Status::Corruption(res.ToString());
-  }
-  return Status::OK();
-}
 
 std::shared_ptr<Table> ZPDataServer::GetOrAddTable(const std::string &tname) {
   slash::RWLock l(&table_rw_, true);

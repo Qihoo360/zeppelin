@@ -381,6 +381,12 @@ ZPBinlogSendThread::ZPBinlogSendThread(ZPBinlogSendTaskPool *pool)
 
 ZPBinlogSendThread::~ZPBinlogSendThread() {
   StopThread();
+  auto iter = peers_.begin();
+  while (iter != peers_.end()) {
+    iter->second->Close();
+    delete iter->second;
+    iter++;
+  }
   LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
   }
 
@@ -398,7 +404,7 @@ bool ZPBinlogSendThread::RenewPeerLease(ZPBinlogSendTask* task) {
 
   client::SyncRequest sreq;
   task->BuildLeaseSyncRequest(lease_time, &sreq);
-  Status s = zp_data_server->SendToPeer(task->node(), sreq);
+  Status s = SendToPeer(task->node(), sreq);
   if (!s.ok()) {
     LOG(WARNING) << "Failed to send lease to peer " << task->node()
       << ", table:" << task->table_name() << ", partition:"
@@ -411,6 +417,39 @@ bool ZPBinlogSendThread::RenewPeerLease(ZPBinlogSendTask* task) {
   }
 
   return s.ok();
+}
+
+Status ZPBinlogSendThread::SendToPeer(const Node &node,
+    const client::SyncRequest &msg) {
+  pink::Status res;
+  std::string ip_port = slash::IpPortString(node.ip, node.port);
+
+  //slash::MutexLock pl(&mutex_peers_);
+  std::unordered_map<std::string, pink::PinkCli*>::iterator iter
+    = peers_.find(ip_port);
+  if (iter == peers_.end()) {
+    pink::PinkCli *cli = pink::NewPbCli();
+    res = cli->Connect(node.ip, node.port);
+    if (!res.ok()) {
+      cli->Close();
+      delete cli;
+      return Status::Corruption(res.ToString());
+    }
+    cli->set_send_timeout(1000);
+    cli->set_recv_timeout(1000);
+    iter = (peers_.insert(std::pair<std::string,
+          pink::PinkCli*>(ip_port, cli))).first;
+  }
+
+  res = iter->second->Send(const_cast<client::SyncRequest*>(&msg));
+  if (!res.ok()) {
+    // Remove when second Failed, retry outside
+    iter->second->Close();
+    delete iter->second;
+    peers_.erase(iter);
+    return Status::Corruption(res.ToString());
+  }
+  return Status::OK();
 }
 
 void* ZPBinlogSendThread::ThreadMain() {
@@ -475,7 +514,7 @@ void* ZPBinlogSendThread::ThreadMain() {
         task->send_next = false;
         sleep(kBinlogSendInterval);
       } else {
-        item_s = zp_data_server->SendToPeer(task->node(), sreq);
+        item_s = SendToPeer(task->node(), sreq);
         if (!item_s.ok()) {
           LOG(ERROR) << "Failed to send to peer " << task->node()
             << ", table:" << task->table_name() << ", partition:"
