@@ -138,8 +138,6 @@ class ZPDataServer  {
   void DumpTablePartitions();
   void DumpBinlogSendTask();
 
-  // Peer Client
-  Status SendToPeer(const Node &node, const client::SyncRequest &msg);
 
   // Backgroud thread
   void BGSaveTaskSchedule(void (*function)(void*), void* arg);
@@ -190,8 +188,6 @@ class ZPDataServer  {
   std::shared_ptr<Table> GetTable(const std::string &table_name);
 
   // Binlog Send related
-  slash::Mutex mutex_peers_;
-  std::unordered_map<std::string, pink::PinkCli*> peers_;
   ZPBinlogSendTaskPool binlog_send_pool_;
   std::vector<ZPBinlogSendThread*> binlog_send_workers_;
 
