@@ -72,8 +72,7 @@ void PullCmd::Do(const google::protobuf::Message *req,
 
 void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
-  std::string name = request->init().name();
-  std::string table = slash::StringToLower(name);
+  std::string table = slash::StringToLower(request->init().name());
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::INIT);
@@ -83,16 +82,13 @@ void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
     return;
   }
 
-  Status s = g_meta_server->Distribute(table, request->init().num());
+  // Update command such like Init, DropTable, SetMaster, AddSlave and RemoveSlave
+  // were handled asynchronously
+  g_meta_server->update_thread()->PendingUpdate(
+      UpdateTask(kOpAddTable, "", table, request->init().num()));
 
-  if (s.ok()) {
-    response->set_code(ZPMeta::StatusCode::OK);
-    response->set_msg("Init OK!");
-    DLOG(INFO) << "Init, table: " << table << " partition num: " << request->init().num();
-  } else {
-    response->set_code(ZPMeta::StatusCode::ERROR);
-    response->set_msg(s.ToString());
-  }
+  response->set_code(ZPMeta::StatusCode::OK);
+  response->set_msg("Init OK!");
 }
 
 void SetMasterCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
@@ -104,16 +100,12 @@ void SetMasterCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::SETMASTER);
+  std::string ip_port = slash::IpPortString(node.ip(), node.port());
+  g_meta_server->update_thread()->PendingUpdate(
+      UpdateTask(kOpSetMaster, ip_port, table, p));
 
-  Status s = g_meta_server->SetMaster(table, p, node);
-
-  if (s.ok()) {
-    response->set_code(ZPMeta::StatusCode::OK);
-    response->set_msg("SetMaster OK!");
-  } else {
-    response->set_code(ZPMeta::StatusCode::ERROR);
-    response->set_msg(s.ToString());
-  }
+  response->set_code(ZPMeta::StatusCode::OK);
+  response->set_msg("SetMaster OK!");
 }
 
 void AddSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
@@ -125,16 +117,12 @@ void AddSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::Mes
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::ADDSLAVE);
+  std::string ip_port = slash::IpPortString(node.ip(), node.port());
+  g_meta_server->update_thread()->PendingUpdate(
+      UpdateTask(kOpAddSlave, ip_port, table, p));
 
-  Status s = g_meta_server->AddSlave(table, p, node);
-
-  if (s.ok()) {
-    response->set_code(ZPMeta::StatusCode::OK);
-    response->set_msg("AddSlave OK!");
-  } else {
-    response->set_code(ZPMeta::StatusCode::ERROR);
-    response->set_msg(s.ToString());
-  }
+  response->set_code(ZPMeta::StatusCode::OK);
+  response->set_msg("AddSlave OK!");
 }
 
 void RemoveSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
@@ -146,16 +134,12 @@ void RemoveSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::REMOVESLAVE);
+  std::string ip_port = slash::IpPortString(node.ip(), node.port());
+  g_meta_server->update_thread()->PendingUpdate(
+      UpdateTask(kOpRemoveSlave, ip_port, table, p));
 
-  Status s = g_meta_server->RemoveSlave(table, p, node);
-
-  if (s.ok()) {
-    response->set_code(ZPMeta::StatusCode::OK);
-    response->set_msg("RemoveSlave OK!");
-  } else {
-    response->set_code(ZPMeta::StatusCode::ERROR);
-    response->set_msg(s.ToString());
-  }
+  response->set_code(ZPMeta::StatusCode::OK);
+  response->set_msg("RemoveSlave OK!");
 }
 
 void ListTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
@@ -230,19 +214,20 @@ void MetaStatusCmd::Do(const google::protobuf::Message *req, google::protobuf::M
 void DropTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
-
   response->set_type(ZPMeta::Type::DROPTABLE);
-
+  
   std::string table_name = request->drop_table().name();
-  Status s = g_meta_server->DropTable(table_name);
-
-  if (s.ok()) {
-    response->set_code(ZPMeta::StatusCode::OK);
-    response->set_msg("DropTable OK!");
-  } else {
+  if (table_name.empty()) {
     response->set_code(ZPMeta::StatusCode::ERROR);
-    response->set_msg(s.ToString());
+    response->set_msg("TableName cannot be empty");
+    return;
   }
+
+  Status s = g_meta_server->update_thread()->PendingUpdate(
+      UpdateTask(kOpRemoveTable, table_name));
+
+  response->set_code(ZPMeta::StatusCode::OK);
+  response->set_msg("DropTable OK!");
 }
 
 void MigrateCmd::Do(const google::protobuf::Message *req,

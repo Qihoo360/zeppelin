@@ -28,6 +28,11 @@ enum PState {
   STUCK = 2;
 }
 
+enum NodeState {
+  UP = 1;
+  DOWN = 2;
+}
+
 message Node {
   required string ip = 1;
   required int32 port = 2;
@@ -35,7 +40,7 @@ message Node {
 
 message NodeStatus {
   required Node node = 1;
-  required int32 status = 2;
+  required NodeState status = 2;
 }
 
 message Nodes {

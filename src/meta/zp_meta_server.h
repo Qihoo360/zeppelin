@@ -93,6 +93,12 @@ class ZPMetaServer {
     return info_store_->epoch();
   }
 
+  // ZPMetaServer should keep the return point availible
+  // during all its life cycle
+  ZPMetaUpdateThread* update_thread() {
+    return update_thread_;
+  }
+
   //Cmd related
   Cmd* GetCmd(const int op);
   
@@ -114,7 +120,6 @@ class ZPMetaServer {
   Status GetMetaStatus(std::string *result);
   Status GetTableList(ZPMeta::MetaCmdResponse_ListTable *tables);
   Status GetAllNodes(ZPMeta::MetaCmdResponse_ListNode *nodes);
-  Status Distribute(const std::string &table, int num);
   Status DropTable(const std::string &table);
 
   // Migrate related

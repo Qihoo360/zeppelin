@@ -133,6 +133,25 @@ inline bool PState_Parse(
   return ::google::protobuf::internal::ParseNamedEnum<PState>(
     PState_descriptor(), name, value);
 }
+enum NodeState {
+  UP = 1,
+  DOWN = 2
+};
+bool NodeState_IsValid(int value);
+const NodeState NodeState_MIN = UP;
+const NodeState NodeState_MAX = DOWN;
+const int NodeState_ARRAYSIZE = NodeState_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* NodeState_descriptor();
+inline const ::std::string& NodeState_Name(NodeState value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    NodeState_descriptor(), value);
+}
+inline bool NodeState_Parse(
+    const ::std::string& name, NodeState* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<NodeState>(
+    NodeState_descriptor(), name, value);
+}
 // ===================================================================
 
 class Node : public ::google::protobuf::Message {
@@ -295,12 +314,12 @@ class NodeStatus : public ::google::protobuf::Message {
   inline ::ZPMeta::Node* release_node();
   inline void set_allocated_node(::ZPMeta::Node* node);
 
-  // required int32 status = 2;
+  // required .ZPMeta.NodeState status = 2;
   inline bool has_status() const;
   inline void clear_status();
   static const int kStatusFieldNumber = 2;
-  inline ::google::protobuf::int32 status() const;
-  inline void set_status(::google::protobuf::int32 value);
+  inline ::ZPMeta::NodeState status() const;
+  inline void set_status(::ZPMeta::NodeState value);
 
   // @@protoc_insertion_point(class_scope:ZPMeta.NodeStatus)
  private:
@@ -312,7 +331,7 @@ class NodeStatus : public ::google::protobuf::Message {
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::ZPMeta::Node* node_;
-  ::google::protobuf::int32 status_;
+  int status_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
@@ -3149,7 +3168,7 @@ inline void NodeStatus::set_allocated_node(::ZPMeta::Node* node) {
   }
 }
 
-// required int32 status = 2;
+// required .ZPMeta.NodeState status = 2;
 inline bool NodeStatus::has_status() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
@@ -3160,13 +3179,14 @@ inline void NodeStatus::clear_has_status() {
   _has_bits_[0] &= ~0x00000002u;
 }
 inline void NodeStatus::clear_status() {
-  status_ = 0;
+  status_ = 1;
   clear_has_status();
 }
-inline ::google::protobuf::int32 NodeStatus::status() const {
-  return status_;
+inline ::ZPMeta::NodeState NodeStatus::status() const {
+  return static_cast< ::ZPMeta::NodeState >(status_);
 }
-inline void NodeStatus::set_status(::google::protobuf::int32 value) {
+inline void NodeStatus::set_status(::ZPMeta::NodeState value) {
+  assert(::ZPMeta::NodeState_IsValid(value));
   set_has_status();
   status_ = value;
 }
@@ -5696,6 +5716,10 @@ inline const EnumDescriptor* GetEnumDescriptor< ::ZPMeta::Type>() {
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::ZPMeta::PState>() {
   return ::ZPMeta::PState_descriptor();
+}
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::ZPMeta::NodeState>() {
+  return ::ZPMeta::NodeState_descriptor();
 }
 
 }  // namespace google

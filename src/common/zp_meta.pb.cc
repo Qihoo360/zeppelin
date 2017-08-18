@@ -107,6 +107,7 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::EnumDescriptor* StatusCode_descriptor_ = NULL;
 const ::google::protobuf::EnumDescriptor* Type_descriptor_ = NULL;
 const ::google::protobuf::EnumDescriptor* PState_descriptor_ = NULL;
+const ::google::protobuf::EnumDescriptor* NodeState_descriptor_ = NULL;
 
 }  // namespace
 
@@ -582,6 +583,7 @@ void protobuf_AssignDesc_zp_5fmeta_2eproto() {
   StatusCode_descriptor_ = file->enum_type(0);
   Type_descriptor_ = file->enum_type(1);
   PState_descriptor_ = file->enum_type(2);
+  NodeState_descriptor_ = file->enum_type(3);
 }
 
 namespace {
@@ -721,72 +723,73 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
 
   ::google::protobuf::DescriptorPool::InternalAddGeneratedFile(
     "\n\rzp_meta.proto\022\006ZPMeta\" \n\004Node\022\n\n\002ip\030\001 "
-    "\002(\t\022\014\n\004port\030\002 \002(\005\"8\n\nNodeStatus\022\032\n\004node\030"
-    "\001 \002(\0132\014.ZPMeta.Node\022\016\n\006status\030\002 \002(\005\"*\n\005N"
-    "odes\022!\n\005nodes\030\001 \003(\0132\022.ZPMeta.NodeStatus\""
-    "J\n\tMetaNodes\022\037\n\tfollowers\030\001 \003(\0132\014.ZPMeta"
-    ".Node\022\034\n\006leader\030\002 \001(\0132\014.ZPMeta.Node\"s\n\nP"
-    "artitions\022\n\n\002id\030\001 \002(\005\022\035\n\005state\030\002 \002(\0162\016.Z"
-    "PMeta.PState\022\034\n\006master\030\003 \002(\0132\014.ZPMeta.No"
-    "de\022\034\n\006slaves\030\004 \003(\0132\014.ZPMeta.Node\"\031\n\tTabl"
-    "eName\022\014\n\004name\030\001 \003(\t\"=\n\005Table\022\014\n\004name\030\001 \002"
-    "(\t\022&\n\npartitions\030\002 \003(\0132\022.ZPMeta.Partitio"
-    "ns\"K\n\014BasicCmdUnit\022\014\n\004name\030\001 \002(\t\022\021\n\tpart"
-    "ition\030\002 \002(\005\022\032\n\004node\030\003 \002(\0132\014.ZPMeta.Node\""
-    "l\n\017RelationCmdUnit\022\r\n\005table\030\001 \002(\t\022\021\n\tpar"
-    "tition\030\002 \002(\005\022\032\n\004left\030\003 \002(\0132\014.ZPMeta.Node"
-    "\022\033\n\005right\030\004 \002(\0132\014.ZPMeta.Node\"T\n\nSyncOff"
-    "set\022\022\n\ntable_name\030\001 \002(\t\022\021\n\tpartition\030\002 \002"
-    "(\005\022\017\n\007filenum\030\003 \001(\005\022\016\n\006offset\030\004 \001(\003\"@\n\rM"
-    "igrateStatus\022\022\n\nbegin_time\030\001 \002(\003\022\033\n\023comp"
-    "lete_proportion\030\002 \002(\005\"G\n\013MigrateHead\022\022\n\n"
-    "begin_time\030\001 \002(\003\022\021\n\tinit_size\030\002 \002(\005\022\021\n\td"
-    "iff_name\030\003 \003(\t\"\241\006\n\007MetaCmd\022\032\n\004type\030\001 \002(\016"
-    "2\014.ZPMeta.Type\022\"\n\004ping\030\002 \001(\0132\024.ZPMeta.Me"
-    "taCmd.Ping\022\"\n\004pull\030\003 \001(\0132\024.ZPMeta.MetaCm"
-    "d.Pull\022\"\n\004init\030\004 \001(\0132\024.ZPMeta.MetaCmd.In"
-    "it\022-\n\nset_master\030\005 \001(\0132\031.ZPMeta.MetaCmd."
-    "SetMaster\022+\n\tadd_slave\030\006 \001(\0132\030.ZPMeta.Me"
-    "taCmd.AddSlave\0221\n\014remove_slave\030\007 \001(\0132\033.Z"
-    "PMeta.MetaCmd.RemoveSlave\022-\n\ndrop_table\030"
-    "\010 \001(\0132\031.ZPMeta.MetaCmd.DropTable\022(\n\007migr"
-    "ate\030\t \001(\0132\027.ZPMeta.MetaCmd.Migrate\032W\n\004Pi"
-    "ng\022\017\n\007version\030\001 \002(\005\022\032\n\004node\030\002 \002(\0132\014.ZPMe"
-    "ta.Node\022\"\n\006offset\030\003 \003(\0132\022.ZPMeta.SyncOff"
-    "set\0320\n\004Pull\022\032\n\004node\030\001 \001(\0132\014.ZPMeta.Node\022"
-    "\014\n\004name\030\002 \001(\t\032!\n\004Init\022\014\n\004name\030\001 \002(\t\022\013\n\003n"
-    "um\030\002 \002(\005\0320\n\tSetMaster\022#\n\005basic\030\001 \002(\0132\024.Z"
-    "PMeta.BasicCmdUnit\032/\n\010AddSlave\022#\n\005basic\030"
-    "\001 \002(\0132\024.ZPMeta.BasicCmdUnit\0322\n\013RemoveSla"
-    "ve\022#\n\005basic\030\001 \002(\0132\024.ZPMeta.BasicCmdUnit\032"
-    "\031\n\tDropTable\022\014\n\004name\030\001 \002(\t\032F\n\007Migrate\022\024\n"
-    "\014origin_epoch\030\001 \002(\005\022%\n\004diff\030\002 \003(\0132\027.ZPMe"
-    "ta.RelationCmdUnit\"\320\005\n\017MetaCmdResponse\022\032"
-    "\n\004type\030\001 \002(\0162\014.ZPMeta.Type\022 \n\004code\030\002 \002(\016"
-    "2\022.ZPMeta.StatusCode\022\013\n\003msg\030\003 \001(\t\022*\n\004pin"
-    "g\030\004 \001(\0132\034.ZPMeta.MetaCmdResponse.Ping\022*\n"
-    "\004pull\030\005 \001(\0132\034.ZPMeta.MetaCmdResponse.Pul"
-    "l\0225\n\nlist_table\030\006 \001(\0132!.ZPMeta.MetaCmdRe"
-    "sponse.ListTable\0223\n\tlist_node\030\007 \001(\0132 .ZP"
-    "Meta.MetaCmdResponse.ListNode\0223\n\tlist_me"
-    "ta\030\010 \001(\0132 .ZPMeta.MetaCmdResponse.ListMe"
-    "ta\0227\n\013meta_status\030\t \001(\0132\".ZPMeta.MetaCmd"
-    "Response.MetaStatus\032\027\n\004Ping\022\017\n\007version\030\001"
-    " \002(\005\0324\n\004Pull\022\017\n\007version\030\001 \002(\005\022\033\n\004info\030\002 "
-    "\003(\0132\r.ZPMeta.Table\032.\n\tListTable\022!\n\006table"
-    "s\030\001 \001(\0132\021.ZPMeta.TableName\032(\n\010ListNode\022\034"
-    "\n\005nodes\030\001 \001(\0132\r.ZPMeta.Nodes\032,\n\010ListMeta"
-    "\022 \n\005nodes\030\001 \002(\0132\021.ZPMeta.MetaNodes\032i\n\nMe"
-    "taStatus\022\017\n\007version\030\001 \002(\005\022\033\n\023consistency"
-    "_stautus\030\002 \002(\t\022-\n\016migrate_status\030\003 \001(\0132\025"
-    ".ZPMeta.MigrateStatus*-\n\nStatusCode\022\006\n\002O"
-    "K\020\000\022\014\n\010NOTFOUND\020\001\022\t\n\005ERROR\020\002*\316\001\n\004Type\022\010\n"
-    "\004PING\020\001\022\010\n\004PULL\020\002\022\010\n\004INIT\020\003\022\r\n\tSETMASTER"
-    "\020\004\022\014\n\010ADDSLAVE\020\005\022\017\n\013REMOVESLAVE\020\006\022\r\n\tLIS"
-    "TTABLE\020\007\022\014\n\010LISTNODE\020\010\022\014\n\010LISTMETA\020\t\022\r\n\t"
-    "DROPTABLE\020\n\022\016\n\nMETASTATUS\020\013\022\013\n\007MIGRATE\020\014"
-    "\022\021\n\rCANCELMIGRATE\020\r\022\020\n\014CHECKMIGRATE\020\016*\037\n"
-    "\006PState\022\n\n\006ACTIVE\020\001\022\t\n\005STUCK\020\002", 2670);
+    "\002(\t\022\014\n\004port\030\002 \002(\005\"K\n\nNodeStatus\022\032\n\004node\030"
+    "\001 \002(\0132\014.ZPMeta.Node\022!\n\006status\030\002 \002(\0162\021.ZP"
+    "Meta.NodeState\"*\n\005Nodes\022!\n\005nodes\030\001 \003(\0132\022"
+    ".ZPMeta.NodeStatus\"J\n\tMetaNodes\022\037\n\tfollo"
+    "wers\030\001 \003(\0132\014.ZPMeta.Node\022\034\n\006leader\030\002 \001(\013"
+    "2\014.ZPMeta.Node\"s\n\nPartitions\022\n\n\002id\030\001 \002(\005"
+    "\022\035\n\005state\030\002 \002(\0162\016.ZPMeta.PState\022\034\n\006maste"
+    "r\030\003 \002(\0132\014.ZPMeta.Node\022\034\n\006slaves\030\004 \003(\0132\014."
+    "ZPMeta.Node\"\031\n\tTableName\022\014\n\004name\030\001 \003(\t\"="
+    "\n\005Table\022\014\n\004name\030\001 \002(\t\022&\n\npartitions\030\002 \003("
+    "\0132\022.ZPMeta.Partitions\"K\n\014BasicCmdUnit\022\014\n"
+    "\004name\030\001 \002(\t\022\021\n\tpartition\030\002 \002(\005\022\032\n\004node\030\003"
+    " \002(\0132\014.ZPMeta.Node\"l\n\017RelationCmdUnit\022\r\n"
+    "\005table\030\001 \002(\t\022\021\n\tpartition\030\002 \002(\005\022\032\n\004left\030"
+    "\003 \002(\0132\014.ZPMeta.Node\022\033\n\005right\030\004 \002(\0132\014.ZPM"
+    "eta.Node\"T\n\nSyncOffset\022\022\n\ntable_name\030\001 \002"
+    "(\t\022\021\n\tpartition\030\002 \002(\005\022\017\n\007filenum\030\003 \001(\005\022\016"
+    "\n\006offset\030\004 \001(\003\"@\n\rMigrateStatus\022\022\n\nbegin"
+    "_time\030\001 \002(\003\022\033\n\023complete_proportion\030\002 \002(\005"
+    "\"G\n\013MigrateHead\022\022\n\nbegin_time\030\001 \002(\003\022\021\n\ti"
+    "nit_size\030\002 \002(\005\022\021\n\tdiff_name\030\003 \003(\t\"\241\006\n\007Me"
+    "taCmd\022\032\n\004type\030\001 \002(\0162\014.ZPMeta.Type\022\"\n\004pin"
+    "g\030\002 \001(\0132\024.ZPMeta.MetaCmd.Ping\022\"\n\004pull\030\003 "
+    "\001(\0132\024.ZPMeta.MetaCmd.Pull\022\"\n\004init\030\004 \001(\0132"
+    "\024.ZPMeta.MetaCmd.Init\022-\n\nset_master\030\005 \001("
+    "\0132\031.ZPMeta.MetaCmd.SetMaster\022+\n\tadd_slav"
+    "e\030\006 \001(\0132\030.ZPMeta.MetaCmd.AddSlave\0221\n\014rem"
+    "ove_slave\030\007 \001(\0132\033.ZPMeta.MetaCmd.RemoveS"
+    "lave\022-\n\ndrop_table\030\010 \001(\0132\031.ZPMeta.MetaCm"
+    "d.DropTable\022(\n\007migrate\030\t \001(\0132\027.ZPMeta.Me"
+    "taCmd.Migrate\032W\n\004Ping\022\017\n\007version\030\001 \002(\005\022\032"
+    "\n\004node\030\002 \002(\0132\014.ZPMeta.Node\022\"\n\006offset\030\003 \003"
+    "(\0132\022.ZPMeta.SyncOffset\0320\n\004Pull\022\032\n\004node\030\001"
+    " \001(\0132\014.ZPMeta.Node\022\014\n\004name\030\002 \001(\t\032!\n\004Init"
+    "\022\014\n\004name\030\001 \002(\t\022\013\n\003num\030\002 \002(\005\0320\n\tSetMaster"
+    "\022#\n\005basic\030\001 \002(\0132\024.ZPMeta.BasicCmdUnit\032/\n"
+    "\010AddSlave\022#\n\005basic\030\001 \002(\0132\024.ZPMeta.BasicC"
+    "mdUnit\0322\n\013RemoveSlave\022#\n\005basic\030\001 \002(\0132\024.Z"
+    "PMeta.BasicCmdUnit\032\031\n\tDropTable\022\014\n\004name\030"
+    "\001 \002(\t\032F\n\007Migrate\022\024\n\014origin_epoch\030\001 \002(\005\022%"
+    "\n\004diff\030\002 \003(\0132\027.ZPMeta.RelationCmdUnit\"\320\005"
+    "\n\017MetaCmdResponse\022\032\n\004type\030\001 \002(\0162\014.ZPMeta"
+    ".Type\022 \n\004code\030\002 \002(\0162\022.ZPMeta.StatusCode\022"
+    "\013\n\003msg\030\003 \001(\t\022*\n\004ping\030\004 \001(\0132\034.ZPMeta.Meta"
+    "CmdResponse.Ping\022*\n\004pull\030\005 \001(\0132\034.ZPMeta."
+    "MetaCmdResponse.Pull\0225\n\nlist_table\030\006 \001(\013"
+    "2!.ZPMeta.MetaCmdResponse.ListTable\0223\n\tl"
+    "ist_node\030\007 \001(\0132 .ZPMeta.MetaCmdResponse."
+    "ListNode\0223\n\tlist_meta\030\010 \001(\0132 .ZPMeta.Met"
+    "aCmdResponse.ListMeta\0227\n\013meta_status\030\t \001"
+    "(\0132\".ZPMeta.MetaCmdResponse.MetaStatus\032\027"
+    "\n\004Ping\022\017\n\007version\030\001 \002(\005\0324\n\004Pull\022\017\n\007versi"
+    "on\030\001 \002(\005\022\033\n\004info\030\002 \003(\0132\r.ZPMeta.Table\032.\n"
+    "\tListTable\022!\n\006tables\030\001 \001(\0132\021.ZPMeta.Tabl"
+    "eName\032(\n\010ListNode\022\034\n\005nodes\030\001 \001(\0132\r.ZPMet"
+    "a.Nodes\032,\n\010ListMeta\022 \n\005nodes\030\001 \002(\0132\021.ZPM"
+    "eta.MetaNodes\032i\n\nMetaStatus\022\017\n\007version\030\001"
+    " \002(\005\022\033\n\023consistency_stautus\030\002 \002(\t\022-\n\016mig"
+    "rate_status\030\003 \001(\0132\025.ZPMeta.MigrateStatus"
+    "*-\n\nStatusCode\022\006\n\002OK\020\000\022\014\n\010NOTFOUND\020\001\022\t\n\005"
+    "ERROR\020\002*\316\001\n\004Type\022\010\n\004PING\020\001\022\010\n\004PULL\020\002\022\010\n\004"
+    "INIT\020\003\022\r\n\tSETMASTER\020\004\022\014\n\010ADDSLAVE\020\005\022\017\n\013R"
+    "EMOVESLAVE\020\006\022\r\n\tLISTTABLE\020\007\022\014\n\010LISTNODE\020"
+    "\010\022\014\n\010LISTMETA\020\t\022\r\n\tDROPTABLE\020\n\022\016\n\nMETAST"
+    "ATUS\020\013\022\013\n\007MIGRATE\020\014\022\021\n\rCANCELMIGRATE\020\r\022\020"
+    "\n\014CHECKMIGRATE\020\016*\037\n\006PState\022\n\n\006ACTIVE\020\001\022\t"
+    "\n\005STUCK\020\002*\035\n\tNodeState\022\006\n\002UP\020\001\022\010\n\004DOWN\020\002", 2720);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zp_meta.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -900,6 +903,20 @@ const ::google::protobuf::EnumDescriptor* PState_descriptor() {
   return PState_descriptor_;
 }
 bool PState_IsValid(int value) {
+  switch(value) {
+    case 1:
+    case 2:
+      return true;
+    default:
+      return false;
+  }
+}
+
+const ::google::protobuf::EnumDescriptor* NodeState_descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return NodeState_descriptor_;
+}
+bool NodeState_IsValid(int value) {
   switch(value) {
     case 1:
     case 2:
@@ -1201,7 +1218,7 @@ NodeStatus::NodeStatus(const NodeStatus& from)
 void NodeStatus::SharedCtor() {
   _cached_size_ = 0;
   node_ = NULL;
-  status_ = 0;
+  status_ = 1;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -1241,7 +1258,7 @@ void NodeStatus::Clear() {
     if (has_node()) {
       if (node_ != NULL) node_->::ZPMeta::Node::Clear();
     }
-    status_ = 0;
+    status_ = 1;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();
@@ -1266,15 +1283,20 @@ bool NodeStatus::MergePartialFromCodedStream(
         break;
       }
 
-      // required int32 status = 2;
+      // required .ZPMeta.NodeState status = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
          parse_status:
+          int value;
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
-                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
-                 input, &status_)));
-          set_has_status();
+                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
+                 input, &value)));
+          if (::ZPMeta::NodeState_IsValid(value)) {
+            set_status(static_cast< ::ZPMeta::NodeState >(value));
+          } else {
+            mutable_unknown_fields()->AddVarint(2, value);
+          }
         } else {
           goto handle_uninterpreted;
         }
@@ -1306,9 +1328,10 @@ void NodeStatus::SerializeWithCachedSizes(
       1, this->node(), output);
   }
 
-  // required int32 status = 2;
+  // required .ZPMeta.NodeState status = 2;
   if (has_status()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->status(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      2, this->status(), output);
   }
 
   if (!unknown_fields().empty()) {
@@ -1326,9 +1349,10 @@ void NodeStatus::SerializeWithCachedSizes(
         1, this->node(), target);
   }
 
-  // required int32 status = 2;
+  // required .ZPMeta.NodeState status = 2;
   if (has_status()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->status(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteEnumToArray(
+      2, this->status(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -1349,11 +1373,10 @@ int NodeStatus::ByteSize() const {
           this->node());
     }
 
-    // required int32 status = 2;
+    // required .ZPMeta.NodeState status = 2;
     if (has_status()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::Int32Size(
-          this->status());
+        ::google::protobuf::internal::WireFormatLite::EnumSize(this->status());
     }
 
   }

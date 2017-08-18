@@ -23,6 +23,28 @@
 
 using slash::Status;
 
+class ZPMetaInfoStoreSnap() {
+ public:
+   ZPMetaInfoStoreSnap()
+   void UpNode(const std::string& ip_port);
+   void DownNode(const std::string& ip_port);
+   Status AddSlave(const std::string& table, int partition,
+       const std::string& ip_port);
+   Status DeleteSlave(const std::string& table, int partition,
+       const std::string& ip_port);
+   Status SetMaster(const std::string& table, int partition,
+       const std::string& ip_port);
+
+ private:
+   friend class ZPMetaInfoStore;
+   int epoch_;
+   std::unordered_map<std::string, ZPMeta::Table> tables_;
+   std::unordered_map<std::string, ZPMeta::NodeStatus> nodes_;
+   bool node_changed_;
+   bool table_changed_;
+   bool epoch_changed_;
+};
+
 class ZPMetaInfoStore {
  public:
    explicit ZPMetaInfoStore(floyd::Floyd* floyd);
@@ -30,6 +52,7 @@ class ZPMetaInfoStore {
    int epoch() {
      return epoch_;
    }
+   
    Status Refresh();
    Status RestoreNodeAlive();
    void FetchExpiredNode(std::set<std::string>* nodes);
@@ -38,7 +61,10 @@ class ZPMetaInfoStore {
        std::set<std::string> *table_list) const;
 
    Status GetTableMeta(const std::string& table,
-       ZPMeta::Table* table_meta) const {
+       ZPMeta::Table* table_meta) const;
+
+   void GetSnapshot(ZPMetaInfoStoreSnap* snap);
+
 
  private:
    floyd::Floyd* floyd_;
@@ -47,12 +73,18 @@ class ZPMetaInfoStore {
    std::unordered_map<std::string, ZPMeta::Table> table_info_;
    // node => tables
    std::unordered_map<std::string, std::set<std::string> > node_table_;
-   // node => alive time
+   // node => alive time, 0 means already down node
    std::unordered_map<std::string, uint64_t> node_alive_;
    
    void AddNodeTable(const std::string& ip_port,
        const std::string& table);
    void NodesDebug();
+   
+   Status GetAllTables(
+       std::unordered_map<std::string, ZPMeta::Table>* all_tables) const;
+
+   Status GetAllNodes(
+       std::unordered_map<std::string, ZPMeta::NodeStatus>* all_nodes) const;
 
    // No copying allowed
    ZPMetaInfoStore (const ZPMetaInfoStore&);

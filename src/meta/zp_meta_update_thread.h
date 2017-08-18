@@ -14,27 +14,29 @@
 #include "slash/include/slash_status.h"
 
 enum ZPMetaUpdateOP : unsigned int {
-  kOpAdd,
-  kOpRemove,
+  kOpUpNode,  // ip_port
+  kOpDownNode,  // ip_port
+  kOpAddTable,  // table parition num
+  kOpRemoveTable,
+  kOpAddSlave,  // ip_port table partition
+  kOpRemoveSlave,  // ip_port table partition
+  kOpSetMaster,  // ip_port table partition 
   kOpAddVersion,
-  kOpSetMaster,
   kOpClearStuck,
-  kOpAddSlave,
-  kOpRemoveSlave
 };
 
 struct UpdateTask {
   ZPMetaUpdateOP op;
   std::string ip_port;
   std::string table;
-  int partition;
+  int partition;  // or partiiton num for kOpAddTable
   UpdateTask(ZPMetaUpdateOP o, const std::string& ip,
       const std::string&t, int p)
     : op(o), ip_port(ip), table(t), partition(p) {
     }
 
   UpdateTask(ZPMetaUpdateOP o, const std::string& ip)
-    : op(o), ip_port(ip), {
+    : op(o), ip_port(ip) { 
     }
 };
 
@@ -42,7 +44,7 @@ typedef std::deque<UpdateTask> ZPMetaUpdateTaskDeque;
 
 class ZPMetaUpdateThread {
 public:
-  ZPMetaUpdateThread();
+  ZPMetaUpdateThread(ZPMetaInfoStore* is);
   ~ZPMetaUpdateThread();
 
   void PendingUpdate(const UpdateTask& task, bool priority = false);
@@ -51,6 +53,7 @@ private:
   pink::BGThread* worker_;
   slash::Mutex task_mutex_;
   ZPMetaUpdateTaskDeque task_deque_;
+  ZPMetaInfoStore* info_store_;
   static void DoMetaUpdate(void *p);
 
 };
