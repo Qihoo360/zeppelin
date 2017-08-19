@@ -16,8 +16,8 @@ class Node {
   std::string ip;
   int port;
 
-  // colon separated ip:port
   Node() {}
+  // colon separated ip:port
   Node(const std::string& str);
   Node(const std::string& _ip, const int& _port) : ip(_ip), port(_port) {}
 

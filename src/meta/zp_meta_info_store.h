@@ -34,15 +34,17 @@ class ZPMetaInfoStoreSnap() {
        const std::string& ip_port);
    Status SetMaster(const std::string& table, int partition,
        const std::string& ip_port);
+   void RefreshTableWithNodeAlive();
 
  private:
    friend class ZPMetaInfoStore;
-   int epoch_;
+   int snap_epoch_;
    std::unordered_map<std::string, ZPMeta::Table> tables_;
    std::unordered_map<std::string, ZPMeta::NodeStatus> nodes_;
    bool node_changed_;
    bool table_changed_;
-   bool epoch_changed_;
+
+   bool IsNodeUp(const ZPMeta::Node& node) const;
 };
 
 class ZPMetaInfoStore {
@@ -64,7 +66,7 @@ class ZPMetaInfoStore {
        ZPMeta::Table* table_meta) const;
 
    void GetSnapshot(ZPMetaInfoStoreSnap* snap);
-
+   Status Apply(const ZPMetaInfoStoreSnap& snap)
 
  private:
    floyd::Floyd* floyd_;
