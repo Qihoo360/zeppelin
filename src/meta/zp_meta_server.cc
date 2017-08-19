@@ -476,7 +476,7 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
   std::string value;
   ZPMeta::Nodes allnodes;
   std::vector<std::string> meta_nodes;
-  floyd_->GetAllNodes(meta_nodes);
+  floyd_->GetAllNodes(&meta_nodes);
 
   ZPMeta::MetaNodes *p = nodes->mutable_nodes();
   std::string leader_ip;
@@ -508,7 +508,7 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
 }
 
 Status ZPMetaServer::GetMetaStatus(std::string *result) {
-  floyd_->GetServerStatus(*result);
+  floyd_->GetServerStatus(result);
   return Status::OK();
 }
 
@@ -710,7 +710,7 @@ Status ZPMetaServer::DropTable(const std::string &name) {
 Status ZPMetaServer::InitVersionIfNeeded() {
   std::string value;
   int version = -2;
-  Status fs = floyd_->DirtyRead(kMetaVersion, value);
+  Status fs = floyd_->DirtyRead(kMetaVersion, &value);
   if (fs.ok()) {
     version = std::stoi(value);
   } else {
@@ -1290,7 +1290,7 @@ void ZPMetaServer::GetAllAliveNode(const ZPMeta::Nodes &nodes, std::vector<ZPMet
 
 Status ZPMetaServer::GetTableInfo(const std::string &table, ZPMeta::Table *table_info) {
   std::string value;
-  Status fs = floyd_->DirtyRead(table, value);
+  Status fs = floyd_->DirtyRead(table, &value);
   if (fs.ok()) {
     table_info->Clear();
     if (!table_info->ParseFromString(value)) {
@@ -1447,7 +1447,7 @@ Status ZPMetaServer::SetNodes(const ZPMeta::Nodes &nodes) {
 Status ZPMetaServer::GetAllNodes(ZPMeta::Nodes *nodes) {
   // Load from Floyd
   std::string value;
-  Status fs = floyd_->DirtyRead(kMetaNodes, value);
+  Status fs = floyd_->DirtyRead(kMetaNodes, &value);
   nodes->Clear();
   if (fs.ok()) {
     // Deserialization
@@ -1476,7 +1476,7 @@ Status ZPMetaServer::InitVersion() {
   int tmp_version = -1;
 
 // Get Version
-  fs = floyd_->Read(kMetaVersion, value);
+  fs = floyd_->Read(kMetaVersion, &value);
   if (fs.ok()) {
     tmp_version = std::stoi(value);
   } else if (fs.IsNotFound()) {
@@ -1487,7 +1487,7 @@ Status ZPMetaServer::InitVersion() {
   }
 
 // Update nodes_
-  fs = floyd_->Read(kMetaTables, value);
+  fs = floyd_->Read(kMetaTables, &value);
   LOG(INFO) << "InitVersion read tables, ret: " << fs.ToString();
   if (fs.ok()) {
       if (!tables.ParseFromString(value)) {
@@ -1498,7 +1498,7 @@ Status ZPMetaServer::InitVersion() {
       //node_mutex_ have already been hold in InitVersionIfNeeded
       nodes_.clear();
       for (int i = 0; i < tables.name_size(); i++) {
-        fs = floyd_->Read(tables.name(i), value);
+        fs = floyd_->Read(tables.name(i), &value);
         if (!fs.ok()) {
           LOG(ERROR) << "Read floyd table_info failed in InitVersion: " << fs.ToString() << ", try again";
           return Status::Corruption("Read table_info error");
@@ -1574,7 +1574,7 @@ Status ZPMetaServer::Set(const std::string &key, const std::string &value) {
 }
 
 Status ZPMetaServer::Get(const std::string &key, std::string &value) {
-  Status fs = floyd_->DirtyRead(key, value);
+  Status fs = floyd_->DirtyRead(key, &value);
   if (fs.ok()) {
     return Status::OK();
   } else if (fs.IsNotFound()) {
