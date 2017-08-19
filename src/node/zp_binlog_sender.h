@@ -20,6 +20,7 @@
 #include "slash/include/slash_mutex.h"
 #include "slash/include/env.h"
 #include "pink/include/pink_thread.h"
+#include "pink/include/pink_cli.h"
 
 #include "include/client.pb.h"
 #include "include/zp_meta_utils.h"
@@ -170,9 +171,11 @@ class ZPBinlogSendThread : public pink::Thread  {
  public:
   explicit ZPBinlogSendThread(ZPBinlogSendTaskPool *pool);
   virtual ~ZPBinlogSendThread();
-
+  // Peer Client
+  Status SendToPeer(const Node &node, const client::SyncRequest &msg);
  private:
   ZPBinlogSendTaskPool *pool_;
+  std::unordered_map<std::string, pink::PinkCli*> peers_;
   virtual void* ThreadMain();
   bool RenewPeerLease(ZPBinlogSendTask* task);
 };
