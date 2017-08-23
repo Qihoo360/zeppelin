@@ -93,6 +93,23 @@ class ZPMetaServer {
     return info_store_->epoch();
   }
 
+  // Statistic related
+  uint64_t last_qps() {
+    return last_qps_.load();
+  }
+  uint64_t ZPMetaServer::query_num() {
+    return query_num_.load();
+  }
+  void PlusQueryNum() {
+    query_num_++;
+  }
+  void ResetLastSecQueryNum() {
+    uint64_t cur_time_us = slash::NowMicros();
+    last_qps_ = (query_num_ - last_query_num_) * 1000000 / (cur_time_us - last_time_us_ + 1);
+    last_query_num_ = query_num_.load();
+    last_time_us_ = cur_time_us;
+  }
+
   // ZPMetaServer should keep the return point availible
   // during all its life cycle
   ZPMetaUpdateThread* update_thread() {
@@ -103,7 +120,6 @@ class ZPMetaServer {
   Cmd* GetCmd(const int op);
   
   // Node & Meta update related
-  Status DoUpdate(ZPMetaUpdateTaskDeque task_deque);
   void UpdateNodeAlive(const std::string& ip_port);
   void CheckNodeAlive();
   
@@ -112,15 +128,15 @@ class ZPMetaServer {
       ZPMeta::MetaCmdResponse_Pull *ms_info);
   Status GetMetaInfoByNode(const std::string& ip_port,
       ZPMeta::MetaCmdResponse_Pull *ms_info);
+  Status WaitSetMaster(const ZPMeta::Node& node,
+      const std::string table, int partition);
 
-  Status RemoveSlave(const std::string &table, int partition, const ZPMeta::Node &node);
-  Status SetMaster(const std::string &table, int partition, const ZPMeta::Node &node);
-  Status AddSlave(const std::string &table, int partition, const ZPMeta::Node &node);
   Status GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes);
   Status GetMetaStatus(std::string *result);
-  Status GetTableList(ZPMeta::MetaCmdResponse_ListTable *tables);
   Status GetAllNodes(ZPMeta::MetaCmdResponse_ListNode *nodes);
-  Status DropTable(const std::string &table);
+  Status GetTableList(std::set<std::string>* table_list);
+  Status GetNodeStatusList(
+      std::unordered_map<std::string, ZPMeta::NodeState>* node_list);
 
   // Migrate related
   Status Migrate(int epoch, const std::vector<ZPMeta::RelationCmdUnit>& diffs);
@@ -131,16 +147,9 @@ class ZPMetaServer {
   // offset related
   void UpdateOffset(const ZPMeta::MetaCmd_Ping &ping);
 
-
   // Leader related
   Status RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse *response);
   bool IsLeader();
-
-  // Statistic related
-  uint64_t last_qps();
-  uint64_t query_num();
-  void PlusQueryNum();
-  void ResetLastSecQueryNum();
 
 private:
 
@@ -167,38 +176,9 @@ private:
   std::unordered_map<int, Cmd*> cmds_;
 
   // Node & Meta update related
-  bool ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque, const ZPMeta::Nodes &nodes, ZPMeta::Table *table_info, bool *should_update_version);
-  void DoDownNodeForTableInfo(const ZPMeta::Nodes &nodes, ZPMeta::Table *table_info, const std::string ip, int port, bool *should_update_table_info);
-  void DoRemoveSlaveForTableInfo(ZPMeta::Table *table_info, const std::string& table, int partition, const std::string &ip, int port, bool *should_update_table_info);
-  void DoSetMasterForTableInfo(ZPMeta::Table *table_info, const std::string& table, int partition, const std::string &ip, int port, bool *should_update_table_info);
-  void DoAddSlaveForTableInfo(ZPMeta::Table *table_info, const std::string& table, int partition, const std::string &ip, int port, bool *should_update_table_info);
-
-  void DoUpNodeForTableInfo(ZPMeta::Table *table_info, const std::string ip, int port, bool *should_update_table_info);
-  void DoClearStuckForTableInfo(ZPMeta::Table *table_info, const std::string& table, int partition, bool *should_update_table_info);
-  bool ProcessUpdateNodes(const ZPMetaUpdateTaskDeque task_deque, ZPMeta::Nodes *nodes);
-  void AddClearStuckTaskIfNeeded(const ZPMetaUpdateTaskDeque &task_deque);
-  bool ShouldRetryAddVersion(const ZPMetaUpdateTaskDeque task_deque);
-
   ZPMetaUpdateThread* update_thread_;
   slash::Mutex alive_mutex_;
   NodeAliveMap node_alive_;
-
-  // Meta related
-  void Reorganize(const std::vector<ZPMeta::NodeStatus> &t_alive_nodes, std::vector<ZPMeta::NodeStatus> *alive_nodes);
-  void SetNodeStatus(ZPMeta::Nodes *nodes, const std::string &ip, int port, int status, bool *should_update_node);
-  void GetAllAliveNode(const ZPMeta::Nodes &nodes, std::vector<ZPMeta::NodeStatus> *alive_nodes);
-  Status GetTableInfo(const std::string &table, ZPMeta::Table *table_info);
-  bool FindNode(const ZPMeta::Nodes &nodes, const std::string &ip, int port);
-  Status ExistInTableList(const std::string &name, bool *found);
-  Status RemoveTableFromTableList(const std::string &name);
-  Status GetTableList(std::vector<std::string> *tables);
-  Status UpdateTableList(const std::string &name);
-  Status SetTable(const ZPMeta::Table &table);
-  Status DeleteTable(const std::string &name);
-  Status SetNodes(const ZPMeta::Nodes &nodes);
-  Status GetAllNodes(ZPMeta::Nodes *nodes);
-  Status InitVersion();
-  Status AddVersion();
 
   // InfoStore related
   ZPMetaInfoStore* info_store_;
@@ -221,17 +201,12 @@ private:
   slash::Mutex node_mutex_;
 
   // Floyd related
-  Status Set(const std::string &key, const std::string &value);
-  Status Get(const std::string &key, std::string &value);
-  Status Delete(const std::string &key);
-
   floyd::Floyd* floyd_;
 
   // Leader slave
   bool GetLeader(std::string *ip, int *port);
 
   LeaderJoint leader_joint_;
-
 
   // Statistic related
   std::atomic<uint64_t> last_query_num_;

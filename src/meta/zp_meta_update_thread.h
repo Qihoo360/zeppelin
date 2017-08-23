@@ -20,9 +20,9 @@ enum ZPMetaUpdateOP : unsigned int {
   kOpRemoveTable,
   kOpAddSlave,  // ip_port table partition
   kOpRemoveSlave,  // ip_port table partition
-  kOpSetMaster,  // ip_port table partition 
-  kOpAddVersion,
-  kOpClearStuck,
+  kOpRemoveDup,  // ip_port table partition
+  kOpSetMaster,  // ip_port table partition
+  kOpSetStuck  //table partition
 };
 
 struct UpdateTask {
@@ -54,7 +54,7 @@ private:
   slash::Mutex task_mutex_;
   ZPMetaUpdateTaskDeque task_deque_;
   ZPMetaInfoStore* info_store_;
-  static void DoMetaUpdate(void *p);
+  static void UpdateFunc(void *p);
 
 };
 

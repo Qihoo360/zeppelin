@@ -85,7 +85,11 @@ void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
   // Update command such like Init, DropTable, SetMaster, AddSlave and RemoveSlave
   // were handled asynchronously
   g_meta_server->update_thread()->PendingUpdate(
-      UpdateTask(kOpAddTable, "", table, request->init().num()));
+      UpdateTask(
+        kOpAddTable,
+        "",
+        table,
+        request->init().num()));
 
   response->set_code(ZPMeta::StatusCode::OK);
   response->set_msg("Init OK!");
@@ -100,9 +104,7 @@ void SetMasterCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::SETMASTER);
-  std::string ip_port = slash::IpPortString(node.ip(), node.port());
-  g_meta_server->update_thread()->PendingUpdate(
-      UpdateTask(kOpSetMaster, ip_port, table, p));
+  g_meta_server->WaitSetMaster(node, table, p);
 
   response->set_code(ZPMeta::StatusCode::OK);
   response->set_msg("SetMaster OK!");
@@ -118,8 +120,6 @@ void AddSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::Mes
 
   response->set_type(ZPMeta::Type::ADDSLAVE);
   std::string ip_port = slash::IpPortString(node.ip(), node.port());
-  g_meta_server->update_thread()->PendingUpdate(
-      UpdateTask(kOpAddSlave, ip_port, table, p));
 
   response->set_code(ZPMeta::StatusCode::OK);
   response->set_msg("AddSlave OK!");
@@ -136,7 +136,11 @@ void RemoveSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::
   response->set_type(ZPMeta::Type::REMOVESLAVE);
   std::string ip_port = slash::IpPortString(node.ip(), node.port());
   g_meta_server->update_thread()->PendingUpdate(
-      UpdateTask(kOpRemoveSlave, ip_port, table, p));
+      UpdateTask(
+        kOpRemoveSlave,
+        ip_port,
+        table,
+        p));
 
   response->set_code(ZPMeta::StatusCode::OK);
   response->set_msg("RemoveSlave OK!");
@@ -148,9 +152,14 @@ void ListTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
 
   response->set_type(ZPMeta::Type::LISTTABLE);
 
-  Status s = g_meta_server->GetTableList(table_name);
+  std::set<std::string> table_list;
+  Status s = g_meta_server->GetTableList(table_list);
 
   if (s.ok()) {
+    ZPMeta::TableName *p = table_name->mutable_tables();
+    for (const auto& t : table_list) {
+      p->add_name(t);
+    }
     response->set_code(ZPMeta::StatusCode::OK);
     response->set_msg("ListTable OK!");
   } else {
@@ -159,15 +168,20 @@ void ListTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
   }
 }
 
-void ListNodeCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+void ListNodeCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
-  ZPMeta::MetaCmdResponse_ListNode *nodes = response->mutable_list_node();
+  ZPMeta::MetaCmdResponse_ListNode *lnodes = response->mutable_list_node();
+  ZPMeta::MetaCmdResponse_ListNode *nodes = lnodes->mutable_nodes();
 
   response->set_type(ZPMeta::Type::LISTNODE);
 
-  Status s = g_meta_server->GetAllNodes(nodes);
+  std::unordered_map<std::string, ZPMeta::NodeState> node_list;
+  Status s = g_meta_server->GetNodeStatusList(&node_list);
 
   if (s.ok()) {
+    // TODO wk: iterator and set
+    //ZPMeta::NodeStatus* node_status = nodes->add_nodes();
     response->set_code(ZPMeta::StatusCode::OK);
     response->set_msg("ListNode OK!");
   } else {
@@ -224,7 +238,9 @@ void DropTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
   }
 
   Status s = g_meta_server->update_thread()->PendingUpdate(
-      UpdateTask(kOpRemoveTable, table_name));
+      UpdateTask(
+        kOpRemoveTable,
+        table_name));
 
   response->set_code(ZPMeta::StatusCode::OK);
   response->set_msg("DropTable OK!");

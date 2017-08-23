@@ -32,17 +32,25 @@ class ZPMetaInfoStoreSnap() {
        const std::string& ip_port);
    Status DeleteSlave(const std::string& table, int partition,
        const std::string& ip_port);
+   Status DeleteDup(const std::string& table, int partition,
+       const std::string& ip_port);
    Status SetMaster(const std::string& table, int partition,
        const std::string& ip_port);
+   Status SetStuck(const std::string& table, int partition);
+   Status AddTable(const std::string& table, int num);
+   Status RemoveTable(const std::string& table);
    void RefreshTableWithNodeAlive();
+   Status GetPartitionMaster(const std::string& table,
+       int partition, ZPMeta::Node* master);
 
  private:
    friend class ZPMetaInfoStore;
    int snap_epoch_;
    std::unordered_map<std::string, ZPMeta::Table> tables_;
-   std::unordered_map<std::string, ZPMeta::NodeStatus> nodes_;
+   std::unordered_map<std::string, ZPMeta::NodeState> nodes_;
    bool node_changed_;
-   bool table_changed_;
+   std::unordered_map<std::string, bool> table_changed_;
+   void SerializeNodes(ZPMeta::Nodes* nodes_ptr) const;
 
    bool IsNodeUp(const ZPMeta::Node& node) const;
 };
@@ -59,14 +67,18 @@ class ZPMetaInfoStore {
    Status RestoreNodeAlive();
    void FetchExpiredNode(std::set<std::string>* nodes);
 
+   Status GetTableList(std::set<std::string>* table_list) const;
    Status GetTablesForNode(const std::string& ip_port,
-       std::set<std::string> *table_list) const;
+       std::set<std::string>* table_list) const;
 
    Status GetTableMeta(const std::string& table,
        ZPMeta::Table* table_meta) const;
 
    void GetSnapshot(ZPMetaInfoStoreSnap* snap);
-   Status Apply(const ZPMetaInfoStoreSnap& snap)
+   Status Apply(const ZPMetaInfoStoreSnap& snap);
+   
+   Status GetAllNodes(
+       std::unordered_map<std::string, ZPMeta::NodeState>* all_nodes) const;
 
  private:
    floyd::Floyd* floyd_;
@@ -85,8 +97,6 @@ class ZPMetaInfoStore {
    Status GetAllTables(
        std::unordered_map<std::string, ZPMeta::Table>* all_tables) const;
 
-   Status GetAllNodes(
-       std::unordered_map<std::string, ZPMeta::NodeStatus>* all_nodes) const;
 
    // No copying allowed
    ZPMetaInfoStore (const ZPMetaInfoStore&);

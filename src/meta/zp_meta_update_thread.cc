@@ -30,11 +30,11 @@ void ZPMetaUpdateThread::PendingUpdate(const UpdateTask &task, bool priority) {
   if (task_deque_.size() == 1) {
     worker_->StartThread();
     worker_->DelaySchedule(kMetaDispathCronInterval,
-        &DoMetaUpdate, static_cast<void*>(this));
+        &UpdateFunc, static_cast<void*>(this));
   }
 }
 
-void ZPMetaUpdateThread::DoMetaUpdate(void *p) {
+void ZPMetaUpdateThread::UpdateFunc(void *p) {
   ZPMetaUpdateThread *thread = static_cast<ZPMetaUpdateThread*>(p);
 
   ZPMetaUpdateTaskDeque tasks;
@@ -66,13 +66,25 @@ Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
         s = info_store_snap.AddSlave(cur_task.table, cur_task.partition,
             cur_task.ip_port);
         break;
+      case ZPMetaUpdateOP::kOpRemoveDup:
+        s = info_store_snap.DeleteDup(cur_task.table, cur_task.partition,
+            cur_task.ip_port);
       case ZPMetaUpdateOP::kOpRemoveSlave:
-        s = info_store_snap.RemoveSlave(cur_task.table, cur_task.partition,
+        s = info_store_snap.DeleteSlave(cur_task.table, cur_task.partition,
             cur_task.ip_port);
         break;
       case ZPMetaUpdateOP::kOpSetMaster:
         s = info_store_snap.SetMaster(cur_task.table, cur_task.partition,
             cur_task.ip_port);
+        break;
+      case ZPMetaUpdateOP::kOpAddTable:
+        s = info_store_snap.AddTable(cur_task.table, cur_task.partition);
+        break;
+      case ZPMetaUpdateOP::kOpRemoveTable:
+        s = info_store_snap.RemoveTable(cur_task.table);
+        break;
+      case ZPMetaUpdateOP::kOpSetStuck:
+        s = info_store_snap.SetStuck(cur_task.table, cur_task.partition);
         break;
       default:
         s = Status::Corruption("Unknown task type");
