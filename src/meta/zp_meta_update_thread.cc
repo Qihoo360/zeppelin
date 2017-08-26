@@ -3,13 +3,12 @@
 #include "include/zp_const.h"
 #include "include/zp_meta.pb.h"
 #include "src/meta/zp_meta_server.h"
-
 #include "src/meta/zp_meta_info_store.h"
 
 extern ZPMetaServer* g_meta_server;
 
-ZPMetaUpdateThread(ZPMetaInfoStore* is)
-  info_store_(is) {
+ZPMetaUpdateThread::ZPMetaUpdateThread(ZPMetaInfoStore* is)
+  : info_store_(is) {
   worker_ = new pink::BGThread();
   worker_->set_thread_name("ZPMetaUpdate");
 }
@@ -39,12 +38,12 @@ void ZPMetaUpdateThread::UpdateFunc(void *p) {
 
   ZPMetaUpdateTaskDeque tasks;
   {
-    slash::MutexLock l(&task_mutex_);
-    tasks = task_queue_;
-    task_queue_.clear();
+    slash::MutexLock l(&(thread->task_mutex_));
+    tasks = thread->task_deque_;
+    thread->task_deque_.clear();
   }
 
-  ApplyUpdates(tasks);
+  thread->ApplyUpdates(tasks);
 }
 
 Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
@@ -54,13 +53,14 @@ Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
   
   Status s;
   while (!task_deque.empty()) {
-    UpdateTask cur_task = task_deque.pop_front();
+    UpdateTask cur_task = task_deque.front();
+    task_deque.pop_front();
     switch (cur_task.op) {
       case ZPMetaUpdateOP::kOpUpNode:
-        s = info_store_snap.UpNode(cur_task.ip_port)
+        s = info_store_snap.UpNode(cur_task.ip_port);
         break;
       case ZPMetaUpdateOP::kOpDownNode:
-        s = info_store_snap.DownNode(cur_task.ip_port)
+        s = info_store_snap.DownNode(cur_task.ip_port);
         break;
       case ZPMetaUpdateOP::kOpAddSlave:
         s = info_store_snap.AddSlave(cur_task.table, cur_task.partition,
@@ -92,8 +92,8 @@ Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
 
     if (!s.ok()) {
       LOG(WARNING) << "Update task process failed: " << s.ToString()
-        << "task: (" << cur_task.op << ", " << cur_task.table
-        << ", " << cur_task.partition << ", " cur_task.ip_port;
+        << "task: (" << static_cast<int>(cur_task.op) << ", " << cur_task.table
+        << ", " << cur_task.partition << ", " << cur_task.ip_port;
     }
   }
 

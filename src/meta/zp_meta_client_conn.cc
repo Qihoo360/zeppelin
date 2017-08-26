@@ -36,6 +36,8 @@ int ZPMetaClientConn::DealMessage() {
 
   // Redirect to leader if needed
   set_is_reply(true);
+  
+  // Server ensure leader has been elect here
   if (cmd->is_redirect()
       && !g_meta_server->IsLeader()) {
     Status s = g_meta_server->RedirectToLeader(request_, &response_);
@@ -50,6 +52,8 @@ int ZPMetaClientConn::DealMessage() {
     res_ = &response_;
     return 0;
   }
+
+  g_meta_server->PlusQueryNum();
 
   cmd->Do(&request_, &response_);
   res_ = &response_;

@@ -1,17 +1,15 @@
 #ifndef ZP_META_UPDATE_THREAD_H
 #define ZP_META_UPDATE_THREAD_H
-
+#include <deque>
 #include <string>
 #include <unordered_map>
 #include <glog/logging.h>
-
-#include "include/zp_meta.pb.h"
-
 #include "pink/include/bg_thread.h"
-//#include "pink/include/pink_cli.h"
-
 #include "slash/include/slash_string.h"
+#include "slash/include/slash_mutex.h"
 #include "slash/include/slash_status.h"
+#include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta_info_store.h"
 
 enum ZPMetaUpdateOP : unsigned int {
   kOpUpNode,  // ip_port
@@ -44,7 +42,7 @@ typedef std::deque<UpdateTask> ZPMetaUpdateTaskDeque;
 
 class ZPMetaUpdateThread {
 public:
-  ZPMetaUpdateThread(ZPMetaInfoStore* is);
+  explicit ZPMetaUpdateThread(ZPMetaInfoStore* is);
   ~ZPMetaUpdateThread();
 
   void PendingUpdate(const UpdateTask& task, bool priority = false);
@@ -55,6 +53,7 @@ private:
   ZPMetaUpdateTaskDeque task_deque_;
   ZPMetaInfoStore* info_store_;
   static void UpdateFunc(void *p);
+  Status ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque);
 
 };
 

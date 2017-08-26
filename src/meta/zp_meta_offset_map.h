@@ -26,6 +26,20 @@ struct NodeOffset {
   NodeOffset(int32_t n, int64_t o)
     : filenum(n),
     offset(o) {}
+  bool operator== (const NodeOffset& rhs) const {
+    return (filenum == rhs.filenum && offset == rhs.offset);
+  }
+  bool operator!= (const NodeOffset& rhs) const {
+    return (filenum != rhs.filenum || offset != rhs.offset);
+  }
+  bool operator< (const NodeOffset& rhs) const {
+    return (filenum < rhs.filenum ||
+        (filenum == rhs.filenum && offset < rhs.offset));
+  }
+  bool operator> (const NodeOffset& rhs) const {
+    return (filenum > rhs.filenum ||
+        (filenum == rhs.filenum && offset > rhs.offset));
+  }
 };
 
 struct NodeOffsetMap {

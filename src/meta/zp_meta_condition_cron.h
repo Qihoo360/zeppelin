@@ -37,7 +37,8 @@ class ZPMetaConditionCron {
   ZPMetaConditionCron(NodeOffsetMap* offset_map,
       ZPMetaUpdateThread* update_thread);
   virtual ~ZPMetaConditionCron();
-  void AddCronTask(OffsetConditionTask task);
+  void AddCronTask(const OffsetCondition& condition,
+      const UpdateTask& update_task);
 
  private:
   pink::BGThread* bg_thread_;

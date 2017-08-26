@@ -1,13 +1,10 @@
 #include "src/meta/zp_meta_command.h"
 
-#include <glog/logging.h>
 #include <google/protobuf/text_format.h>
-#include <google/protobuf/repeated_field.h>
-
+#include "glog/logging.h"
+#include "slash/include/slash_string.h"
 #include "include/zp_meta.pb.h"
 #include "src/meta/zp_meta_server.h"
-
-#include "slash/include/slash_string.h"
 
 extern ZPMetaServer *g_meta_server;
 
@@ -16,24 +13,24 @@ void PingCmd::Do(const google::protobuf::Message *req,
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
-  // Update Ping time
+  // Update Node Info
   std::string node = slash::IpPortString(request->ping().node().ip(),
       request->ping().node().port());
   g_meta_server->UpdateNodeAlive(node);
 
   // Update node offset
-  g_meta_server->UpdateOffset(request->ping());
+  g_meta_server->UpdateNodeOffset(request->ping());
 
   response->set_type(ZPMeta::Type::PING);
   response->set_code(ZPMeta::StatusCode::OK);
   response->set_msg("Ping OK!");
   ZPMeta::MetaCmdResponse_Ping* ping = response->mutable_ping();
-  ping->set_version(g_meta_server->version());
+  ping->set_version(g_meta_server->epoch());
 
   DLOG(INFO) << "Receive ping from node: " << request->ping().node().ip()
     << ":" << request->ping().node().port()
     << ", version=" << request->ping().version()
-    << ", response version=" << g_meta_server->version();
+    << ", response epoch=" << g_meta_server->epoch();
 }
 
 void PullCmd::Do(const google::protobuf::Message *req,
@@ -45,7 +42,8 @@ void PullCmd::Do(const google::protobuf::Message *req,
   Status s = Status::InvalidArgument("error argument");
   ZPMeta::MetaCmdResponse_Pull* ms_info = response->mutable_pull();
   if (request->pull().has_name()) {
-    std::string table = slash::StringToLower(request->pull().name());
+    std::string raw_table = request->pull().name();
+    std::string table = slash::StringToLower(raw_table);
     s = g_meta_server->GetMetaInfoByTable(table, ms_info);
     if (!s.ok()) {
       LOG(WARNING) << "Pull by table failed: " << s.ToString()
@@ -61,7 +59,7 @@ void PullCmd::Do(const google::protobuf::Message *req,
     }
   }
 
-  if (!s.ok() && !s.IsNotFound()) {
+  if (!s.ok()) {
     response->set_code(ZPMeta::StatusCode::ERROR);
     response->set_msg(s.ToString());
   } else {
@@ -72,7 +70,8 @@ void PullCmd::Do(const google::protobuf::Message *req,
 
 void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
-  std::string table = slash::StringToLower(request->init().name());
+  std::string raw_table = request->init().name();
+  std::string table = slash::StringToLower(raw_table);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::INIT);
@@ -82,7 +81,8 @@ void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
     return;
   }
 
-  // Update command such like Init, DropTable, SetMaster, AddSlave and RemoveSlave
+  // Update command such like
+  // Init, DropTable, SetMaster, AddSlave and RemoveSlave
   // were handled asynchronously
   g_meta_server->update_thread()->PendingUpdate(
       UpdateTask(
@@ -120,6 +120,12 @@ void AddSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::Mes
 
   response->set_type(ZPMeta::Type::ADDSLAVE);
   std::string ip_port = slash::IpPortString(node.ip(), node.port());
+  g_meta_server->update_thread()->PendingUpdate(
+      UpdateTask(
+        kOpAddSlave,
+        ip_port,
+        table,
+        p));
 
   response->set_code(ZPMeta::StatusCode::OK);
   response->set_msg("AddSlave OK!");
@@ -153,7 +159,7 @@ void ListTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
   response->set_type(ZPMeta::Type::LISTTABLE);
 
   std::set<std::string> table_list;
-  Status s = g_meta_server->GetTableList(table_list);
+  Status s = g_meta_server->GetTableList(&table_list);
 
   if (s.ok()) {
     ZPMeta::TableName *p = table_name->mutable_tables();
@@ -168,20 +174,49 @@ void ListTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
   }
 }
 
+void DropTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  response->set_type(ZPMeta::Type::DROPTABLE);
+  
+  std::string table_name = request->drop_table().name();
+  if (table_name.empty()) {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg("TableName cannot be empty");
+    return;
+  }
+
+  g_meta_server->update_thread()->PendingUpdate(
+      UpdateTask(
+        kOpRemoveTable,
+        table_name));
+
+  response->set_code(ZPMeta::StatusCode::OK);
+  response->set_msg("DropTable OK!");
+}
+
+
 void ListNodeCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
   ZPMeta::MetaCmdResponse_ListNode *lnodes = response->mutable_list_node();
-  ZPMeta::MetaCmdResponse_ListNode *nodes = lnodes->mutable_nodes();
-
+  ZPMeta::Nodes *nodes = lnodes->mutable_nodes();
   response->set_type(ZPMeta::Type::LISTNODE);
 
   std::unordered_map<std::string, ZPMeta::NodeState> node_list;
   Status s = g_meta_server->GetNodeStatusList(&node_list);
 
   if (s.ok()) {
-    // TODO wk: iterator and set
-    //ZPMeta::NodeStatus* node_status = nodes->add_nodes();
+    int port = 0;
+    std::string ip;
+    for (const auto& ni : node_list) {
+      ZPMeta::NodeStatus* node_status = nodes->add_nodes();
+      ZPMeta::Node* n = node_status->mutable_node();
+      slash::ParseIpPortString(ni.first, ip, port);
+      n->set_ip(ip);
+      n->set_port(port);
+      node_status->set_status(ni.second);
+    }
     response->set_code(ZPMeta::StatusCode::OK);
     response->set_msg("ListNode OK!");
   } else {
@@ -192,11 +227,11 @@ void ListNodeCmd::Do(const google::protobuf::Message *req,
 
 void ListMetaCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
-  ZPMeta::MetaCmdResponse_ListMeta *nodes = response->mutable_list_meta();
+  ZPMeta::MetaCmdResponse_ListMeta *metas = response->mutable_list_meta();
 
   response->set_type(ZPMeta::Type::LISTMETA);
 
-  Status s = g_meta_server->GetAllMetaNodes(nodes);
+  Status s = g_meta_server->GetAllMetaNodes(metas);
 
   if (s.ok()) {
     response->set_code(ZPMeta::StatusCode::OK);
@@ -224,27 +259,6 @@ void MetaStatusCmd::Do(const google::protobuf::Message *req, google::protobuf::M
   }
 }
 
-
-void DropTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
-  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
-  response->set_type(ZPMeta::Type::DROPTABLE);
-  
-  std::string table_name = request->drop_table().name();
-  if (table_name.empty()) {
-    response->set_code(ZPMeta::StatusCode::ERROR);
-    response->set_msg("TableName cannot be empty");
-    return;
-  }
-
-  Status s = g_meta_server->update_thread()->PendingUpdate(
-      UpdateTask(
-        kOpRemoveTable,
-        table_name));
-
-  response->set_code(ZPMeta::StatusCode::OK);
-  response->set_msg("DropTable OK!");
-}
 
 void MigrateCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {

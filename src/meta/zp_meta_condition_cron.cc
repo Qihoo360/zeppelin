@@ -11,9 +11,8 @@ ZPMetaConditionCron::ZPMetaConditionCron(NodeOffsetMap* offset_map,
     bg_thread_ = new pink::BGThread();
     bg_thread_->set_thread_name("ZPMetaCondition");
   }
-}
 
-virtual ZPMetaConditionCron::~ZPMetaConditionCron() {
+ZPMetaConditionCron::~ZPMetaConditionCron() {
   bg_thread_->StopThread();
   delete bg_thread_;
 }
@@ -27,17 +26,17 @@ void ZPMetaConditionCron::AddCronTask(const OffsetCondition& condition,
   OffsetConditionArg* oarg = new OffsetConditionArg(this,
       condition, update_task);
   bg_thread_->DelaySchedule(kConditionCronInterval * 1000,
-      &CronFunc, static_cast<void*>(targ));
+      &CronFunc, static_cast<void*>(oarg));
 }
 
-static void ZPMetaConditionCron::CronFunc(void *p) {
+void ZPMetaConditionCron::CronFunc(void *p) {
   OffsetConditionArg* arg = static_cast<OffsetConditionArg*>(p);
   if (arg->cron->ChecknProcess(arg->condition, arg->update_task)) {
     delete arg;
     return;
   }
   // Try next time
-  bg_thread_->DelaySchedule(delay, &CronFunc, p);
+  arg->cron->bg_thread_->DelaySchedule(kConditionCronInterval, &CronFunc, p);
 }
 
 bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
@@ -51,12 +50,12 @@ bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
     // Check offset
     // Notice this region should be as small as possible,
     // sinct it will compete with Node Ping process
-    slash::MutexLock l(&(offset_map_.mutex));
-    auto left_iter = offset_map_.find(left_key);
-    auto right_iter = offset_map_.find(right_key);
+    slash::MutexLock l(&(offset_map_->mutex));
+    auto left_iter = offset_map_->offsets.find(left_key);
+    auto right_iter = offset_map_->offsets.find(right_key);
 
-    if (left_iter == offset_map_.end()
-        || right_iter == offset_map_.end()
+    if (left_iter == offset_map_->offsets.end()
+        || right_iter == offset_map_->offsets.end()
         || left_iter->second != right_iter->second) {
       // Not yet equal
       return false;

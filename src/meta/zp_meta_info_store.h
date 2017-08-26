@@ -15,6 +15,7 @@
 #define SRC_META_ZP_META_INFO_STORE_H_
 #include <set>
 #include <string>
+#include <atomic>
 #include <unordered_map>
 
 #include "slash/include/slash_status.h"
@@ -23,11 +24,11 @@
 
 using slash::Status;
 
-class ZPMetaInfoStoreSnap() {
+class ZPMetaInfoStoreSnap {
  public:
-   ZPMetaInfoStoreSnap()
-   void UpNode(const std::string& ip_port);
-   void DownNode(const std::string& ip_port);
+   ZPMetaInfoStoreSnap();
+   Status UpNode(const std::string& ip_port);
+   Status DownNode(const std::string& ip_port);
    Status AddSlave(const std::string& table, int partition,
        const std::string& ip_port);
    Status DeleteSlave(const std::string& table, int partition,
@@ -40,8 +41,6 @@ class ZPMetaInfoStoreSnap() {
    Status AddTable(const std::string& table, int num);
    Status RemoveTable(const std::string& table);
    void RefreshTableWithNodeAlive();
-   Status GetPartitionMaster(const std::string& table,
-       int partition, ZPMeta::Node* master);
 
  private:
    friend class ZPMetaInfoStore;
@@ -64,7 +63,9 @@ class ZPMetaInfoStore {
    }
    
    Status Refresh();
+
    Status RestoreNodeAlive();
+   bool UpdateNodeAlive(const std::string& node);
    void FetchExpiredNode(std::set<std::string>* nodes);
 
    Status GetTableList(std::set<std::string>* table_list) const;
@@ -77,8 +78,11 @@ class ZPMetaInfoStore {
    void GetSnapshot(ZPMetaInfoStoreSnap* snap);
    Status Apply(const ZPMetaInfoStoreSnap& snap);
    
-   Status GetAllNodes(
+   void GetAllNodes(
        std::unordered_map<std::string, ZPMeta::NodeState>* all_nodes) const;
+   
+   Status GetPartitionMaster(const std::string& table,
+       int partition, ZPMeta::Node* master);
 
  private:
    floyd::Floyd* floyd_;
@@ -94,7 +98,7 @@ class ZPMetaInfoStore {
        const std::string& table);
    void NodesDebug();
    
-   Status GetAllTables(
+   void GetAllTables(
        std::unordered_map<std::string, ZPMeta::Table>* all_tables) const;
 
 
