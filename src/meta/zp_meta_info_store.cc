@@ -6,6 +6,13 @@
 #include "slash/include/slash_string.h"
 #include "include/zp_const.h"
 
+std::string NodeOffsetKey(const std::string& table, int partition_id) {
+  char buf[256];
+  snprintf(buf, sizeof(buf), "%s_%u",
+      table.c_str(), partition_id);
+  return std::string(buf);
+}
+
 static bool IsSameNode(const ZPMeta::Node& node, const std::string& ip_port) {
   return slash::IpPortString(node.ip(), node.port()) == ip_port;
 }
@@ -21,6 +28,16 @@ static bool AssignPbNode(ZPMeta::Node& node, const std::string& ip_port) {
   return true;
 }
 
+Status NodeInfo::GetOffset(const std::string& table, int partition_id,
+    NodeOffset* noffset) const {
+  std::string key = NodeOffsetKey(table, partition_id);
+  if (offsets.find(key) == offsets.end()) {
+    return Status::NotFound("table parititon not found");
+  }
+  *noffset = offsets.at(key);
+  return Status::OK();
+}
+
 ZPMetaInfoStoreSnap::ZPMetaInfoStoreSnap()
   : snap_epoch_(-1),
   node_changed_(false) {
@@ -28,18 +45,28 @@ ZPMetaInfoStoreSnap::ZPMetaInfoStoreSnap()
 
 Status ZPMetaInfoStoreSnap::UpNode(const std::string& ip_port) {
   node_changed_ = (nodes_.find(ip_port) == nodes_.end()
-      || nodes_[ip_port] != ZPMeta::NodeState::UP);
-  nodes_[ip_port] = ZPMeta::NodeState::UP;
+      || nodes_[ip_port].last_alive_time == 0);
+  nodes_[ip_port].last_alive_time = slash::NowMicros();
   return Status::OK();
 }
 
 Status ZPMetaInfoStoreSnap::DownNode(const std::string& ip_port) {
   if (nodes_.find(ip_port) != nodes_.end()) {
-    node_changed_ = (nodes_[ip_port] != ZPMeta::NodeState::DOWN);
-    nodes_[ip_port] = ZPMeta::NodeState::DOWN;
+    node_changed_ = (nodes_[ip_port].last_alive_time > 0);
+    nodes_[ip_port].last_alive_time = 0;
   }
   return Status::OK();
 } 
+
+Status ZPMetaInfoStoreSnap::GetNodeOffset(const ZPMeta::Node& node,
+    const std::string& table, int partition_id, NodeOffset* noffset) const {
+  std::string ip_port = slash::IpPortString(node.ip(), node.port());
+  if (nodes_.find(ip_port) == nodes_.end()) {
+    return Status::NotFound("node not exist");
+  }
+  return nodes_.at(ip_port).GetOffset(table, partition_id, noffset);
+}
+
 Status ZPMetaInfoStoreSnap::AddSlave(const std::string& table, int partition,
     const std::string& ip_port) {
   if (tables_.find(table) == tables_.end()) {
@@ -161,7 +188,7 @@ Status ZPMetaInfoStoreSnap::AddTable(const std::string& table, int num) {
   ZPMeta::Node node;
   std::map<std::string, std::vector<ZPMeta::Node> > server_nodes;
   for (const auto& n : nodes_) {
-    if (n.second != ZPMeta::NodeState::UP) {
+    if (n.second.last_alive_time == 0) {
       continue;
     }
     slash::ParseIpPortString(n.first, ip, port);
@@ -246,13 +273,25 @@ void ZPMetaInfoStoreSnap::RefreshTableWithNodeAlive() {
 
       // Find up slave
       table_changed_[table.first] = true;
-      ZPMeta::Node tmp;
+      int max_slave = -1;
+      NodeOffset tmp_offset, max_offset;
       for (int i = 0; i < partition->slaves_size(); i++) {
         if (IsNodeUp(partition->slaves(i))) {
-          tmp.CopyFrom(partition->master());
-          partition->mutable_master()->CopyFrom(partition->slaves(i));
-          partition->mutable_slaves(i)->CopyFrom(partition->master());
+          tmp_offset.Clear();
+          GetNodeOffset(partition->slaves(i), table.first, i, &tmp_offset);
+          if (tmp_offset >= max_offset) {
+            max_slave = i;
+            max_offset = tmp_offset;
+          }
         }
+      }
+
+      ZPMeta::Node tmp;
+      if (max_slave == -1) {
+        // Find one
+        tmp.CopyFrom(partition->slaves(max_slave));
+        partition->mutable_slaves(i)->CopyFrom(partition->master());
+        partition->mutable_master()->CopyFrom(tmp);
       }
 
       if (!IsNodeUp(partition->master())) {
@@ -275,14 +314,18 @@ void ZPMetaInfoStoreSnap::SerializeNodes(ZPMeta::Nodes* nodes_ptr) const {
     ZPMeta::Node* nsn = ns->mutable_node();
     nsn->set_ip(ip);
     nsn->set_port(port);
-    ns->set_status(n.second);
+    if (n.second.last_alive_time > 0) {
+      ns->set_status(ZPMeta::NodeState::UP);
+    } else {
+      ns->set_status(ZPMeta::NodeState::DOWN);
+    }
   }
 }
 
 inline bool ZPMetaInfoStoreSnap::IsNodeUp(const ZPMeta::Node& node) const {
   std::string ip_port = slash::IpPortString(node.ip(), node.port());
   if (nodes_.find(ip_port) == nodes_.end()
-      || nodes_.at(ip_port) != ZPMeta::NodeState::UP) {
+      || nodes_.at(ip_port).last_alive_time == 0) {
     return false;
   }
   return true;
@@ -376,7 +419,7 @@ Status ZPMetaInfoStore::Refresh() {
   return Status::OK();
 }
 
-Status ZPMetaInfoStore::RestoreNodeAlive() {
+Status ZPMetaInfoStore::RestoreNodeInfos() {
   // Read all nodes
   std::string value;
   ZPMeta::Nodes allnodes;
@@ -391,28 +434,32 @@ Status ZPMetaInfoStore::RestoreNodeAlive() {
   }
   
   std::string ip_port;
-  node_alive_.clear();
+  node_infos_.clear();
   for (const auto& node_s : allnodes.nodes()) {
     ip_port = slash::IpPortString(node_s.node().ip(), node_s.node().port());
-    if (node_s.status() == ZPMeta::NodeState::UP) {
-      // Alive node
-      node_alive_[ip_port] = slash::NowMicros();
-    } else {
-      node_alive_[ip_port] = 0;
-    
-    }
+    node_infos_[ip_port] = NodeInfo(node_s.status() == ZPMeta::NodeState::UP);
   }
   return Status::OK();
 }
 
 // Return true when the node is new alive
-bool ZPMetaInfoStore::UpdateNodeAlive(const std::string& node) {
+bool ZPMetaInfoStore::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
+  std::string node = slash::IpPortString(ping.node().ip(),
+      ping.node().port());
   bool is_new = false;
-  if (node_alive_.find(node) == node_alive_.end()
-      || node_alive_[node] == 0) {
+  if (node_infos_.find(node) == node_infos_.end()
+      || node_infos_[node].last_alive_time == 0) {
     is_new = true;
   }
-  node_alive_[node] = slash::NowMicros();
+  
+  // Update alive time
+  node_infos_[node].last_alive_time = slash::NowMicros();
+  
+  // Update offset
+  for (const auto& po : ping.offset()) {
+    std::string offset_key = NodeOffsetKey(po.table_name(), po.partition());
+    node_infos_[node].offsets[offset_key] = NodeOffset(po.filenum(), po.offset());
+  }
   return is_new;
 }
 
@@ -426,6 +473,15 @@ void ZPMetaInfoStore::NodesDebug() {
     LOG(INFO) << str;
   }
   LOG(INFO) << "------------------------------------------.";
+}
+
+Status ZPMetaInfoStore::GetNodeOffset(const ZPMeta::Node& node,
+    const std::string& table, int partition_id, NodeOffset* noffset) const {
+  std::string ip_port = slash::IpPortString(node.ip(), node.port());
+  if (node_infos_.find(ip_port) == node_infos_.end()) {
+    return Status::NotFound("node not exist");
+  }
+  return node_infos_.at(ip_port).GetOffset(table, partition_id, noffset);
 }
 
 void ZPMetaInfoStore::AddNodeTable(const std::string& ip_port,
@@ -469,12 +525,13 @@ Status ZPMetaInfoStore::GetTableMeta(const std::string& table,
 
 void ZPMetaInfoStore::FetchExpiredNode(std::set<std::string>* nodes) {
   nodes->clear();
-  auto it = node_alive_.begin();
-  while (it != node_alive_.end() ) {
-    if (it->second > 0
-        && slash::NowMicros() - it->second > kNodeMetaTimeoutM * 1000) {
+  auto it = node_infos_.begin();
+  while (it != node_infos_.end() ) {
+    if (it->second.last_alive_time > 0
+        && (slash::NowMicros() - it->second.last_alive_time
+          > kNodeMetaTimeoutM * 1000)) {
       nodes->insert(it->first);
-      it = node_alive_.erase(it);
+      // TODO(wk) it = node_alive_.erase(it);
     } else {
       ++it;
     }
@@ -570,17 +627,12 @@ void ZPMetaInfoStore::GetAllTables(
 }
 
 void ZPMetaInfoStore::GetAllNodes(
-    std::unordered_map<std::string, ZPMeta::NodeState>* all_nodes) const {
+    std::unordered_map<std::string, NodeInfo>* all_nodes) const {
   all_nodes->clear();
-  for (const auto& t : node_alive_) {
-    if (t.second > 0) {
-      (*all_nodes)[t.first] = ZPMeta::NodeState::UP;
-    } else {
-      (*all_nodes)[t.first] = ZPMeta::NodeState::DOWN;
-    }
+  for (const auto& t : node_infos_) {
+    (*all_nodes)[t.first] = t.second;
   }
 }
-
 
 Status ZPMetaInfoStore::GetPartitionMaster(const std::string& table,
     int partition, ZPMeta::Node* master) {

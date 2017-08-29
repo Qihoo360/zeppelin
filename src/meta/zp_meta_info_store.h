@@ -18,11 +18,35 @@
 #include <atomic>
 #include <unordered_map>
 
+#include "slash/include/env.h"
 #include "slash/include/slash_status.h"
 #include "floyd/include/floyd.h"
 #include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta_node_offset.h"
 
 using slash::Status;
+
+extern std::string NodeOffsetKey(const std::string& table,
+    int partition_id);
+
+struct NodeInfo {
+  uint64_t last_alive_time;
+  // table_partition -> offset
+  std::map<std::string, NodeOffset> offsets;
+  
+  NodeInfo()
+    : last_alive_time(0) {}
+  
+  explicit NodeInfo(bool up)
+    : last_alive_time(0) {
+    if (up) {
+      last_alive_time = slash::NowMicros();
+    }
+  }
+
+  Status GetOffset(const std::string& table, int partition_id,
+      NodeOffset* noffset) const;
+};
 
 class ZPMetaInfoStoreSnap {
  public:
@@ -46,12 +70,15 @@ class ZPMetaInfoStoreSnap {
    friend class ZPMetaInfoStore;
    int snap_epoch_;
    std::unordered_map<std::string, ZPMeta::Table> tables_;
-   std::unordered_map<std::string, ZPMeta::NodeState> nodes_;
+   std::unordered_map<std::string, NodeInfo> nodes_;
    bool node_changed_;
    std::unordered_map<std::string, bool> table_changed_;
    void SerializeNodes(ZPMeta::Nodes* nodes_ptr) const;
 
    bool IsNodeUp(const ZPMeta::Node& node) const;
+   Status GetNodeOffset(const ZPMeta::Node& node,
+       const std::string& table, int partition_id,
+       NodeOffset* noffset) const;
 };
 
 class ZPMetaInfoStore {
@@ -63,9 +90,8 @@ class ZPMetaInfoStore {
    }
    
    Status Refresh();
-
-   Status RestoreNodeAlive();
-   bool UpdateNodeAlive(const std::string& node);
+   Status RestoreNodeInfos();
+   bool UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping);
    void FetchExpiredNode(std::set<std::string>* nodes);
 
    Status GetTableList(std::set<std::string>* table_list) const;
@@ -79,10 +105,14 @@ class ZPMetaInfoStore {
    Status Apply(const ZPMetaInfoStoreSnap& snap);
    
    void GetAllNodes(
-       std::unordered_map<std::string, ZPMeta::NodeState>* all_nodes) const;
+       std::unordered_map<std::string, NodeInfo>* all_nodes) const;
    
    Status GetPartitionMaster(const std::string& table,
        int partition, ZPMeta::Node* master);
+
+   Status GetNodeOffset(const ZPMeta::Node& node,
+       const std::string& table, int partition_id,
+       NodeOffset* noffset) const;
 
  private:
    floyd::Floyd* floyd_;
@@ -91,8 +121,8 @@ class ZPMetaInfoStore {
    std::unordered_map<std::string, ZPMeta::Table> table_info_;
    // node => tables
    std::unordered_map<std::string, std::set<std::string> > node_table_;
-   // node => alive time, 0 means already down node
-   std::unordered_map<std::string, uint64_t> node_alive_;
+   // node => alive time + offset set, 0 means already down node
+   std::unordered_map<std::string, NodeInfo> node_infos_;
    
    void AddNodeTable(const std::string& ip_port,
        const std::string& table);

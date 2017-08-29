@@ -1,12 +1,13 @@
 #include "src/meta/zp_meta_condition_cron.h"
 
 #include "slash/include/slash_mutex.h"
+#include "slash/include/slash_string.h"
 #include "pink/include/bg_thread.h"
 #include "include/zp_const.h"
 
-ZPMetaConditionCron::ZPMetaConditionCron(NodeOffsetMap* offset_map,
+ZPMetaConditionCron::ZPMetaConditionCron(ZPMetaInfoStore* i_store,
     ZPMetaUpdateThread* update_thread)
-  : offset_map_(offset_map),
+  : info_store_(i_store),
   update_thread_(update_thread) {
     bg_thread_ = new pink::BGThread();
     bg_thread_->set_thread_name("ZPMetaCondition");
@@ -41,22 +42,25 @@ void ZPMetaConditionCron::CronFunc(void *p) {
 
 bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
     const UpdateTask& update_task) {
-  std::string left_key = NodeOffsetKey(condition.table, condition.partition_id,
-      condition.left.ip(), condition.left.port());
-  std::string right_key = NodeOffsetKey(condition.table, condition.partition_id,
-      condition.right.ip(), condition.right.port());
-
   {
     // Check offset
     // Notice this region should be as small as possible,
     // sinct it will compete with Node Ping process
-    slash::MutexLock l(&(offset_map_->mutex));
-    auto left_iter = offset_map_->offsets.find(left_key);
-    auto right_iter = offset_map_->offsets.find(right_key);
+    // TODO(wk) slash::MutexLock l(&(offset_map_->mutex));
+    NodeOffset left_offset, right_offset;
+    Status s = info_store_->GetNodeOffset(condition.left,
+        condition.table, condition.partition_id,
+        &left_offset);
+    if (!s.ok()) {
+      return false;
+    }
+    
+    s = info_store_->GetNodeOffset(condition.right,
+        condition.table, condition.partition_id,
+        &right_offset);
 
-    if (left_iter == offset_map_->offsets.end()
-        || right_iter == offset_map_->offsets.end()
-        || left_iter->second != right_iter->second) {
+    if (!s.ok()
+        || left_offset != right_offset) {
       // Not yet equal
       return false;
     }

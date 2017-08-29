@@ -15,9 +15,9 @@
 #define SRC_META_ZP_META_CONDITION_CRON_H_
 #include <string>
 #include "pink/include/bg_thread.h"
-#include "src/meta/zp_meta_update_thread.h"
-#include "src/meta/zp_meta_offset_map.h"
 #include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta_update_thread.h"
+#include "src/meta/zp_meta_info_store.h"
 
 struct OffsetCondition {
   std::string table;
@@ -34,7 +34,7 @@ struct OffsetCondition {
 
 class ZPMetaConditionCron {
  public:
-  ZPMetaConditionCron(NodeOffsetMap* offset_map,
+  ZPMetaConditionCron(ZPMetaInfoStore* info_store,
       ZPMetaUpdateThread* update_thread);
   virtual ~ZPMetaConditionCron();
   void AddCronTask(const OffsetCondition& condition,
@@ -42,7 +42,7 @@ class ZPMetaConditionCron {
 
  private:
   pink::BGThread* bg_thread_;
-  NodeOffsetMap* offset_map_;
+  ZPMetaInfoStore* info_store_;
   ZPMetaUpdateThread* update_thread_;
   static void CronFunc(void *p);
   bool ChecknProcess(const OffsetCondition& condition,

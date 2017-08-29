@@ -13,14 +13,6 @@
 
 #include "include/zp_meta.pb.h"
 
-std::string NodeOffsetKey(const std::string& table, int partition_id,
-    const std::string& ip, int port) {
-  char buf[256];
-  snprintf(buf, sizeof(buf), "%s_%u_%s:%u",
-      table.c_str(), partition_id, ip.c_str(), port);
-  return std::string(buf);
-}
-
 ZPMetaServer::ZPMetaServer()
   : should_exit_(false) {
   LOG(INFO) << "ZPMetaServer start initialization";
@@ -48,7 +40,7 @@ ZPMetaServer::ZPMetaServer()
   update_thread_ = new ZPMetaUpdateThread(info_store_);
 
   // Init Condition thread
-  condition_cron_ = new ZPMetaConditionCron(&node_offsets_, update_thread_);
+  condition_cron_ = new ZPMetaConditionCron(info_store_, update_thread_);
   
   // Init Server thread
   conn_factory_ = new ZPMetaClientConnFactory(); 
@@ -99,16 +91,15 @@ Status ZPMetaServer::OpenFloyd() {
 void ZPMetaServer::Start() {
   LOG(INFO) << "ZPMetaServer started on port:" << g_zp_conf->local_port();
   
-  Status s = Status::Incomplete("Info store load incompleted");
+  Status s = Status::Incomplete("Floyd load incompleted");
   while (!should_exit_ && !s.ok()) {
     sleep(1);
-    s = info_store_->Refresh();
-    LOG(INFO) << "Info store load from floyd, ret: " << s.ToString();
-  }
-  s = RefreshLeader();
-  if (!s.ok()) {
-    LOG(WARNING) << "Refresh Leader failed: " << s.ToString();
-    return;
+    s = RefreshLeader();
+    LOG(INFO) << "Leader info load from floyd, ret: " << s.ToString();
+    if (s.ok()) {
+      s = info_store_->Refresh();
+      LOG(INFO) << "Info store load from floyd, ret: " << s.ToString();
+    }
   }
 
   if (should_exit_) {
@@ -150,7 +141,6 @@ Status ZPMetaServer::GetMetaInfoByTable(const std::string& table,
 Status ZPMetaServer::GetMetaInfoByNode(const std::string& ip_port,
     ZPMeta::MetaCmdResponse_Pull *ms_info) {
   // Get epoch first and because the epoch was updated at last
-  // no lock is needed here
   ms_info->set_version(info_store_->epoch());
 
   std::set<std::string> tables;
@@ -206,9 +196,11 @@ Status ZPMetaServer::WaitSetMaster(const ZPMeta::Node& node,
   return Status::OK();
 }
 
-void ZPMetaServer::UpdateNodeAlive(const std::string& ip_port) {
-  if (info_store_->UpdateNodeAlive(ip_port)) {
+void ZPMetaServer::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
+  if (info_store_->UpdateNodeInfo(ping)) {
     // new node
+    std::string ip_port = slash::IpPortString(ping.node().ip(),
+        ping.node().port());
     LOG(INFO) << "PendingUpdate to add Node Alive " << ip_port;
     update_thread_->PendingUpdate(
         UpdateTask(
@@ -221,6 +213,7 @@ void ZPMetaServer::CheckNodeAlive() {
   std::set<std::string> nodes;
   info_store_->FetchExpiredNode(&nodes);
   for (const auto& n : nodes) {
+    // TODO(wk) Should we mark the node to avoid frequent kOpDownNode operation
     LOG(INFO) << "PendingUpdate to remove Node Alive: " << n;
     update_thread_->PendingUpdate(
         UpdateTask(
@@ -274,8 +267,8 @@ Status ZPMetaServer::GetTableList(std::set<std::string>* table_list) {
 }
 
 Status ZPMetaServer::GetNodeStatusList(
-    std::unordered_map<std::string, ZPMeta::NodeState>* node_list) {
-  info_store_->GetAllNodes(node_list);
+    std::unordered_map<std::string, NodeInfo>* node_infos) {
+  info_store_->GetAllNodes(node_infos);
   return Status::OK();
 }
 
@@ -413,9 +406,9 @@ Status ZPMetaServer::RefreshLeader() {
   if (leader_ip == g_zp_conf->local_ip() && 
       leader_port == g_zp_conf->local_port()) {
     LOG(INFO) << "Become leader: " << leader_ip << ":" << leader_port;
-    s = info_store_->RestoreNodeAlive();
+    s = info_store_->RestoreNodeInfos();
     if (!s.ok()) {
-      LOG(ERROR) << "Restore Node alive failed: " << s.ToString();
+      LOG(ERROR) << "Restore Node infos failed: " << s.ToString();
       return s;
     }
     return Status::OK();
@@ -509,36 +502,6 @@ inline bool ZPMetaServer::GetLeader(std::string *ip, int *port) {
     *port = fy_port - kMetaPortShiftFY;
   }
   return res;
-}
-
-
-void ZPMetaServer::UpdateNodeOffset(const ZPMeta::MetaCmd_Ping &ping) {
-  slash::MutexLock l(&(node_offsets_.mutex));
-  for (const auto& po : ping.offset()) {
-    std::string offset_key = NodeOffsetKey(po.table_name(), po.partition(),
-        ping.node().ip(), ping.node().port());
-    node_offsets_.offsets[offset_key] = NodeOffset(po.filenum(), po.offset());
-  }
-}
-
-bool ZPMetaServer::GetSlaveOffset(const std::string &table, int partition,
-    const std::string ip, int port, NodeOffset* node_offset) {
-  slash::MutexLock l(&(node_offsets_.mutex));
-  auto iter = node_offsets_.offsets.find(NodeOffsetKey(table,
-        partition, ip, port));
-  if (iter == node_offsets_.offsets.end()) {
-    return false;
-  }
-  *node_offset = iter->second;
-  return true;
-}
-
-void ZPMetaServer::DebugOffset() {
-  slash::MutexLock l(&(node_offsets_.mutex));
-  for (const auto& item : node_offsets_.offsets) {
-    LOG(INFO) << item.first << "->"
-      << item.second.filenum << "_" << item.second.offset; 
-  }
 }
 
 void ZPMetaServer::ResetLastSecQueryNum() {

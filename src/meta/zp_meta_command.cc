@@ -14,18 +14,13 @@ void PingCmd::Do(const google::protobuf::Message *req,
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   // Update Node Info
-  std::string node = slash::IpPortString(request->ping().node().ip(),
-      request->ping().node().port());
-  g_meta_server->UpdateNodeAlive(node);
+  g_meta_server->UpdateNodeInfo(request->ping());
 
-  // Update node offset
-  g_meta_server->UpdateNodeOffset(request->ping());
-
+  ZPMeta::MetaCmdResponse_Ping* ping = response->mutable_ping();
+  ping->set_version(g_meta_server->epoch());
   response->set_type(ZPMeta::Type::PING);
   response->set_code(ZPMeta::StatusCode::OK);
   response->set_msg("Ping OK!");
-  ZPMeta::MetaCmdResponse_Ping* ping = response->mutable_ping();
-  ping->set_version(g_meta_server->epoch());
 
   DLOG(INFO) << "Receive ping from node: " << request->ping().node().ip()
     << ":" << request->ping().node().port()
@@ -203,7 +198,7 @@ void ListNodeCmd::Do(const google::protobuf::Message *req,
   ZPMeta::Nodes *nodes = lnodes->mutable_nodes();
   response->set_type(ZPMeta::Type::LISTNODE);
 
-  std::unordered_map<std::string, ZPMeta::NodeState> node_list;
+  std::unordered_map<std::string, NodeInfo> node_list;
   Status s = g_meta_server->GetNodeStatusList(&node_list);
 
   if (s.ok()) {
@@ -215,7 +210,11 @@ void ListNodeCmd::Do(const google::protobuf::Message *req,
       slash::ParseIpPortString(ni.first, ip, port);
       n->set_ip(ip);
       n->set_port(port);
-      node_status->set_status(ni.second);
+      if (ni.second.last_alive_time > 0) {
+        node_status->set_status(ZPMeta::NodeState::UP);
+      } else {
+        node_status->set_status(ZPMeta::NodeState::DOWN);
+      }
     }
     response->set_code(ZPMeta::StatusCode::OK);
     response->set_msg("ListNode OK!");

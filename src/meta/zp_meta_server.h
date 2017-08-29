@@ -16,7 +16,6 @@
 #include "include/zp_conf.h"
 #include "include/zp_const.h"
 #include "src/meta/zp_meta_command.h"
-#include "src/meta/zp_meta_offset_map.h"
 #include "src/meta/zp_meta_update_thread.h"
 #include "src/meta/zp_meta_client_conn.h"
 #include "src/meta/zp_meta_migrate_register.h"
@@ -61,9 +60,6 @@ struct QueryStatistic {
     last_time_us(0) {}
 };
 
-extern std::string NodeOffsetKey(const std::string& table, int partition_id,
-    const std::string& ip, int port);
-
 class ZPMetaServer {
  public:
   explicit ZPMetaServer();
@@ -93,8 +89,7 @@ class ZPMetaServer {
   Cmd* GetCmd(const int op);
   
   // Node alive related
-  void UpdateNodeOffset(const ZPMeta::MetaCmd_Ping &ping);
-  void UpdateNodeAlive(const std::string& ip_port);
+  void UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping);
   
   // Node info related
   Status GetMetaInfoByTable(const std::string& table,
@@ -103,7 +98,7 @@ class ZPMetaServer {
       ZPMeta::MetaCmdResponse_Pull *ms_info);
   Status GetTableList(std::set<std::string>* table_list);
   Status GetNodeStatusList(
-      std::unordered_map<std::string, ZPMeta::NodeState>* node_list);
+      std::unordered_map<std::string, NodeInfo>* node_infos);
   Status WaitSetMaster(const ZPMeta::Node& node,
       const std::string table, int partition);
 
@@ -128,6 +123,7 @@ private:
   pink::ServerThread* server_thread_;
   ZPMetaClientConnFactory* conn_factory_;
   ZPMetaUpdateThread* update_thread_;
+  ZPMetaConditionCron* condition_cron_;
   void DoTimingTask();
   
   // Floyd related
@@ -146,18 +142,11 @@ private:
   // Info related
   ZPMetaInfoStore* info_store_;
   void CheckNodeAlive();
-
+  
   // Migrate related
   ZPMetaMigrateRegister* migrate_register_;
   Status ProcessMigrate();
-  ZPMetaConditionCron* condition_cron_;
   
-  // Offset related
-  NodeOffsetMap node_offsets_;
-  bool GetSlaveOffset(const std::string &table, int partition,
-      const std::string ip, int port, NodeOffset* node_offset);
-  void DebugOffset();
-
   // Statistic related
   QueryStatistic statistic;
   void ResetLastSecQueryNum();
