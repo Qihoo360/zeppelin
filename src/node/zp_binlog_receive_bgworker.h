@@ -36,7 +36,7 @@ struct ZPBinlogReceiveTask {
     i(integer) {}
 };
 
-class ZPBinlogReceiveBgWorker  {
+class ZPBinlogReceiveBgWorker {
  public:
     explicit ZPBinlogReceiveBgWorker(int full);
     ~ZPBinlogReceiveBgWorker();
