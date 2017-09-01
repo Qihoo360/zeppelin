@@ -771,7 +771,7 @@ bool Partition::CheckSyncOption(const PartitionSyncOption& option,
   uint64_t cur_offset = 0;
   logger_->GetProducerStatus(&cur_filenum, &cur_offset);
   if (option.filenum != cur_filenum || option.offset != cur_offset) {
-    LOG(WARNING) << "Discard binlog item from " << option.from_node
+    DLOG(WARNING) << "Discard binlog item from " << option.from_node
       << ", table:" << table_name_
       << ", partition:" << partition_id_
       << ", with offset (" << option.filenum << ", " << option.offset << ")"
