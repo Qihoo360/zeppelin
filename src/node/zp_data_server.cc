@@ -262,7 +262,7 @@ Status ZPDataServer::Start() {
 
 void ZPDataServer::TryUpdateEpoch(int64_t epoch) {
   slash::MutexLock l(&mutex_epoch_);
-  if (epoch != meta_epoch_) {
+  if (epoch > meta_epoch_) {
     LOG(INFO) <<  "Meta epoch changed: " << meta_epoch_ << " to " << epoch;
     should_pull_meta_ = true;
     AddMetacmdTask();

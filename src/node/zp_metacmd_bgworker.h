@@ -13,6 +13,7 @@
 // limitations under the License.
 #ifndef SRC_NODE_ZP_METACMD_BGWORKER_H_
 #define SRC_NODE_ZP_METACMD_BGWORKER_H_
+#include "slash/include/slash_status.h"
 #include "pink/include/bg_thread.h"
 #include "pink/include/pink_cli.h"
 
