@@ -84,53 +84,51 @@ class ZPMetaInfoStoreSnap {
 class ZPMetaInfoStore {
  public:
    explicit ZPMetaInfoStore(floyd::Floyd* floyd);
+   ~ZPMetaInfoStore();
 
    int epoch() {
      return epoch_;
    }
    
    Status Refresh();
+
+   // node_infos_ related
    Status RestoreNodeInfos();
    bool UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping);
    void FetchExpiredNode(std::set<std::string>* nodes);
-
-   Status GetTableList(std::set<std::string>* table_list) const;
+   void GetAllNodes(std::unordered_map<std::string, NodeInfo>* all_nodes);
+   Status GetNodeOffset(const ZPMeta::Node& node,
+       const std::string& table, int partition_id, NodeOffset* noffset);
+   
+   // table_info and node_table related
+   Status GetTableList(std::set<std::string>* table_list);
    Status GetTablesForNode(const std::string& ip_port,
-       std::set<std::string>* table_list) const;
-
+       std::set<std::string>* table_list);
    Status GetTableMeta(const std::string& table,
-       ZPMeta::Table* table_meta) const;
-
-   void GetSnapshot(ZPMetaInfoStoreSnap* snap);
-   Status Apply(const ZPMetaInfoStoreSnap& snap);
-   
-   void GetAllNodes(
-       std::unordered_map<std::string, NodeInfo>* all_nodes) const;
-   
+       ZPMeta::Table* table_meta);
    Status GetPartitionMaster(const std::string& table,
        int partition, ZPMeta::Node* master);
 
-   Status GetNodeOffset(const ZPMeta::Node& node,
-       const std::string& table, int partition_id,
-       NodeOffset* noffset) const;
-
+   Status Apply(const ZPMetaInfoStoreSnap& snap);
+   void GetSnapshot(ZPMetaInfoStoreSnap* snap);
+  
  private:
    floyd::Floyd* floyd_;
    std::atomic<int> epoch_;
+
+   pthread_rwlock_t tables_rw_;
    // table => ZPMeta::Table set
    std::unordered_map<std::string, ZPMeta::Table> table_info_;
    // node => tables
    std::unordered_map<std::string, std::set<std::string> > node_table_;
+   void NodesDebug();
+   void GetAllTables(
+       std::unordered_map<std::string, ZPMeta::Table>* all_tables);
+   void AddNodeTable(const std::string& ip_port, const std::string& table);
+
+   pthread_rwlock_t nodes_rw_;
    // node => alive time + offset set, 0 means already down node
    std::unordered_map<std::string, NodeInfo> node_infos_;
-   
-   void AddNodeTable(const std::string& ip_port,
-       const std::string& table);
-   void NodesDebug();
-   
-   void GetAllTables(
-       std::unordered_map<std::string, ZPMeta::Table>* all_tables) const;
-
 
    // No copying allowed
    ZPMetaInfoStore (const ZPMetaInfoStore&);

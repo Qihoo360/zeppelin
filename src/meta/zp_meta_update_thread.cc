@@ -18,6 +18,7 @@ ZPMetaUpdateThread::~ZPMetaUpdateThread() {
   delete worker_;
 }
 
+// TODO (wk) should refuse pending when error happend?
 void ZPMetaUpdateThread::PendingUpdate(const UpdateTask &task, bool priority) {
   slash::MutexLock l(&task_mutex_);
   if (priority) {
@@ -101,6 +102,7 @@ Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
   info_store_snap.RefreshTableWithNodeAlive();
   
   // Write back to info_store
+  // TODO (wk) retry
   s = info_store_->Apply(info_store_snap);
   if (!s.ok()) {
     LOG(WARNING) << "Failed to apply update change to info_store: " << s.ToString();
