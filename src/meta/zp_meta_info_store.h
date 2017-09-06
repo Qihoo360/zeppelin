@@ -90,8 +90,6 @@ class ZPMetaInfoStore {
      return epoch_;
    }
    
-   Status Refresh();
-
    // node_infos_ related
    Status RestoreNodeInfos();
    bool UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping);
@@ -109,6 +107,8 @@ class ZPMetaInfoStore {
    Status GetPartitionMaster(const std::string& table,
        int partition, ZPMeta::Node* master);
 
+   // Interact with floyd
+   Status Refresh();
    Status Apply(const ZPMetaInfoStoreSnap& snap);
    void GetSnapshot(ZPMetaInfoStoreSnap* snap);
   
@@ -128,6 +128,7 @@ class ZPMetaInfoStore {
 
    pthread_rwlock_t nodes_rw_;
    // node => alive time + offset set, 0 means already down node
+   // only valid for leader
    std::unordered_map<std::string, NodeInfo> node_infos_;
 
    // No copying allowed

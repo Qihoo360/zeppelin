@@ -8,7 +8,8 @@
 extern ZPMetaServer* g_meta_server;
 
 ZPMetaUpdateThread::ZPMetaUpdateThread(ZPMetaInfoStore* is)
-  : info_store_(is) {
+  : is_stuck_(false),
+  info_store_(is) {
   worker_ = new pink::BGThread();
   worker_->set_thread_name("ZPMetaUpdate");
 }
@@ -18,14 +19,12 @@ ZPMetaUpdateThread::~ZPMetaUpdateThread() {
   delete worker_;
 }
 
-// TODO (wk) should refuse pending when error happend?
-void ZPMetaUpdateThread::PendingUpdate(const UpdateTask &task, bool priority) {
-  slash::MutexLock l(&task_mutex_);
-  if (priority) {
-    task_deque_.push_front(task);
-  } else {
-    task_deque_.push_back(task);
+Status ZPMetaUpdateThread::PendingUpdate(const UpdateTask &task) {
+  if (is_stuck_) {
+    return Status::Incomplete("Update thread stucked");
   }
+  slash::MutexLock l(&task_mutex_);
+  task_deque_.push_back(task);
 
   if (task_deque_.size() == 1) {
     worker_->StartThread();
@@ -102,10 +101,18 @@ Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
   info_store_snap.RefreshTableWithNodeAlive();
   
   // Write back to info_store
-  // TODO (wk) retry
   s = info_store_->Apply(info_store_snap);
+  while (s.IsIOError()) {
+    is_stuck_ = true;
+    LOG(WARNING) << "Failed to apply update change since floyd error: "
+      << s.ToString() << ", Retry in 1 second";
+    sleep(1);
+    s = info_store_->Apply(info_store_snap);
+  }
+  is_stuck_ = false;
+
   if (!s.ok()) {
-    LOG(WARNING) << "Failed to apply update change to info_store: " << s.ToString();
+    LOG(ERROR) << "Failed to apply update change to info_store: " << s.ToString();
   } 
   return s;
 }

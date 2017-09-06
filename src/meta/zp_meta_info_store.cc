@@ -373,7 +373,7 @@ Status ZPMetaInfoStore::Refresh() {
     return Status::OK();
   } else {
     LOG(ERROR) << "Load epoch failed: " << fs.ToString();
-    return fs;
+    return Status::IOError(fs.ToString());
   }
 
   if (tmp_epoch == epoch_) {
@@ -388,7 +388,7 @@ Status ZPMetaInfoStore::Refresh() {
   fs = floyd_->Read(kMetaTables, value);
   if (!fs.ok()) {
     LOG(ERROR) << "Load meta table names failed: " << fs.ToString();
-    return fs;
+    return Status::IOError(fs.ToString());
   }
   if (!table_names.ParseFromString(value)) {
     LOG(ERROR) << "Deserialization meta table names failed, value: " << value;
@@ -409,7 +409,7 @@ Status ZPMetaInfoStore::Refresh() {
     if (!fs.ok()) {
       LOG(ERROR) << "Load floyd table_info failed: " << fs.ToString()
         << ", table name: " << t;
-      return fs;
+      return Status::IOError(fs.ToString());
     }
     if (!table_info.ParseFromString(value)) {
       LOG(ERROR) << "Deserialization table_info failed, table: "
@@ -469,26 +469,32 @@ Status ZPMetaInfoStore::RestoreNodeInfos() {
   return Status::OK();
 }
 
-// Return true when the node is new alive
+// Return false when the node is new alive
 bool ZPMetaInfoStore::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
   slash::RWLock l(&nodes_rw_, true);
   std::string node = slash::IpPortString(ping.node().ip(),
       ping.node().port());
-  bool is_new = false;
+  bool not_found = false;
   if (node_infos_.find(node) == node_infos_.end()
       || node_infos_[node].last_alive_time == 0) {
-    is_new = true;
+    not_found = true;
   }
-  
-  // Update alive time
-  node_infos_[node].last_alive_time = slash::NowMicros();
   
   // Update offset
   for (const auto& po : ping.offset()) {
     std::string offset_key = NodeOffsetKey(po.table_name(), po.partition());
     node_infos_[node].offsets[offset_key] = NodeOffset(po.filenum(), po.offset());
   }
-  return is_new;
+  
+  if (not_found) {
+    // Do not add alive time info here.
+    // Leave this in Refresh() to keep it consistent with what in floyd
+    return false;
+  }
+
+  // Update alive time
+  node_infos_.at(node).last_alive_time = slash::NowMicros();
+  return true;
 }
 
 void ZPMetaInfoStore::FetchExpiredNode(std::set<std::string>* nodes) {
@@ -500,10 +506,10 @@ void ZPMetaInfoStore::FetchExpiredNode(std::set<std::string>* nodes) {
         && (slash::NowMicros() - it->second.last_alive_time
           > kNodeMetaTimeoutM * 1000)) {
       nodes->insert(it->first);
-      // TODO(wk) it = node_alive_.erase(it);
-    } else {
-      ++it;
+      // Do not erase alive info item here.
+      // Leave this in Refresh() to keep it consistent with what in floyd
     }
+    ++it;
   }
 }
 
@@ -609,6 +615,17 @@ Status ZPMetaInfoStore::GetPartitionMaster(const std::string& table,
 }
 
 void ZPMetaInfoStore::GetSnapshot(ZPMetaInfoStoreSnap* snap) {
+  // No lock here may give rise to the inconsistence
+  // between snap epch and snap table or snap nodes,
+  // for example a newer table info with an older epoch.
+  //
+  // But it is acceptable since this occurs rarely,
+  // considering the only point to change epoch is in Apply Function,
+  // which will only be invoked by update thread sequentially after GetSnapshot.
+  //
+  // So the only inconsistence happened when Leader changed,
+  // under which situation the snapshot will be invalid and should be discarded,
+  // Apply function will check and handle this.
   snap->snap_epoch_ = epoch_;
   GetAllTables(&(snap->tables_));
   for (const auto& t : snap->tables_) {
@@ -617,10 +634,12 @@ void ZPMetaInfoStore::GetSnapshot(ZPMetaInfoStoreSnap* snap) {
   GetAllNodes(&(snap->nodes_));
 }
 
-// Should be reentrant
+// Return IOError means error happened when access floyd. 
+// Notice: the Apply process may be partially completed,
+// so it is designed to be reentrant
 Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
   if (epoch_ != snap.snap_epoch_) {
-    // epoch has changed, which means I'm not master now or not long ago
+    // Epoch has changed, which means leader has changed not long ago 
     // simply discard and leave the outside retry
     return Status::Corruption("With expired epoch");
   }
@@ -637,15 +656,17 @@ Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
     }
     epoch_change = true;  // Epoch update as long as some table changed
     if (!t.second.SerializeToString(&value)) {
-      LOG(WARNING) << "SerializeToString ZPMeta::Table failed.";
+      LOG(WARNING) << "SerializeToString ZPMeta::Table failed. Table: "
+        << t.first;
       return Status::InvalidArgument("Failed to serialize Table");
     }
     s = floyd_->Write(t.first, value);
     if (!s.ok()) {
       LOG(ERROR) << "Set table failed: " << s.ToString()
-        << ", Value: " << value;
-      return s;
+        << ", Table: " << t.first << ", Value: " << value;
+      return Status::IOError(s.ToString());
     }
+    LOG(INFO) << "Write table to floyd succ, table : " << t.first;
   }
 
   // Update tablelist
@@ -657,8 +678,9 @@ Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
   if (!s.ok()) {
     LOG(ERROR) << "Set tablelist failed: " << s.ToString()
       << ", Value: " << value;
-    return s;
+    return Status::IOError(s.ToString());
   }
+  LOG(INFO) << "Write table list to floyd succ, table list: " << value;
 
   // Update nodes_
   if (snap.node_changed_) {
@@ -672,20 +694,24 @@ Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
     if (!s.ok()) {
       LOG(ERROR) << "Set meta nodes failed: " << s.ToString()
         << ", Value: " << value;
-      return s;
+      return Status::IOError(s.ToString());
     }
+    LOG(INFO) << "Write nodes to floyd succ, nodes: " << value;
   }
 
   // Epoch + 1
   if (epoch_change) {
-    s = floyd_->Write(kMetaVersion, std::to_string(snap.snap_epoch_ + 1));
+    int new_epoch = snap.snap_epoch_ + 1;
+    s = floyd_->Write(kMetaVersion, std::to_string(new_epoch));
     if (!s.ok()) {
       LOG(ERROR) << "Add Epoch failed: " << s.ToString()
-        << ", Value: " << snap.snap_epoch_ + 1;
-      return s;
+        << ", Value: " << new_epoch;
+      return Status::IOError(s.ToString());
     }
+    LOG(INFO) << "Write new epoch to floyd succ, new epoch: " << new_epoch;
   }
 
+  LOG(INFO) << "Apply snap to floyd succ";
   return Refresh();
 }
 

@@ -26,18 +26,6 @@ ZPMetaMigrateRegister::ZPMetaMigrateRegister(floyd::Floyd* f)
     pthread_rwlock_init(&migrate_rw_, &attr);
   }
 
-Status ZPMetaMigrateRegister::Create(floyd::Floyd* f,
-    ZPMetaMigrateRegister** regist) {
-  ZPMetaMigrateRegister* r = new ZPMetaMigrateRegister(f);
-  Status s = r->Load();
-  if (!s.ok()) {
-    delete r;
-    return s;
-  }
-  *regist = r;
-  return Status::OK();
-}
-
 // Required hold lock of migrate_rw_
 inline bool ZPMetaMigrateRegister::Exist() const {
   return ctime_ != 0;

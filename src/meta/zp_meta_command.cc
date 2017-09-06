@@ -79,15 +79,19 @@ void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
   // Update command such like
   // Init, DropTable, SetMaster, AddSlave and RemoveSlave
   // were handled asynchronously
-  g_meta_server->update_thread()->PendingUpdate(
+  Status s = g_meta_server->update_thread()->PendingUpdate(
       UpdateTask(
         kOpAddTable,
         "",
         table,
         request->init().num()));
-
-  response->set_code(ZPMeta::StatusCode::OK);
-  response->set_msg("Init OK!");
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("Init OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
 }
 
 void SetMasterCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
@@ -99,10 +103,14 @@ void SetMasterCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::SETMASTER);
-  g_meta_server->WaitSetMaster(node, table, p);
-
-  response->set_code(ZPMeta::StatusCode::OK);
-  response->set_msg("SetMaster OK!");
+  Status s = g_meta_server->WaitSetMaster(node, table, p);
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("SetMaster OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
 }
 
 void AddSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
@@ -115,15 +123,20 @@ void AddSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::Mes
 
   response->set_type(ZPMeta::Type::ADDSLAVE);
   std::string ip_port = slash::IpPortString(node.ip(), node.port());
-  g_meta_server->update_thread()->PendingUpdate(
+  Status s = g_meta_server->update_thread()->PendingUpdate(
       UpdateTask(
         kOpAddSlave,
         ip_port,
         table,
         p));
 
-  response->set_code(ZPMeta::StatusCode::OK);
-  response->set_msg("AddSlave OK!");
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("AddSlave OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
 }
 
 void RemoveSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
@@ -136,15 +149,20 @@ void RemoveSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::
 
   response->set_type(ZPMeta::Type::REMOVESLAVE);
   std::string ip_port = slash::IpPortString(node.ip(), node.port());
-  g_meta_server->update_thread()->PendingUpdate(
+  Status s = g_meta_server->update_thread()->PendingUpdate(
       UpdateTask(
         kOpRemoveSlave,
         ip_port,
         table,
         p));
 
-  response->set_code(ZPMeta::StatusCode::OK);
-  response->set_msg("RemoveSlave OK!");
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("RemoveSlave OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
 }
 
 void ListTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
@@ -173,7 +191,7 @@ void DropTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
   response->set_type(ZPMeta::Type::DROPTABLE);
-  
+
   std::string table_name = request->drop_table().name();
   if (table_name.empty()) {
     response->set_code(ZPMeta::StatusCode::ERROR);
@@ -181,13 +199,18 @@ void DropTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
     return;
   }
 
-  g_meta_server->update_thread()->PendingUpdate(
+  Status s = g_meta_server->update_thread()->PendingUpdate(
       UpdateTask(
         kOpRemoveTable,
         table_name));
 
-  response->set_code(ZPMeta::StatusCode::OK);
-  response->set_msg("DropTable OK!");
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("DropTable OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
 }
 
 

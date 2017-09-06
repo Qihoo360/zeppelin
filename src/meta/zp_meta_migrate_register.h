@@ -27,8 +27,8 @@ using slash::Status;
 class ZPMetaMigrateRegister {
  public:
    explicit ZPMetaMigrateRegister(floyd::Floyd* floyd);
-   static Status Create(floyd::Floyd* floyd, ZPMetaMigrateRegister** regist);
 
+   Status Load();
    Status Init(const std::vector<ZPMeta::RelationCmdUnit>& diffs);
    Status Check(ZPMeta::MigrateStatus* status);
    Status Erase(const std::string& diff_key);
@@ -43,7 +43,6 @@ class ZPMetaMigrateRegister {
    std::unordered_set<std::string> diff_keys_;
    floyd::Floyd* floyd_;
 
-   Status Load();
    bool Exist() const;
 
    ZPMetaMigrateRegister();

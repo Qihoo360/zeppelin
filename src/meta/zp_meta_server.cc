@@ -14,7 +14,8 @@
 #include "include/zp_meta.pb.h"
 
 ZPMetaServer::ZPMetaServer()
-  : should_exit_(false) {
+  : should_exit_(false),
+  migrate_processing_(false) {
   LOG(INFO) << "ZPMetaServer start initialization";
   
   // Init Command
@@ -30,11 +31,8 @@ ZPMetaServer::ZPMetaServer()
   // Open InfoStore
   info_store_ = new ZPMetaInfoStore(floyd_);
 
-  // Create Migrate Register
-  s = ZPMetaMigrateRegister::Create(floyd_, &migrate_register_);
-  if (!s.ok()) {
-    LOG(FATAL) << "Failed to create migrate register, error: " << s.ToString();
-  }
+  // Init Migrate Register
+  migrate_register_ = new ZPMetaMigrateRegister(floyd_);
 
   // Init update thread
   update_thread_ = new ZPMetaUpdateThread(info_store_);
@@ -127,6 +125,10 @@ Cmd* ZPMetaServer::GetCmd(const int op) {
 
 Status ZPMetaServer::GetMetaInfoByTable(const std::string& table,
     ZPMeta::MetaCmdResponse_Pull *ms_info) {
+  // Get epoch first and because the epoch was updated at last.
+  //
+  // A newer table meta info with older epoch is acceptable,
+  // which leaves the retry operation to node server
   ms_info->set_version(info_store_->epoch());
   ZPMeta::Table* table_info = ms_info->add_info();
   Status s = info_store_->GetTableMeta(table, table_info);
@@ -140,7 +142,10 @@ Status ZPMetaServer::GetMetaInfoByTable(const std::string& table,
 
 Status ZPMetaServer::GetMetaInfoByNode(const std::string& ip_port,
     ZPMeta::MetaCmdResponse_Pull *ms_info) {
-  // Get epoch first and because the epoch was updated at last
+  // Get epoch first and because the epoch was updated at last.
+  //
+  // A newer table meta info with older epoch is acceptable,
+  // which leaves the retry operation to node server
   ms_info->set_version(info_store_->epoch());
 
   std::set<std::string> tables;
@@ -173,12 +178,17 @@ Status ZPMetaServer::WaitSetMaster(const ZPMeta::Node& node,
   }
 
   // Stuck partition
-  update_thread_->PendingUpdate(
+  s = update_thread_->PendingUpdate(
       UpdateTask(
         ZPMetaUpdateOP::kOpSetStuck,
         "",
         table,
         partition));
+  if (!s.ok()) {
+    LOG(WARNING) << "Pending SetMaster task failed: " << s.ToString()
+      << "Table: " << table << "_" << partition;
+    return s;
+  }
 
   // SetMaster when current node catched up with the master
   condition_cron_->AddCronTask(
@@ -197,15 +207,18 @@ Status ZPMetaServer::WaitSetMaster(const ZPMeta::Node& node,
 }
 
 void ZPMetaServer::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
-  if (info_store_->UpdateNodeInfo(ping)) {
+  if (!info_store_->UpdateNodeInfo(ping)) {
     // new node
     std::string ip_port = slash::IpPortString(ping.node().ip(),
         ping.node().port());
-    LOG(INFO) << "PendingUpdate to add Node Alive " << ip_port;
-    update_thread_->PendingUpdate(
+    LOG(INFO) << "Pending Update Node Up task " << ip_port;
+    Status s = update_thread_->PendingUpdate(
         UpdateTask(
           ZPMetaUpdateOP::kOpUpNode,
           ip_port));
+    if (!s.ok()) {
+      LOG(WARNING) << "Pending Update Node Up failed: " << s.ToString();
+    }
   }
 }
 
@@ -213,12 +226,14 @@ void ZPMetaServer::CheckNodeAlive() {
   std::set<std::string> nodes;
   info_store_->FetchExpiredNode(&nodes);
   for (const auto& n : nodes) {
-    // TODO(wk) Should we mark the node to avoid frequent kOpDownNode operation
     LOG(INFO) << "PendingUpdate to remove Node Alive: " << n;
-    update_thread_->PendingUpdate(
+    Status s = update_thread_->PendingUpdate(
         UpdateTask(
           ZPMetaUpdateOP::kOpDownNode,
           n));
+    if (!s.ok()) {
+      LOG(WARNING) << "Pending Update Node Down failed: " << s.ToString();
+    }
   }
 }
 
@@ -282,33 +297,33 @@ Status ZPMetaServer::Migrate(int epoch, const std::vector<ZPMeta::RelationCmdUni
   Status s = migrate_register_->Init(diffs);
   if (!s.ok()) {
     LOG(WARNING) << "Migrate register Init failed, error: " << s.ToString();
-    return s;
   }
 
-  // retry some time to ProcessMigrate
-  int retry = kInitMigrateRetryNum;
-  do {
-    s = ProcessMigrate();
-  
-  } while (s.IsIncomplete() && retry-- > 0);
+  // Leave the begin of ProcessMigrate in the cron
   return s;
 }
 
-Status ZPMetaServer::ProcessMigrate() {
+void ZPMetaServer::ProcessMigrateIfNeed() {
+  bool expect = false;
+  if (!migrate_processing_.compare_exchange_strong(expect, true)) {
+    return;
+  }
+
   // Get next 
   std::vector<ZPMeta::RelationCmdUnit> diffs;
   Status s = migrate_register_->GetN(kMetaMigrateOnceCount, &diffs);
-  if (s.IsNotFound()) {
-    LOG(INFO) << "No migrate to be processed";
-  } else if (!s.ok()) {
-    LOG(WARNING) << "Get next N migrate diffs failed, error: " << s.ToString();
-    return s;
+  if (!s.ok()) {
+    if (!s.IsNotFound()) {
+      LOG(WARNING) << "Get next N migrate diffs failed, error: "
+        << s.ToString();
+    }
+    return;
   }
 
   bool has_process = false;
   for (const auto& diff : diffs) {
     // Add Slave
-    update_thread_->PendingUpdate(
+    s = update_thread_->PendingUpdate(
         UpdateTask(
           ZPMetaUpdateOP::kOpAddSlave,
           slash::IpPortString(diff.right().ip(), diff.right().port()),
@@ -316,12 +331,19 @@ Status ZPMetaServer::ProcessMigrate() {
           diff.partition()));
 
     // Stuck partition
-    update_thread_->PendingUpdate(
-        UpdateTask(
-          ZPMetaUpdateOP::kOpSetStuck,
-          "",
-          diff.table(),
-          diff.partition()));
+    if (s.ok()) {
+      s = update_thread_->PendingUpdate(
+          UpdateTask(
+            ZPMetaUpdateOP::kOpSetStuck,
+            "",
+            diff.table(),
+            diff.partition()));
+    }
+
+    if (!s.ok()) {
+      LOG(WARNING) << "Pending migrate item failed: " << s.ToString();
+      break;
+    }
 
     // Begin offset condition wait
     condition_cron_->AddCronTask(
@@ -335,15 +357,16 @@ Status ZPMetaServer::ProcessMigrate() {
           slash::IpPortString(diff.left().ip(), diff.left().port()),
           diff.table(),
           diff.partition()));
-
+   
     has_process = true;
   }
 
   if (!has_process) {
     LOG(WARNING) << "No migrate item be success begin";
-    return Status::Incomplete("no migrate item begin");
+    // reset processing flag to enable the retry later
+    migrate_processing_ = false;
   }
-  return Status::OK();
+  return;
 }
 
 bool ZPMetaServer::IsLeader() {
@@ -406,11 +429,23 @@ Status ZPMetaServer::RefreshLeader() {
   if (leader_ip == g_zp_conf->local_ip() && 
       leader_port == g_zp_conf->local_port()) {
     LOG(INFO) << "Become leader: " << leader_ip << ":" << leader_port;
+ 
+    // Restore NodeInfo
     s = info_store_->RestoreNodeInfos();
     if (!s.ok()) {
       LOG(ERROR) << "Restore Node infos failed: " << s.ToString();
       return s;
     }
+    LOG(INFO) << "Restore Node infos succ";
+
+    // Load Migrate
+    s = migrate_register_->Load();
+    if (!s.ok()) {
+      LOG(ERROR) << "Load Migrate failed: " << s.ToString();
+      return s;
+    }
+    LOG(INFO) << "Load Migrate succ";
+
     return Status::OK();
   }
   
@@ -535,5 +570,8 @@ void ZPMetaServer::DoTimingTask() {
 
   // Check alive
   CheckNodeAlive();
+
+  // Process Migrate if needed
+  ProcessMigrateIfNeed();
 }
 

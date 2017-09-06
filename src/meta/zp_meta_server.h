@@ -144,8 +144,9 @@ private:
   void CheckNodeAlive();
   
   // Migrate related
+  std::atomic<bool> migrate_processing_;
   ZPMetaMigrateRegister* migrate_register_;
-  Status ProcessMigrate();
+  void ProcessMigrateIfNeed();
   
   // Statistic related
   QueryStatistic statistic;

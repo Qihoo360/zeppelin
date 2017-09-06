@@ -143,8 +143,6 @@ const int kNodeMetaTimeoutM= 18;
 
 // how many diff item handled one time
 const int kMetaMigrateOnceCount = 2;
-// how many times to retry to process migrate when init
-const int kInitMigrateRetryNum = 3;
 const int kConditionCronInterval= 3; // s
 
 #endif

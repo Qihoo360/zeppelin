@@ -23,18 +23,25 @@ enum ZPMetaUpdateOP : unsigned int {
   kOpSetStuck  //table partition
 };
 
+typedef void (*update_t) (bool complete);
+
 struct UpdateTask {
   ZPMetaUpdateOP op;
   std::string ip_port;
   std::string table;
   int partition;  // or partiiton num for kOpAddTable
+  update_t callback;
+
   UpdateTask(ZPMetaUpdateOP o, const std::string& ip,
-      const std::string&t, int p)
-    : op(o), ip_port(ip), table(t), partition(p) {
+      const std::string&t, int p, update_t c = NULL)
+    : op(o), ip_port(ip), table(t), partition(p),
+    callback(c) {
     }
 
-  UpdateTask(ZPMetaUpdateOP o, const std::string& ip)
-    : op(o), ip_port(ip) { 
+  UpdateTask(ZPMetaUpdateOP o, const std::string& ip,
+      update_t c = NULL)
+    : op(o), ip_port(ip),
+    callback(c) { 
     }
 };
 
@@ -45,9 +52,10 @@ public:
   explicit ZPMetaUpdateThread(ZPMetaInfoStore* is);
   ~ZPMetaUpdateThread();
 
-  void PendingUpdate(const UpdateTask& task, bool priority = false);
+  Status PendingUpdate(const UpdateTask& task);
 
 private:
+  std::atomic<bool> is_stuck_;
   pink::BGThread* worker_;
   slash::Mutex task_mutex_;
   ZPMetaUpdateTaskDeque task_deque_;
