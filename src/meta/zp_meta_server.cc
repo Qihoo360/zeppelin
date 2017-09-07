@@ -14,8 +14,7 @@
 #include "include/zp_meta.pb.h"
 
 ZPMetaServer::ZPMetaServer()
-  : should_exit_(false),
-  migrate_processing_(false) {
+  : should_exit_(false) {
   LOG(INFO) << "ZPMetaServer start initialization";
   
   // Init Command
@@ -35,10 +34,12 @@ ZPMetaServer::ZPMetaServer()
   migrate_register_ = new ZPMetaMigrateRegister(floyd_);
 
   // Init update thread
-  update_thread_ = new ZPMetaUpdateThread(info_store_);
+  update_thread_ = new ZPMetaUpdateThread(info_store_,
+      migrate_register_);
 
   // Init Condition thread
-  condition_cron_ = new ZPMetaConditionCron(info_store_, update_thread_);
+  condition_cron_ = new ZPMetaConditionCron(info_store_,
+      update_thread_);
   
   // Init Server thread
   conn_factory_ = new ZPMetaClientConnFactory(); 
@@ -191,17 +192,29 @@ Status ZPMetaServer::WaitSetMaster(const ZPMeta::Node& node,
   }
 
   // SetMaster when current node catched up with the master
+  std::vector<UpdateTask> updates = {
+    // Handover from old node to new
+    UpdateTask(
+        ZPMetaUpdateOP::kOpSetMaster,
+        slash::IpPortString(node.ip(), node.port()),
+        table,
+        partition),
+
+    // Recover Active
+    UpdateTask(
+        ZPMetaUpdateOP::kOpSetActive,
+        "",
+        table,
+        partition)
+  };
+
   condition_cron_->AddCronTask(
       OffsetCondition(
         table,
         partition,
         master,
         node),
-      UpdateTask(
-        ZPMetaUpdateOP::kOpSetMaster,
-        slash::IpPortString(node.ip(), node.port()),
-        table,
-        partition));
+      updates);
 
   return Status::OK();
 }
@@ -304,11 +317,6 @@ Status ZPMetaServer::Migrate(int epoch, const std::vector<ZPMeta::RelationCmdUni
 }
 
 void ZPMetaServer::ProcessMigrateIfNeed() {
-  bool expect = false;
-  if (!migrate_processing_.compare_exchange_strong(expect, true)) {
-    return;
-  }
-
   // Get next 
   std::vector<ZPMeta::RelationCmdUnit> diffs;
   Status s = migrate_register_->GetN(kMetaMigrateOnceCount, &diffs);
@@ -320,7 +328,6 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
     return;
   }
 
-  bool has_process = false;
   for (const auto& diff : diffs) {
     // Add Slave
     s = update_thread_->PendingUpdate(
@@ -346,27 +353,31 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
     }
 
     // Begin offset condition wait
+    std::vector<UpdateTask> updates = {
+      // Handover from old node to new
+      UpdateTask(
+          ZPMetaUpdateOP::kOpHandover,
+          slash::IpPortString(diff.left().ip(), diff.left().port()),
+          slash::IpPortString(diff.right().ip(), diff.right().port()),
+          diff.table(),
+          diff.partition()),
+
+      // Recover Active
+      UpdateTask(
+          ZPMetaUpdateOP::kOpSetActive,
+          "",
+          diff.table(),
+          diff.partition())
+    };
+
     condition_cron_->AddCronTask(
         OffsetCondition(
           diff.table(),
           diff.partition(),
           diff.left(),
           diff.right()),
-        UpdateTask(
-          ZPMetaUpdateOP::kOpRemoveSlave,
-          slash::IpPortString(diff.left().ip(), diff.left().port()),
-          diff.table(),
-          diff.partition()));
-   
-    has_process = true;
+        updates);
   }
-
-  if (!has_process) {
-    LOG(WARNING) << "No migrate item be success begin";
-    // reset processing flag to enable the retry later
-    migrate_processing_ = false;
-  }
-  return;
 }
 
 bool ZPMetaServer::IsLeader() {
@@ -417,7 +428,7 @@ Status ZPMetaServer::RefreshLeader() {
       && leader_cmd_port == leader_joint_.port) {
     return Status::OK();
   }
-  
+
   // Leader changed
   LOG(WARNING) << "Leader changed from: "
     << leader_joint_.ip << ":" << leader_joint_.port
@@ -429,7 +440,10 @@ Status ZPMetaServer::RefreshLeader() {
   if (leader_ip == g_zp_conf->local_ip() && 
       leader_port == g_zp_conf->local_port()) {
     LOG(INFO) << "Become leader: " << leader_ip << ":" << leader_port;
- 
+
+    // Active Update
+    update_thread_->Active();
+
     // Restore NodeInfo
     s = info_store_->RestoreNodeInfos();
     if (!s.ok()) {
@@ -448,7 +462,15 @@ Status ZPMetaServer::RefreshLeader() {
 
     return Status::OK();
   }
-  
+
+  // Abandon UpdateThread
+  // It's safe to just abandon all tasks of update thread, since:
+  //  As our design, most of the task could be retry outside,
+  //  such as those were launched by Ping or Migrate Process.
+  //  The rest comes from admin command,
+  //  whose lost is acceptable and could be retry by administrator.
+  update_thread_->Abandon();
+
   // Connect to new leader
   leader_joint_.cli = pink::NewPbCli();
   leader_joint_.ip = leader_ip;
@@ -555,8 +577,15 @@ void ZPMetaServer::DoTimingTask() {
     LOG(WARNING) << "Refresh Leader failed: " << s.ToString();
   }
 
-  // Refresh info_store
-  if (!IsLeader()) {
+  if (IsLeader()) {
+    // Check alive
+    CheckNodeAlive();
+    
+    // Process Migrate if needed
+    ProcessMigrateIfNeed();
+
+  } else {
+    // Refresh info_store if not leader
     Status s = info_store_->Refresh();
     if (!s.ok()) {
       LOG(WARNING) << "Refresh info_store_ failed: " << s.ToString();
@@ -567,11 +596,5 @@ void ZPMetaServer::DoTimingTask() {
   ResetLastSecQueryNum();
   LOG(INFO) << "ServerQueryNum: " << statistic.query_num
       << " ServerCurrentQps: " << statistic.last_qps;
-
-  // Check alive
-  CheckNodeAlive();
-
-  // Process Migrate if needed
-  ProcessMigrateIfNeed();
 }
 

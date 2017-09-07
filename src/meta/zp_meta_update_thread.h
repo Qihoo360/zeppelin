@@ -10,56 +10,72 @@
 #include "slash/include/slash_status.h"
 #include "include/zp_meta.pb.h"
 #include "src/meta/zp_meta_info_store.h"
+#include "src/meta/zp_meta_migrate_register.h"
 
 enum ZPMetaUpdateOP : unsigned int {
-  kOpUpNode,  // ip_port
-  kOpDownNode,  // ip_port
-  kOpAddTable,  // table parition num
+  kOpUpNode,
+  kOpDownNode,
+  kOpAddTable,
   kOpRemoveTable,
-  kOpAddSlave,  // ip_port table partition
-  kOpRemoveSlave,  // ip_port table partition
-  kOpRemoveDup,  // ip_port table partition
-  kOpSetMaster,  // ip_port table partition
-  kOpSetStuck  //table partition
+  kOpAddSlave,
+  kOpRemoveSlave,
+  kOpHandover,  // Replace one node by another with the same role
+  kOpSetMaster,
+  kOpSetStuck,  // Stuck the partition
+  kOpSetActive  // ACTIVE the partition
 };
-
-typedef void (*update_t) (bool complete);
 
 struct UpdateTask {
   ZPMetaUpdateOP op;
   std::string ip_port;
+  std::string ip_port_o;
   std::string table;
   int partition;  // or partiiton num for kOpAddTable
-  update_t callback;
 
-  UpdateTask(ZPMetaUpdateOP o, const std::string& ip,
-      const std::string&t, int p, update_t c = NULL)
-    : op(o), ip_port(ip), table(t), partition(p),
-    callback(c) {
+  UpdateTask(ZPMetaUpdateOP o,
+      const std::string& ip,
+      const std::string& ip1,
+      const std::string&t,
+      int p)
+    : op(o), ip_port(ip), ip_port_o(ip1),
+    table(t), partition(p) { 
     }
 
-  UpdateTask(ZPMetaUpdateOP o, const std::string& ip,
-      update_t c = NULL)
-    : op(o), ip_port(ip),
-    callback(c) { 
+  UpdateTask(ZPMetaUpdateOP o,
+      const std::string& ip,
+      const std::string&t,
+      int p)
+    : op(o), ip_port(ip), table(t), partition(p) {
     }
+
+  UpdateTask(ZPMetaUpdateOP o,
+      const std::string& ip)
+    : op(o), ip_port(ip) { 
+    }
+
 };
 
 typedef std::deque<UpdateTask> ZPMetaUpdateTaskDeque;
 
 class ZPMetaUpdateThread {
 public:
-  explicit ZPMetaUpdateThread(ZPMetaInfoStore* is);
+  explicit ZPMetaUpdateThread(ZPMetaInfoStore* is,
+      ZPMetaMigrateRegister* migrate);
   ~ZPMetaUpdateThread();
 
   Status PendingUpdate(const UpdateTask& task);
+  void Active();
+  void Abandon();
 
 private:
   std::atomic<bool> is_stuck_;
+  std::atomic<bool> should_stop_;
   pink::BGThread* worker_;
   slash::Mutex task_mutex_;
   ZPMetaUpdateTaskDeque task_deque_;
   ZPMetaInfoStore* info_store_;
+  ZPMetaMigrateRegister* migrate_;
+
   static void UpdateFunc(void *p);
   Status ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque);
 

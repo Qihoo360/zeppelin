@@ -7,9 +7,12 @@
 
 extern ZPMetaServer* g_meta_server;
 
-ZPMetaUpdateThread::ZPMetaUpdateThread(ZPMetaInfoStore* is)
+ZPMetaUpdateThread::ZPMetaUpdateThread(ZPMetaInfoStore* is,
+    ZPMetaMigrateRegister* m)
   : is_stuck_(false),
-  info_store_(is) {
+  should_stop_(true),
+  info_store_(is),
+  migrate_(m) {
   worker_ = new pink::BGThread();
   worker_->set_thread_name("ZPMetaUpdate");
 }
@@ -19,11 +22,17 @@ ZPMetaUpdateThread::~ZPMetaUpdateThread() {
   delete worker_;
 }
 
+// Invoker should handle the Pending failed situation
 Status ZPMetaUpdateThread::PendingUpdate(const UpdateTask &task) {
+  // This check and set is not atomic, since it is acceptable
   if (is_stuck_) {
     return Status::Incomplete("Update thread stucked");
   }
+
   slash::MutexLock l(&task_mutex_);
+  if (should_stop_) {
+    return Status::Incomplete("Update thread should be stop");
+  }
   task_deque_.push_back(task);
 
   if (task_deque_.size() == 1) {
@@ -31,6 +40,23 @@ Status ZPMetaUpdateThread::PendingUpdate(const UpdateTask &task) {
     worker_->DelaySchedule(kMetaDispathCronInterval,
         &UpdateFunc, static_cast<void*>(this));
   }
+  return Status::OK();
+}
+
+void ZPMetaUpdateThread::Active() {
+  slash::MutexLock l(&task_mutex_);
+  should_stop_ = false;
+}
+
+void ZPMetaUpdateThread::Abandon() {
+  {
+  slash::MutexLock l(&task_mutex_);
+  should_stop_ = true;
+  task_deque_.clear();
+  }
+  worker_->StopThread();
+  worker_->QueueClear();
+
 }
 
 void ZPMetaUpdateThread::UpdateFunc(void *p) {
@@ -52,9 +78,7 @@ Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
   info_store_->GetSnapshot(&info_store_snap);
   
   Status s;
-  while (!task_deque.empty()) {
-    UpdateTask cur_task = task_deque.front();
-    task_deque.pop_front();
+  for (const auto cur_task : task_deque) {
     switch (cur_task.op) {
       case ZPMetaUpdateOP::kOpUpNode:
         s = info_store_snap.UpNode(cur_task.ip_port);
@@ -66,9 +90,9 @@ Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
         s = info_store_snap.AddSlave(cur_task.table, cur_task.partition,
             cur_task.ip_port);
         break;
-      case ZPMetaUpdateOP::kOpRemoveDup:
-        s = info_store_snap.DeleteDup(cur_task.table, cur_task.partition,
-            cur_task.ip_port);
+      case ZPMetaUpdateOP::kOpHandover:
+        s = info_store_snap.Handover(cur_task.table, cur_task.partition,
+            cur_task.ip_port, cur_task.ip_port_o);
       case ZPMetaUpdateOP::kOpRemoveSlave:
         s = info_store_snap.DeleteSlave(cur_task.table, cur_task.partition,
             cur_task.ip_port);
@@ -84,7 +108,12 @@ Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
         s = info_store_snap.RemoveTable(cur_task.table);
         break;
       case ZPMetaUpdateOP::kOpSetStuck:
-        s = info_store_snap.SetStuck(cur_task.table, cur_task.partition);
+        s = info_store_snap.ChangePState(cur_task.table,
+            cur_task.partition, true);
+        break;
+      case ZPMetaUpdateOP::kOpSetActive:
+        s = info_store_snap.ChangePState(cur_task.table,
+            cur_task.partition, false);
         break;
       default:
         s = Status::Corruption("Unknown task type");
@@ -102,7 +131,7 @@ Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
   
   // Write back to info_store
   s = info_store_->Apply(info_store_snap);
-  while (s.IsIOError()) {
+  while (!should_stop_ && s.IsIOError()) {
     is_stuck_ = true;
     LOG(WARNING) << "Failed to apply update change since floyd error: "
       << s.ToString() << ", Retry in 1 second";
@@ -111,9 +140,33 @@ Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
   }
   is_stuck_ = false;
 
+  if (should_stop_) {
+    return s;
+  }
+
   if (!s.ok()) {
+    // It's a good choice to just discard the error task, because:
+    // 1, It couldn't be recovery
+    // 2, As our design, most of the task could be retry outside,
+    //    such as those were launched by Ping or Migrate Process.
+    //    The rest comes from admin command,
+    //    whose lost is acceptable and could be retry by administrator.
     LOG(ERROR) << "Failed to apply update change to info_store: " << s.ToString();
-  } 
+    return s;
+  }
+
+
+  // Some finish touches
+  for (const auto cur_task : task_deque) {
+    if (cur_task.op == ZPMetaUpdateOP::kOpHandover) {
+      migrate_->Erase(
+          DiffKey(cur_task.table,
+            cur_task.partition,
+            cur_task.ip_port_o,
+            cur_task.ip_port));
+    }
+  }
+
   return s;
 }
 

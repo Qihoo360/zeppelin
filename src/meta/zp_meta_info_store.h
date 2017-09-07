@@ -57,11 +57,11 @@ class ZPMetaInfoStoreSnap {
        const std::string& ip_port);
    Status DeleteSlave(const std::string& table, int partition,
        const std::string& ip_port);
-   Status DeleteDup(const std::string& table, int partition,
-       const std::string& ip_port);
+   Status Handover(const std::string& table, int partition,
+       const std::string& ip_port, const std::string& ip_port_o);
    Status SetMaster(const std::string& table, int partition,
        const std::string& ip_port);
-   Status SetStuck(const std::string& table, int partition);
+   Status ChangePState(const std::string& table, int partition, bool to_stuck);
    Status AddTable(const std::string& table, int num);
    Status RemoveTable(const std::string& table);
    void RefreshTableWithNodeAlive();

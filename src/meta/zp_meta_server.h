@@ -111,6 +111,9 @@ class ZPMetaServer {
   Status CancelMigrate() {
     return migrate_register_->Cancel();
   }
+  bool MigrateExist() {
+    return migrate_register_->ExistWithLock();
+  }
 
   // Leader related
   Status RedirectToLeader(ZPMeta::MetaCmd &request,
@@ -144,7 +147,6 @@ private:
   void CheckNodeAlive();
   
   // Migrate related
-  std::atomic<bool> migrate_processing_;
   ZPMetaMigrateRegister* migrate_register_;
   void ProcessMigrateIfNeed();
   

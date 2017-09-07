@@ -1,30 +1,44 @@
 #include "src/meta/zp_meta_migrate_register.h"
 #include "slash/include/env.h"
 #include "slash/include/slash_mutex.h"
+#include "slash/include/slash_string.h"
 #include <glog/logging.h>
 
 static const std::string kMigrateHeadKey = "##migrate";
  
 std::string DiffKey(const ZPMeta::RelationCmdUnit& diff) {
+  return DiffKey(diff.table(), diff.partition(),
+      slash::IpPortString(diff.left().ip(), diff.left().port()),
+      slash::IpPortString(diff.right().ip(), diff.right().port()));
+}
+
+std::string DiffKey(const std::string& table, int partition,
+    const std::string& left_ip_port,
+    const std::string& right_ip_port) {
   char buf[256];
-  snprintf(buf, sizeof(buf), "%s_%u_%s:%u_%s:%u",
-      diff.table().c_str(), diff.partition(),
-      diff.left().ip().c_str(), diff.left().port(),
-      diff.right().ip().c_str(), diff.right().port());
+  snprintf(buf, sizeof(buf), "%s_%u_%s_%s",
+      table.c_str(), partition,
+      left_ip_port.c_str(),
+      right_ip_port.c_str());
   return std::string(buf);
 }
 
 ZPMetaMigrateRegister::ZPMetaMigrateRegister(floyd::Floyd* f)
   : ctime_(0),
   total_size_(0),
+  refer_(0),
   floyd_(f) {
-
     pthread_rwlockattr_t attr;
     pthread_rwlockattr_init(&attr);
     pthread_rwlockattr_setkind_np(&attr,
         PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
     pthread_rwlock_init(&migrate_rw_, &attr);
   }
+
+bool ZPMetaMigrateRegister::ExistWithLock() {
+  slash::RWLock l(&migrate_rw_, false);
+  return ctime_ != 0;
+}
 
 // Required hold lock of migrate_rw_
 inline bool ZPMetaMigrateRegister::Exist() const {
@@ -93,7 +107,7 @@ Status ZPMetaMigrateRegister::Check(ZPMeta::MigrateStatus* status) {
   if (!Exist()) {
     return Status::NotFound("No migrate exist");
   }
-
+  
   status->set_begin_time(ctime_);
   if (total_size_ == 0) {
     return Status::Corruption("totol size be zero");
@@ -111,6 +125,10 @@ Status ZPMetaMigrateRegister::Erase(const std::string& diff_key) {
 
   if (diff_keys_.find(diff_key) == diff_keys_.end()) {
     return Status::Complete("diff not found, may finished");
+  }
+
+  if (refer_ > 0) {
+    refer_--;
   }
 
   // Update MigrateHead
@@ -147,6 +165,8 @@ Status ZPMetaMigrateRegister::Erase(const std::string& diff_key) {
 }
 
 // Get some diff item
+// Return NotFound if the no migrate exist
+// Return Incomplete if some task has already fetch out
 // Notice the actually diff item may less than count
 Status ZPMetaMigrateRegister::GetN(uint32_t count,
     std::vector<ZPMeta::RelationCmdUnit>* diff_items) {
@@ -157,6 +177,10 @@ Status ZPMetaMigrateRegister::GetN(uint32_t count,
 
   if (diff_keys_.size() < count) {
     count = diff_keys_.size();
+  }
+
+  if (refer_ > 0) {
+    return Status::Incomplete("some task is not completed");
   }
 
   std::string diff_value;
@@ -179,6 +203,7 @@ Status ZPMetaMigrateRegister::GetN(uint32_t count,
 
     diff_items->push_back(diff);
   }
+  refer_ = count;
   return Status::OK();
 }
 
@@ -198,8 +223,9 @@ Status ZPMetaMigrateRegister::Cancel() {
   }
   diff_keys_.clear();
   total_size_ = 0;
-  
   ctime_ = 0;
+  refer_ = 0;
+
   return Status::OK();
 }
 

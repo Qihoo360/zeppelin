@@ -14,6 +14,7 @@
 #ifndef SRC_META_ZP_META_CONDITION_CRON_H_
 #define SRC_META_ZP_META_CONDITION_CRON_H_
 #include <string>
+#include <vector>
 #include "pink/include/bg_thread.h"
 #include "include/zp_meta.pb.h"
 #include "src/meta/zp_meta_update_thread.h"
@@ -38,7 +39,7 @@ class ZPMetaConditionCron {
       ZPMetaUpdateThread* update_thread);
   virtual ~ZPMetaConditionCron();
   void AddCronTask(const OffsetCondition& condition,
-      const UpdateTask& update_task);
+      const std::vector<UpdateTask>& update_set);
 
  private:
   pink::BGThread* bg_thread_;
@@ -46,15 +47,15 @@ class ZPMetaConditionCron {
   ZPMetaUpdateThread* update_thread_;
   static void CronFunc(void *p);
   bool ChecknProcess(const OffsetCondition& condition,
-      const UpdateTask& update_task);
+      const std::vector<UpdateTask>& update_set);
 
   struct OffsetConditionArg {
     ZPMetaConditionCron* cron;
     OffsetCondition condition;
-    UpdateTask update_task;
+    std::vector<UpdateTask> update_set;
     OffsetConditionArg(ZPMetaConditionCron* cur,
-        OffsetCondition cond, UpdateTask t)
-      : cron(cur), condition(cond), update_task(t) {}
+        OffsetCondition cond, std::vector<UpdateTask> us)
+      : cron(cur), condition(cond), update_set(us) {}
   };
 
 };

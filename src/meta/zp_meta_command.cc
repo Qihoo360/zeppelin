@@ -148,6 +148,14 @@ void RemoveSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::REMOVESLAVE);
+
+  // Just approximately check, not atomic between check and set
+  if (g_meta_server->MigrateExist()) {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg("Migrate exist");
+    return;
+  }
+
   std::string ip_port = slash::IpPortString(node.ip(), node.port());
   Status s = g_meta_server->update_thread()->PendingUpdate(
       UpdateTask(

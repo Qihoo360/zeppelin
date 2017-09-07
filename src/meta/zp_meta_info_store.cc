@@ -98,19 +98,19 @@ Status ZPMetaInfoStoreSnap::AddSlave(const std::string& table, int partition,
   return Status::OK();
 }
 
-// Delete node from partition no mater it's master or slave
-Status ZPMetaInfoStoreSnap::DeleteDup(const std::string& table, int partition,
-    const std::string& ip_port) {
+// Handover from ip_port_o to ip_port
+Status ZPMetaInfoStoreSnap::Handover(const std::string& table, int partition,
+    const std::string& ip_port, const std::string& ip_port_o) {
   Status s = Status::OK();
-  if (DeleteSlave(table, partition, ip_port).IsInvalidArgument()) {
+  
+  // Assume the ip_port_o is slave and try
+  if (DeleteSlave(table, partition, ip_port_o).IsInvalidArgument()) {
     // Table and parition is exist but current node is master
-    const ZPMeta::Node one_slave = tables_[table].partitions(partition).slaves(0);
-    s = SetMaster(table, partition,
-        slash::IpPortString(one_slave.ip(), one_slave.port()));
+    s = SetMaster(table, partition, ip_port);
     if (!s.ok()) {
       return s;
     }
-    s = DeleteSlave(table, partition, ip_port);
+    s = DeleteSlave(table, partition, ip_port_o);
   }
   return s;
 }
@@ -246,8 +246,9 @@ Status ZPMetaInfoStoreSnap::AddTable(const std::string& table, int num) {
   return Status::OK();
 }
 
-Status ZPMetaInfoStoreSnap::SetStuck(const std::string& table,
-    int partition) {
+// Set stuck if to_stuck is true, otherwise set alive 
+Status ZPMetaInfoStoreSnap::ChangePState(const std::string& table,
+    int partition, bool to_stuck) {
   if (tables_.find(table) == tables_.end()) {
     return Status::NotFound("Table not exist");
   }
@@ -256,7 +257,11 @@ Status ZPMetaInfoStoreSnap::SetStuck(const std::string& table,
   if (!pptr) {
     return Status::NotFound("Partition not exist");
   }
-  pptr->set_state(ZPMeta::PState::STUCK);
+  if (to_stuck) {
+    pptr->set_state(ZPMeta::PState::STUCK);
+  } else {
+    pptr->set_state(ZPMeta::PState::ACTIVE);
+  }
   table_changed_[table] = true;
   return Status::OK();
 }
