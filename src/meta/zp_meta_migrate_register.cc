@@ -230,10 +230,7 @@ Status ZPMetaMigrateRegister::Cancel() {
 }
 
 Status ZPMetaMigrateRegister::Load() {
-  slash::RWLock l(&migrate_rw_, false);
-  if (!Exist()) {
-    return Status::OK();
-  }
+  slash::RWLock l(&migrate_rw_, true);
 
   std::string head_value;
   Status fs = floyd_->Read(kMigrateHeadKey, head_value);

@@ -225,6 +225,10 @@ Status ZPMetaInfoStoreSnap::AddTable(const std::string& table, int num) {
     node_index++;
   }
 
+  if (cross_nodes.empty()) {
+    return Status::Corruption("No zp node exist");
+  }
+
   // Distribute
   ZPMeta::Table meta_table;
 	std::srand(std::time(0));
@@ -373,7 +377,7 @@ Status ZPMetaInfoStore::Refresh() {
   if (fs.ok()) {
     tmp_epoch = std::stoi(value);
   } else if (fs.IsNotFound()) {
-    LOG(INFO) << "Epoch not found in floyd";
+    LOG(INFO) << "Epoch not found in floyd, set -1";
     epoch_ = -1;
     return Status::OK();
   } else {
@@ -454,7 +458,13 @@ Status ZPMetaInfoStore::RestoreNodeInfos() {
   // Read all nodes
   std::string value;
   ZPMeta::Nodes allnodes;
+
+  slash::RWLock l(&nodes_rw_, true);
   Status fs = floyd_->Read(kMetaNodes, value);
+  if (fs.IsNotFound()) {
+    node_infos_.clear();
+    return Status::OK();  // no meta info exist
+  }
   if (!fs.ok()) {
     LOG(ERROR) << "Load meta nodes failed: " << fs.ToString();
     return fs;
@@ -464,7 +474,6 @@ Status ZPMetaInfoStore::RestoreNodeInfos() {
     return slash::Status::Corruption("Parse failed");
   }
   
-  slash::RWLock l(&nodes_rw_, true);
   std::string ip_port;
   node_infos_.clear();
   for (const auto& node_s : allnodes.nodes()) {
@@ -701,7 +710,7 @@ Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
         << ", Value: " << value;
       return Status::IOError(s.ToString());
     }
-    LOG(INFO) << "Write nodes to floyd succ, nodes: " << value;
+    LOG(INFO) << "Write nodes to floyd succ";
   }
 
   // Epoch + 1

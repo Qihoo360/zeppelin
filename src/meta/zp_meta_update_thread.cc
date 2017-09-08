@@ -73,12 +73,21 @@ void ZPMetaUpdateThread::UpdateFunc(void *p) {
 }
 
 Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
+  
+  LOG(INFO) << "Begin Appply Updates, task count: " << task_deque.size();
   // Get current meta info
   ZPMetaInfoStoreSnap info_store_snap;
   info_store_->GetSnapshot(&info_store_snap);
   
   Status s;
+  bool has_succ = false;
   for (const auto cur_task : task_deque) {
+    LOG(INFO) << "Apply one task, task type: "
+      << static_cast<int>(cur_task.op)
+      << ", table: " << cur_task.table
+      << ", partition: " << cur_task.partition
+      << ", ip_port: " << cur_task.ip_port
+      << ", ip_port_o: " << cur_task.ip_port_o;
     switch (cur_task.op) {
       case ZPMetaUpdateOP::kOpUpNode:
         s = info_store_snap.UpNode(cur_task.ip_port);
@@ -123,7 +132,15 @@ Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
       LOG(WARNING) << "Update task process failed: " << s.ToString()
         << "task: (" << static_cast<int>(cur_task.op) << ", " << cur_task.table
         << ", " << cur_task.partition << ", " << cur_task.ip_port;
+    } else {
+      has_succ = true;
     }
+  }
+
+  if (!has_succ) {
+    // No succ item
+    LOG(WARNING) << "No update apply task succ";
+    return Status::Corruption("No update apply task succ");
   }
 
   // Check node alive and change table master

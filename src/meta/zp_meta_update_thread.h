@@ -50,7 +50,7 @@ struct UpdateTask {
 
   UpdateTask(ZPMetaUpdateOP o,
       const std::string& ip)
-    : op(o), ip_port(ip) { 
+    : op(o), ip_port(ip), partition(-1) { 
     }
 
 };

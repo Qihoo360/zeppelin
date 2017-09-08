@@ -14,7 +14,8 @@
 #include "include/zp_meta.pb.h"
 
 ZPMetaServer::ZPMetaServer()
-  : should_exit_(false) {
+  : should_exit_(false),
+  is_leader_(false) {
   LOG(INFO) << "ZPMetaServer start initialization";
   
   // Init Command
@@ -64,6 +65,7 @@ ZPMetaServer::~ZPMetaServer() {
   delete info_store_;
   delete floyd_;
 
+  slash::MutexLock l(&leader_mutex);
   leader_joint_.CleanLeader();
   DestoryCmdTable(cmds_);
   LOG(INFO) << "ZPMetaServer Delete Done";
@@ -80,6 +82,7 @@ Status ZPMetaServer::OpenFloyd() {
       LOG(WARNING) << "Error meta addr: " << it;
       return Status::Corruption("Error meta addr");
     }
+    it = slash::IpPortString(ip, port + kMetaPortShiftFY);
   }
   fy_options.local_ip = g_zp_conf->local_ip();
   fy_options.local_port = g_zp_conf->local_port() + kMetaPortShiftFY;
@@ -380,19 +383,10 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
   }
 }
 
-bool ZPMetaServer::IsLeader() {
-  slash::MutexLock l(&(leader_joint_.mutex));
-  if (leader_joint_.ip == g_zp_conf->local_ip() && 
-      leader_joint_.port == g_zp_conf->local_port() + kMetaPortShiftCmd) {
-    return true;
-  }
-  return false;
-}
-
+// Required hold mutex of leader_mutex
 Status ZPMetaServer::RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse *response) {
   // Do not try to connect leader even failed,
   // and leave this to RefreshLeader process in cron
-  slash::MutexLock l(&(leader_joint_.mutex));
   if (leader_joint_.cli == NULL) {
     LOG(ERROR) << "Failed to RedirectToLeader, cli is NULL";
     return Status::Corruption("no leader connection");
@@ -421,11 +415,17 @@ Status ZPMetaServer::RefreshLeader() {
     return Status::Incomplete("No leader yet");
   }
 
-  // No change
   leader_cmd_port = leader_port + kMetaPortShiftCmd;
-  slash::MutexLock l(&(leader_joint_.mutex));
-  if (leader_ip == leader_joint_.ip
-      && leader_cmd_port == leader_joint_.port) {
+  slash::MutexLock l(&leader_mutex);
+  if (is_leader_
+      && (leader_ip == g_zp_conf->local_ip()
+        && leader_cmd_port == g_zp_conf->local_port())) {
+      // I'm Leader, and stay the same
+      return Status::OK();
+  } else if (!is_leader_
+      && (leader_ip == leader_joint_.ip
+        && leader_cmd_port == leader_joint_.port)) {
+    // I'm Follower, and leader stay the same
     return Status::OK();
   }
 
@@ -433,16 +433,20 @@ Status ZPMetaServer::RefreshLeader() {
   LOG(WARNING) << "Leader changed from: "
     << leader_joint_.ip << ":" << leader_joint_.port
     << ", To: " <<  leader_ip << ":" << leader_cmd_port;
+  
+  // Clear
+  is_leader_ = false;
   leader_joint_.CleanLeader();
 
   // I'm new leader
   Status s;
   if (leader_ip == g_zp_conf->local_ip() && 
-      leader_port == g_zp_conf->local_port()) {
+      leader_cmd_port == g_zp_conf->local_port()) {
     LOG(INFO) << "Become leader: " << leader_ip << ":" << leader_port;
 
     // Active Update
     update_thread_->Active();
+    LOG(INFO) << "Update thread active succ";
 
     // Restore NodeInfo
     s = info_store_->RestoreNodeInfos();
@@ -460,6 +464,7 @@ Status ZPMetaServer::RefreshLeader() {
     }
     LOG(INFO) << "Load Migrate succ";
 
+    is_leader_ = true;
     return Status::OK();
   }
 
@@ -470,6 +475,7 @@ Status ZPMetaServer::RefreshLeader() {
   //  The rest comes from admin command,
   //  whose lost is acceptable and could be retry by administrator.
   update_thread_->Abandon();
+  LOG(INFO) << "Update thread abandon finish";
 
   // Connect to new leader
   leader_joint_.cli = pink::NewPbCli();
@@ -577,24 +583,26 @@ void ZPMetaServer::DoTimingTask() {
     LOG(WARNING) << "Refresh Leader failed: " << s.ToString();
   }
 
-  if (IsLeader()) {
+  {
+  slash::MutexLock l(&leader_mutex);
+  if (is_leader_) {  // Is Leader
     // Check alive
     CheckNodeAlive();
     
     // Process Migrate if needed
     ProcessMigrateIfNeed();
+  }
+  }
 
-  } else {
-    // Refresh info_store if not leader
-    Status s = info_store_->Refresh();
-    if (!s.ok()) {
-      LOG(WARNING) << "Refresh info_store_ failed: " << s.ToString();
-    }
+  // Refresh info_store
+  s = info_store_->Refresh();
+  if (!s.ok()) {
+    LOG(WARNING) << "Refresh info_store_ failed: " << s.ToString();
   }
 
   // Update statistic info
   ResetLastSecQueryNum();
   LOG(INFO) << "ServerQueryNum: " << statistic.query_num
-      << " ServerCurrentQps: " << statistic.last_qps;
+    << " ServerCurrentQps: " << statistic.last_qps;
 }
 

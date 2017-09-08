@@ -38,6 +38,7 @@ int ZPMetaClientConn::DealMessage() {
   set_is_reply(true);
   
   // Server ensure leader has been elect here
+  slash::MutexLock l(&(g_meta_server->leader_mutex));
   if (cmd->is_redirect()
       && !g_meta_server->IsLeader()) {
     Status s = g_meta_server->RedirectToLeader(request_, &response_);

@@ -34,12 +34,12 @@ void PullCmd::Do(const google::protobuf::Message *req,
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
   response->set_type(ZPMeta::Type::PULL);
   
+  ZPMeta::MetaCmdResponse_Pull tmp_info;
   Status s = Status::InvalidArgument("error argument");
-  ZPMeta::MetaCmdResponse_Pull* ms_info = response->mutable_pull();
   if (request->pull().has_name()) {
     std::string raw_table = request->pull().name();
     std::string table = slash::StringToLower(raw_table);
-    s = g_meta_server->GetMetaInfoByTable(table, ms_info);
+    s = g_meta_server->GetMetaInfoByTable(table, &tmp_info);
     if (!s.ok()) {
       LOG(WARNING) << "Pull by table failed: " << s.ToString()
         << ", Table: " << table;
@@ -47,7 +47,7 @@ void PullCmd::Do(const google::protobuf::Message *req,
   } else if (request->pull().has_node()) {
     std::string ip_port = slash::IpPortString(request->pull().node().ip(),
         request->pull().node().port());
-    s = g_meta_server->GetMetaInfoByNode(ip_port, ms_info);
+    s = g_meta_server->GetMetaInfoByNode(ip_port, &tmp_info);
     if (!s.ok()) {
       LOG(WARNING) << "Pull by node failed: " << s.ToString()
         << ", Node: " << ip_port;
@@ -58,6 +58,8 @@ void PullCmd::Do(const google::protobuf::Message *req,
     response->set_code(ZPMeta::StatusCode::ERROR);
     response->set_msg(s.ToString());
   } else {
+    ZPMeta::MetaCmdResponse_Pull* ms_info = response->mutable_pull();
+    ms_info->CopyFrom(tmp_info);
     response->set_code(ZPMeta::StatusCode::OK);
     response->set_msg("Pull Ok!");
   }
