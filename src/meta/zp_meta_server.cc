@@ -757,7 +757,6 @@ bool ZPMetaServer::IsLeader() {
     leader_cli_ = NULL;
     return false;
   }
-  LOG(INFO) << "Leader: " << leader_ip << ":" << leader_port;
 
   slash::MutexLock l(&leader_mutex_);
   leader_cmd_port = leader_port + kMetaPortShiftCmd;
