@@ -106,6 +106,8 @@ class ZPMetaInfoStore {
        ZPMeta::Table* table_meta);
    Status GetPartitionMaster(const std::string& table,
        int partition, ZPMeta::Node* master);
+   bool IsSlave(const std::string& table,
+       int partition, const ZPMeta::Node& target);
 
    // Interact with floyd
    Status Refresh();

@@ -22,11 +22,11 @@ void ZPMetaConditionCron::AddCronTask(const OffsetCondition& condition,
     const std::vector<UpdateTask>& update_set) {
   int ret = bg_thread_->StartThread();
   if (ret != 0) {
-    LOG(ERROR) << "Failed to start meta condition cron, ret: " << ret;
+    LOG(FATAL) << "Failed to start meta condition cron, ret: " << ret;
   }
   OffsetConditionArg* oarg = new OffsetConditionArg(this,
       condition, update_set);
-  bg_thread_->DelaySchedule(kConditionCronInterval * 1000,
+  bg_thread_->DelaySchedule(kConditionCronInterval,
       &CronFunc, static_cast<void*>(oarg));
 }
 
@@ -49,15 +49,16 @@ bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
       condition.table, condition.partition_id,
       &left_offset);
   if (!s.ok()) {
-    return false;
+    return true;
   }
-
   s = info_store_->GetNodeOffset(condition.right,
       condition.table, condition.partition_id,
       &right_offset);
+  if (!s.ok()) {
+    return true;
+  }
 
-  if (!s.ok()
-      || left_offset != right_offset) {
+  if (left_offset != right_offset) {
     // Not yet equal
     return false;
   }

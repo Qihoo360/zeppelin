@@ -134,8 +134,8 @@ inline bool PState_Parse(
     PState_descriptor(), name, value);
 }
 enum NodeState {
-  UP = 1,
-  DOWN = 2
+  UP = 0,
+  DOWN = 1
 };
 bool NodeState_IsValid(int value);
 const NodeState NodeState_MIN = UP;
@@ -3179,7 +3179,7 @@ inline void NodeStatus::clear_has_status() {
   _has_bits_[0] &= ~0x00000002u;
 }
 inline void NodeStatus::clear_status() {
-  status_ = 1;
+  status_ = 0;
   clear_has_status();
 }
 inline ::ZPMeta::NodeState NodeStatus::status() const {

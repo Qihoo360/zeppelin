@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <set>
 #include <atomic>
+#include <vector>
 
 #include "pink/include/server_thread.h"
 #include "pink/include/pink_cli.h"

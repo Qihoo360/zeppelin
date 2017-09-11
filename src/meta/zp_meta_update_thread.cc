@@ -36,7 +36,6 @@ Status ZPMetaUpdateThread::PendingUpdate(const UpdateTask &task) {
   task_deque_.push_back(task);
 
   if (task_deque_.size() == 1) {
-    worker_->StartThread();
     worker_->DelaySchedule(kMetaDispathCronInterval,
         &UpdateFunc, static_cast<void*>(this));
   }
@@ -45,6 +44,11 @@ Status ZPMetaUpdateThread::PendingUpdate(const UpdateTask &task) {
 
 void ZPMetaUpdateThread::Active() {
   slash::MutexLock l(&task_mutex_);
+  int ret = worker_->StartThread();
+  if (ret != 0) {
+    LOG(FATAL) << "Start update thread failed: " << ret;
+    return;
+  }
   should_stop_ = false;
 }
 
@@ -102,6 +106,7 @@ Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
       case ZPMetaUpdateOP::kOpHandover:
         s = info_store_snap.Handover(cur_task.table, cur_task.partition,
             cur_task.ip_port, cur_task.ip_port_o);
+        break;
       case ZPMetaUpdateOP::kOpRemoveSlave:
         s = info_store_snap.DeleteSlave(cur_task.table, cur_task.partition,
             cur_task.ip_port);

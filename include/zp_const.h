@@ -143,6 +143,6 @@ const int kNodeMetaTimeoutM= 18;
 
 // how many diff item handled one time
 const int kMetaMigrateOnceCount = 2;
-const int kConditionCronInterval= 3; // s
+const int kConditionCronInterval= 3000; // millisecond
 
 #endif

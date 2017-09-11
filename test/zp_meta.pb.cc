@@ -789,7 +789,7 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     "\010\022\014\n\010LISTMETA\020\t\022\r\n\tDROPTABLE\020\n\022\016\n\nMETAST"
     "ATUS\020\013\022\013\n\007MIGRATE\020\014\022\021\n\rCANCELMIGRATE\020\r\022\020"
     "\n\014CHECKMIGRATE\020\016*\037\n\006PState\022\n\n\006ACTIVE\020\001\022\t"
-    "\n\005STUCK\020\002*\035\n\tNodeState\022\006\n\002UP\020\001\022\010\n\004DOWN\020\002", 2720);
+    "\n\005STUCK\020\002*\035\n\tNodeState\022\006\n\002UP\020\000\022\010\n\004DOWN\020\001", 2720);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zp_meta.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -918,8 +918,8 @@ const ::google::protobuf::EnumDescriptor* NodeState_descriptor() {
 }
 bool NodeState_IsValid(int value) {
   switch(value) {
+    case 0:
     case 1:
-    case 2:
       return true;
     default:
       return false;
@@ -1218,7 +1218,7 @@ NodeStatus::NodeStatus(const NodeStatus& from)
 void NodeStatus::SharedCtor() {
   _cached_size_ = 0;
   node_ = NULL;
-  status_ = 1;
+  status_ = 0;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -1258,7 +1258,7 @@ void NodeStatus::Clear() {
     if (has_node()) {
       if (node_ != NULL) node_->::ZPMeta::Node::Clear();
     }
-    status_ = 1;
+    status_ = 0;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
   mutable_unknown_fields()->Clear();

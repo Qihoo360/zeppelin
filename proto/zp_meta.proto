@@ -29,8 +29,8 @@ enum PState {
 }
 
 enum NodeState {
-  UP = 1;
-  DOWN = 2;
+  UP = 0;
+  DOWN = 1;
 }
 
 message Node {

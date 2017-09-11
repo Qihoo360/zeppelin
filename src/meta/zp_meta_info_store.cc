@@ -49,15 +49,19 @@ ZPMetaInfoStoreSnap::ZPMetaInfoStoreSnap()
   }
 
 Status ZPMetaInfoStoreSnap::UpNode(const std::string& ip_port) {
-  node_changed_ = (nodes_.find(ip_port) == nodes_.end()
-      || nodes_[ip_port].last_alive_time == 0);
+  if (nodes_.find(ip_port) == nodes_.end()
+      || nodes_[ip_port].last_alive_time == 0) {
+    node_changed_ = true;
+  }
   nodes_[ip_port].last_alive_time = slash::NowMicros();
   return Status::OK();
 }
 
 Status ZPMetaInfoStoreSnap::DownNode(const std::string& ip_port) {
   if (nodes_.find(ip_port) != nodes_.end()) {
-    node_changed_ = (nodes_[ip_port].last_alive_time > 0);
+    if (nodes_[ip_port].last_alive_time > 0) {
+      node_changed_ = true;
+    }
     nodes_[ip_port].last_alive_time = 0;
   }
   return Status::OK();
@@ -128,14 +132,14 @@ Status ZPMetaInfoStoreSnap::DeleteSlave(const std::string& table, int partition,
   }
 
   if (IsSameNode(pptr->master(), ip_port)) {
-    return Status::InvalidArgument("Not slave");  // Already be master
+    return Status::InvalidArgument("Not slave");  // not slave
   }
 
   ZPMeta::Partitions new_p;
   for (const auto& s : pptr->slaves()) {
     if (!IsSameNode(s, ip_port)) {
       ZPMeta::Node* new_slave = new_p.add_slaves();
-      AssignPbNode(*new_slave, ip_port);
+      new_slave->CopyFrom(s);
     }
   }
   new_p.set_id(pptr->id());
@@ -231,6 +235,7 @@ Status ZPMetaInfoStoreSnap::AddTable(const std::string& table, int num) {
 
   // Distribute
   ZPMeta::Table meta_table;
+  meta_table.set_name(table);
 	std::srand(std::time(0));
 	int rand_pos = (std::rand() % cross_nodes.size());
   for (int i = 0; i < num; i++) {
@@ -289,28 +294,30 @@ void ZPMetaInfoStoreSnap::RefreshTableWithNodeAlive() {
       table_changed_[table.first] = true;
       int max_slave = -1;
       NodeOffset tmp_offset, max_offset;
-      for (int i = 0; i < partition->slaves_size(); i++) {
-        if (IsNodeUp(partition->slaves(i))) {
+      for (int j = 0; j < partition->slaves_size(); j++) {
+        if (IsNodeUp(partition->slaves(j))) {
           tmp_offset.Clear();
-          GetNodeOffset(partition->slaves(i), table.first, i, &tmp_offset);
+          GetNodeOffset(partition->slaves(j), table.first, j, &tmp_offset);
           if (tmp_offset >= max_offset) {
-            max_slave = i;
+            max_slave = j;
             max_offset = tmp_offset;
           }
         }
       }
 
       ZPMeta::Node tmp;
-      if (max_slave == -1) {
+      if (max_slave != -1) {
         // Find one
         tmp.CopyFrom(partition->slaves(max_slave));
-        partition->mutable_slaves(i)->CopyFrom(partition->master());
+        partition->mutable_slaves(max_slave)->CopyFrom(partition->master());
         partition->mutable_master()->CopyFrom(tmp);
       }
 
       if (!IsNodeUp(partition->master())) {
         // all master and slave are down
         tmp.Clear();
+        tmp.set_ip("");
+        tmp.set_port(0);
         partition->add_slaves()->CopyFrom(partition->master());
         partition->mutable_master()->CopyFrom(tmp);
       }
@@ -386,8 +393,6 @@ Status ZPMetaInfoStore::Refresh() {
   }
 
   if (tmp_epoch == epoch_) {
-    LOG(INFO) << "Epoch not changed in floyd, no need change, epoch: "
-      << epoch_;
     return Status::OK();
   }
   LOG(INFO) << "Load epoch from floyd succ, tmp version : " << tmp_epoch;
@@ -422,7 +427,7 @@ Status ZPMetaInfoStore::Refresh() {
     }
     if (!table_info.ParseFromString(value)) {
       LOG(ERROR) << "Deserialization table_info failed, table: "
-        << t << " value: " << value;
+        << t;
       return Status::Corruption("Parse failed");
     }
 
@@ -518,7 +523,7 @@ void ZPMetaInfoStore::FetchExpiredNode(std::set<std::string>* nodes) {
   while (it != node_infos_.end() ) {
     if (it->second.last_alive_time > 0
         && (slash::NowMicros() - it->second.last_alive_time
-          > kNodeMetaTimeoutM * 1000)) {
+          > kNodeMetaTimeoutM * 1000 * 1000)) {
       nodes->insert(it->first);
       // Do not erase alive info item here.
       // Leave this in Refresh() to keep it consistent with what in floyd
@@ -615,17 +620,32 @@ void ZPMetaInfoStore::GetAllTables(
 Status ZPMetaInfoStore::GetPartitionMaster(const std::string& table,
     int partition, ZPMeta::Node* master) {
   slash::RWLock l(&tables_rw_, false);
-  if (table_info_.find(table) == table_info_.end()) {
-    return Status::NotFound("Table not exist");
+  if (table_info_.find(table) == table_info_.end()
+      || table_info_.at(table).partitions_size() <= partition) {
+    return Status::NotFound("Table or partition not exist");
   }
 
-  const ZPMeta::Table* tptr = &(table_info_[table]);
-  if (tptr->partitions_size() <= partition) {
-    return Status::NotFound("Partition not exist");
-  }
   master->Clear();
-  master->CopyFrom(tptr->partitions(partition).master());
+  master->CopyFrom(table_info_.at(table).partitions(partition).master());
   return Status::OK();
+}
+
+bool ZPMetaInfoStore::IsSlave(const std::string& table,
+    int partition, const ZPMeta::Node& target) {
+  slash::RWLock l(&tables_rw_, false);
+  if (table_info_.find(table) == table_info_.end()
+      || table_info_.at(table).partitions_size() <= partition) {
+    return false;
+  }
+  
+  for (const auto slave :
+      table_info_.at(table).partitions(partition).slaves()) {
+    if (slave.ip() == target.ip()
+        && slave.port() == target.port()) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void ZPMetaInfoStore::GetSnapshot(ZPMetaInfoStoreSnap* snap) {
@@ -684,20 +704,22 @@ Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
   }
 
   // Update tablelist
-  if (!table_list.SerializeToString(&value)) {
-    LOG(WARNING) << "SerializeToString ZPMeta::TableName failed.";
-    return Status::InvalidArgument("Failed to serialize Table List");
+  if (!value.empty()) {
+    if (!table_list.SerializeToString(&value)) {
+      LOG(WARNING) << "SerializeToString ZPMeta::TableName failed.";
+      return Status::InvalidArgument("Failed to serialize Table List");
+    }
+    s = floyd_->Write(kMetaTables, value);
+    if (!s.ok()) {
+      LOG(ERROR) << "Set tablelist failed: " << s.ToString()
+        << ", Value: " << value;
+      return Status::IOError(s.ToString());
+    }
+    LOG(INFO) << "Write table list to floyd succ, table list: " << value;
   }
-  s = floyd_->Write(kMetaTables, value);
-  if (!s.ok()) {
-    LOG(ERROR) << "Set tablelist failed: " << s.ToString()
-      << ", Value: " << value;
-    return Status::IOError(s.ToString());
-  }
-  LOG(INFO) << "Write table list to floyd succ, table list: " << value;
 
-  // Update nodes_
   if (snap.node_changed_) {
+    // Update nodes_
     ZPMeta::Nodes new_nodes;
     snap.SerializeNodes(&new_nodes);
     if (!new_nodes.SerializeToString(&value)) {
@@ -713,8 +735,8 @@ Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
     LOG(INFO) << "Write nodes to floyd succ";
   }
 
-  // Epoch + 1
   if (epoch_change) {
+    // Epoch + 1
     int new_epoch = snap.snap_epoch_ + 1;
     s = floyd_->Write(kMetaVersion, std::to_string(new_epoch));
     if (!s.ok()) {
@@ -724,8 +746,26 @@ Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
     }
     LOG(INFO) << "Write new epoch to floyd succ, new epoch: " << new_epoch;
   }
-
   LOG(INFO) << "Apply snap to floyd succ";
-  return Refresh();
+
+  // Refresh cache, notice the order
+  if (epoch_change) {
+    s = Refresh();
+    if (!s.ok()) {
+      LOG(ERROR) << "Refresh tables info after apply failed: " << s.ToString();
+      return s;
+    }
+  }
+
+  if (snap.node_changed_) {
+    s = RestoreNodeInfos();
+    if (!s.ok()) {
+      LOG(ERROR) << "Refresh nodes info after apply failed: " << s.ToString();
+      return s;
+    }
+  }
+  LOG(INFO) << "Refresh meta info after apply succ";
+
+  return Status::OK();
 }
 

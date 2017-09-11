@@ -108,8 +108,8 @@ void ZPMetaServer::Start() {
     return;
   }
 
-  if (pink::RetCode::kSuccess != server_thread_->StartThread()) {
-    LOG(WARNING) << "Disptch thread start failed";
+  if (0 != server_thread_->StartThread()) {
+    LOG(FATAL) << "Disptch thread start failed";
     return;
   }
 
@@ -174,10 +174,18 @@ Status ZPMetaServer::GetMetaInfoByNode(const std::string& ip_port,
 
 Status ZPMetaServer::WaitSetMaster(const ZPMeta::Node& node,
     const std::string table, int partition) {
+  // Check node is slave
+  if (!info_store_->IsSlave(table, partition, node)) {
+    LOG(WARNING) << "Partition not exist or node is not slave"
+      << ", parition: " << table << "_" << partition;
+    return Status::InvalidArgument("Invaild slave");
+  }
+
   ZPMeta::Node master;
   Status s = info_store_->GetPartitionMaster(table, partition, &master);
   if (!s.ok()) {
-    LOG(WARNING) << "Partition not exist: " << table << "_" << partition;
+    LOG(WARNING) << "Get partition master failed: " << s.ToString()
+      << ", parition: " << table << "_" << partition;
     return s;
   }
 
@@ -527,7 +535,7 @@ void ZPMetaServer::InitClientCmdTable() {
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTTABLE), listtableptr));
 
   //ListNode Command
-  Cmd* listnodeptr = new ListNodeCmd(kCmdFlagsRead);
+  Cmd* listnodeptr = new ListNodeCmd(kCmdFlagsRead | kCmdFlagsRedirect);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTNODE), listnodeptr));
 
   //ListMeta Command
