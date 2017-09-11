@@ -52,6 +52,8 @@ ZPMetaServer::ZPMetaServer()
   fy_options.local_ip = g_zp_conf->local_ip();
   fy_options.local_port = g_zp_conf->local_port() + kMetaPortShiftFY;
   fy_options.path = g_zp_conf->data_path();
+  fy_options.check_leader_us = g_zp_conf->floyd_check_leader_us();
+  fy_options.heartbeat_us = g_zp_conf->floyd_heartbeat_us();
 
   floyd::Floyd::Open(fy_options, &floyd_);
 

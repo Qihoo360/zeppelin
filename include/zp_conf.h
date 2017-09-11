@@ -6,7 +6,6 @@
 
 #include "zp_const.h"
 
-#include "slash/include/base_conf.h"
 #include "slash/include/slash_string.h"
 #include "slash/include/slash_mutex.h"
 
@@ -134,10 +133,26 @@ class ZpConf {
     RWLock l(&rwlock_, false);
     return db_block_size_;
   }
+  int floyd_check_leader_us() {
+    RWLock l(&rwlock_, false);
+    return floyd_check_leader_us_;
+  }
+
+  int floyd_heartbeat_us() {
+    RWLock l(&rwlock_, false);
+    return floyd_heartbeat_us_;
+  }
+
+  int floyd_append_entries_size_once() {
+    RWLock l(&rwlock_, false);
+    return floyd_append_entries_size_once_;
+  }
+  int floyd_append_entries_count_once() {
+    RWLock l(&rwlock_, false);
+    return floyd_append_entries_count_once_;
+  }
 
  private:
-  // copy disallowded
-  ZpConf(const ZpConf& options);
 
   // Env
   std::vector<std::string> meta_addr_;
@@ -172,7 +187,16 @@ class ZpConf {
   // Feature
   int slowlog_slower_than_;
 
+  // Floyd options
+  int floyd_check_leader_us_;
+  int floyd_heartbeat_us_;
+  int floyd_append_entries_size_once_;
+  int floyd_append_entries_count_once_;
+
   pthread_rwlock_t rwlock_;
+
+  // copy disallowded
+  ZpConf(const ZpConf& options);
 };
 
 #endif
