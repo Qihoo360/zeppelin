@@ -61,7 +61,7 @@ void ZPMetacmdBGWorker::MetaUpdateTask(void* task) {
   }
 }
 
-pink::Status ZPMetacmdBGWorker::Send() {
+Status ZPMetacmdBGWorker::Send() {
   ZPMeta::MetaCmd request;
 
   LOG(INFO) << "MetacmdThread send pull to MetaServer("
@@ -83,8 +83,8 @@ pink::Status ZPMetacmdBGWorker::Send() {
   return cli_->Send(&request);
 }
 
-pink::Status ZPMetacmdBGWorker::Recv(int64_t* receive_epoch) {
-  pink::Status result;
+Status ZPMetacmdBGWorker::Recv(int64_t* receive_epoch) {
+  Status result;
   ZPMeta::MetaCmdResponse response;
   std::string meta_ip = zp_data_server->meta_ip();
   int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;
@@ -107,13 +107,21 @@ pink::Status ZPMetacmdBGWorker::Recv(int64_t* receive_epoch) {
   return result;
 }
 
-pink::Status ZPMetacmdBGWorker::ParsePullResponse(
+Status ZPMetacmdBGWorker::ParsePullResponse(
     const ZPMeta::MetaCmdResponse &response, int64_t* receive_epoch) {
   if (response.code() != ZPMeta::StatusCode::OK) {
-    return pink::Status::IOError(response.msg());
+    return Status::IOError(response.msg());
   }
 
   *receive_epoch = response.pull().version();
+  int64_t current_epoch = zp_data_server->meta_epoch();
+  if (*receive_epoch <= current_epoch) {
+    // May already finished
+    LOG(WARNING) << "Recv meta epoch isn't larger than mine, recv: "
+      << *receive_epoch << ", mine: " << current_epoch;
+    return Status::OK();
+  }
+
   ZPMeta::MetaCmdResponse_Pull pull = response.pull();
 
   LOG(INFO) << "Receive Pull message, new epoch: " << pull.version()
@@ -174,11 +182,10 @@ pink::Status ZPMetacmdBGWorker::ParsePullResponse(
 
   // Print partitioin info
   zp_data_server->DumpTablePartitions();
-  return pink::Status::OK();
+  return Status::OK();
 }
 
 bool ZPMetacmdBGWorker::FetchMetaInfo(int64_t* receive_epoch) {
-  pink::Status s;
   std::string meta_ip = zp_data_server->meta_ip();
   int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;
   // No more PickMeta, which should be done by ping thread
@@ -186,7 +193,7 @@ bool ZPMetacmdBGWorker::FetchMetaInfo(int64_t* receive_epoch) {
       && zp_data_server->meta_port() != 0);
   LOG(INFO) << "MetacmdThread will connect ("
     << meta_ip << ":" << meta_port << ")";
-  s = cli_->Connect(meta_ip, meta_port);
+  Status s = cli_->Connect(meta_ip, meta_port);
   if (s.ok()) {
     cli_->set_send_timeout(1000);
     cli_->set_recv_timeout(1000);

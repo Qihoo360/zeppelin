@@ -189,7 +189,7 @@ Status ZPMetaMigrateRegister::GetN(uint32_t count,
     if (count-- <= 0) {
       break;
     }
-    Status fs = floyd_->Read(dk, diff_value);
+    Status fs = floyd_->Read(dk, &diff_value);
     if (!fs.ok()) {
       LOG(ERROR) << "Read diff item failed: " << fs.ToString()
         << ", diff item: " << dk;
@@ -233,7 +233,7 @@ Status ZPMetaMigrateRegister::Load() {
   slash::RWLock l(&migrate_rw_, true);
 
   std::string head_value;
-  Status fs = floyd_->Read(kMigrateHeadKey, head_value);
+  Status fs = floyd_->Read(kMigrateHeadKey, &head_value);
   if (fs.IsNotFound()) {
     return Status::OK();  // no migrate task exist
   } else if (!fs.ok()) {
@@ -251,7 +251,7 @@ Status ZPMetaMigrateRegister::Load() {
   ZPMeta::RelationCmdUnit tmp_diff;
   total_size_ = migrate_head.init_size();
   for (const auto& dk : migrate_head.diff_name()) {
-    fs = floyd_->Read(dk, diff_value);
+    fs = floyd_->Read(dk, &diff_value);
     if (!fs.ok()
         || !tmp_diff.ParseFromString(diff_value)) {
       LOG(ERROR) << "Check diff item failed, error: " << fs.ToString()

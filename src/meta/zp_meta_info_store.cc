@@ -380,7 +380,7 @@ Status ZPMetaInfoStore::Refresh() {
 
   // Get Version
   int tmp_epoch = -1;
-  Status fs = floyd_->Read(kMetaVersion, value);
+  Status fs = floyd_->Read(kMetaVersion, &value);
   if (fs.ok()) {
     tmp_epoch = std::stoi(value);
   } else if (fs.IsNotFound()) {
@@ -399,7 +399,7 @@ Status ZPMetaInfoStore::Refresh() {
 
   // Read table names
   ZPMeta::TableName table_names;
-  fs = floyd_->Read(kMetaTables, value);
+  fs = floyd_->Read(kMetaTables, &value);
   if (!fs.ok()) {
     LOG(ERROR) << "Load meta table names failed: " << fs.ToString();
     return Status::IOError(fs.ToString());
@@ -419,7 +419,7 @@ Status ZPMetaInfoStore::Refresh() {
   std::string ip_port;
   ZPMeta::Table table_info;
   for (const auto& t : table_names.name()) {
-    fs = floyd_->Read(t, value);
+    fs = floyd_->Read(t, &value);
     if (!fs.ok()) {
       LOG(ERROR) << "Load floyd table_info failed: " << fs.ToString()
         << ", table name: " << t;
@@ -465,7 +465,7 @@ Status ZPMetaInfoStore::RestoreNodeInfos() {
   ZPMeta::Nodes allnodes;
 
   slash::RWLock l(&nodes_rw_, true);
-  Status fs = floyd_->Read(kMetaNodes, value);
+  Status fs = floyd_->Read(kMetaNodes, &value);
   if (fs.IsNotFound()) {
     node_infos_.clear();
     return Status::OK();  // no meta info exist

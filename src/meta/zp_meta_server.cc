@@ -265,7 +265,7 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
   std::string value;
   ZPMeta::Nodes allnodes;
   std::vector<std::string> meta_nodes;
-  floyd_->GetAllNodes(meta_nodes);
+  floyd_->GetAllNodes(&meta_nodes);
 
   ZPMeta::MetaNodes *p = nodes->mutable_nodes();
   std::string leader_ip;
@@ -297,7 +297,7 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
 }
 
 Status ZPMetaServer::GetMetaStatus(std::string *result) {
-  floyd_->GetServerStatus(*result);
+  floyd_->GetServerStatus(result);
   return Status::OK();
 }
 

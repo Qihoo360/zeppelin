@@ -97,6 +97,7 @@ void BinlogWriter::Load() {
   block_offset_ = filesize % kBlockSize;
 }
 
+// TODO(wangk) Deprecated since the Trim bug
 Status BinlogWriter::Fallback(uint64_t offset) {
   if (offset > queue_->Filesize()) {
     return Status::EndFile("offset beyond file size");
@@ -527,38 +528,29 @@ Status Binlog::RemoveBetween(int lbound, int rbound) {
 Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset,
     uint64_t* actual_offset, uint32_t* cur_num, uint64_t* cur_offset) {
   slash::MutexLock l(&mutex_);
-
-  // Create binlog file if needed
   version_->Fetch(cur_num, cur_offset);
-  if (*cur_num != pro_num) {
-    delete queue_;
-    delete writer_;
 
-    std::string profile = NewFileName(filename_, pro_num);
-    slash::NewWritableFile(profile, &queue_);
-    writer_ = new BinlogWriter(queue_);
-    *cur_offset = 0;
-  }
+  // Close current binlog writer
+  delete queue_;
+  delete writer_;
 
   // Clear old invalid file
   if (*cur_num < pro_num) {
     // delele all binlog before cur_num
     RemoveBetween(0, *cur_num);
-  } else if (*cur_num > pro_num) {
+  } else if (*cur_num >= pro_num) {
     // delete all binlog between pro_num and cur_num
-    RemoveBetween(pro_num + 1, *cur_num);
+    RemoveBetween(pro_num, *cur_num);
   }
 
-  // Avoid to append any blank content into binlog
-  if (pro_offset < kHeaderSize) {
-    pro_offset = 0;
-  }
-  pro_offset = (pro_offset > *cur_offset) ? *cur_offset : pro_offset;
-  Status s = writer_->Fallback(pro_offset);
-  if (s.ok()) {
-    version_->Save(pro_num, pro_offset);
-  }
-  *actual_offset = pro_offset;
-
-  return s;
+  // Create binlog file
+  std::string profile = NewFileName(filename_, pro_num);
+  slash::NewWritableFile(profile, &queue_);
+  writer_ = new BinlogWriter(queue_);
+  
+  // TODO(wangk) Optimize, actual_offset should be as close as the pro_offset 
+  // with writer_->Fallback();
+  *actual_offset = 0;
+  version_->Save(pro_num, *actual_offset);
+  return Status::OK();
 }

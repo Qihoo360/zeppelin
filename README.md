@@ -9,4 +9,4 @@ Yet another huge kv storage
 [MetaServer Design](https://github.com/baotiao/zeppelin/wiki/zeppelin-meta-server)a
 
 # Latest Release
-[0.6.0](https://github.com/Qihoo360/zeppelin/releases)
+[0.6.3](https://github.com/Qihoo360/zeppelin/releases)

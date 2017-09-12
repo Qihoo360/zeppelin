@@ -332,14 +332,14 @@ void SyncCmd::Do(const google::protobuf::Message *req,
         << ", Node: " << node.ip << ":" << node.port
         << ", Partition: " << ptr->table_name() << "_"  << ptr->partition_id()
         << ", SyncPoint: " << s_boffset.filenum << "_" << s_boffset.offset
-        << ", My current point: " << new_boffset.filenum << "_" << new_boffset.offset;
+        << ", My win point: " << new_boffset.filenum << "_" << new_boffset.offset;
     } else {
       // Invalid filenum an offset, sen fallback offset
+      new_boffset = s_boffset;
       LOG(WARNING) << "SyncCmd with offset invalid"
         << ", Node: " << node.ip << ":" << node.port
         << ", Partition: " << ptr->table_name() << "_"  << ptr->partition_id()
-        << ", SyncPoint: " << s_boffset.filenum << "_" << s_boffset.offset
-        << ", My current point: " << new_boffset.filenum << "_" << new_boffset.offset;
+        << ", SyncPoint: " << s_boffset.filenum << "_" << s_boffset.offset;
     }
     offset->set_filenum(new_boffset.filenum);
     new_boffset.offset= BinlogBlockStart(new_boffset.offset);
