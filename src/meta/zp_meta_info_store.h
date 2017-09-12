@@ -91,7 +91,7 @@ class ZPMetaInfoStore {
    }
    
    // node_infos_ related
-   Status RestoreNodeInfos();
+   Status RefreshNodeInfos();
    bool UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping);
    void FetchExpiredNode(std::set<std::string>* nodes);
    void GetAllNodes(std::unordered_map<std::string, NodeInfo>* all_nodes);
@@ -107,6 +107,8 @@ class ZPMetaInfoStore {
    Status GetPartitionMaster(const std::string& table,
        int partition, ZPMeta::Node* master);
    bool IsSlave(const std::string& table,
+       int partition, const ZPMeta::Node& target);
+   bool IsMaster(const std::string& table,
        int partition, const ZPMeta::Node& target);
 
    // Interact with floyd

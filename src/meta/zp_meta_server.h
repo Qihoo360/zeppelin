@@ -79,11 +79,6 @@ class ZPMetaServer {
     statistic.query_num++;
   }
 
-  // ZPMetaServer should keep availible during all its life cycle
-  ZPMetaUpdateThread* update_thread() {
-    return update_thread_;
-  }
-
   //Cmd related
   Cmd* GetCmd(const int op);
   
@@ -102,6 +97,12 @@ class ZPMetaServer {
       const std::string table, int partition);
 
   // Meta info related
+  Status CreateTable(const std::string& table, int pnum);
+  Status DropTable(const std::string& table);
+  Status AddPartitionSlave(const std::string& table, int pnum,
+      const ZPMeta::Node& node);
+  Status RemovePartitionSlave(const std::string& table, int pnum,
+      const ZPMeta::Node& node);
   Status GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes);
   Status GetMetaStatus(std::string *result);
 
@@ -109,9 +110,6 @@ class ZPMetaServer {
   Status Migrate(int epoch, const std::vector<ZPMeta::RelationCmdUnit>& diffs);
   Status CancelMigrate() {
     return migrate_register_->Cancel();
-  }
-  bool MigrateExist() {
-    return migrate_register_->ExistWithLock();
   }
 
   // Leader related
@@ -150,6 +148,7 @@ private:
   // Info related
   ZPMetaInfoStore* info_store_;
   void CheckNodeAlive();
+  bool TableExist(const std::string& table);
   
   // Migrate related
   ZPMetaMigrateRegister* migrate_register_;

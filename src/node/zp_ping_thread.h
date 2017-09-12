@@ -35,7 +35,7 @@ class ZPPingThread : public pink::Thread  {
 
   bool CheckOffsetDelta(const std::string table_name,
       int partition_id, const BinlogOffset &new_offset);
-  slash::Status Send();
+  slash::Status Send(bool all);
   slash::Status RecvProc();
   virtual void* ThreadMain();
 };

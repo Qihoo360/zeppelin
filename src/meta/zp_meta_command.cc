@@ -69,6 +69,7 @@ void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   std::string raw_table = request->init().name();
   std::string table = slash::StringToLower(raw_table);
+  int pnum = request->init().num();
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::INIT);
@@ -78,15 +79,13 @@ void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
     return;
   }
 
-  // Update command such like
-  // Init, DropTable, SetMaster, AddSlave and RemoveSlave
-  // were handled asynchronously
-  Status s = g_meta_server->update_thread()->PendingUpdate(
-      UpdateTask(
-        kOpAddTable,
-        "",
-        table,
-        request->init().num()));
+  if (pnum <= 0) {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg("Invalid partition number");
+    return;
+  }
+
+  Status s = g_meta_server->CreateTable(table, pnum);
   if (s.ok()) {
     response->set_code(ZPMeta::StatusCode::OK);
     response->set_msg("Init OK!");
@@ -124,14 +123,7 @@ void AddSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::Mes
   ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::ADDSLAVE);
-  std::string ip_port = slash::IpPortString(node.ip(), node.port());
-  Status s = g_meta_server->update_thread()->PendingUpdate(
-      UpdateTask(
-        kOpAddSlave,
-        ip_port,
-        table,
-        p));
-
+  Status s = g_meta_server->AddPartitionSlave(table, p, node);
   if (s.ok()) {
     response->set_code(ZPMeta::StatusCode::OK);
     response->set_msg("AddSlave OK!");
@@ -151,21 +143,7 @@ void RemoveSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::
 
   response->set_type(ZPMeta::Type::REMOVESLAVE);
 
-  // Just approximately check, not atomic between check and set
-  if (g_meta_server->MigrateExist()) {
-    response->set_code(ZPMeta::StatusCode::ERROR);
-    response->set_msg("Migrate exist");
-    return;
-  }
-
-  std::string ip_port = slash::IpPortString(node.ip(), node.port());
-  Status s = g_meta_server->update_thread()->PendingUpdate(
-      UpdateTask(
-        kOpRemoveSlave,
-        ip_port,
-        table,
-        p));
-
+  Status s = g_meta_server->RemovePartitionSlave(table, p, node);
   if (s.ok()) {
     response->set_code(ZPMeta::StatusCode::OK);
     response->set_msg("RemoveSlave OK!");
@@ -209,11 +187,7 @@ void DropTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
     return;
   }
 
-  Status s = g_meta_server->update_thread()->PendingUpdate(
-      UpdateTask(
-        kOpRemoveTable,
-        table_name));
-
+  Status s = g_meta_server->DropTable(table_name);
   if (s.ok()) {
     response->set_code(ZPMeta::StatusCode::OK);
     response->set_msg("DropTable OK!");

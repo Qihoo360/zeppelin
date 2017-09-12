@@ -49,17 +49,26 @@ bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
       condition.table, condition.partition_id,
       &left_offset);
   if (!s.ok()) {
+    LOG(WARNING) << "ConditionCron left offset get failed: " << s.ToString()
+      << ", table: " << condition.table
+      << ", partition: " << condition.partition_id
+      << ", left: " << condition.left.ip() << ":" << condition.left.port();
     return true;
   }
   s = info_store_->GetNodeOffset(condition.right,
       condition.table, condition.partition_id,
       &right_offset);
   if (!s.ok()) {
+    LOG(WARNING) << "ConditionCron right offset get failed: " << s.ToString()
+      << ", table: " << condition.table
+      << ", partition: " << condition.partition_id
+      << ", right: " << condition.right.ip() << ":" << condition.right.port();
     return true;
   }
 
   if (left_offset != right_offset) {
     // Not yet equal
+    LOG(WARNING) << "debug: wait";
     return false;
   }
 

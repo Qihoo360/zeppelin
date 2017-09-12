@@ -40,7 +40,7 @@ bool ZPPingThread::CheckOffsetDelta(const std::string table_name,
   return false;
 }
 
-slash::Status ZPPingThread::Send() {
+slash::Status ZPPingThread::Send(bool all) {
   ZPMeta::MetaCmd request;
   int64_t meta_epoch = zp_data_server->meta_epoch();
   ZPMeta::MetaCmd_Ping* ping = request.mutable_ping();
@@ -54,7 +54,7 @@ slash::Status ZPPingThread::Send() {
   zp_data_server->DumpTableBinlogOffsets("", &all_offset);
   for (auto& item : all_offset) {
     for (auto& p : item.second) {
-      if (!CheckOffsetDelta(item.first, p.first, p.second)) {
+      if (!all && !CheckOffsetDelta(item.first, p.first, p.second)) {
         // no change happend
         continue;
       }
@@ -116,6 +116,7 @@ void* ZPPingThread::ThreadMain() {
     // Connect with heartbeat port
     LOG(INFO) << "Ping will connect ("<< meta_ip << ":" << meta_port << ")";
     s = cli_->Connect(meta_ip, meta_port);
+    bool is_first = true;  // First Ping after connect should send full message
     if (s.ok()) {
       DLOG(INFO) << "Ping connect ("<< meta_ip << ":" << meta_port << ") ok!";
       gettimeofday(&now, NULL);
@@ -135,11 +136,14 @@ void* ZPPingThread::ThreadMain() {
         sleep(kPingInterval);
 
         // Send ping to meta
-        s = Send();
+        s = Send(is_first);
         if (!s.ok()) {
           LOG(WARNING) << "Ping send to ("<< meta_ip << ":" << meta_port
             << ") failed! caz: " << s.ToString();
           continue;
+        }
+        if (is_first) {
+          is_first = false;
         }
         DLOG(INFO) << "Ping send to ("<< meta_ip << ":" << meta_port
           << ") success!";

@@ -172,20 +172,128 @@ Status ZPMetaServer::GetMetaInfoByNode(const std::string& ip_port,
   return Status::OK();
 }
 
+bool ZPMetaServer::TableExist(const std::string& table) {
+  std::set<std::string> table_list;
+  Status s = info_store_->GetTableList(&table_list);
+  if (!s.ok()) {
+    LOG(WARNING) << "Get table list failed: " << s.ToString();
+    return false;
+  }
+  if (table_list.find(table) != table_list.end()) {
+    return true;
+  }
+  return false;
+}
+
+Status ZPMetaServer::CreateTable(const std::string& table, int num) {
+  if (TableExist(table)) {
+    return Status::InvalidArgument("Table already exist");
+  }
+
+  // Update command such like
+  // Init, DropTable, SetMaster, AddSlave and RemoveSlave
+  // were handled asynchronously
+  Status s = update_thread_->PendingUpdate(
+      UpdateTask(
+        kOpAddTable,
+        "",
+        table,
+        num));
+  if (!s.ok()) {
+    LOG(WARNING) << "Pending CreateTable task failed: " << s.ToString()
+      << "Table: " << table << ", pcount: " << num;
+    return s;
+  }
+  return Status::OK();
+}
+
+Status ZPMetaServer::DropTable(const std::string& table) {
+  // Check
+  if (!TableExist(table)) {
+    return Status::InvalidArgument("Table not exist");
+  }
+
+  // Update command such like
+  // Init, DropTable, SetMaster, AddSlave and RemoveSlave
+  // were handled asynchronously
+  Status s = update_thread_->PendingUpdate(
+      UpdateTask(
+        kOpRemoveTable,
+        "",
+        table,
+        0));
+  if (!s.ok()) {
+    LOG(WARNING) << "Pending RemoveTable task failed: " << s.ToString()
+      << "Table: " << table;
+    return s;
+  }
+  return Status::OK();
+}
+
+Status ZPMetaServer::AddPartitionSlave(const std::string& table, int pnum,
+    const ZPMeta::Node& target) {
+  // Check node is already slave
+  if (info_store_->IsSlave(table, pnum, target)
+      || info_store_->IsMaster(table, pnum, target)) {
+    return Status::InvalidArgument("Partition not exist or Already exist");
+  }
+
+  std::string ip_port = slash::IpPortString(target.ip(), target.port());
+  Status s = update_thread_->PendingUpdate(
+      UpdateTask(
+        kOpAddSlave,
+        ip_port,
+        table,
+        pnum));
+  if (!s.ok()) {
+    LOG(WARNING) << "Pending AddSlave task failed: " << s.ToString()
+      << "Table: " << table << ", pnum: " << pnum
+      << ", target: " << target.ip() << ":" << target.port();
+    return s;
+  }
+
+  return Status::OK();
+}
+
+Status ZPMetaServer::RemovePartitionSlave(const std::string& table, int pnum,
+    const ZPMeta::Node& target) {
+  // Check node is already slave
+  if (!info_store_->IsSlave(table, pnum, target)) {
+    return Status::InvalidArgument("Partition not exist or not slave");
+  }
+
+  // Just approximately check, not atomic between check and set
+  if (migrate_register_->ExistWithLock()) {
+    return Status::Corruption("Migrate exist");
+  }
+
+  std::string ip_port = slash::IpPortString(target.ip(), target.port());
+  Status s = update_thread_->PendingUpdate(
+      UpdateTask(
+        kOpRemoveSlave,
+        ip_port,
+        table,
+        pnum));
+  if (!s.ok()) {
+    LOG(WARNING) << "Pending RemoveSlave task failed: " << s.ToString()
+      << "Table: " << table << ", pnum: " << pnum
+      << ", target: " << target.ip() << ":" << target.port();
+    return s;
+  }
+
+  return Status::OK();
+}
+
 Status ZPMetaServer::WaitSetMaster(const ZPMeta::Node& node,
     const std::string table, int partition) {
   // Check node is slave
   if (!info_store_->IsSlave(table, partition, node)) {
-    LOG(WARNING) << "Partition not exist or node is not slave"
-      << ", parition: " << table << "_" << partition;
     return Status::InvalidArgument("Invaild slave");
   }
 
   ZPMeta::Node master;
   Status s = info_store_->GetPartitionMaster(table, partition, &master);
   if (!s.ok()) {
-    LOG(WARNING) << "Get partition master failed: " << s.ToString()
-      << ", parition: " << table << "_" << partition;
     return s;
   }
 
@@ -457,7 +565,7 @@ Status ZPMetaServer::RefreshLeader() {
     LOG(INFO) << "Update thread active succ";
 
     // Restore NodeInfo
-    s = info_store_->RestoreNodeInfos();
+    s = info_store_->RefreshNodeInfos();
     if (!s.ok()) {
       LOG(ERROR) << "Restore Node infos failed: " << s.ToString();
       return s;

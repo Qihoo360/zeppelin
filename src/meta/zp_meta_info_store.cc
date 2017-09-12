@@ -459,7 +459,7 @@ Status ZPMetaInfoStore::Refresh() {
   return Status::OK();
 }
 
-Status ZPMetaInfoStore::RestoreNodeInfos() {
+Status ZPMetaInfoStore::RefreshNodeInfos() {
   // Read all nodes
   std::string value;
   ZPMeta::Nodes allnodes;
@@ -648,6 +648,22 @@ bool ZPMetaInfoStore::IsSlave(const std::string& table,
   return false;
 }
 
+bool ZPMetaInfoStore::IsMaster(const std::string& table,
+    int partition, const ZPMeta::Node& target) {
+  slash::RWLock l(&tables_rw_, false);
+  if (table_info_.find(table) == table_info_.end()
+      || table_info_.at(table).partitions_size() <= partition) {
+    return false;
+  }
+  
+  ZPMeta::Node master = table_info_.at(table).partitions(partition).master();
+  if (master.ip() == target.ip()
+      && master.port() == target.port()) {
+    return true;   
+  }
+  return false;
+}
+
 void ZPMetaInfoStore::GetSnapshot(ZPMetaInfoStoreSnap* snap) {
   // No lock here may give rise to the inconsistence
   // between snap epch and snap table or snap nodes,
@@ -758,7 +774,7 @@ Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
   }
 
   if (snap.node_changed_) {
-    s = RestoreNodeInfos();
+    s = RefreshNodeInfos();
     if (!s.ok()) {
       LOG(ERROR) << "Refresh nodes info after apply failed: " << s.ToString();
       return s;
