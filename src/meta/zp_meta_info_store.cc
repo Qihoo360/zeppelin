@@ -1,7 +1,24 @@
+// Copyright 2017 Qihoo
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http:// www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 #include "src/meta/zp_meta_info_store.h"
 
-#include <ctime>
 #include <glog/logging.h>
+#include <map>
+#include <ctime>
+#include <utility>
+#include <vector>
+
 #include "slash/include/env.h"
 #include "slash/include/slash_string.h"
 #include "slash/include/slash_mutex.h"
@@ -18,14 +35,15 @@ static bool IsSameNode(const ZPMeta::Node& node, const std::string& ip_port) {
   return slash::IpPortString(node.ip(), node.port()) == ip_port;
 }
 
-static bool AssignPbNode(ZPMeta::Node& node, const std::string& ip_port) {
+static bool AssignPbNode(const std::string& ip_port,
+    ZPMeta::Node* node) {
   std::string ip;
   int port = 0;
   if (!slash::ParseIpPortString(ip_port, ip, port)) {
     return false;
   }
-  node.set_ip(ip);
-  node.set_port(port);
+  node->set_ip(ip);
+  node->set_port(port);
   return true;
 }
 
@@ -65,7 +83,7 @@ Status ZPMetaInfoStoreSnap::DownNode(const std::string& ip_port) {
     nodes_[ip_port].last_alive_time = 0;
   }
   return Status::OK();
-} 
+}
 
 Status ZPMetaInfoStoreSnap::GetNodeOffset(const ZPMeta::Node& node,
     const std::string& table, int partition_id, NodeOffset* noffset) const {
@@ -92,12 +110,12 @@ Status ZPMetaInfoStoreSnap::AddSlave(const std::string& table, int partition,
   }
   for (const auto& s : pptr->slaves()) {
     if (IsSameNode(s, ip_port)) {
-      return Status::OK();  // Already be slave 
+      return Status::OK();  // Already be slave
     }
   }
 
   ZPMeta::Node* new_slave = pptr->add_slaves();
-  AssignPbNode(*new_slave, ip_port);
+  AssignPbNode(ip_port, new_slave);
   table_changed_[table] = true;
   return Status::OK();
 }
@@ -106,7 +124,7 @@ Status ZPMetaInfoStoreSnap::AddSlave(const std::string& table, int partition,
 Status ZPMetaInfoStoreSnap::Handover(const std::string& table, int partition,
     const std::string& ip_port, const std::string& ip_port_o) {
   Status s = Status::OK();
-  
+
   // Assume the ip_port_o is slave and try
   if (DeleteSlave(table, partition, ip_port_o).IsInvalidArgument()) {
     // Table and parition is exist but current node is master
@@ -145,7 +163,7 @@ Status ZPMetaInfoStoreSnap::DeleteSlave(const std::string& table, int partition,
   new_p.set_id(pptr->id());
   new_p.set_state(pptr->state());
   new_p.mutable_master()->CopyFrom(pptr->master());
-  
+
   if (pptr->slaves_size() != new_p.slaves_size()) {
     pptr->CopyFrom(new_p);
     table_changed_[table] = true;
@@ -178,7 +196,7 @@ Status ZPMetaInfoStoreSnap::SetMaster(const std::string& table, int partition,
       break;
     }
   }
-  
+
   if (!tmp.IsInitialized()) {
     return Status::NotFound("Node is not slave");
   }
@@ -236,13 +254,13 @@ Status ZPMetaInfoStoreSnap::AddTable(const std::string& table, int num) {
   // Distribute
   ZPMeta::Table meta_table;
   meta_table.set_name(table);
-	std::srand(std::time(0));
-	int rand_pos = (std::rand() % cross_nodes.size());
+  std::srand(std::time(0));
+  int rand_pos = (std::rand() % cross_nodes.size());
   for (int i = 0; i < num; i++) {
     ZPMeta::Partitions *p = meta_table.add_partitions();
     p->set_id(i);
     p->set_state(ZPMeta::PState::ACTIVE);
-    
+
     p->mutable_master()->CopyFrom(
         cross_nodes[(i + rand_pos) % cross_nodes.size()]);
     p->add_slaves()->CopyFrom(
@@ -255,7 +273,7 @@ Status ZPMetaInfoStoreSnap::AddTable(const std::string& table, int num) {
   return Status::OK();
 }
 
-// Set stuck if to_stuck is true, otherwise set alive 
+// Set stuck if to_stuck is true, otherwise set alive
 Status ZPMetaInfoStoreSnap::ChangePState(const std::string& table,
     int partition, bool to_stuck) {
   if (tables_.find(table) == tables_.end()) {
@@ -478,7 +496,7 @@ Status ZPMetaInfoStore::RefreshNodeInfos() {
     LOG(ERROR) << "Deserialization nodes failed, value: " << value;
     return slash::Status::Corruption("Parse failed");
   }
-  
+
   std::string ip_port;
   node_infos_.clear();
   for (const auto& node_s : allnodes.nodes()) {
@@ -498,13 +516,14 @@ bool ZPMetaInfoStore::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
       || node_infos_[node].last_alive_time == 0) {
     not_found = true;
   }
-  
+
   // Update offset
   for (const auto& po : ping.offset()) {
     std::string offset_key = NodeOffsetKey(po.table_name(), po.partition());
-    node_infos_[node].offsets[offset_key] = NodeOffset(po.filenum(), po.offset());
+    node_infos_[node].offsets[offset_key] = NodeOffset(po.filenum(),
+        po.offset());
   }
-  
+
   if (not_found) {
     // Do not add alive time info here.
     // Leave this in Refresh() to keep it consistent with what in floyd
@@ -520,7 +539,7 @@ void ZPMetaInfoStore::FetchExpiredNode(std::set<std::string>* nodes) {
   nodes->clear();
   slash::RWLock l(&nodes_rw_, false);
   auto it = node_infos_.begin();
-  while (it != node_infos_.end() ) {
+  while (it != node_infos_.end()) {
     if (it->second.last_alive_time > 0
         && (slash::NowMicros() - it->second.last_alive_time
           > kNodeMetaTimeoutM * 1000 * 1000)) {
@@ -637,7 +656,7 @@ bool ZPMetaInfoStore::IsSlave(const std::string& table,
       || table_info_.at(table).partitions_size() <= partition) {
     return false;
   }
-  
+
   for (const auto slave :
       table_info_.at(table).partitions(partition).slaves()) {
     if (slave.ip() == target.ip()
@@ -655,11 +674,11 @@ bool ZPMetaInfoStore::IsMaster(const std::string& table,
       || table_info_.at(table).partitions_size() <= partition) {
     return false;
   }
-  
+
   ZPMeta::Node master = table_info_.at(table).partitions(partition).master();
   if (master.ip() == target.ip()
       && master.port() == target.port()) {
-    return true;   
+    return true;
   }
   return false;
 }
@@ -684,12 +703,12 @@ void ZPMetaInfoStore::GetSnapshot(ZPMetaInfoStoreSnap* snap) {
   GetAllNodes(&(snap->nodes_));
 }
 
-// Return IOError means error happened when access floyd. 
+// Return IOError means error happened when access floyd.
 // Notice: the Apply process may be partially completed,
 // so it is designed to be reentrant
 Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
   if (epoch_ != snap.snap_epoch_) {
-    // Epoch has changed, which means leader has changed not long ago 
+    // Epoch has changed, which means leader has changed not long ago
     // simply discard and leave the outside retry
     return Status::Corruption("With expired epoch");
   }

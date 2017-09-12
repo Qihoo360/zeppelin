@@ -1,147 +1,161 @@
-#ifndef ZP_META_COMMAND_H
-#define ZP_META_COMMAND_H
+// Copyright 2017 Qihoo
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http:// www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+#ifndef SRC_META_ZP_META_COMMAND_H_
+#define SRC_META_ZP_META_COMMAND_H_
 
+#include <string>
 #include "include/zp_command.h"
 
-class PingCmd : public Cmd {
+class PingCmd : public Cmd  {
  public:
-  PingCmd(int flag) : Cmd(flag) {}
-  virtual std::string name() const override {
-    return "Ping"; 
+  explicit PingCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const  {
+    return "Ping";
   }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
-class PullCmd : public Cmd {
+class PullCmd : public Cmd  {
  public:
-  PullCmd(int flag) : Cmd(flag) {}
-  virtual std::string name() const override {
-    return "Pull"; 
+  explicit PullCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const  {
+    return "Pull";
   }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
-class InitCmd : public Cmd {
+class InitCmd : public Cmd  {
  public:
-  InitCmd(int flag) : Cmd(flag) {}
-  virtual std::string name() const override {
-    return "Init"; 
+  explicit InitCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const  {
+    return "Init";
   }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
-class SetMasterCmd : public Cmd {
+class SetMasterCmd : public Cmd  {
  public:
-  SetMasterCmd(int flag) : Cmd(flag) {}
-  virtual std::string name() const override {
-    return "SetMaster"; 
+  explicit SetMasterCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const  {
+    return "SetMaster";
   }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
-class AddSlaveCmd : public Cmd {
+class AddSlaveCmd : public Cmd  {
  public:
-  AddSlaveCmd(int flag) : Cmd(flag) {}
-  virtual std::string name() const override {
-    return "AddSlave"; 
+  explicit AddSlaveCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const  {
+    return "AddSlave";
   }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
-class RemoveSlaveCmd : public Cmd {
+class RemoveSlaveCmd : public Cmd  {
  public:
-  RemoveSlaveCmd(int flag) : Cmd(flag) {}
-  virtual std::string name() const override {
-    return "RemoveSlave"; 
+  explicit RemoveSlaveCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const  {
+    return "RemoveSlave";
   }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
-class ListTableCmd : public Cmd {
+class ListTableCmd : public Cmd  {
  public:
-  ListTableCmd(int flag) : Cmd(flag) {}
-  virtual std::string name() const override {
-    return "ListTable"; 
+  explicit ListTableCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const  {
+    return "ListTable";
   }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
-class ListNodeCmd : public Cmd {
+class ListNodeCmd : public Cmd  {
  public:
-  ListNodeCmd(int flag) : Cmd(flag) {}
-  virtual std::string name() const override {
-    return "ListNode"; 
+  explicit ListNodeCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const  {
+    return "ListNode";
   }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
-class ListMetaCmd : public Cmd {
+class ListMetaCmd : public Cmd  {
  public:
-  ListMetaCmd(int flag) : Cmd(flag) {}
-  virtual std::string name() const override {
-    return "ListMeta"; 
+  explicit ListMetaCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const  {
+    return "ListMeta";
   }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
-class MetaStatusCmd : public Cmd {
+class MetaStatusCmd : public Cmd  {
  public:
-  MetaStatusCmd(int flag) : Cmd(flag) {}
-  virtual std::string name() const override {
-    return "MetaStatus"; 
+  explicit MetaStatusCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const  {
+    return "MetaStatus";
   }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
-class DropTableCmd : public Cmd {
+class DropTableCmd : public Cmd  {
  public:
-  DropTableCmd(int flag) : Cmd(flag) {}
-  virtual std::string name() const override {
-    return "DropTable"; 
+  explicit DropTableCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const  {
+    return "DropTable";
   }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
-class MigrateCmd : public Cmd {
+class MigrateCmd : public Cmd  {
  public:
-  MigrateCmd(int flag) : Cmd(flag) {}
-  virtual std::string name() const override {
-    return "Migrate"; 
+  explicit MigrateCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const  {
+    return "Migrate";
   }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
-class CancelMigrateCmd : public Cmd {
+class CancelMigrateCmd : public Cmd  {
  public:
-  CancelMigrateCmd(int flag) : Cmd(flag) {}
-  virtual std::string name() const override {
-    return "CancelMigrateTable"; 
+  explicit CancelMigrateCmd(int flag) : Cmd(flag) {}
+  virtual std::string name() const  {
+    return "CancelMigrateTable";
   }
   virtual void Do(const google::protobuf::Message *req,
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
-// TODO (wk)
-//class CheckMigrateCmd : public Cmd {
+// TODO(wk)
+// class CheckMigrateCmd : public Cmd {
 // public:
-//  CheckMigrateCmd(int flag) : Cmd(flag) {}
-//  virtual std::string name() const override {
-//    return "CheckMigrateTable"; 
+//  explicit CheckMigrateCmd(int flag) : Cmd(flag) {}
+//  virtual std::string name() const  {
+//    return "CheckMigrateTable";
 //  }
 //  virtual void Do(const google::protobuf::Message *req,
 //      google::protobuf::Message *res, void* partition = NULL) const;
-//};
+// };
 
-#endif
+#endif  // SRC_META_ZP_META_COMMAND_H_

@@ -1,11 +1,23 @@
+// Copyright 2017 Qihoo
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http:// www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 #include "src/meta/zp_meta_migrate_register.h"
+#include <glog/logging.h>
 #include "slash/include/env.h"
 #include "slash/include/slash_mutex.h"
 #include "slash/include/slash_string.h"
-#include <glog/logging.h>
 
-static const std::string kMigrateHeadKey = "##migrate";
- 
+static const char kMigrateHeadKey[] = "##migrate";
 std::string DiffKey(const ZPMeta::RelationCmdUnit& diff) {
   return DiffKey(diff.table(), diff.partition(),
       slash::IpPortString(diff.left().ip(), diff.left().port()),
@@ -71,7 +83,7 @@ Status ZPMetaMigrateRegister::Init(
       LOG(WARNING) << "Init migrate diff item failed: " << fs.ToString();
       return fs;
     }
-    
+
     // Record in memory
     diff_keys_.insert(diff_key);
   }
@@ -107,7 +119,7 @@ Status ZPMetaMigrateRegister::Check(ZPMeta::MigrateStatus* status) {
   if (!Exist()) {
     return Status::NotFound("No migrate exist");
   }
-  
+
   status->set_begin_time(ctime_);
   if (total_size_ == 0) {
     return Status::Corruption("totol size be zero");
@@ -240,7 +252,7 @@ Status ZPMetaMigrateRegister::Load() {
     LOG(ERROR) << "Read migrate head failed: " << fs.ToString();
     return fs;
   }
-  
+
   ZPMeta::MigrateHead migrate_head;
   if (!migrate_head.ParseFromString(head_value)) {
     LOG(ERROR) << "Parse migrate head failed, value: " << head_value;

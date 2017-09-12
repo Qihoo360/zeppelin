@@ -1,9 +1,23 @@
-#ifndef ZP_META_UPDATE_THREAD_H
-#define ZP_META_UPDATE_THREAD_H
+// Copyright 2017 Qihoo
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http:// www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+#ifndef SRC_META_ZP_META_UPDATE_THREAD_H_
+#define SRC_META_ZP_META_UPDATE_THREAD_H_
+#include <glog/logging.h>
 #include <deque>
 #include <string>
 #include <unordered_map>
-#include <glog/logging.h>
+
 #include "pink/include/bg_thread.h"
 #include "slash/include/slash_string.h"
 #include "slash/include/slash_mutex.h"
@@ -38,7 +52,7 @@ struct UpdateTask {
       const std::string&t,
       int p)
     : op(o), ip_port(ip), ip_port_o(ip1),
-    table(t), partition(p) { 
+    table(t), partition(p) {
     }
 
   UpdateTask(ZPMetaUpdateOP o,
@@ -50,15 +64,14 @@ struct UpdateTask {
 
   UpdateTask(ZPMetaUpdateOP o,
       const std::string& ip)
-    : op(o), ip_port(ip), partition(-1) { 
+    : op(o), ip_port(ip), partition(-1) {
     }
-
 };
 
 typedef std::deque<UpdateTask> ZPMetaUpdateTaskDeque;
 
-class ZPMetaUpdateThread {
-public:
+class ZPMetaUpdateThread  {
+ public:
   explicit ZPMetaUpdateThread(ZPMetaInfoStore* is,
       ZPMetaMigrateRegister* migrate);
   ~ZPMetaUpdateThread();
@@ -67,7 +80,7 @@ public:
   void Active();
   void Abandon();
 
-private:
+ private:
   std::atomic<bool> is_stuck_;
   std::atomic<bool> should_stop_;
   pink::BGThread* worker_;
@@ -77,8 +90,7 @@ private:
   ZPMetaMigrateRegister* migrate_;
 
   static void UpdateFunc(void *p);
-  Status ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque);
-
+  Status ApplyUpdates(const ZPMetaUpdateTaskDeque& task_deque);
 };
 
-#endif
+#endif  // SRC_META_ZP_META_UPDATE_THREAD_H_

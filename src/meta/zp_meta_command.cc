@@ -1,6 +1,25 @@
+// Copyright 2017 Qihoo
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http:// www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 #include "src/meta/zp_meta_command.h"
 
 #include <google/protobuf/text_format.h>
+
+#include <set>
+#include <string>
+#include <vector>
+#include <unordered_map>
+
 #include "glog/logging.h"
 #include "slash/include/slash_string.h"
 #include "include/zp_meta.pb.h"
@@ -11,7 +30,8 @@ extern ZPMetaServer *g_meta_server;
 void PingCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   // Update Node Info
   g_meta_server->UpdateNodeInfo(request->ping());
@@ -31,9 +51,10 @@ void PingCmd::Do(const google::protobuf::Message *req,
 void PullCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
   response->set_type(ZPMeta::Type::PULL);
-  
+
   ZPMeta::MetaCmdResponse_Pull tmp_info;
   Status s = Status::InvalidArgument("error argument");
   if (request->pull().has_name()) {
@@ -65,12 +86,14 @@ void PullCmd::Do(const google::protobuf::Message *req,
   }
 }
 
-void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+void InitCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   std::string raw_table = request->init().name();
   std::string table = slash::StringToLower(raw_table);
   int pnum = request->init().num();
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::INIT);
   if (table.empty()) {
@@ -95,13 +118,15 @@ void InitCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
   }
 }
 
-void SetMasterCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+void SetMasterCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   std::string name = request->set_master().basic().name();
   std::string table = slash::StringToLower(name);
   int p = request->set_master().basic().partition();
   ZPMeta::Node node = request->set_master().basic().node();
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::SETMASTER);
   Status s = g_meta_server->WaitSetMaster(node, table, p);
@@ -114,13 +139,15 @@ void SetMasterCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
   }
 }
 
-void AddSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+void AddSlaveCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   std::string name = request->add_slave().basic().name();
   std::string table = slash::StringToLower(name);
   int p = request->add_slave().basic().partition();
   ZPMeta::Node node = request->add_slave().basic().node();
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::ADDSLAVE);
   Status s = g_meta_server->AddPartitionSlave(table, p, node);
@@ -133,13 +160,15 @@ void AddSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::Mes
   }
 }
 
-void RemoveSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+void RemoveSlaveCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   std::string name = request->remove_slave().basic().name();
   std::string table = slash::StringToLower(name);
   int p = request->remove_slave().basic().partition();
   ZPMeta::Node node = request->remove_slave().basic().node();
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::REMOVESLAVE);
 
@@ -153,9 +182,11 @@ void RemoveSlaveCmd::Do(const google::protobuf::Message *req, google::protobuf::
   }
 }
 
-void ListTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
-  ZPMeta::MetaCmdResponse_ListTable *table_name = response->mutable_list_table();
+void ListTableCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  ZPMeta::MetaCmdResponse_ListTable *table = response->mutable_list_table();
 
   response->set_type(ZPMeta::Type::LISTTABLE);
 
@@ -163,7 +194,7 @@ void ListTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
   Status s = g_meta_server->GetTableList(&table_list);
 
   if (s.ok()) {
-    ZPMeta::TableName *p = table_name->mutable_tables();
+    ZPMeta::TableName *p = table->mutable_tables();
     for (const auto& t : table_list) {
       p->add_name(t);
     }
@@ -175,9 +206,11 @@ void ListTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
   }
 }
 
-void DropTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
+void DropTableCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
   response->set_type(ZPMeta::Type::DROPTABLE);
 
   std::string table_name = request->drop_table().name();
@@ -197,10 +230,10 @@ void DropTableCmd::Do(const google::protobuf::Message *req, google::protobuf::Me
   }
 }
 
-
 void ListNodeCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
   ZPMeta::MetaCmdResponse_ListNode *lnodes = response->mutable_list_node();
   ZPMeta::Nodes *nodes = lnodes->mutable_nodes();
   response->set_type(ZPMeta::Type::LISTNODE);
@@ -231,8 +264,10 @@ void ListNodeCmd::Do(const google::protobuf::Message *req,
   }
 }
 
-void ListMetaCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+void ListMetaCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
   ZPMeta::MetaCmdResponse_ListMeta *metas = response->mutable_list_meta();
 
   response->set_type(ZPMeta::Type::LISTMETA);
@@ -248,8 +283,10 @@ void ListMetaCmd::Do(const google::protobuf::Message *req, google::protobuf::Mes
   }
 }
 
-void MetaStatusCmd::Do(const google::protobuf::Message *req, google::protobuf::Message *res, void* partition) const {
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+void MetaStatusCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::METASTATUS);
 
@@ -265,12 +302,12 @@ void MetaStatusCmd::Do(const google::protobuf::Message *req, google::protobuf::M
   }
 }
 
-
 void MigrateCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
-  
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
+
   ZPMeta::MetaCmd_Migrate migrate = request->migrate();
   response->set_type(ZPMeta::Type::MIGRATE);
 
@@ -297,10 +334,11 @@ void MigrateCmd::Do(const google::protobuf::Message *req,
 
 void CancelMigrateCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
-  ZPMeta::MetaCmdResponse* response = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::CANCELMIGRATE);
-  
+
   Status s = g_meta_server->CancelMigrate();
   if (s.ok()) {
     response->set_code(ZPMeta::StatusCode::OK);
@@ -311,7 +349,7 @@ void CancelMigrateCmd::Do(const google::protobuf::Message *req,
   }
 }
 
-//void CheckMigrateCmd::Do(const google::protobuf::Message *req,
+// void CheckMigrateCmd::Do(const google::protobuf::Message *req,
 //    google::protobuf::Message *res, void* partition = NULL) const {
 //
-//}
+// }

@@ -1,23 +1,35 @@
+// Copyright 2017 Qihoo
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http:// www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 #include "src/meta/zp_meta_server.h"
 
-#include <cstdlib>
-#include <ctime>
-#include <string>
 #include <sys/resource.h>
 #include <glog/logging.h>
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/repeated_field.h>
 
+#include <string>
+#include <utility>
+
 #include "pink/include/pink_cli.h"
 #include "slash/include/env.h"
-
 #include "include/zp_meta.pb.h"
 
 ZPMetaServer::ZPMetaServer()
   : should_exit_(false),
   is_leader_(false) {
   LOG(INFO) << "ZPMetaServer start initialization";
-  
+
   // Init Command
   cmds_.reserve(300);
   InitClientCmdTable();
@@ -41,11 +53,11 @@ ZPMetaServer::ZPMetaServer()
   // Init Condition thread
   condition_cron_ = new ZPMetaConditionCron(info_store_,
       update_thread_);
-  
+
   // Init Server thread
-  conn_factory_ = new ZPMetaClientConnFactory(); 
+  conn_factory_ = new ZPMetaClientConnFactory();
   server_thread_ = pink::NewDispatchThread(
-      g_zp_conf->local_port() + kMetaPortShiftCmd, 
+      g_zp_conf->local_port() + kMetaPortShiftCmd,
       g_zp_conf->meta_thread_num(),
       conn_factory_,
       kMetaDispathCronInterval,
@@ -87,12 +99,14 @@ Status ZPMetaServer::OpenFloyd() {
   fy_options.local_ip = g_zp_conf->local_ip();
   fy_options.local_port = g_zp_conf->local_port() + kMetaPortShiftFY;
   fy_options.path = g_zp_conf->data_path();
+  fy_options.check_leader_us = g_zp_conf->floyd_check_leader_us();
+  fy_options.heartbeat_us = g_zp_conf->floyd_heartbeat_us();
   return floyd::Floyd::Open(fy_options, &floyd_);
 }
 
 void ZPMetaServer::Start() {
   LOG(INFO) << "ZPMetaServer started on port:" << g_zp_conf->local_port();
-  
+
   Status s = Status::Incomplete("Floyd load incompleted");
   while (!should_exit_ && !s.ok()) {
     sleep(1);
@@ -419,11 +433,12 @@ Status ZPMetaServer::GetNodeStatusList(
   return Status::OK();
 }
 
-Status ZPMetaServer::Migrate(int epoch, const std::vector<ZPMeta::RelationCmdUnit>& diffs) {
+Status ZPMetaServer::Migrate(int epoch,
+    const std::vector<ZPMeta::RelationCmdUnit>& diffs) {
   if (epoch != info_store_->epoch()) {
     return Status::InvalidArgument("Expired epoch");
   }
-  
+
   // Register
   assert(!diffs.empty());
   Status s = migrate_register_->Init(diffs);
@@ -436,7 +451,7 @@ Status ZPMetaServer::Migrate(int epoch, const std::vector<ZPMeta::RelationCmdUni
 }
 
 void ZPMetaServer::ProcessMigrateIfNeed() {
-  // Get next 
+  // Get next
   std::vector<ZPMeta::RelationCmdUnit> diffs;
   Status s = migrate_register_->GetN(kMetaMigrateOnceCount, &diffs);
   if (!s.ok()) {
@@ -500,25 +515,26 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
 }
 
 // Required hold mutex of leader_mutex
-Status ZPMetaServer::RedirectToLeader(ZPMeta::MetaCmd &request, ZPMeta::MetaCmdResponse *response) {
+Status ZPMetaServer::RedirectToLeader(const ZPMeta::MetaCmd &request,
+    ZPMeta::MetaCmdResponse *response) {
   // Do not try to connect leader even failed,
   // and leave this to RefreshLeader process in cron
   if (leader_joint_.cli == NULL) {
     LOG(ERROR) << "Failed to RedirectToLeader, cli is NULL";
     return Status::Corruption("no leader connection");
   }
-  Status s = leader_joint_.cli->Send(&request);
+  Status s = leader_joint_.cli->Send(const_cast<ZPMeta::MetaCmd*>(&request));
   if (!s.ok()) {
     LOG(ERROR) << "Failed to send redirect message to leader, error: "
       << s.ToString() << ", leader: " << leader_joint_.ip
-      << ":" << leader_joint_.port;  
+      << ":" << leader_joint_.port;
     return s;
   }
-  s = leader_joint_.cli->Recv(response); 
+  s = leader_joint_.cli->Recv(response);
   if (!s.ok()) {
     LOG(ERROR) << "Failed to recv redirect message from leader, error: "
       << s.ToString() << ", leader: " << leader_joint_.ip
-      << ":" << leader_joint_.port;  
+      << ":" << leader_joint_.port;
   }
   return s;
 }
@@ -549,14 +565,14 @@ Status ZPMetaServer::RefreshLeader() {
   LOG(WARNING) << "Leader changed from: "
     << leader_joint_.ip << ":" << leader_joint_.port
     << ", To: " <<  leader_ip << ":" << leader_cmd_port;
-  
+
   // Clear
   is_leader_ = false;
   leader_joint_.CleanLeader();
 
   // I'm new leader
   Status s;
-  if (leader_ip == g_zp_conf->local_ip() && 
+  if (leader_ip == g_zp_conf->local_ip() &&
       leader_cmd_port == g_zp_conf->local_port()) {
     LOG(INFO) << "Become leader: " << leader_ip << ":" << leader_port;
 
@@ -613,50 +629,60 @@ Status ZPMetaServer::RefreshLeader() {
 }
 
 void ZPMetaServer::InitClientCmdTable() {
-
   // Ping Command
   Cmd* pingptr = new PingCmd(kCmdFlagsRead | kCmdFlagsRedirect);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::PING), pingptr));
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::PING),
+        pingptr));
 
-  //Pull Command
+  // Pull Command
   Cmd* pullptr = new PullCmd(kCmdFlagsRead);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::PULL), pullptr));
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::PULL),
+        pullptr));
 
-  //Init Command
+  // Init Command
   Cmd* initptr = new InitCmd(kCmdFlagsWrite | kCmdFlagsRedirect);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::INIT), initptr));
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::INIT),
+        initptr));
 
-  //SetMaster Command
+  // SetMaster Command
   Cmd* setmasterptr = new SetMasterCmd(kCmdFlagsWrite | kCmdFlagsRedirect);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::SETMASTER), setmasterptr));
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::SETMASTER),
+        setmasterptr));
 
-  //AddSlave Command
+  // AddSlave Command
   Cmd* addslaveptr = new AddSlaveCmd(kCmdFlagsWrite | kCmdFlagsRedirect);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::ADDSLAVE), addslaveptr));
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::ADDSLAVE),
+        addslaveptr));
 
-  //RemoveSlave Command
+  // RemoveSlave Command
   Cmd* removeslaveptr = new RemoveSlaveCmd(kCmdFlagsWrite | kCmdFlagsRedirect);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::REMOVESLAVE), removeslaveptr));
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::REMOVESLAVE),
+        removeslaveptr));
 
-  //ListTable Command
+  // ListTable Command
   Cmd* listtableptr = new ListTableCmd(kCmdFlagsRead);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTTABLE), listtableptr));
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTTABLE),
+        listtableptr));
 
-  //ListNode Command
+  // ListNode Command
   Cmd* listnodeptr = new ListNodeCmd(kCmdFlagsRead | kCmdFlagsRedirect);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTNODE), listnodeptr));
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTNODE),
+        listnodeptr));
 
-  //ListMeta Command
+  // ListMeta Command
   Cmd* listmetaptr = new ListMetaCmd(kCmdFlagsRead);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTMETA), listmetaptr));
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTMETA),
+        listmetaptr));
 
-  //MetaStatus Command
+  // MetaStatus Command
   Cmd* meta_status_ptr = new MetaStatusCmd(kCmdFlagsRead);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::METASTATUS), meta_status_ptr));
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::METASTATUS),
+        meta_status_ptr));
 
-  //DropTable Command
+  // DropTable Command
   Cmd* droptableptr = new DropTableCmd(kCmdFlagsWrite | kCmdFlagsRedirect);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::DROPTABLE), droptableptr));
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::DROPTABLE),
+        droptableptr));
 
   // Migrate Command
   Cmd* migrateptr = new MigrateCmd(kCmdFlagsWrite | kCmdFlagsRedirect);
@@ -664,14 +690,15 @@ void ZPMetaServer::InitClientCmdTable() {
         migrateptr));
 
   // Cancel Migrate Command
-  Cmd* cancel_migrate_ptr = new CancelMigrateCmd(kCmdFlagsWrite | kCmdFlagsRedirect);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::CANCELMIGRATE),
-        cancel_migrate_ptr));
-  
-  //// Check Migrate Command
-  //Cmd* check_migrate_ptr = new CheckMigrateCmd(kCmdFlagsWrite);
-  //cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::CHECKMIGRATE),
-  //      check_migrate_ptr));
+  Cmd* cancel_migrate_ptr = new CancelMigrateCmd(kCmdFlagsWrite
+      | kCmdFlagsRedirect);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(
+          ZPMeta::Type::CANCELMIGRATE), cancel_migrate_ptr));
+
+  /// / Check Migrate Command
+  // Cmd* check_migrate_ptr = new CheckMigrateCmd(kCmdFlagsWrite);
+  // cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(
+  // ZPMeta::Type::CHECKMIGRATE), check_migrate_ptr));
 }
 
 inline bool ZPMetaServer::GetLeader(std::string *ip, int *port) {
@@ -704,7 +731,7 @@ void ZPMetaServer::DoTimingTask() {
   if (is_leader_) {  // Is Leader
     // Check alive
     CheckNodeAlive();
-    
+
     // Process Migrate if needed
     ProcessMigrateIfNeed();
   }

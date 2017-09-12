@@ -20,11 +20,11 @@
 struct NodeOffset {
   int32_t filenum;
   int64_t offset;
-  
+
   NodeOffset()
     : filenum(0),
     offset(0) {}
-  
+
   NodeOffset(int32_t n, int64_t o)
     : filenum(n),
     offset(o) {}
@@ -33,7 +33,7 @@ struct NodeOffset {
     filenum = 0;
     offset = 0;
   }
-  
+
   bool operator== (const NodeOffset& rhs) const {
     return (filenum == rhs.filenum && offset == rhs.offset);
   }

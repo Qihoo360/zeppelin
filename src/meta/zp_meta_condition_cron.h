@@ -33,7 +33,7 @@ struct OffsetCondition {
     }
 };
 
-class ZPMetaConditionCron {
+class ZPMetaConditionCron  {
  public:
   ZPMetaConditionCron(ZPMetaInfoStore* info_store,
       ZPMetaUpdateThread* update_thread);
@@ -57,7 +57,6 @@ class ZPMetaConditionCron {
         OffsetCondition cond, std::vector<UpdateTask> us)
       : cron(cur), condition(cond), update_set(us) {}
   };
-
 };
 
 #endif  // SRC_META_ZP_META_CONDITION_CRON_H_

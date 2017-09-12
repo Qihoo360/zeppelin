@@ -1,5 +1,18 @@
-#ifndef ZP_META_SERVER_H
-#define ZP_META_SERVER_H
+// Copyright 2017 Qihoo
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http:// www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+#ifndef SRC_META_ZP_META_SERVER_H_
+#define SRC_META_ZP_META_SERVER_H_
 
 #include <stdio.h>
 #include <string>
@@ -59,11 +72,11 @@ struct QueryStatistic {
     last_time_us(0) {}
 };
 
-class ZPMetaServer {
+class ZPMetaServer  {
  public:
-  explicit ZPMetaServer();
+  ZPMetaServer();
   virtual ~ZPMetaServer();
-  
+
   // Server related
   void Start();
   void Stop() {
@@ -74,17 +87,17 @@ class ZPMetaServer {
   int epoch() {
     return info_store_->epoch();
   }
- 
+
   void PlusQueryNum() {
     statistic.query_num++;
   }
 
-  //Cmd related
+  // Cmd related
   Cmd* GetCmd(const int op);
-  
+
   // Node alive related
   void UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping);
-  
+
   // Node info related
   Status GetMetaInfoByTable(const std::string& table,
       ZPMeta::MetaCmdResponse_Pull *ms_info);
@@ -113,7 +126,7 @@ class ZPMetaServer {
   }
 
   // Leader related
-  Status RedirectToLeader(ZPMeta::MetaCmd &request,
+  Status RedirectToLeader(const ZPMeta::MetaCmd &request,
       ZPMeta::MetaCmdResponse *response);
   // Required hold mutex of leader_mutex
   bool IsLeader() {
@@ -122,7 +135,7 @@ class ZPMetaServer {
 
   slash::Mutex leader_mutex;
 
-private:
+ private:
   // Server related
   std::atomic<bool> should_exit_;
   pink::ServerThread* server_thread_;
@@ -130,7 +143,7 @@ private:
   ZPMetaUpdateThread* update_thread_;
   ZPMetaConditionCron* condition_cron_;
   void DoTimingTask();
-  
+
   // Floyd related
   floyd::Floyd* floyd_;
   Status OpenFloyd();
@@ -140,23 +153,23 @@ private:
   LeaderJoint leader_joint_;
   bool GetLeader(std::string *ip, int *port);
   Status RefreshLeader();
-  
+
   // Cmd related
   std::unordered_map<int, Cmd*> cmds_;
   void InitClientCmdTable();
-  
+
   // Info related
   ZPMetaInfoStore* info_store_;
   void CheckNodeAlive();
   bool TableExist(const std::string& table);
-  
+
   // Migrate related
   ZPMetaMigrateRegister* migrate_register_;
   void ProcessMigrateIfNeed();
-  
+
   // Statistic related
   QueryStatistic statistic;
   void ResetLastSecQueryNum();
 };
 
-#endif
+#endif  // SRC_META_ZP_META_SERVER_H_

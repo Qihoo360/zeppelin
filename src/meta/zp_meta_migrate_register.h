@@ -24,37 +24,36 @@
 
 using slash::Status;
 
-class ZPMetaMigrateRegister {
+class ZPMetaMigrateRegister  {
  public:
-   explicit ZPMetaMigrateRegister(floyd::Floyd* floyd);
+    explicit ZPMetaMigrateRegister(floyd::Floyd* floyd);
 
-   Status Load();
-   Status Init(const std::vector<ZPMeta::RelationCmdUnit>& diffs);
-   Status Check(ZPMeta::MigrateStatus* status);
-   Status Erase(const std::string& diff_key);
-   Status GetN(uint32_t count, std::vector<ZPMeta::RelationCmdUnit>* items);
-   Status Cancel();
-   bool ExistWithLock();
-  
+    Status Load();
+    Status Init(const std::vector<ZPMeta::RelationCmdUnit>& diffs);
+    Status Check(ZPMeta::MigrateStatus* status);
+    Status Erase(const std::string& diff_key);
+    Status GetN(uint32_t count, std::vector<ZPMeta::RelationCmdUnit>* items);
+    Status Cancel();
+    bool ExistWithLock();
 
  private:
-   pthread_rwlock_t migrate_rw_;  // protect partition status below
-   uint64_t ctime_;
-   int total_size_;
-   int refer_;  // refer count indicate how many task be processing now
-   std::unordered_set<std::string> diff_keys_;
-   floyd::Floyd* floyd_;
+    pthread_rwlock_t migrate_rw_;  // protect partition status below
+    uint64_t ctime_;
+    int total_size_;
+    int refer_;  // refer count indicate how many task be processing now
+    std::unordered_set<std::string> diff_keys_;
+    floyd::Floyd* floyd_;
 
-   bool Exist() const;
+    bool Exist() const;
 
-   ZPMetaMigrateRegister();
-   // No copying allowed
-   ZPMetaMigrateRegister (const ZPMetaMigrateRegister&);
-   void operator=(const ZPMetaMigrateRegister&);
+    ZPMetaMigrateRegister();
+    // No copying allowed
+    ZPMetaMigrateRegister(const ZPMetaMigrateRegister&);
+    void operator=(const ZPMetaMigrateRegister&);
 };
 
 extern std::string DiffKey(const ZPMeta::RelationCmdUnit& diff);
 extern std::string DiffKey(const std::string& table, int partition,
     const std::string& left_ip_port, const std::string& right_ip_port);
 
-#endif
+#endif  // SRC_META_ZP_META_MIGRATE_REGISTER_H_

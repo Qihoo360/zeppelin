@@ -1,5 +1,18 @@
+// Copyright 2017 Qihoo
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http:// www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 #include "src/meta/zp_meta_update_thread.h"
-#include <google/protobuf/text_format.h> 
+#include <google/protobuf/text_format.h>
 #include "include/zp_const.h"
 #include "include/zp_meta.pb.h"
 #include "src/meta/zp_meta_server.h"
@@ -60,7 +73,6 @@ void ZPMetaUpdateThread::Abandon() {
   }
   worker_->StopThread();
   worker_->QueueClear();
-
 }
 
 void ZPMetaUpdateThread::UpdateFunc(void *p) {
@@ -76,13 +88,13 @@ void ZPMetaUpdateThread::UpdateFunc(void *p) {
   thread->ApplyUpdates(tasks);
 }
 
-Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
-  
+Status ZPMetaUpdateThread::ApplyUpdates(
+    const ZPMetaUpdateTaskDeque& task_deque) {
   LOG(INFO) << "Begin Appply Updates, task count: " << task_deque.size();
   // Get current meta info
   ZPMetaInfoStoreSnap info_store_snap;
   info_store_->GetSnapshot(&info_store_snap);
-  
+
   Status s;
   bool has_succ = false;
   for (const auto cur_task : task_deque) {
@@ -150,7 +162,7 @@ Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
 
   // Check node alive and change table master
   info_store_snap.RefreshTableWithNodeAlive();
-  
+
   // Write back to info_store
   s = info_store_->Apply(info_store_snap);
   while (!should_stop_ && s.IsIOError()) {
@@ -173,10 +185,9 @@ Status ZPMetaUpdateThread::ApplyUpdates(ZPMetaUpdateTaskDeque& task_deque) {
     //    such as those were launched by Ping or Migrate Process.
     //    The rest comes from admin command,
     //    whose lost is acceptable and could be retry by administrator.
-    LOG(ERROR) << "Failed to apply update change to info_store: " << s.ToString();
+    LOG(ERROR) << "Failed to apply updates to info_store: " << s.ToString();
     return s;
   }
-
 
   // Some finish touches
   for (const auto cur_task : task_deque) {
