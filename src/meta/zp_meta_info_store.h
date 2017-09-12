@@ -45,6 +45,8 @@ struct NodeInfo {
       }
     }
 
+  void Dump();
+
   Status GetOffset(const std::string& table, int partition_id,
       NodeOffset* noffset) const;
 };
@@ -92,7 +94,7 @@ class ZPMetaInfoStore   {
     }
 
     // node_infos_ related
-    Status RefreshNodeInfos();
+    Status RestoreNodeInfos();  // clean and refresh
     bool UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping);
     void FetchExpiredNode(std::set<std::string>* nodes);
     void GetAllNodes(std::unordered_map<std::string, NodeInfo>* all_nodes);
@@ -135,6 +137,7 @@ class ZPMetaInfoStore   {
     // node => alive time + offset set, 0 means already down node
     // only valid for leader
     std::unordered_map<std::string, NodeInfo> node_infos_;
+    Status RefreshNodeInfos();
 
     // No copying allowed
     ZPMetaInfoStore(const ZPMetaInfoStore&);

@@ -581,7 +581,7 @@ Status ZPMetaServer::RefreshLeader() {
     LOG(INFO) << "Update thread active succ";
 
     // Restore NodeInfo
-    s = info_store_->RefreshNodeInfos();
+    s = info_store_->RestoreNodeInfos();
     if (!s.ok()) {
       LOG(ERROR) << "Restore Node infos failed: " << s.ToString();
       return s;

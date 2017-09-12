@@ -57,6 +57,16 @@ Status NodeInfo::GetOffset(const std::string& table, int partition_id,
   return Status::OK();
 }
 
+void NodeInfo::Dump() {
+  LOG(INFO) << "---------dump NodeInfo---------";
+  LOG(INFO) << "last alive: " << last_alive_time;
+  for (const auto& of : offsets) {
+    LOG(INFO) << of.first << " => " << of.second.filenum
+      << "_" << of.second.offset;
+  }
+  LOG(INFO) << "-------------------------------";
+}
+
 /*
  * class ZPMetaInfoStoreSnap
  */
@@ -477,6 +487,14 @@ Status ZPMetaInfoStore::Refresh() {
   return Status::OK();
 }
 
+Status ZPMetaInfoStore::RestoreNodeInfos() {
+  {
+  slash::RWLock l(&nodes_rw_, true);
+  node_infos_.clear();
+  }
+  return RefreshNodeInfos();
+}
+
 Status ZPMetaInfoStore::RefreshNodeInfos() {
   // Read all nodes
   std::string value;
@@ -498,11 +516,24 @@ Status ZPMetaInfoStore::RefreshNodeInfos() {
   }
 
   std::string ip_port;
-  node_infos_.clear();
+  std::set<std::string> miss;
+  for (const auto& n : node_infos_) {
+    miss.insert(n.first);
+  }
   for (const auto& node_s : allnodes.nodes()) {
     ip_port = slash::IpPortString(node_s.node().ip(), node_s.node().port());
+    if (node_infos_.find(ip_port) != node_infos_.end()) {
+      miss.erase(ip_port);
+      continue;
+    }
+    // Add new node
     node_infos_[ip_port] = NodeInfo(node_s.status() == ZPMeta::NodeState::UP);
   }
+  for (const auto& m : miss) {
+    // Remove overdue node
+    node_infos_.erase(m);
+  }
+
   return Status::OK();
 }
 
@@ -567,6 +598,8 @@ Status ZPMetaInfoStore::GetNodeOffset(const ZPMeta::Node& node,
   if (node_infos_.find(ip_port) == node_infos_.end()) {
     return Status::NotFound("node not exist");
   }
+  LOG(INFO) << "node: " << node.ip() << ":" << node.port();
+  node_infos_.at(ip_port).Dump();
   return node_infos_.at(ip_port).GetOffset(table, partition_id, noffset);
 }
 

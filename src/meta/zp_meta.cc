@@ -73,7 +73,7 @@ void ZpConfInit(int argc, char* argv[]) {
   while (-1 != (c = getopt(argc, argv, "c:hv"))) {
     switch (c) {
       case 'c':
-        snprintf(path, sizeof(1024), "%s", optarg);
+        snprintf(path, sizeof(path), "%s", optarg);
         path_opt = true;
         break;
       case 'h':
@@ -98,7 +98,8 @@ void ZpConfInit(int argc, char* argv[]) {
 
   g_zp_conf = new ZpConf();
   if (g_zp_conf->Load(path) != 0) {
-    LOG(FATAL) << "zp-meta load conf file error";
+    fprintf(stderr, "zp-meta load conf file error\n");
+    exit(-1);
   }
   g_zp_conf->Dump();
 }
