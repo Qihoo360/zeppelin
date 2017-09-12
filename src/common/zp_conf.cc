@@ -1,22 +1,6 @@
 #include "include/zp_conf.h"
 
-//TODO wangkang-xy add int64 after update slash
-//#define READCONFINT64(reader, attr, value) 
-//  reader.GetConfInt64(std::string(#attr), &value)
-
-#define READCONFINT(reader, attr, value) \
-  reader.GetConfInt(std::string(#attr), &value)
-#define READCONFBOOL(reader, attr, value) \
-  reader.GetConfBool(std::string(#attr), &value)
-#define READCONFSTR(reader, attr, value) \
-  reader.GetConfStr(std::string(#attr), &value)
-#define READCONFSTRVEC(reader, attr, value) \
-  reader.GetConfStrVec(std::string(#attr), &value)
-
-#define READCONF(reader, attr, value, type) \
-  ret = READCONF##type(reader, attr, value); \
-  if (!ret) printf("%s not set,use default\n", #attr)
-
+#include "slash/include/base_conf.h"
 
 static int64_t BoundaryLimit(int64_t target, int64_t floor, int64_t ceil) {
   target = (target < floor) ? floor : target;
@@ -50,6 +34,10 @@ ZpConf::ZpConf() {
   db_max_open_files_ = 4096;
   db_block_size_ = 16; // 16K
   slowlog_slower_than_ = -1;
+  floyd_check_leader_us_ = 15000000;
+  floyd_heartbeat_us_ = 6000000;
+  floyd_append_entries_size_once_ = 1024000;
+  floyd_append_entries_count_once_ = 128;
 }
 
 ZpConf::~ZpConf() {
@@ -83,6 +71,10 @@ void ZpConf::Dump() const {
   fprintf (stderr, "    Config.db_max_open_files   : %d\n", db_max_open_files_);
   fprintf (stderr, "    Config.db_block_size   : %dKB\n", db_block_size_);
   fprintf (stderr, "    Config.slowlog_slower_than   : %d\n", slowlog_slower_than_);
+  fprintf (stderr, "    Config.floyd_check_leader_us   : %d\n", floyd_check_leader_us_);
+  fprintf (stderr, "    Config.floyd_heartbeat_us   : %d\n", floyd_heartbeat_us_);
+  fprintf (stderr, "    Config.floyd_append_entries_size_once_   : %d\n", floyd_append_entries_size_once_);
+  fprintf (stderr, "    Config.floyd_append_entries_count_once_   : %d\n", floyd_append_entries_count_once_);
 }
 
 int ZpConf::Load(const std::string& path) {
@@ -93,26 +85,31 @@ int ZpConf::Load(const std::string& path) {
   }
 
   bool ret = false;
-  READCONF(conf_reader, local_ip, local_ip_, STR);
-  READCONF(conf_reader, local_port, local_port_, INT);
-  READCONF(conf_reader, data_path, data_path_, STR);
-  READCONF(conf_reader, log_path, log_path_, STR);
-  READCONF(conf_reader, trash_path, trash_path_, STR);
-  READCONF(conf_reader, daemonize, daemonize_, BOOL);
-  READCONF(conf_reader, meta_addr, meta_addr_, STRVEC);
-  READCONF(conf_reader, max_file_descriptor_num, max_file_descriptor_num_, INT);
-  READCONF(conf_reader, meta_thread_num, meta_thread_num_, INT);
-  READCONF(conf_reader, data_thread_num, data_thread_num_, INT);
-  READCONF(conf_reader, sync_recv_thread_num, sync_recv_thread_num_, INT);
-  READCONF(conf_reader, sync_send_thread_num, sync_send_thread_num_, INT);
-  READCONF(conf_reader, max_background_flushes, max_background_flushes_, INT);
-  READCONF(conf_reader, max_background_compactions, max_background_compactions_, INT);
-  READCONF(conf_reader, db_write_buffer_size, db_write_buffer_size_, INT);
-  READCONF(conf_reader, db_max_write_buffer, db_max_write_buffer_, INT);
-  READCONF(conf_reader, db_target_file_size_base, db_target_file_size_base_, INT);
-  READCONF(conf_reader, db_max_open_files, db_max_open_files_, INT);
-  READCONF(conf_reader, db_block_size, db_block_size_, INT);
-  READCONF(conf_reader, slowlog_slower_than, slowlog_slower_than_, INT);
+  ret = conf_reader.GetConfStr("local_ip", &local_ip_);
+  ret = conf_reader.GetConfInt("local_port", &local_port_);
+  ret = conf_reader.GetConfStr("data_path", &data_path_);
+  ret = conf_reader.GetConfStr("log_path", &log_path_);
+  ret = conf_reader.GetConfStr("trash_path", &trash_path_);
+  ret = conf_reader.GetConfBool("deamonize", &daemonize_);
+  ret = conf_reader.GetConfStrVec("meta_addr", &meta_addr_);
+  ret = conf_reader.GetConfInt("max_file_descriptor_num", &max_file_descriptor_num_);
+  ret = conf_reader.GetConfInt("meta_thread_num", &meta_thread_num_);
+  ret = conf_reader.GetConfInt("data_thread_num", &data_thread_num_);
+  ret = conf_reader.GetConfInt("sync_recv_thread_num", &sync_recv_thread_num_);
+  ret = conf_reader.GetConfInt("sync_send_thread_num", &sync_send_thread_num_);
+  ret = conf_reader.GetConfInt("max_background_flushes", &max_background_flushes_);
+  ret = conf_reader.GetConfInt("max_background_compactions", &max_background_compactions_);
+  ret = conf_reader.GetConfInt("db_write_buffer_size", &db_write_buffer_size_);
+  ret = conf_reader.GetConfInt("db_max_write_buffer", &db_max_write_buffer_);
+  ret = conf_reader.GetConfInt("db_target_file_size_base", &db_target_file_size_base_);
+  ret = conf_reader.GetConfInt("db_max_open_files", &db_max_open_files_);
+  ret = conf_reader.GetConfInt("db_block_size", &db_block_size_);
+  ret = conf_reader.GetConfInt("slowlog_slower_than", &slowlog_slower_than_);
+  ret = conf_reader.GetConfInt("floyd_check_leader_us", &floyd_check_leader_us_);
+  ret = conf_reader.GetConfInt("floyd_heartbeat_us", &floyd_heartbeat_us_);
+  ret = conf_reader.GetConfInt("floyd_append_entries_size_once", &floyd_append_entries_size_once_);
+  ret = conf_reader.GetConfInt("floyd_append_entries_count_once", &floyd_append_entries_count_once_);
+  
   if (data_path_.back() != '/') {
     data_path_.append("/");
   }
@@ -138,5 +135,5 @@ int ZpConf::Load(const std::string& path) {
   db_max_write_buffer_ = BoundaryLimit(db_max_write_buffer_, 1024 * 1024, 500 * 1024 * 1024); // 1G ~ 500G
   db_target_file_size_base_ = BoundaryLimit(db_target_file_size_base_, 4 * 1024, 10 * 1024 * 1024); // 4M ~ 10G
   db_block_size_ = BoundaryLimit(db_block_size_, 4, 1024 * 1024); // 14K ~ 1G
-  return res;
+  return ret;
 }

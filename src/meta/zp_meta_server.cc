@@ -748,4 +748,3 @@ void ZPMetaServer::DoTimingTask() {
   LOG(INFO) << "ServerQueryNum: " << statistic.query_num
     << " ServerCurrentQps: " << statistic.last_qps;
 }
-
