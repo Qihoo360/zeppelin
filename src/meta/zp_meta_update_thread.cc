@@ -99,6 +99,7 @@ Status ZPMetaUpdateThread::ApplyUpdates(
 
   Status s;
   bool has_succ = false;
+  int handover_count = 0;
   for (const auto cur_task : task_deque) {
     LOG(INFO) << "Apply one task, task type: "
       << static_cast<int>(cur_task.op)
@@ -118,6 +119,7 @@ Status ZPMetaUpdateThread::ApplyUpdates(
             cur_task.ip_port);
         break;
       case ZPMetaUpdateOP::kOpHandover:
+        handover_count++;
         s = info_store_snap.Handover(cur_task.table, cur_task.partition,
             cur_task.ip_port, cur_task.ip_port_o);
         break;
@@ -149,8 +151,10 @@ Status ZPMetaUpdateThread::ApplyUpdates(
 
     if (!s.ok()) {
       LOG(WARNING) << "Update task process failed: " << s.ToString()
-        << "task: (" << static_cast<int>(cur_task.op) << ", " << cur_task.table
-        << ", " << cur_task.partition << ", " << cur_task.ip_port;
+        << ", task: (" << static_cast<int>(cur_task.op)
+        << ", " << cur_task.table
+        << ", " << cur_task.partition
+        << ", " << cur_task.ip_port << ")";
     } else {
       has_succ = true;
     }
@@ -159,6 +163,7 @@ Status ZPMetaUpdateThread::ApplyUpdates(
   if (!has_succ) {
     // No succ item
     LOG(WARNING) << "No update apply task succ";
+    migrate_->PutN(handover_count);
     return Status::Corruption("No update apply task succ");
   }
 
@@ -177,6 +182,7 @@ Status ZPMetaUpdateThread::ApplyUpdates(
   is_stuck_ = false;
 
   if (should_stop_) {
+    migrate_->PutN(handover_count);
     return s;
   }
 
@@ -188,6 +194,7 @@ Status ZPMetaUpdateThread::ApplyUpdates(
     //    The rest comes from admin command,
     //    whose lost is acceptable and could be retry by administrator.
     LOG(ERROR) << "Failed to apply updates to info_store: " << s.ToString();
+    migrate_->PutN(handover_count);
     return s;
   }
 
@@ -199,9 +206,13 @@ Status ZPMetaUpdateThread::ApplyUpdates(
             cur_task.partition,
             cur_task.ip_port_o,
             cur_task.ip_port));
+      LOG(INFO) << "Migrate item finish, partition: "
+        << cur_task.table << "_" << cur_task.partition
+        << ", from: " << cur_task.ip_port_o
+        << ", to: " << cur_task.ip_port;
     }
   }
-
+  migrate_->PutN(handover_count);
   return s;
 }
 

@@ -15,6 +15,7 @@
 #define SRC_META_ZP_META_MIGRATE_REGISTER_H_
 #include <string>
 #include <vector>
+#include <atomic>
 #include <unordered_set>
 
 #include "slash/include/slash_status.h"
@@ -32,6 +33,7 @@ class ZPMetaMigrateRegister  {
     Status Init(const std::vector<ZPMeta::RelationCmdUnit>& diffs);
     Status Check(ZPMeta::MigrateStatus* status);
     Status Erase(const std::string& diff_key);
+    void PutN(uint32_t count);
     Status GetN(uint32_t count, std::vector<ZPMeta::RelationCmdUnit>* items);
     Status Cancel();
     bool ExistWithLock();
@@ -40,11 +42,12 @@ class ZPMetaMigrateRegister  {
     pthread_rwlock_t migrate_rw_;  // protect partition status below
     uint64_t ctime_;
     int total_size_;
-    int refer_;  // refer count indicate how many task be processing now
+    std::atomic<int> refer_;  // refer count indicate how many task be processing now
     std::unordered_set<std::string> diff_keys_;
     floyd::Floyd* floyd_;
 
     bool Exist() const;
+    Status CancelWithoutLock();
 
     ZPMetaMigrateRegister();
     // No copying allowed

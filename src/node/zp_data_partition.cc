@@ -604,13 +604,6 @@ void Partition::Update(ZPMeta::PState state, const Node &master,
     const std::set<Node> &slaves) {
   slash::RWLock l(&state_rw_, true);
 
-  // Check Status first
-  if (ZPMeta::PState::ACTIVE != (pstate_ = state)) {
-    // Do not update master and slaves for stuck partition,
-    // which will be updated when it become active
-    return;
-  }
-
   // Update master slave nodes
   bool change_master = false;
   std::set<Node> miss_slaves;

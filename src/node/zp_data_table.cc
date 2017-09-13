@@ -107,12 +107,6 @@ bool Table::UpdateOrAddPartition(const int partition_id,
     return true;
   }
 
-  if (state != ZPMeta::PState::ACTIVE) {
-    LOG(INFO) << "New Partition with no active state, skip until next epoch"
-      << ", Partition: " << table_name_ << "_" << partition_id; 
-    return false;
-  }
-
   // New Partition
   std::shared_ptr<Partition> partition = NewPartition(table_name_,
       log_path_, data_path_, trash_path_, partition_id, master, slaves);

@@ -551,6 +551,10 @@ bool ZPMetaInfoStore::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
   // Update offset
   for (const auto& po : ping.offset()) {
     std::string offset_key = NodeOffsetKey(po.table_name(), po.partition());
+    LOG(INFO) << "debug: update offset"
+      << ", node: " << node
+      << ", key: " << offset_key
+      << ", offset: " << po.filenum() << "_" << po.offset();
     node_infos_[node].offsets[offset_key] = NodeOffset(po.filenum(),
         po.offset());
   }

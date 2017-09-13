@@ -36,6 +36,7 @@ struct OffsetCondition {
 class ZPMetaConditionCron  {
  public:
   ZPMetaConditionCron(ZPMetaInfoStore* info_store,
+      ZPMetaMigrateRegister* migrate,
       ZPMetaUpdateThread* update_thread);
   virtual ~ZPMetaConditionCron();
   void AddCronTask(const OffsetCondition& condition,
@@ -44,6 +45,7 @@ class ZPMetaConditionCron  {
  private:
   pink::BGThread* bg_thread_;
   ZPMetaInfoStore* info_store_;
+  ZPMetaMigrateRegister* migrate_;
   ZPMetaUpdateThread* update_thread_;
   static void CronFunc(void *p);
   bool ChecknProcess(const OffsetCondition& condition,

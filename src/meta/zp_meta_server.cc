@@ -52,7 +52,7 @@ ZPMetaServer::ZPMetaServer()
 
   // Init Condition thread
   condition_cron_ = new ZPMetaConditionCron(info_store_,
-      update_thread_);
+      migrate_register_, update_thread_);
 
   // Init Server thread
   conn_factory_ = new ZPMetaClientConnFactory();
@@ -463,6 +463,7 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
     }
     return;
   }
+  LOG(INFO) << "Begin Process " << diffs.size() << " migrate item";
 
   for (const auto& diff : diffs) {
     // Add Slave
@@ -493,8 +494,8 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
       // Handover from old node to new
       UpdateTask(
           ZPMetaUpdateOP::kOpHandover,
-          slash::IpPortString(diff.left().ip(), diff.left().port()),
           slash::IpPortString(diff.right().ip(), diff.right().port()),
+          slash::IpPortString(diff.left().ip(), diff.left().port()),
           diff.table(),
           diff.partition()),
 

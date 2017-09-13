@@ -139,10 +139,6 @@ Status ZPMetaMigrateRegister::Erase(const std::string& diff_key) {
     return Status::Complete("diff not found, may finished");
   }
 
-  if (refer_ > 0) {
-    refer_--;
-  }
-
   // Update MigrateHead
   ZPMeta::MigrateHead migrate_head;
   migrate_head.set_begin_time(ctime_);
@@ -156,7 +152,7 @@ Status ZPMetaMigrateRegister::Erase(const std::string& diff_key) {
 
   if (migrate_head.diff_name_size() == 0) {
     // Finished
-    return Cancel();
+    return CancelWithoutLock();
   }
 
   std::string head_value;
@@ -176,7 +172,7 @@ Status ZPMetaMigrateRegister::Erase(const std::string& diff_key) {
   return Status::OK();
 }
 
-// Get some diff item
+// Get some diff item and add refer count
 // Return NotFound if the no migrate exist
 // Return Incomplete if some task has already fetch out
 // Notice the actually diff item may less than count
@@ -191,7 +187,8 @@ Status ZPMetaMigrateRegister::GetN(uint32_t count,
     count = diff_keys_.size();
   }
 
-  if (refer_ > 0) {
+  int expect = 0;
+  if (!refer_.compare_exchange_strong(expect, count)) {
     return Status::Incomplete("some task is not completed");
   }
 
@@ -205,22 +202,33 @@ Status ZPMetaMigrateRegister::GetN(uint32_t count,
     if (!fs.ok()) {
       LOG(ERROR) << "Read diff item failed: " << fs.ToString()
         << ", diff item: " << dk;
+      refer_ = 0; 
       return fs;
     }
     diff.Clear();
     if (!diff.ParseFromString(diff_value)) {
       LOG(ERROR) << "Parse diff item failed, value: " << diff_value;
+      refer_ = 0; 
       return Status::Corruption("Parse diff item failed");
     }
 
     diff_items->push_back(diff);
   }
-  refer_ = count;
   return Status::OK();
+}
+
+// Minus the refer count
+void ZPMetaMigrateRegister::PutN(uint32_t count) {
+  refer_ -= count;
 }
 
 Status ZPMetaMigrateRegister::Cancel() {
   slash::RWLock l(&migrate_rw_, true);
+  return CancelWithoutLock();
+}
+
+// Required: hold the write lock of migrate_rw_
+Status ZPMetaMigrateRegister::CancelWithoutLock() {
   if (!Exist()) {
     return Status::OK();
   }

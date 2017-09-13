@@ -41,6 +41,9 @@ bool ZPPingThread::CheckOffsetDelta(const std::string table_name,
 }
 
 slash::Status ZPPingThread::Send(bool all) {
+  if (all) {
+    LOG(INFO) << "send all offset in ping";
+  }
   ZPMeta::MetaCmd request;
   int64_t meta_epoch = zp_data_server->meta_epoch();
   ZPMeta::MetaCmd_Ping* ping = request.mutable_ping();
@@ -68,7 +71,7 @@ slash::Status ZPPingThread::Send(bool all) {
 
   std::string text_format;
   google::protobuf::TextFormat::PrintToString(request, &text_format);
-  DLOG(INFO) << "Ping Meta (" << zp_data_server->meta_ip()
+  LOG(INFO) << "Ping Meta (" << zp_data_server->meta_ip()
     << ":" << zp_data_server->meta_port() + kMetaPortShiftCmd
     << ") with Epoch: " << meta_epoch
     << " offset content: [" << text_format << "]";

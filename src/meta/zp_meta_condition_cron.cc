@@ -19,8 +19,10 @@
 #include "include/zp_const.h"
 
 ZPMetaConditionCron::ZPMetaConditionCron(ZPMetaInfoStore* i_store,
+    ZPMetaMigrateRegister* migrate,
     ZPMetaUpdateThread* update_thread)
   : info_store_(i_store),
+  migrate_(migrate),
   update_thread_(update_thread) {
     bg_thread_ = new pink::BGThread();
     bg_thread_->set_thread_name("ZPMetaCondition");
@@ -66,6 +68,7 @@ bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
       << ", table: " << condition.table
       << ", partition: " << condition.partition_id
       << ", left: " << condition.left.ip() << ":" << condition.left.port();
+    migrate_->PutN(1);
     return true;
   }
   s = info_store_->GetNodeOffset(condition.right,
@@ -76,12 +79,12 @@ bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
       << ", table: " << condition.table
       << ", partition: " << condition.partition_id
       << ", right: " << condition.right.ip() << ":" << condition.right.port();
+    migrate_->PutN(1);
     return true;
   }
 
   if (left_offset != right_offset) {
     // Not yet equal
-    LOG(WARNING) << "debug: wait";
     return false;
   }
 
