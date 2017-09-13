@@ -126,6 +126,8 @@ void ZPMetaServer::Start() {
     LOG(FATAL) << "Disptch thread start failed";
     return;
   }
+  LOG(INFO) << "Start server thread succ: " << std::hex
+    << server_thread_->thread_id(); 
 
   while (!should_exit_) {
     DoTimingTask();

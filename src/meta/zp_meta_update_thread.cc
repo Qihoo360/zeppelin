@@ -62,6 +62,8 @@ void ZPMetaUpdateThread::Active() {
     LOG(FATAL) << "Start update thread failed: " << ret;
     return;
   }
+  LOG(INFO) << "Start update thread succ: " << std::hex
+    << worker_->thread_id(); 
   should_stop_ = false;
 }
 
