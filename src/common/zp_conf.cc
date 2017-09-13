@@ -90,7 +90,7 @@ int ZpConf::Load(const std::string& path) {
   ret = conf_reader.GetConfStr("data_path", &data_path_);
   ret = conf_reader.GetConfStr("log_path", &log_path_);
   ret = conf_reader.GetConfStr("trash_path", &trash_path_);
-  ret = conf_reader.GetConfBool("deamonize", &daemonize_);
+  ret = conf_reader.GetConfBool("daemonize", &daemonize_);
   ret = conf_reader.GetConfStrVec("meta_addr", &meta_addr_);
   ret = conf_reader.GetConfInt("max_file_descriptor_num", &max_file_descriptor_num_);
   ret = conf_reader.GetConfInt("meta_thread_num", &meta_thread_num_);
