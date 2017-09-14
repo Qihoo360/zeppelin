@@ -33,12 +33,25 @@ ZPMetaConditionCron::~ZPMetaConditionCron() {
   delete bg_thread_;
 }
 
-void ZPMetaConditionCron::AddCronTask(const OffsetCondition& condition,
-    const std::vector<UpdateTask>& update_set) {
+void ZPMetaConditionCron::Active() {
   int ret = bg_thread_->StartThread();
   if (ret != 0) {
     LOG(FATAL) << "Failed to start meta condition cron, ret: " << ret;
   }
+  LOG(INFO) << "Start condition thread succ: " << std::hex
+    << bg_thread_->thread_id(); 
+}
+
+void ZPMetaConditionCron::Abandon() {
+  bg_thread_->StopThread();
+  int tqsize = 0, qsize = 0;
+  bg_thread_->QueueSize(&tqsize, &qsize);
+  migrate_->PutN(tqsize);
+  bg_thread_->QueueClear();
+}
+
+void ZPMetaConditionCron::AddCronTask(const OffsetCondition& condition,
+    const std::vector<UpdateTask>& update_set) {
   OffsetConditionArg* oarg = new OffsetConditionArg(this,
       condition, update_set);
   bg_thread_->DelaySchedule(kConditionCronInterval,

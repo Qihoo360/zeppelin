@@ -64,6 +64,7 @@ ZPMetaServer::ZPMetaServer()
       kMetaDispathQueueSize,
       nullptr);
   server_thread_->set_thread_name("ZPMetaDispatch");
+  server_thread_->set_keepalive_timeout(kKeepAlive);
 }
 
 ZPMetaServer::~ZPMetaServer() {
@@ -583,6 +584,10 @@ Status ZPMetaServer::RefreshLeader() {
     update_thread_->Active();
     LOG(INFO) << "Update thread active succ";
 
+    // Active Condition
+    condition_cron_->Active();
+    LOG(INFO) << "Condition thread active succ";
+
     // Restore NodeInfo
     s = info_store_->RestoreNodeInfos();
     if (!s.ok()) {
@@ -603,14 +608,18 @@ Status ZPMetaServer::RefreshLeader() {
     return Status::OK();
   }
 
-  // Abandon UpdateThread
+  // Abandon CronThread and UpdateThread
   // It's safe to just abandon all tasks of update thread, since:
   //  As our design, most of the task could be retry outside,
   //  such as those were launched by Ping or Migrate Process.
   //  The rest comes from admin command,
   //  whose lost is acceptable and could be retry by administrator.
+  condition_cron_->Abandon();
+  LOG(INFO) << "Condition thread abandon finish";
+  
   update_thread_->Abandon();
   LOG(INFO) << "Update thread abandon finish";
+
 
   // Connect to new leader
   leader_joint_.cli = pink::NewPbCli();

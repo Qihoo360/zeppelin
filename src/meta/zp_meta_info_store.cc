@@ -294,6 +294,13 @@ Status ZPMetaInfoStoreSnap::ChangePState(const std::string& table,
   if (!pptr) {
     return Status::NotFound("Partition not exist");
   }
+  
+  if (to_stuck ==
+      (pptr->state() == ZPMeta::PState::STUCK)) {
+    // No changed
+    return Status::OK();
+  }
+
   if (to_stuck) {
     pptr->set_state(ZPMeta::PState::STUCK);
   } else {
@@ -304,6 +311,9 @@ Status ZPMetaInfoStoreSnap::ChangePState(const std::string& table,
 }
 
 Status ZPMetaInfoStoreSnap::RemoveTable(const std::string& table) {
+  if (tables_.find(table) == tables_.end()) {
+    return Status::OK();
+  }
   tables_.erase(table);
   table_changed_[table] = true;
   return Status::OK();
@@ -551,7 +561,7 @@ bool ZPMetaInfoStore::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
   // Update offset
   for (const auto& po : ping.offset()) {
     std::string offset_key = NodeOffsetKey(po.table_name(), po.partition());
-    LOG(INFO) << "debug: update offset"
+    DLOG(INFO) << "update offset"
       << ", node: " << node
       << ", key: " << offset_key
       << ", offset: " << po.filenum() << "_" << po.offset();
@@ -722,7 +732,7 @@ bool ZPMetaInfoStore::IsMaster(const std::string& table,
 
 void ZPMetaInfoStore::GetSnapshot(ZPMetaInfoStoreSnap* snap) {
   // No lock here may give rise to the inconsistence
-  // between snap epch and snap table or snap nodes,
+  // between snap epcho and snap table or snap nodes,
   // for example a newer table info with an older epoch.
   //
   // But it is acceptable since this occurs rarely,

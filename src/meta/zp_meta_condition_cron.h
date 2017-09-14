@@ -41,6 +41,8 @@ class ZPMetaConditionCron  {
   virtual ~ZPMetaConditionCron();
   void AddCronTask(const OffsetCondition& condition,
       const std::vector<UpdateTask>& update_set);
+  void Active();
+  void Abandon();
 
  private:
   pink::BGThread* bg_thread_;

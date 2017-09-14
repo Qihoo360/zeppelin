@@ -42,7 +42,7 @@ class ZPMetaMigrateRegister  {
     pthread_rwlock_t migrate_rw_;  // protect partition status below
     uint64_t ctime_;
     int total_size_;
-    std::atomic<int> refer_;  // refer count indicate how many task be processing now
+    int refer_;  // refer count indicate how many task be processing now
     std::unordered_set<std::string> diff_keys_;
     floyd::Floyd* floyd_;
 

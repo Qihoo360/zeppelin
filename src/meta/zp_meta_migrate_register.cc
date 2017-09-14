@@ -128,7 +128,7 @@ Status ZPMetaMigrateRegister::Check(ZPMeta::MigrateStatus* status) {
   return Status::OK();
 }
 
-// Erase one diff item
+// Erase one diff item and minus refer count
 Status ZPMetaMigrateRegister::Erase(const std::string& diff_key) {
   slash::RWLock l(&migrate_rw_, true);
   if (!Exist()) {
@@ -139,6 +139,7 @@ Status ZPMetaMigrateRegister::Erase(const std::string& diff_key) {
     return Status::Complete("diff not found, may finished");
   }
 
+  refer_--;
   // Update MigrateHead
   ZPMeta::MigrateHead migrate_head;
   migrate_head.set_begin_time(ctime_);
@@ -178,7 +179,7 @@ Status ZPMetaMigrateRegister::Erase(const std::string& diff_key) {
 // Notice the actually diff item may less than count
 Status ZPMetaMigrateRegister::GetN(uint32_t count,
     std::vector<ZPMeta::RelationCmdUnit>* diff_items) {
-  slash::RWLock l(&migrate_rw_, false);
+  slash::RWLock l(&migrate_rw_, true);
   if (!Exist()) {
     return Status::NotFound("No migrate exist");
   }
@@ -187,8 +188,7 @@ Status ZPMetaMigrateRegister::GetN(uint32_t count,
     count = diff_keys_.size();
   }
 
-  int expect = 0;
-  if (!refer_.compare_exchange_strong(expect, count)) {
+  if (refer_ > 0) {
     return Status::Incomplete("some task is not completed");
   }
 
@@ -202,23 +202,26 @@ Status ZPMetaMigrateRegister::GetN(uint32_t count,
     if (!fs.ok()) {
       LOG(ERROR) << "Read diff item failed: " << fs.ToString()
         << ", diff item: " << dk;
-      refer_ = 0; 
       return fs;
     }
     diff.Clear();
     if (!diff.ParseFromString(diff_value)) {
       LOG(ERROR) << "Parse diff item failed, value: " << diff_value;
-      refer_ = 0; 
       return Status::Corruption("Parse diff item failed");
     }
 
     diff_items->push_back(diff);
   }
+  refer_ = count;
   return Status::OK();
 }
 
 // Minus the refer count
 void ZPMetaMigrateRegister::PutN(uint32_t count) {
+  slash::RWLock l(&migrate_rw_, true);
+  if (!Exist()) {
+    return;
+  }
   refer_ -= count;
 }
 

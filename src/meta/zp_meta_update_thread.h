@@ -27,7 +27,7 @@
 #include "src/meta/zp_meta_migrate_register.h"
 
 enum ZPMetaUpdateOP : unsigned int {
-  kOpUpNode,
+  kOpUpNode = 0,
   kOpDownNode,
   kOpAddTable,
   kOpRemoveTable,
@@ -37,6 +37,19 @@ enum ZPMetaUpdateOP : unsigned int {
   kOpSetMaster,
   kOpSetStuck,  // Stuck the partition
   kOpSetActive  // ACTIVE the partition
+};
+
+const std::string UpdateOPMsg[] {
+  "kOpUpNode",
+  "kOpDownNode",
+  "kOpAddTable",
+  "kOpRemoveTable",
+  "kOpAddSlave",
+  "kOpRemoveSlave",
+  "kOpHandover",
+  "kOpSetMaster",
+  "kOpSetStuck",
+  "kOpSetActive"
 };
 
 struct UpdateTask {

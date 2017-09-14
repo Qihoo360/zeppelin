@@ -56,7 +56,6 @@ Status ZPMetaUpdateThread::PendingUpdate(const UpdateTask &task) {
 }
 
 void ZPMetaUpdateThread::Active() {
-  slash::MutexLock l(&task_mutex_);
   int ret = worker_->StartThread();
   if (ret != 0) {
     LOG(FATAL) << "Start update thread failed: " << ret;
@@ -102,7 +101,7 @@ Status ZPMetaUpdateThread::ApplyUpdates(
   int handover_count = 0;
   for (const auto cur_task : task_deque) {
     LOG(INFO) << "Apply one task, task type: "
-      << static_cast<int>(cur_task.op)
+      << UpdateOPMsg[cur_task.op]
       << ", table: " << cur_task.table
       << ", partition: " << cur_task.partition
       << ", ip_port: " << cur_task.ip_port
@@ -212,7 +211,6 @@ Status ZPMetaUpdateThread::ApplyUpdates(
         << ", to: " << cur_task.ip_port;
     }
   }
-  migrate_->PutN(handover_count);
   return s;
 }
 
