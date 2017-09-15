@@ -580,6 +580,9 @@ Status ZPMetaServer::RefreshLeader() {
       leader_cmd_port == g_zp_conf->local_port()) {
     LOG(INFO) << "Become leader: " << leader_ip << ":" << leader_port;
 
+    // Delay a period of time to wait for the old leader's demotion
+    sleep(2 * kMetaCronWaitCount * kMetaCronInterval);
+
     // Active Update
     update_thread_->Active();
     LOG(INFO) << "Update thread active succ";
