@@ -783,13 +783,13 @@ void protobuf_AddDesc_zp_5fmeta_2eproto() {
     " \002(\005\022\033\n\023consistency_stautus\030\002 \002(\t\022-\n\016mig"
     "rate_status\030\003 \001(\0132\025.ZPMeta.MigrateStatus"
     "*-\n\nStatusCode\022\006\n\002OK\020\000\022\014\n\010NOTFOUND\020\001\022\t\n\005"
-    "ERROR\020\002*\316\001\n\004Type\022\010\n\004PING\020\001\022\010\n\004PULL\020\002\022\010\n\004"
+    "ERROR\020\002*\274\001\n\004Type\022\010\n\004PING\020\001\022\010\n\004PULL\020\002\022\010\n\004"
     "INIT\020\003\022\r\n\tSETMASTER\020\004\022\014\n\010ADDSLAVE\020\005\022\017\n\013R"
     "EMOVESLAVE\020\006\022\r\n\tLISTTABLE\020\007\022\014\n\010LISTNODE\020"
     "\010\022\014\n\010LISTMETA\020\t\022\r\n\tDROPTABLE\020\n\022\016\n\nMETAST"
-    "ATUS\020\013\022\013\n\007MIGRATE\020\014\022\021\n\rCANCELMIGRATE\020\r\022\020"
-    "\n\014CHECKMIGRATE\020\016*\037\n\006PState\022\n\n\006ACTIVE\020\001\022\t"
-    "\n\005STUCK\020\002*\035\n\tNodeState\022\006\n\002UP\020\000\022\010\n\004DOWN\020\001", 2720);
+    "ATUS\020\013\022\013\n\007MIGRATE\020\014\022\021\n\rCANCELMIGRATE\020\r*\037"
+    "\n\006PState\022\n\n\006ACTIVE\020\001\022\t\n\005STUCK\020\002*\035\n\tNodeS"
+    "tate\022\006\n\002UP\020\000\022\010\n\004DOWN\020\001", 2702);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "zp_meta.proto", &protobuf_RegisterTypes);
   Node::default_instance_ = new Node();
@@ -891,7 +891,6 @@ bool Type_IsValid(int value) {
     case 11:
     case 12:
     case 13:
-    case 14:
       return true;
     default:
       return false;

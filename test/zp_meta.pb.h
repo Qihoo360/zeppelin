@@ -96,12 +96,11 @@ enum Type {
   DROPTABLE = 10,
   METASTATUS = 11,
   MIGRATE = 12,
-  CANCELMIGRATE = 13,
-  CHECKMIGRATE = 14
+  CANCELMIGRATE = 13
 };
 bool Type_IsValid(int value);
 const Type Type_MIN = PING;
-const Type Type_MAX = CHECKMIGRATE;
+const Type Type_MAX = CANCELMIGRATE;
 const int Type_ARRAYSIZE = Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Type_descriptor();
