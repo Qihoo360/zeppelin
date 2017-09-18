@@ -634,10 +634,10 @@ Status ZPMetaServer::Distribute(const std::string &name, int num) {
     pnum--;
   }
 
-  DebugNodes();
+  //DebugNodes();
   std::string text_format;
   google::protobuf::TextFormat::PrintToString(table, &text_format);
-  LOG(INFO) << "table_info : [" << text_format << "]";
+  DLOG(INFO) << "table_info : [" << text_format << "]";
 
   return Status::OK();
 }
@@ -704,7 +704,7 @@ Status ZPMetaServer::DropTable(const std::string &name) {
     iter->second.erase(name);
   }
 
-  DebugNodes();
+  // DebugNodes();
 
   return Status::OK();
 }
@@ -793,8 +793,8 @@ bool ZPMetaServer::IsLeader() {
     LOG(ERROR) << "Connect to leader: " << leader_ip_ << ":" << leader_cmd_port_ << " failed";
   } else {
     LOG(INFO) << "Connect to leader: " << leader_ip_ << ":" << leader_cmd_port_ << " success";
-    leader_cli_->set_send_timeout(1000);
-    leader_cli_->set_recv_timeout(1000);
+    leader_cli_->set_send_timeout(500);
+    leader_cli_->set_recv_timeout(500);
   }
   return false;
 }
@@ -906,7 +906,7 @@ bool ZPMetaServer::ProcessUpdateTableInfo(const ZPMetaUpdateTaskDeque task_deque
     }
     std::string text_format;
     google::protobuf::TextFormat::PrintToString(*table_info, &text_format);
-    LOG(INFO) << "table_info : [" << text_format << "]";
+    DLOG(INFO) << "table_info : [" << text_format << "]";
   }
   return true;
 }
@@ -1035,7 +1035,7 @@ void ZPMetaServer::DoRemoveSlaveForTableInfo(ZPMeta::Table *table_info, const st
       }
     }
   }
-  DebugNodes();
+  //DebugNodes();
 
 }
 
@@ -1113,7 +1113,7 @@ void ZPMetaServer::DoAddSlaveForTableInfo(ZPMeta::Table *table_info, const std::
     ts.insert(table_info->name());
     nodes_.insert(std::unordered_map<std::string, std::set<std::string> >::value_type(slash::IpPortString(ip, port), ts));
   }
-  DebugNodes();
+  //DebugNodes();
 }
 
 void ZPMetaServer::DoUpNodeForTableInfo(ZPMeta::Table *table_info, const std::string ip, int port, bool *should_update_table_info) {
@@ -1185,7 +1185,7 @@ bool ZPMetaServer::ProcessUpdateNodes(const ZPMetaUpdateTaskDeque task_deque, ZP
     }
     std::string text_format;
     google::protobuf::TextFormat::PrintToString(*nodes, &text_format);
-    LOG(INFO) << "nodes : [" << text_format << "]";
+    DLOG(INFO) << "nodes : [" << text_format << "]";
   }
   return true;
 }
@@ -1371,7 +1371,7 @@ Status ZPMetaServer::RemoveTableFromTableList(const std::string &name) {
 
     std::string text_format;
     google::protobuf::TextFormat::PrintToString(new_table_name, &text_format);
-    LOG(INFO) << "Tables : [" << text_format << "]";
+    DLOG(INFO) << "Tables : [" << text_format << "]";
 
     if (!new_table_name.SerializeToString(&value)) {
       LOG(ERROR) << "Serialization new_table_name failed, value: " <<  value;
@@ -1411,7 +1411,7 @@ Status ZPMetaServer::UpdateTableList(const std::string &name) {
     table_name.add_name(name);
     std::string text_format;
     google::protobuf::TextFormat::PrintToString(table_name, &text_format);
-    LOG(INFO) << "Tables : [" << text_format << "]";
+    DLOG(INFO) << "Tables : [" << text_format << "]";
 
     if (!table_name.SerializeToString(&value)) {
       LOG(ERROR) << "Serialization table_name failed, value: " <<  value;
@@ -1537,7 +1537,7 @@ Status ZPMetaServer::InitVersion() {
           }
         }
       }
-      DebugNodes();
+      // DebugNodes();
   } else if (fs.IsNotFound()) {
     LOG(INFO) << "Read floyd tables in InitVersion, not found";
   } else {
