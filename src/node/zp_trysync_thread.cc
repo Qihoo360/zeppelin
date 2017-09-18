@@ -27,7 +27,7 @@ static std::string TablePartitionString(const std::string& table, int id) {
 }
 
 ZPTrySyncThread::ZPTrySyncThread() {
-    bg_thread_ = new pink::BGThread();
+    bg_thread_ = new pink::BGThread(1024 * 1024 * 256);
     bg_thread_->set_thread_name("ZPDataTrySync");
 }
 

@@ -27,7 +27,7 @@ extern ZPDataServer* zp_data_server;
 ZPMetacmdBGWorker::ZPMetacmdBGWorker() {
     cli_ = pink::NewPbCli();
     cli_->set_connect_timeout(1500);
-    bg_thread_ = new pink::BGThread();
+    bg_thread_ = new pink::BGThread(1024 * 1024 * 256);
   }
 
 ZPMetacmdBGWorker::~ZPMetacmdBGWorker() {

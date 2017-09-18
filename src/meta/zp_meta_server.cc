@@ -623,7 +623,6 @@ Status ZPMetaServer::RefreshLeader() {
   update_thread_->Abandon();
   LOG(INFO) << "Update thread abandon finish";
 
-
   // Connect to new leader
   leader_joint_.cli = pink::NewPbCli();
   leader_joint_.ip = leader_ip;
@@ -637,8 +636,8 @@ Status ZPMetaServer::RefreshLeader() {
   } else {
     LOG(INFO) << "Connect to leader: " << leader_ip << ":" << leader_cmd_port
       << " success.";
-    leader_joint_.cli->set_send_timeout(1000);
-    leader_joint_.cli->set_recv_timeout(1000);
+    leader_joint_.cli->set_send_timeout(200);
+    leader_joint_.cli->set_recv_timeout(200);
   }
   return s;
 }

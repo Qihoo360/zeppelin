@@ -26,7 +26,7 @@ ZPMetaUpdateThread::ZPMetaUpdateThread(ZPMetaInfoStore* is,
   should_stop_(true),
   info_store_(is),
   migrate_(m) {
-  worker_ = new pink::BGThread();
+  worker_ = new pink::BGThread(1024 * 1024 * 256);
   worker_->set_thread_name("ZPMetaUpdate");
 }
 

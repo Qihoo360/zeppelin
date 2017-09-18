@@ -24,7 +24,7 @@ ZPMetaConditionCron::ZPMetaConditionCron(ZPMetaInfoStore* i_store,
   : info_store_(i_store),
   migrate_(migrate),
   update_thread_(update_thread) {
-    bg_thread_ = new pink::BGThread();
+    bg_thread_ = new pink::BGThread(1024 * 1024 * 256);
     bg_thread_->set_thread_name("ZPMetaCondition");
   }
 
