@@ -59,7 +59,7 @@ void PullCmd::Do(const google::protobuf::Message *req, google::protobuf::Message
 
   ZPMeta::MetaCmdResponse_Pull ms_info;
   Status s = g_meta_server->GetMSInfo(tables, &ms_info);
-  LOG(INFO) << "Pull result to " << request->pull().node().ip()
+  DLOG(INFO) << "Pull result to " << request->pull().node().ip()
     << ":" << request->pull().node().port()
     << ", response table num: " << tables.size()
     << ", info size: " << ms_info.info_size();

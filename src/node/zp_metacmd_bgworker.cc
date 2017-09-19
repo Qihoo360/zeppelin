@@ -195,8 +195,8 @@ bool ZPMetacmdBGWorker::FetchMetaInfo(int64_t* receive_epoch) {
     << meta_ip << ":" << meta_port << ")";
   Status s = cli_->Connect(meta_ip, meta_port);
   if (s.ok()) {
-    cli_->set_send_timeout(1000);
-    cli_->set_recv_timeout(1000);
+    cli_->set_send_timeout(5000);
+    cli_->set_recv_timeout(5000);
     LOG(INFO) << "Metacmd connect (" << meta_ip << ":" << meta_port << ") ok!";
 
     s = Send();
