@@ -48,7 +48,7 @@ LIBS = -lpthread \
 BASE_OBJS += $(wildcard $(PB_DIR)/zp_meta.pb.cc)
 OBJS = $(patsubst %.cc,%.o,$(BASE_OBJS))
 
-OBJECT = dump_meta empty_trash check_binlog_hole
+OBJECT = dump_meta empty_trash check_binlog_hole distribution
 all: $(OBJECT)
 	@echo "Success, go, go, go..."
 
@@ -63,6 +63,9 @@ empty_trash: $(OBJS) empty_trash.cc
 
 check_binlog_hole: $(OBJS) check_binlog_hole.cc
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+
+distribution: distribution.cc
+	$(CXX) $(CXXFLAGS) -o $@ $^
 
 clean: 
 	rm -rf ./*.o
