@@ -35,12 +35,17 @@ struct NodeInfo {
   // table_partition -> offset
   std::map<std::string, NodeOffset> offsets;
 
+  bool StateEqual(const ZPMeta::NodeState& n) {
+    return (n == ZPMeta::NodeState::UP)   // new is up
+      == (last_alive_time > 0);           // old is up
+  }
+
   NodeInfo()
     : last_alive_time(0) {}
 
-  explicit NodeInfo(bool up)
+  explicit NodeInfo(const ZPMeta::NodeState& s)
     : last_alive_time(0) {
-      if (up) {
+      if (s == ZPMeta::NodeState::UP) {
         last_alive_time = slash::NowMicros();
       }
     }

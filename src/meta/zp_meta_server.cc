@@ -581,7 +581,7 @@ Status ZPMetaServer::RefreshLeader() {
     LOG(INFO) << "Become leader: " << leader_ip << ":" << leader_port;
 
     // Delay a period of time to wait for the old leader's demotion
-    sleep(2 * kMetaCronWaitCount * kMetaCronInterval);
+    sleep(2 * kMetaCronWaitCount * kMetaCronInterval / 1000);
 
     // Active Update
     update_thread_->Active();
@@ -636,8 +636,8 @@ Status ZPMetaServer::RefreshLeader() {
   } else {
     LOG(INFO) << "Connect to leader: " << leader_ip << ":" << leader_cmd_port
       << " success.";
-    leader_joint_.cli->set_send_timeout(200);
-    leader_joint_.cli->set_recv_timeout(200);
+    leader_joint_.cli->set_send_timeout(2000);
+    leader_joint_.cli->set_recv_timeout(2000);
   }
   return s;
 }

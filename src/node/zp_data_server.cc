@@ -240,6 +240,9 @@ void ZPDataServer::TryUpdateEpoch(int64_t epoch) {
     LOG(INFO) <<  "Meta epoch changed: " << meta_epoch_ << " to " << epoch;
     should_pull_meta_ = true;
     AddMetacmdTask();
+  } else if (epoch < meta_epoch_) {
+    LOG(WARNING) <<  "Receive meta epoch fallback from my "
+      << meta_epoch_ << " to " << epoch << ", Reject.";
   }
 }
 

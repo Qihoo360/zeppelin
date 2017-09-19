@@ -179,6 +179,7 @@ Status ZPMetaUpdateThread::ApplyUpdates(
     s = info_store_->Apply(info_store_snap);
   }
   is_stuck_ = false;
+  LOG(INFO) << "Apply update change succ";
 
   if (should_stop_) {
     migrate_->PutN(handover_count);
