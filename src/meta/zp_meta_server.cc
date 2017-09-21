@@ -529,6 +529,7 @@ Status ZPMetaServer::RedirectToLeader(const ZPMeta::MetaCmd &request,
   }
   Status s = leader_joint_.cli->Send(const_cast<ZPMeta::MetaCmd*>(&request));
   if (!s.ok()) {
+    leader_joint_.CleanLeader();
     LOG(ERROR) << "Failed to send redirect message to leader, error: "
       << s.ToString() << ", leader: " << leader_joint_.ip
       << ":" << leader_joint_.port;
@@ -536,6 +537,7 @@ Status ZPMetaServer::RedirectToLeader(const ZPMeta::MetaCmd &request,
   }
   s = leader_joint_.cli->Recv(response);
   if (!s.ok()) {
+    leader_joint_.CleanLeader();
     LOG(ERROR) << "Failed to recv redirect message from leader, error: "
       << s.ToString() << ", leader: " << leader_joint_.ip
       << ":" << leader_joint_.port;
@@ -636,8 +638,8 @@ Status ZPMetaServer::RefreshLeader() {
   } else {
     LOG(INFO) << "Connect to leader: " << leader_ip << ":" << leader_cmd_port
       << " success.";
-    leader_joint_.cli->set_send_timeout(2000);
-    leader_joint_.cli->set_recv_timeout(2000);
+    leader_joint_.cli->set_send_timeout(1000);
+    leader_joint_.cli->set_recv_timeout(1000);
   }
   return s;
 }
@@ -679,7 +681,7 @@ void ZPMetaServer::InitClientCmdTable() {
         listtableptr));
 
   // ListNode Command
-  Cmd* listnodeptr = new ListNodeCmd(kCmdFlagsRead | kCmdFlagsRedirect);
+  Cmd* listnodeptr = new ListNodeCmd(kCmdFlagsRead);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::LISTNODE),
         listnodeptr));
 
@@ -748,13 +750,19 @@ void ZPMetaServer::DoTimingTask() {
 
     // Process Migrate if needed
     ProcessMigrateIfNeed();
-  }
-  }
+  } else {
+    // Refresh table info
+    s = info_store_->Refresh();
+    if (!s.ok()) {
+      LOG(WARNING) << "Refresh table info failed: " << s.ToString();
+    }
 
-  // Refresh info_store
-  s = info_store_->Refresh();
-  if (!s.ok()) {
-    LOG(WARNING) << "Refresh info_store_ failed: " << s.ToString();
+    // Refresh node info
+    s = info_store_->RefreshNodeInfos();
+    if (!s.ok()) {
+      LOG(WARNING) << "Refresh node info failed: " << s.ToString();
+    }
+  }
   }
 
   // Update statistic info

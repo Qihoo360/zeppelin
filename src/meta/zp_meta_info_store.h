@@ -100,6 +100,7 @@ class ZPMetaInfoStore   {
 
     // node_infos_ related
     Status RestoreNodeInfos();  // clean and refresh
+    Status RefreshNodeInfos();
     bool UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping);
     void FetchExpiredNode(std::set<std::string>* nodes);
     void GetAllNodes(std::unordered_map<std::string, NodeInfo>* all_nodes);
@@ -142,7 +143,6 @@ class ZPMetaInfoStore   {
     // node => alive time + offset set, 0 means already down node
     // only valid for leader
     std::unordered_map<std::string, NodeInfo> node_infos_;
-    Status RefreshNodeInfos();
 
     // No copying allowed
     ZPMetaInfoStore(const ZPMetaInfoStore&);
