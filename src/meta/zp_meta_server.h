@@ -40,6 +40,7 @@ extern ZpConf* g_zp_conf;
 typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
 
 struct LeaderJoint {
+  slash::Mutex mutex;
   pink::PinkCli* cli;
   std::string ip;
   int port;
@@ -48,12 +49,20 @@ struct LeaderJoint {
     port(0) {
     }
 
-  void CleanLeader() {
+  bool NoLeader() {
+    return ip.empty() || port == 0;
+  }
+
+  void Disconnect() {
     if (cli) {
       cli->Close();
       delete cli;
       cli = NULL;
     }
+  }
+
+  void CleanLeader() {
+    Disconnect();
     ip.clear();
     port = 0;
   }
@@ -128,12 +137,10 @@ class ZPMetaServer  {
   // Leader related
   Status RedirectToLeader(const ZPMeta::MetaCmd &request,
       ZPMeta::MetaCmdResponse *response);
-  // Required hold mutex of leader_mutex
   bool IsLeader() {
     return is_leader_;
   }
 
-  slash::Mutex leader_mutex;
 
  private:
   // Server related
@@ -149,7 +156,8 @@ class ZPMetaServer  {
   Status OpenFloyd();
 
   // Leader related
-  bool is_leader_;
+  std::atomic<bool> is_leader_;
+  slash::Mutex leader_mutex_;
   LeaderJoint leader_joint_;
   bool GetLeader(std::string *ip, int *port);
   Status RefreshLeader();

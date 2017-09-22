@@ -20,14 +20,20 @@
 #include "src/meta/zp_meta_update_thread.h"
 #include "src/meta/zp_meta_info_store.h"
 
+enum ConditionTaskType {
+  kMigrate = 0,
+  kSetMaster
+};
+
 struct OffsetCondition {
+  ConditionTaskType type;
   std::string table;
   int partition_id;
   ZPMeta::Node left;
   ZPMeta::Node right;
-  OffsetCondition(const std::string& t, int pid,
+  OffsetCondition(ConditionTaskType ctt, const std::string& t, int pid,
       const ZPMeta::Node& l, const ZPMeta::Node& r)
-    : table(t), partition_id(pid) {
+    : type(ctt), table(t), partition_id(pid) {
       left.CopyFrom(l);
       right.CopyFrom(r);
     }

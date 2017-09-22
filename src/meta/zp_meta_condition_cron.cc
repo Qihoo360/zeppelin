@@ -29,7 +29,7 @@ ZPMetaConditionCron::ZPMetaConditionCron(ZPMetaInfoStore* i_store,
   }
 
 ZPMetaConditionCron::~ZPMetaConditionCron() {
-  bg_thread_->StopThread();
+  Abandon();
   delete bg_thread_;
 }
 
@@ -44,9 +44,6 @@ void ZPMetaConditionCron::Active() {
 
 void ZPMetaConditionCron::Abandon() {
   bg_thread_->StopThread();
-  int tqsize = 0, qsize = 0;
-  bg_thread_->QueueSize(&tqsize, &qsize);
-  migrate_->PutN(tqsize);
   bg_thread_->QueueClear();
 }
 
@@ -81,7 +78,9 @@ bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
       << ", table: " << condition.table
       << ", partition: " << condition.partition_id
       << ", left: " << condition.left.ip() << ":" << condition.left.port();
-    migrate_->PutN(1);
+    if (condition.type == ConditionTaskType::kMigrate) {
+      migrate_->PutN(1);
+    }
     return true;
   }
   s = info_store_->GetNodeOffset(condition.right,
@@ -92,7 +91,9 @@ bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
       << ", table: " << condition.table
       << ", partition: " << condition.partition_id
       << ", right: " << condition.right.ip() << ":" << condition.right.port();
-    migrate_->PutN(1);
+    if (condition.type == ConditionTaskType::kMigrate) {
+      migrate_->PutN(1);
+    }
     return true;
   }
 

@@ -31,7 +31,7 @@ ZPMetaUpdateThread::ZPMetaUpdateThread(ZPMetaInfoStore* is,
 }
 
 ZPMetaUpdateThread::~ZPMetaUpdateThread() {
-  worker_->StopThread();
+  Abandon();
   delete worker_;
 }
 

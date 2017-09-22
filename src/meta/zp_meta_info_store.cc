@@ -462,12 +462,12 @@ Status ZPMetaInfoStore::Refresh() {
     << table_names.name_size() << ", value size: " << value.size();
 
   // Read tables and update node_table_, table_info_
-  {
-  slash::RWLock l(&tables_rw_, true);
-  node_table_.clear();
-  table_info_.clear();
   std::string ip_port;
   ZPMeta::Table table_info;
+  std::set<std::string> miss_tables;
+  for (const auto& ot : table_info_) {
+    miss_tables.insert(ot.first);
+  }
   for (const auto& t : table_names.name()) {
     fs = floyd_->Read(t, &value);
     if (!fs.ok()) {
@@ -481,8 +481,14 @@ Status ZPMetaInfoStore::Refresh() {
       return Status::Corruption("Parse failed");
     }
 
-    table_info_[t] = ZPMeta::Table();
-    table_info_[t].CopyFrom(table_info);
+    {
+    slash::RWLock l(&tables_rw_, true);
+    miss_tables.erase(t);
+    if (table_info_.find(t) == table_info_.end()) {
+      table_info_.insert(
+          std::pair<std::string, ZPMeta::Table>(t, ZPMeta::Table()));
+    }
+    table_info_.at(t).CopyFrom(table_info);
 
     for (const auto& partition : table_info.partitions()) {
       if (partition.master().ip() != ""
@@ -498,10 +504,28 @@ Status ZPMetaInfoStore::Refresh() {
         AddNodeTable(ip_port, t);
       }
     }
+
+    }
+  }
+
+  {
+  slash::RWLock l(&tables_rw_, true);
+  for (const auto& mt : miss_tables) {
+    table_info_.erase(mt);
+
+    auto nd_iter = node_table_.begin();
+    while (nd_iter != node_table_.end()) {
+      nd_iter->second.erase(mt);
+      if (nd_iter->second.empty()) {
+        nd_iter = node_table_.erase(nd_iter);
+      } else {
+        nd_iter++;
+      }
+    }
+  }
   }
   LOG(INFO) << "Update node_table_ from floyd succ.";
- // NodesDebug();
-  }
+  // NodesDebug();
 
   // Update Version
   epoch_ = tmp_epoch;
@@ -511,8 +535,8 @@ Status ZPMetaInfoStore::Refresh() {
 
 Status ZPMetaInfoStore::RestoreNodeInfos() {
   {
-  slash::RWLock l(&nodes_rw_, true);
-  node_infos_.clear();
+    slash::RWLock l(&nodes_rw_, true);
+    node_infos_.clear();
   }
   return RefreshNodeInfos();
 }
@@ -548,7 +572,7 @@ Status ZPMetaInfoStore::RefreshNodeInfos() {
 
     if (node_infos_.find(ip_port) == node_infos_.end()    // new node
         || !(node_infos_.at(ip_port).StateEqual(node_s.status()))) {
-                                                          // node state changed
+      // node state changed
       node_infos_[ip_port] = NodeInfo(node_s.status());
     }
   }
@@ -645,7 +669,7 @@ void ZPMetaInfoStore::NodesDebug() {
 
 // Requied: hold read or write lock of table_rw_
 void ZPMetaInfoStore::AddNodeTable(const std::string& ip_port,
-       const std::string& table) {
+    const std::string& table) {
   const auto iter = node_table_.find(ip_port);
   if (iter == node_table_.end()) {
     node_table_.insert(std::pair<std::string,
@@ -655,8 +679,8 @@ void ZPMetaInfoStore::AddNodeTable(const std::string& ip_port,
 }
 
 Status ZPMetaInfoStore::GetTableList(std::set<std::string>* table_list) {
-  slash::RWLock l(&tables_rw_, false);
   table_list->clear();
+  slash::RWLock l(&tables_rw_, false);
   for (const auto& t : table_info_) {
     table_list->insert(t.first);
   }
@@ -778,18 +802,25 @@ Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
 
   // Update tables_
   ZPMeta::TableName table_list;
-  for (const auto& t : snap.tables_) {
+  for (const auto& t : snap.table_changed_) {
+    auto iter_table = snap.tables_.find(t.first);
+    if (iter_table == snap.tables_.end()) {
+      // Table be removed
+      epoch_change = true;
+      continue;
+    }
     table_list.add_name(t.first);
-    if (!snap.table_changed_.at(t.first)) {
+
+    if (!t.second) {
       continue;
     }
     epoch_change = true;  // Epoch update as long as some table changed
-    
+
     std::string text_format;
-    google::protobuf::TextFormat::PrintToString(t.second, &text_format);
+    google::protobuf::TextFormat::PrintToString(iter_table->second, &text_format);
     DLOG(INFO) << "Set table to floyd [" << text_format << "]";
-    
-    if (!t.second.SerializeToString(&value)) {
+
+    if (!iter_table->second.SerializeToString(&value)) {
       LOG(WARNING) << "SerializeToString ZPMeta::Table failed. Table: "
         << t.first;
       return Status::InvalidArgument("Failed to serialize Table");
@@ -804,7 +835,7 @@ Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
   }
 
   // Update tablelist
-  if (!value.empty()) {
+  if (epoch_change) {
     if (!table_list.SerializeToString(&value)) {
       LOG(WARNING) << "SerializeToString ZPMeta::TableName failed.";
       return Status::InvalidArgument("Failed to serialize Table List");

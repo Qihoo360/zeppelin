@@ -284,6 +284,7 @@ Status ZPMetaMigrateRegister::Load() {
     diff_keys_.insert(dk);
   }
   ctime_ = migrate_head.begin_time();
+  refer_ = 0;
   return Status::OK();
 }
 

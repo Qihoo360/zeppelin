@@ -78,7 +78,7 @@ ZPMetaServer::~ZPMetaServer() {
   delete info_store_;
   delete floyd_;
 
-  slash::MutexLock l(&leader_mutex);
+  slash::MutexLock l(&(leader_joint_.mutex));
   leader_joint_.CleanLeader();
   DestoryCmdTable(cmds_);
   LOG(INFO) << "ZPMetaServer Delete Done";
@@ -177,6 +177,7 @@ Status ZPMetaServer::GetMetaInfoByNode(const std::string& ip_port,
     return s;
   }
 
+  uint64_t start_us = slash::NowMicros();
   for (const auto& t : tables) {
     ZPMeta::Table* table_info = ms_info->add_info();
     s = info_store_->GetTableMeta(t, table_info);
@@ -186,6 +187,7 @@ Status ZPMetaServer::GetMetaInfoByNode(const std::string& ip_port,
       return s;
     }
   }
+  LOG(INFO) << "Pull, GetTableMeta duration: " << slash::NowMicros() - start_us;
   return Status::OK();
 }
 
@@ -346,6 +348,7 @@ Status ZPMetaServer::WaitSetMaster(const ZPMeta::Node& node,
 
   condition_cron_->AddCronTask(
       OffsetCondition(
+        ConditionTaskType::kSetMaster,
         table,
         partition,
         master,
@@ -510,6 +513,7 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
 
     condition_cron_->AddCronTask(
         OffsetCondition(
+        ConditionTaskType::kMigrate,
           diff.table(),
           diff.partition(),
           diff.left(),
@@ -518,18 +522,35 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
   }
 }
 
-// Required hold mutex of leader_mutex
 Status ZPMetaServer::RedirectToLeader(const ZPMeta::MetaCmd &request,
     ZPMeta::MetaCmdResponse *response) {
-  // Do not try to connect leader even failed,
-  // and leave this to RefreshLeader process in cron
+  Status s;
+  slash::MutexLock l(&(leader_joint_.mutex));
+  
+  // Connect if needed
   if (leader_joint_.cli == NULL) {
-    LOG(ERROR) << "Failed to RedirectToLeader, cli is NULL";
-    return Status::Corruption("no leader connection");
+    if (leader_joint_.NoLeader()) {
+      return Status::Incomplete("Leader electing");
+    }
+    leader_joint_.cli = pink::NewPbCli();
+    s = leader_joint_.cli->Connect(leader_joint_.ip,
+        leader_joint_.port);
+    if (!s.ok()) {
+      leader_joint_.Disconnect();
+      LOG(ERROR) << "Connect to leader: " << leader_joint_.ip
+        << ":" << leader_joint_.port << " failed: " << s.ToString();
+      return s;
+    }
+    LOG(INFO) << "Connect to leader: " << leader_joint_.ip
+      << ":" << leader_joint_.port << " success.";
+    leader_joint_.cli->set_send_timeout(1000);
+    leader_joint_.cli->set_recv_timeout(1000);
   }
-  Status s = leader_joint_.cli->Send(const_cast<ZPMeta::MetaCmd*>(&request));
+  
+  // Redirect
+  s = leader_joint_.cli->Send(const_cast<ZPMeta::MetaCmd*>(&request));
   if (!s.ok()) {
-    leader_joint_.CleanLeader();
+    leader_joint_.Disconnect();
     LOG(ERROR) << "Failed to send redirect message to leader, error: "
       << s.ToString() << ", leader: " << leader_joint_.ip
       << ":" << leader_joint_.port;
@@ -537,7 +558,7 @@ Status ZPMetaServer::RedirectToLeader(const ZPMeta::MetaCmd &request,
   }
   s = leader_joint_.cli->Recv(response);
   if (!s.ok()) {
-    leader_joint_.CleanLeader();
+    leader_joint_.Disconnect();
     LOG(ERROR) << "Failed to recv redirect message from leader, error: "
       << s.ToString() << ", leader: " << leader_joint_.ip
       << ":" << leader_joint_.port;
@@ -554,12 +575,12 @@ Status ZPMetaServer::RefreshLeader() {
   }
 
   leader_cmd_port = leader_port + kMetaPortShiftCmd;
-  slash::MutexLock l(&leader_mutex);
+  slash::MutexLock l(&(leader_joint_.mutex));
   if (is_leader_
       && (leader_ip == g_zp_conf->local_ip()
         && leader_cmd_port == g_zp_conf->local_port())) {
-      // I'm Leader, and stay the same
-      return Status::OK();
+    // I'm Leader, and stay the same
+    return Status::OK();
   } else if (!is_leader_
       && (leader_ip == leader_joint_.ip
         && leader_cmd_port == leader_joint_.port)) {
@@ -625,23 +646,10 @@ Status ZPMetaServer::RefreshLeader() {
   update_thread_->Abandon();
   LOG(INFO) << "Update thread abandon finish";
 
-  // Connect to new leader
-  leader_joint_.cli = pink::NewPbCli();
+  // Record new leader
   leader_joint_.ip = leader_ip;
   leader_joint_.port = leader_cmd_port;
-  s = leader_joint_.cli->Connect(leader_joint_.ip,
-      leader_joint_.port);
-  if (!s.ok()) {
-    leader_joint_.CleanLeader();
-    LOG(ERROR) << "Connect to leader: " << leader_ip << ":" << leader_cmd_port
-      << " failed: " << s.ToString();
-  } else {
-    LOG(INFO) << "Connect to leader: " << leader_ip << ":" << leader_cmd_port
-      << " success.";
-    leader_joint_.cli->set_send_timeout(1000);
-    leader_joint_.cli->set_recv_timeout(1000);
-  }
-  return s;
+  return Status::OK();
 }
 
 void ZPMetaServer::InitClientCmdTable() {
@@ -742,8 +750,7 @@ void ZPMetaServer::DoTimingTask() {
     LOG(WARNING) << "Refresh Leader failed: " << s.ToString();
   }
 
-  {
-  slash::MutexLock l(&leader_mutex);
+  // is_leader only changed by main thread
   if (is_leader_) {  // Is Leader
     // Check alive
     CheckNodeAlive();
@@ -762,7 +769,6 @@ void ZPMetaServer::DoTimingTask() {
     if (!s.ok()) {
       LOG(WARNING) << "Refresh node info failed: " << s.ToString();
     }
-  }
   }
 
   // Update statistic info

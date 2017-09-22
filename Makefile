@@ -93,7 +93,7 @@ LIBS = -lpthread \
 			 -lz \
 			 -lbz2 \
 			 -lsnappy \
-			 -lrt
+			 -lrt \
 
 METALIBS = -lfloyd \
 					 -lrocksdb

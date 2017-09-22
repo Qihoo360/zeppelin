@@ -49,8 +49,15 @@ int ZPMetaClientConn::DealMessage() {
   // Redirect to leader if needed
   set_is_reply(true);
 
-  // Server ensure leader has been elect here
-  slash::MutexLock l(&(g_meta_server->leader_mutex));
+  // uint64_t start_us = slash::NowMicros();
+  
+  // There is no lock protect between check leader and Redirect or DoCommand
+  // All the consequence is acceptable:
+  // 1, Redirect to leader when leader has changed:
+  //    the peer who serve as the old leader will make right response
+  // 2, DoCommand when is not leader any more:
+  //    acceptable as long as don't write to floyd
+  //    which has ensured by the update thread
   if (cmd->is_redirect()
       && !g_meta_server->IsLeader()) {
     Status s = g_meta_server->RedirectToLeader(request_, &response_);
@@ -63,12 +70,17 @@ int ZPMetaClientConn::DealMessage() {
       return -1;
     }
     res_ = &response_;
+    // LOG(INFO) << "Redirect to leader finish, command: " << cmd->name()
+    //  << ", duration: " << slash::NowMicros() - start_us;
     return 0;
   }
+
 
   g_meta_server->PlusQueryNum();
 
   cmd->Do(&request_, &response_);
   res_ = &response_;
+  // LOG(INFO) << "Do finish, command: " << cmd->name()
+  //  << ", duration: " << slash::NowMicros() - start_us;
   return 0;
 }
