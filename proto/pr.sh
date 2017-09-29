@@ -10,8 +10,6 @@ SRC=client.pb.cc
 
 cp ${HEADER} ../include
 cp ${SRC} ../src/node/
-cp ${HEADER} ../test/
-cp ${SRC} ../test/
 rm ${HEADER}
 rm ${SRC}
 
@@ -35,8 +33,6 @@ protoc -I=./ --cpp_out=./ zp_meta.proto
 SERVER_HEADER=zp_meta.pb.h
 SERVER_SRC=zp_meta.pb.cc
 
-cp ${SERVER_HEADER} ../test/
 mv ${SERVER_HEADER} ../include
-cp ${SERVER_SRC} ../test/
 mv ${SERVER_SRC} ../src/common/
 

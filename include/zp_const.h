@@ -53,18 +53,18 @@ const int kMetaPortShiftFY = 100;
 // TrySync Delay time := kRecoverSyncDelayCronCount * (kNodeCronInterval * kNodeCronWaitCount)
 const int kRecoverSyncDelayCronCount = 7;
 const int kStuckRecoverSyncDelayCronCount = 450; // for slave stuck out of kConnected
-const int kTrySyncInterval = 3000;  // mili seconds
+const int kTrySyncInterval = 5000;  // mili seconds
 const int kBinlogSendInterval = 1;
 const int kBinlogRedundantLease = 10;  // some more lease time for redundance
 const int kBinlogMinLease = 20;
 const int kBinlogDefaultLease = 20;
 const int kBinlogTimeSlice = 5;    // should larger than kBinlogSendInterval
-const int kPingInterval = 3;
-const int kMetacmdInterval = 3;
+const int kPingInterval = 5;
+const int kMetacmdInterval = 6;
 const int kDispatchCronInterval = 5000;
-const int kDispatchQueueSize = 10000;
+const int kDispatchQueueSize = 1000;
 const int kMetaDispathCronInterval = 1000;
-const int kMetaDispathQueueSize = 10000;
+const int kMetaDispathQueueSize = 1000;
 const int kWorkerCronInterval = 5000;
 const int kKeepAlive = 60;  // seconds
 const int kMetaWorkerCronInterval = 1000;
@@ -138,8 +138,8 @@ const std::string kMetaVersion = "##version";
 // timeout between node and meta server
 // the one for meta should large than for node
 // and both larger than kPingInterval
-const int kNodeMetaTimeoutN = 6;
-const int kNodeMetaTimeoutM= 18;
+const int kNodeMetaTimeoutN = 10;
+const int kNodeMetaTimeoutM = 30;
 
 // how many diff item handled one time
 const int kMetaMigrateOnceCount = 2;

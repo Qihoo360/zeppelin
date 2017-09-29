@@ -20,6 +20,7 @@
 
 #include <string>
 #include <utility>
+#include <algorithm>
 
 #include "pink/include/pink_cli.h"
 #include "slash/include/env.h"
@@ -177,7 +178,6 @@ Status ZPMetaServer::GetMetaInfoByNode(const std::string& ip_port,
     return s;
   }
 
-  uint64_t start_us = slash::NowMicros();
   for (const auto& t : tables) {
     ZPMeta::Table* table_info = ms_info->add_info();
     s = info_store_->GetTableMeta(t, table_info);
@@ -187,7 +187,6 @@ Status ZPMetaServer::GetMetaInfoByNode(const std::string& ip_port,
       return s;
     }
   }
-  LOG(INFO) << "Pull, GetTableMeta duration: " << slash::NowMicros() - start_us;
   return Status::OK();
 }
 

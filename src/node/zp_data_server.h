@@ -110,6 +110,7 @@ class ZPDataServer  {
   void MetaConnected();
   void MetaDisconnect();
   void PickMeta();
+  void NextMeta(std::string* ip, long* port);
   int64_t meta_epoch() {
     slash::MutexLock l(&mutex_epoch_);
     return meta_epoch_;
@@ -209,7 +210,7 @@ class ZPDataServer  {
 
   // Meta State related
   pthread_rwlock_t meta_state_rw_;
-  int meta_index_;
+  std::atomic<int> meta_index_;
   std::string meta_ip_;
   long meta_port_;
 

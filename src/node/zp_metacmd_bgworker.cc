@@ -186,46 +186,49 @@ Status ZPMetacmdBGWorker::ParsePullResponse(
 }
 
 bool ZPMetacmdBGWorker::FetchMetaInfo(int64_t* receive_epoch) {
-  std::string meta_ip = zp_data_server->meta_ip();
-  int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;
-  // No more PickMeta, which should be done by ping thread
-  assert(!zp_data_server->meta_ip().empty()
-      && zp_data_server->meta_port() != 0);
-  LOG(INFO) << "MetacmdThread will connect ("
-    << meta_ip << ":" << meta_port << ")";
-  Status s = cli_->Connect(meta_ip, meta_port);
-  if (s.ok()) {
-    cli_->set_send_timeout(5000);
-    cli_->set_recv_timeout(5000);
+  Status s;
+  std::string meta_ip;
+  long meta_port = 0;
+  if (!cli_->Available()) {
+    // Has been close
+    // Pull may connect a meta server different with ping
+    zp_data_server->NextMeta(&meta_ip, &meta_port);
+    meta_port += kMetaPortShiftCmd;
+    
+    LOG(INFO) << "MetacmdThread will connect ("
+      << meta_ip << ":" << meta_port << ")";
+    s = cli_->Connect(meta_ip, meta_port);
+    if (!s.ok()) {
+      LOG(WARNING) << "Metacmd connect (" << meta_ip << ":" << meta_port
+        << ") failed! caz:" << s.ToString();
+      return false;
+    }
     LOG(INFO) << "Metacmd connect (" << meta_ip << ":" << meta_port << ") ok!";
+    cli_->set_send_timeout(20000);
+    cli_->set_recv_timeout(20000);
+  }
 
-    s = Send();
-    if (!s.ok()) {
-      LOG(WARNING) << "Metacmd send to (" << meta_ip << ":" << meta_port
-        << ") failed! caz:" << s.ToString()
-        << ", errno: " << errno
-        << ", strerr: " << strerror(errno);
-      cli_->Close();
-      return false;
-    }
-    LOG(INFO) << "Metacmd send to (" << meta_ip << ":" << meta_port << ") ok";
-
-    s = Recv(receive_epoch);
-    if (!s.ok()) {
-      LOG(WARNING) << "Metacmd recv from (" << meta_ip << ":" << meta_port
-        << ") failed! caz:" << s.ToString()
-        << ", errno: " << errno
-        << ", strerr: " << strerror(errno);
-      cli_->Close();
-      return false;
-    }
-    LOG(INFO) << "Metacmd recv from (" << meta_ip << ":" << meta_port
-      << ") ok";
+  s = Send();
+  if (!s.ok()) {
+    LOG(WARNING) << "Metacmd send to (" << meta_ip << ":" << meta_port
+      << ") failed! caz:" << s.ToString()
+      << ", errno: " << errno
+      << ", strerr: " << strerror(errno);
     cli_->Close();
-    return true;
-  } else {
-    LOG(WARNING) << "Metacmd connect (" << meta_ip << ":" << meta_port
-      << ") failed! caz:" << s.ToString();
     return false;
   }
+  LOG(INFO) << "Metacmd send to (" << meta_ip << ":" << meta_port << ") ok";
+
+  s = Recv(receive_epoch);
+  if (!s.ok()) {
+    LOG(WARNING) << "Metacmd recv from (" << meta_ip << ":" << meta_port
+      << ") failed! caz:" << s.ToString()
+      << ", errno: " << errno
+      << ", strerr: " << strerror(errno);
+    cli_->Close();
+    return false;
+  }
+  LOG(INFO) << "Metacmd recv from (" << meta_ip << ":" << meta_port
+    << ") ok";
+  return true;
 }

@@ -30,7 +30,6 @@
 ZPDataServer::ZPDataServer()
   : table_count_(0),
   should_exit_(false),
-  meta_index_(-1),
   meta_port_(0),
   meta_epoch_(-1),
   should_pull_meta_(false) {
@@ -41,6 +40,12 @@ ZPDataServer::ZPDataServer()
         PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
     pthread_rwlock_init(&table_rw_, &attr);
     LOG(INFO) << "ZPNodeServer start initialization";
+
+    // Initial meta_index_
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_int_distribution<int> di(0, g_zp_conf->meta_addr().size()-1);
+    meta_index_ = di(mt);
 
     // Command table
     LOG(INFO) << "ZPNodeServer init client command table";
@@ -253,28 +258,25 @@ void ZPDataServer::FinishPullMeta(int64_t epoch) {
   should_pull_meta_ = false;
 }
 
+void ZPDataServer::NextMeta(std::string* ip, long* port) {
+  // New meta_index_ may not exactly increased by one since thread contention
+  meta_index_ = (meta_index_ + 1) % g_zp_conf->meta_addr().size();
+  auto addr = g_zp_conf->meta_addr()[meta_index_];
+  auto pos = addr.find("/");
+  if (pos != std::string::npos) {
+    *ip = addr.substr(0, pos);
+    auto str_port = addr.substr(pos+1);
+    slash::string2l(str_port.data(), str_port.size(), port);
+  }
+  LOG(INFO) << "NextMeta ip: " << *ip << " port: " << *port;
+}
+
 void ZPDataServer::PickMeta() {
   slash::RWLock l(&meta_state_rw_, true);
   if (g_zp_conf->meta_addr().empty()) {
     return;
   }
-
-  if (meta_index_ == -1) {
-    std::random_device rd;
-    std::mt19937 mt(rd());
-    std::uniform_int_distribution<int> di(0, g_zp_conf->meta_addr().size()-1);
-    meta_index_ = di(mt);
-  }
-  meta_index_ = (meta_index_ + 1) % g_zp_conf->meta_addr().size();
-
-  auto addr = g_zp_conf->meta_addr()[meta_index_];
-  auto pos = addr.find("/");
-  if (pos != std::string::npos) {
-    meta_ip_ = addr.substr(0, pos);
-    auto str_port = addr.substr(pos+1);
-    slash::string2l(str_port.data(), str_port.size(), &meta_port_);
-  }
-  LOG(INFO) << "PickMeta ip: " << meta_ip_ << " port: " << meta_port_;
+  NextMeta(&meta_ip_, &meta_port_);
 }
 
 void ZPDataServer::DumpTablePartitions() {
