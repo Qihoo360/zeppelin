@@ -702,7 +702,11 @@ Status ZPMetaInfoStore::GetTablesForNode(const std::string &ip_port,
 Status ZPMetaInfoStore::GetTableMeta(const std::string& table,
     ZPMeta::Table* table_meta) {
   slash::RWLock l(&tables_rw_, false);
+  uint64_t start = slash::NowMicros();
   const auto iter = table_info_.find(table);
+  LOG(INFO) << "GetTableMeta after find, duration: "
+    << slash::NowMicros() - start;
+
   if (iter == table_info_.end()) {
     return Status::NotFound("Table meta not found");
   }

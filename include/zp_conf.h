@@ -80,6 +80,11 @@ class ZpConf {
     return max_file_descriptor_num_;
   }
 
+  bool enable_data_delete() {
+    RWLock l(&rwlock_, false);
+    return enable_data_delete_;
+  }
+
   std::vector<std::string>& meta_addr() {
     RWLock l(&rwlock_, false);
     return meta_addr_;
@@ -168,6 +173,7 @@ class ZpConf {
   std::string pid_file_;
   std::string lock_file_;
   int max_file_descriptor_num_;
+  bool enable_data_delete_;
 
   // Thread Num
   int meta_thread_num_;

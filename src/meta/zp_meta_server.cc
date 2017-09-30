@@ -28,6 +28,7 @@
 
 ZPMetaServer::ZPMetaServer()
   : should_exit_(false),
+  server_thread_(NULL),
   is_leader_(false) {
   LOG(INFO) << "ZPMetaServer start initialization";
 
@@ -69,7 +70,9 @@ ZPMetaServer::ZPMetaServer()
 }
 
 ZPMetaServer::~ZPMetaServer() {
-  server_thread_->StopThread();
+  if (server_thread_ != NULL) {
+    server_thread_->StopThread();
+  }
   delete server_thread_;
   delete conn_factory_;
 
@@ -423,8 +426,15 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
   return Status::OK();
 }
 
-Status ZPMetaServer::GetMetaStatus(std::string *result) {
-  floyd_->GetServerStatus(result);
+Status ZPMetaServer::GetMetaStatus(ZPMeta::MetaCmdResponse_MetaStatus* ms) {
+  ms->set_version(info_store_->epoch());
+  std::string* floyd_status = ms->mutable_consistency_stautus();
+  floyd_->GetServerStatus(floyd_status);
+  ZPMeta::MigrateStatus migrate_s;
+  Status s = migrate_register_->Check(&migrate_s);
+  if (s.ok()) {
+    ms->mutable_migrate_status()->CopyFrom(migrate_s);
+  }
   return Status::OK();
 }
 
@@ -605,13 +615,12 @@ Status ZPMetaServer::RefreshLeader() {
     // Delay a period of time to wait for the old leader's demotion
     sleep(2 * kMetaCronWaitCount * kMetaCronInterval / 1000);
 
-    // Active Update
-    update_thread_->Active();
-    LOG(INFO) << "Update thread active succ";
-
-    // Active Condition
-    condition_cron_->Active();
-    LOG(INFO) << "Condition thread active succ";
+    // Refresh table info
+    s = info_store_->Refresh();
+    if (!s.ok()) {
+      LOG(WARNING) << "Refresh table info failed: " << s.ToString();
+      return s;
+    }
 
     // Restore NodeInfo
     s = info_store_->RestoreNodeInfos();
@@ -628,6 +637,14 @@ Status ZPMetaServer::RefreshLeader() {
       return s;
     }
     LOG(INFO) << "Load Migrate succ";
+    
+    // Active Update
+    update_thread_->Active();
+    LOG(INFO) << "Update thread active succ";
+
+    // Active Condition
+    condition_cron_->Active();
+    LOG(INFO) << "Condition thread active succ";
 
     is_leader_ = true;
     return Status::OK();
@@ -718,10 +735,6 @@ void ZPMetaServer::InitClientCmdTable() {
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(
           ZPMeta::Type::CANCELMIGRATE), cancel_migrate_ptr));
 
-  /// / Check Migrate Command
-  // Cmd* check_migrate_ptr = new CheckMigrateCmd(kCmdFlagsWrite);
-  // cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(
-  // ZPMeta::Type::CHECKMIGRATE), check_migrate_ptr));
 }
 
 inline bool ZPMetaServer::GetLeader(std::string *ip, int *port) {

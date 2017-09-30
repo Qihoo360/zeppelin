@@ -555,7 +555,11 @@ void Partition::BecomeSingle() {
   role_ = Role::kNodeSingle;
   repl_state_ = ReplState::kNoConnect;
   Close();
-  MoveToTrash();
+  if (g_zp_conf->enable_data_delete()) {
+    LOG(INFO) << "Move all data to trash, Table: " << table_name_
+      << ", Partition " << partition_id_;
+    MoveToTrash();
+  }
 }
 
 // Requeired: hold write lock of state_rw_

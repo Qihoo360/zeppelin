@@ -126,7 +126,7 @@ class ZPMetaServer  {
   Status RemovePartitionSlave(const std::string& table, int pnum,
       const ZPMeta::Node& node);
   Status GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes);
-  Status GetMetaStatus(std::string *result);
+  Status GetMetaStatus(ZPMeta::MetaCmdResponse_MetaStatus* ms);
 
   // Migrate related
   Status Migrate(int epoch, const std::vector<ZPMeta::RelationCmdUnit>& diffs);

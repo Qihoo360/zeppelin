@@ -147,15 +147,4 @@ class CancelMigrateCmd : public Cmd  {
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
-// TODO(wk)
-// class CheckMigrateCmd : public Cmd {
-// public:
-//  explicit CheckMigrateCmd(int flag) : Cmd(flag) {}
-//  virtual std::string name() const  {
-//    return "CheckMigrateTable";
-//  }
-//  virtual void Do(const google::protobuf::Message *req,
-//      google::protobuf::Message *res, void* partition = NULL) const;
-// };
-
 #endif  // SRC_META_ZP_META_COMMAND_H_

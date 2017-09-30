@@ -13,8 +13,6 @@
 // limitations under the License.
 #include "src/meta/zp_meta_command.h"
 
-#include <google/protobuf/text_format.h>
-
 #include <set>
 #include <string>
 #include <vector>
@@ -286,15 +284,15 @@ void MetaStatusCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
   ZPMeta::MetaCmdResponse* response
     = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  ZPMeta::MetaCmdResponse_MetaStatus* ms = response->mutable_meta_status();
 
   response->set_type(ZPMeta::Type::METASTATUS);
 
-  std::string result;
-  Status s = g_meta_server->GetMetaStatus(&result);
-
+  Status s = g_meta_server->GetMetaStatus(ms);
+ 
   if (s.ok()) {
     response->set_code(ZPMeta::StatusCode::OK);
-    response->set_msg(result);
+    response->set_msg("Get MetaStatus OK");
   } else {
     response->set_code(ZPMeta::StatusCode::ERROR);
     response->set_msg(s.ToString());
