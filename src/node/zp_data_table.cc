@@ -125,6 +125,14 @@ void Table::LeaveAllPartition() {
   }
 }
 
+void Table::LeavePartition(int pid) {
+  slash::RWLock l(&partition_rw_, false);
+  if (partitions_.find(pid) == partitions_.end()) {
+    return;
+  }
+  partitions_[pid]->Leave();
+}
+
 uint32_t Table::KeyToPartition(const std::string &key) {
   assert(partition_cnt_ != 0);
   return std::hash<std::string>()(key) % partition_cnt_;

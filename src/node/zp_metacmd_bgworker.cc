@@ -144,8 +144,8 @@ Status ZPMetacmdBGWorker::ParsePullResponse(
       = zp_data_server->GetOrAddTable(table_info.name());
     assert(table != NULL);
 
-    table->SetPartitionCount(table_info.partitions_size());
-    for (int j = 0; j < table_info.partitions_size(); j++) {
+    int j = 0;
+    for (; j < table_info.partitions_size(); j++) {
       const ZPMeta::Partitions& partition = table_info.partitions(j);
       DLOG(INFO) << " - - handle Partition " << partition.id()
         << ": master is " << partition.master().ip()
@@ -172,6 +172,13 @@ Status ZPMetacmdBGWorker::ParsePullResponse(
           << ":" << partition.master().port();
       }
     }
+
+    for (; j < table->partition_cnt(); j++) {
+      LOG(WARNING) << "ZPMetaCmd delete expired partition after recv pull: "
+        << table_info.name() << "_" << j;
+      table->LeavePartition(j);
+    }
+    table->SetPartitionCount(table_info.partitions_size());
   }
 
   // Delete expired tables

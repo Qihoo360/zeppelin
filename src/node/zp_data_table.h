@@ -39,6 +39,9 @@ class Table  {
   Table(const std::string& table_name, const std::string& log_path,
       const std::string& data_path, const std::string& trash_path);
   ~Table();
+  int partition_cnt() {
+    return partition_cnt_;
+  }
 
   bool SetPartitionCount(int count);
   std::shared_ptr<Partition> GetPartition(const std::string &key);
@@ -46,6 +49,7 @@ class Table  {
   bool UpdateOrAddPartition(int partition_id, ZPMeta::PState state,
       const Node& master, const std::set<Node>& slaves);
   void LeaveAllPartition();
+  void LeavePartition(int pid);
 
   uint32_t KeyToPartition(const std::string &key);
 
