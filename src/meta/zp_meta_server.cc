@@ -322,19 +322,8 @@ Status ZPMetaServer::RemoveSlave(const std::string &table, int partition, const 
   std::string ip_port = slash::IpPortString(node.ip(), node.port());
   LOG(INFO) << "RemoveSlave " << table << " " << partition << " " << ip_port;
 
-  ZPMeta::Nodes nodes;
-  Status s = GetAllNodes(&nodes);
-  if (!s.ok() && !s.IsNotFound()) {
-    LOG(ERROR) << "GetAllNodes error in RemoveSlave, error: " << s.ToString();
-    return s;
-  }
-
-  if (!FindNode(nodes, node.ip(), node.port())) {
-    return Status::NotFound("not found");
-  }
-
   ZPMeta::Table table_info;
-  s = GetTableInfo(table, &table_info);
+  Status s = GetTableInfo(table, &table_info);
   if (!s.ok()) {
     return s;
   }
