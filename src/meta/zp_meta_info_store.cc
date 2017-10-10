@@ -52,6 +52,18 @@ static bool AssignPbNode(const std::string& ip_port,
   return true;
 }
 
+static void AddNodeTable(const std::string& ip_port,
+    const std::string& table,
+    std::unordered_map<std::string, std::set<std::string> >* ntable) {
+  const auto iter = ntable->find(ip_port);
+  if (iter == ntable->end()) {
+    ntable->insert(std::pair<std::string,
+        std::set<std::string> >(ip_port, std::set<std::string>()));
+  }
+  (*ntable)[ip_port].insert(table);
+}
+
+
 Status NodeInfo::GetOffset(const std::string& table, int partition_id,
     NodeOffset* noffset) const {
   std::string key = NodeOffsetKey(table, partition_id);
@@ -207,7 +219,14 @@ Status ZPMetaInfoStoreSnap::SetMaster(const std::string& table, int partition,
       // swap with master
       tmp.CopyFrom(pptr->master());
       pptr->mutable_master()->CopyFrom(pptr->slaves(i));
-      pptr->mutable_slaves(i)->CopyFrom(tmp);
+      if (!IsNodeEmpty(tmp)) {
+        pptr->mutable_slaves(i)->CopyFrom(tmp);
+      } else {
+        // old master is empty, discard it
+        pptr->mutable_slaves(i)->CopyFrom(
+            pptr->slaves(pptr->slaves_size() - 1));
+        pptr->mutable_slaves()->RemoveLast();
+      }
       break;
     }
   }
@@ -425,6 +444,7 @@ ZPMetaInfoStore::~ZPMetaInfoStore() {
   pthread_rwlock_destroy(&tables_rw_);
 }
 
+// Refresh node_table_, table_info_
 Status ZPMetaInfoStore::Refresh() {
   std::string value;
 
@@ -465,6 +485,7 @@ Status ZPMetaInfoStore::Refresh() {
   std::string ip_port;
   ZPMeta::Table table_info;
   std::set<std::string> miss_tables;
+  std::unordered_map<std::string, std::set<std::string> > tmp_node_table;
   for (const auto& ot : table_info_) {
     miss_tables.insert(ot.first);
   }
@@ -491,17 +512,16 @@ Status ZPMetaInfoStore::Refresh() {
     table_info_.at(t).CopyFrom(table_info);
 
     for (const auto& partition : table_info.partitions()) {
-      if (partition.master().ip() != ""
-          && partition.master().port() != -1) {
+      if (!IsNodeEmpty(partition.master())) {
         ip_port = slash::IpPortString(partition.master().ip(),
             partition.master().port());
-        AddNodeTable(ip_port, t);
+        AddNodeTable(ip_port, t, &tmp_node_table);
       }
 
       for (int k = 0; k < partition.slaves_size(); k++) {
         ip_port = slash::IpPortString(partition.slaves(k).ip(),
             partition.slaves(k).port());
-        AddNodeTable(ip_port, t);
+        AddNodeTable(ip_port, t, &tmp_node_table);
       }
     }
 
@@ -512,20 +532,13 @@ Status ZPMetaInfoStore::Refresh() {
   slash::RWLock l(&tables_rw_, true);
   for (const auto& mt : miss_tables) {
     table_info_.erase(mt);
+  }
+  node_table_.clear();
+  node_table_ = tmp_node_table;
+  }
 
-    auto nd_iter = node_table_.begin();
-    while (nd_iter != node_table_.end()) {
-      nd_iter->second.erase(mt);
-      if (nd_iter->second.empty()) {
-        nd_iter = node_table_.erase(nd_iter);
-      } else {
-        nd_iter++;
-      }
-    }
-  }
-  }
   LOG(INFO) << "Update node_table_ from floyd succ.";
-  // NodesDebug();
+  NodesDebug();
 
   // Update Version
   epoch_ = tmp_epoch;
@@ -665,17 +678,6 @@ void ZPMetaInfoStore::NodesDebug() {
     LOG(INFO) << str;
   }
   LOG(INFO) << "------------------------------------------.";
-}
-
-// Requied: hold read or write lock of table_rw_
-void ZPMetaInfoStore::AddNodeTable(const std::string& ip_port,
-    const std::string& table) {
-  const auto iter = node_table_.find(ip_port);
-  if (iter == node_table_.end()) {
-    node_table_.insert(std::pair<std::string,
-        std::set<std::string> >(ip_port, std::set<std::string>()));
-  }
-  node_table_[ip_port].insert(table);
 }
 
 Status ZPMetaInfoStore::GetTableList(std::set<std::string>* table_list) {

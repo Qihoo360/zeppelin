@@ -137,7 +137,6 @@ class ZPMetaInfoStore   {
     void NodesDebug();
     void GetAllTables(
         std::unordered_map<std::string, ZPMeta::Table>* all_tables);
-    void AddNodeTable(const std::string& ip_port, const std::string& table);
 
     pthread_rwlock_t nodes_rw_;
     // node => alive time + offset set, 0 means already down node

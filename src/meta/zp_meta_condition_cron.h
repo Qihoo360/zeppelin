@@ -56,6 +56,7 @@ class ZPMetaConditionCron  {
   ZPMetaMigrateRegister* migrate_;
   ZPMetaUpdateThread* update_thread_;
   static void CronFunc(void *p);
+  bool RecoverWhenError(const OffsetCondition& condition);
   bool ChecknProcess(const OffsetCondition& condition,
       const std::vector<UpdateTask>& update_set);
 

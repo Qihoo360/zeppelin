@@ -66,6 +66,34 @@ void ZPMetaConditionCron::CronFunc(void *p) {
   arg->cron->bg_thread_->DelaySchedule(kConditionCronInterval, &CronFunc, p);
 }
 
+// Error happend, Recover migrate or stuck partition before disard
+bool ZPMetaConditionCron::RecoverWhenError(const OffsetCondition& condition) {
+  Status s;
+  switch (condition.type) {
+  case ConditionTaskType::kMigrate:
+    migrate_->PutN(1);
+    break;
+  case ConditionTaskType::kSetMaster:
+    s = update_thread_->PendingUpdate(
+        UpdateTask(
+          ZPMetaUpdateOP::kOpSetActive,
+          "",
+          condition.table,
+          condition.partition_id));
+    break;
+  default:
+    return true;
+  }
+
+  if (!s.ok()) {
+    LOG(WARNING) << "Cron recover when error happend failed: " << s.ToString()
+      << ", table: " << condition.table
+      << ", partition: " << condition.partition_id
+      << ", left: " << condition.left.ip() << ":" << condition.left.port();
+  }
+  return s.ok();
+}
+
 bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
     const std::vector<UpdateTask>& update_set) {
   // Check offset
@@ -78,10 +106,7 @@ bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
       << ", table: " << condition.table
       << ", partition: " << condition.partition_id
       << ", left: " << condition.left.ip() << ":" << condition.left.port();
-    if (condition.type == ConditionTaskType::kMigrate) {
-      migrate_->PutN(1);
-    }
-    return true;
+    return RecoverWhenError(condition);
   }
   s = info_store_->GetNodeOffset(condition.right,
       condition.table, condition.partition_id,
@@ -91,10 +116,7 @@ bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
       << ", table: " << condition.table
       << ", partition: " << condition.partition_id
       << ", right: " << condition.right.ip() << ":" << condition.right.port();
-    if (condition.type == ConditionTaskType::kMigrate) {
-      migrate_->PutN(1);
-    }
-    return true;
+    return RecoverWhenError(condition);
   }
 
   if (left_offset != right_offset) {
