@@ -608,6 +608,9 @@ void Partition::Update(ZPMeta::PState state, const Node &master,
     const std::set<Node> &slaves) {
   slash::RWLock l(&state_rw_, true);
 
+  // Update partition state
+  pstate_ = state;
+
   // Update master slave nodes
   bool change_master = false;
   std::set<Node> miss_slaves;

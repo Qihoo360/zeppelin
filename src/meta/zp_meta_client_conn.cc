@@ -37,20 +37,28 @@ int ZPMetaClientConn::DealMessage() {
     return -1;
   }
 
+  // Redirect to leader if needed
+  set_is_reply(true);
+
   Cmd* cmd = g_meta_server->GetCmd(static_cast<int>(request_.type()));
   if (cmd == NULL) {
     response_.set_type(request_.type());
     response_.set_code(ZPMeta::StatusCode::ERROR);
     response_.set_msg("Unknown command");
     res_ = &response_;
-    return -1;
+    return 0;
   }
 
-  // Redirect to leader if needed
-  set_is_reply(true);
+  // There is no lock protect between check Available and subsequent operation
+  // Since it is acceptable
+  if (!g_meta_server->Available()) {
+    response_.set_type(request_.type());
+    response_.set_code(ZPMeta::StatusCode::ERROR);
+    response_.set_msg("Meta not available");
+    res_ = &response_;
+    return 0;
+  }
 
-  // uint64_t start_us = slash::NowMicros();
-  
   // There is no lock protect between check leader and Redirect or DoCommand
   // All the consequence is acceptable:
   // 1, Redirect to leader when leader has changed:
@@ -67,20 +75,15 @@ int ZPMetaClientConn::DealMessage() {
       response_.set_code(ZPMeta::StatusCode::ERROR);
       response_.set_msg(s.ToString());
       res_ = &response_;
-      return -1;
+      return 0;
     }
     res_ = &response_;
-    // LOG(INFO) << "Redirect to leader finish, command: " << cmd->name()
-    //  << ", duration: " << slash::NowMicros() - start_us;
     return 0;
   }
-
 
   g_meta_server->PlusQueryNum();
 
   cmd->Do(&request_, &response_);
   res_ = &response_;
-  // LOG(INFO) << "Do finish, command: " << cmd->name()
-  //  << ", duration: " << slash::NowMicros() - start_us;
   return 0;
 }

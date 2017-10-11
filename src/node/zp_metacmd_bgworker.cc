@@ -63,13 +63,6 @@ void ZPMetacmdBGWorker::MetaUpdateTask(void* task) {
 
 Status ZPMetacmdBGWorker::Send() {
   ZPMeta::MetaCmd request;
-
-  LOG(INFO) << "MetacmdThread send pull to MetaServer("
-    << zp_data_server->meta_ip() << ":"
-    << zp_data_server->meta_port() + kMetaPortShiftCmd
-    << ") with local("<< zp_data_server->local_ip() << ":"
-    << zp_data_server->local_port() << ")";
-
   request.set_type(ZPMeta::Type::PULL);
   ZPMeta::MetaCmd_Pull* pull = request.mutable_pull();
   ZPMeta::Node* node = pull->mutable_node();
@@ -86,14 +79,11 @@ Status ZPMetacmdBGWorker::Send() {
 Status ZPMetacmdBGWorker::Recv(int64_t* receive_epoch) {
   Status result;
   ZPMeta::MetaCmdResponse response;
-  std::string meta_ip = zp_data_server->meta_ip();
-  int meta_port = zp_data_server->meta_port() + kMetaPortShiftCmd;
   result = cli_->Recv(&response);
   if (result.ok()) {
     std::string text_format;
     google::protobuf::TextFormat::PrintToString(response, &text_format);
-    LOG(INFO) << "Receive from meta(" << meta_ip << ":" << meta_port
-      << "), size: " << response.pull().info().size()
+    LOG(INFO) << "Receive pull size: " << response.pull().info().size()
       << " Response:[" << text_format << "]";
 
     switch (response.type()) {
@@ -217,25 +207,22 @@ bool ZPMetacmdBGWorker::FetchMetaInfo(int64_t* receive_epoch) {
 
   s = Send();
   if (!s.ok()) {
-    LOG(WARNING) << "Metacmd send to (" << meta_ip << ":" << meta_port
-      << ") failed! caz:" << s.ToString()
+    LOG(WARNING) << "Metacmd send failed! caz:" << s.ToString()
       << ", errno: " << errno
       << ", strerr: " << strerror(errno);
     cli_->Close();
     return false;
   }
-  LOG(INFO) << "Metacmd send to (" << meta_ip << ":" << meta_port << ") ok";
+  LOG(INFO) << "Metacmd send ok";
 
   s = Recv(receive_epoch);
   if (!s.ok()) {
-    LOG(WARNING) << "Metacmd recv from (" << meta_ip << ":" << meta_port
-      << ") failed! caz:" << s.ToString()
+    LOG(WARNING) << "Metacmd recv failed! caz:" << s.ToString()
       << ", errno: " << errno
       << ", strerr: " << strerror(errno);
     cli_->Close();
     return false;
   }
-  LOG(INFO) << "Metacmd recv from (" << meta_ip << ":" << meta_port
-    << ") ok";
+  LOG(INFO) << "Metacmd recv ok";
   return true;
 }

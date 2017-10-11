@@ -29,7 +29,7 @@
 ZPMetaServer::ZPMetaServer()
   : should_exit_(false),
   server_thread_(NULL),
-  is_leader_(false) {
+  role_(MetaRole::kNone) {
   LOG(INFO) << "ZPMetaServer start initialization";
 
   // Init Command
@@ -111,21 +111,6 @@ Status ZPMetaServer::OpenFloyd() {
 
 void ZPMetaServer::Start() {
   LOG(INFO) << "ZPMetaServer started on port:" << g_zp_conf->local_port();
-
-  Status s = Status::Incomplete("Floyd load incompleted");
-  while (!should_exit_ && !s.ok()) {
-    sleep(1);
-    s = RefreshLeader();
-    LOG(INFO) << "Leader info load from floyd, ret: " << s.ToString();
-    if (s.ok()) {
-      s = info_store_->Refresh();
-      LOG(INFO) << "Info store load from floyd, ret: " << s.ToString();
-    }
-  }
-
-  if (should_exit_) {
-    return;
-  }
 
   if (0 != server_thread_->StartThread()) {
     LOG(FATAL) << "Disptch thread start failed";
@@ -580,17 +565,28 @@ Status ZPMetaServer::RefreshLeader() {
   int leader_port = 0, leader_cmd_port = 0;
   if (!GetLeader(&leader_ip, &leader_port)) {
     LOG(WARNING) << "No leader yet";
+    slash::MutexLock l(&(leader_joint_.mutex));
+    if (role_ == MetaRole::kLeader) {
+      // Give up leadership when floyd failed
+      // to avoid error in network partition
+      update_thread_->Abandon();
+      condition_cron_->Abandon();
+      LOG(WARNING) <<
+        "Old leader give up leadership since no floyd leader found";
+    }
+    leader_joint_.CleanLeader();
+    role_ = MetaRole::kNone;
     return Status::Incomplete("No leader yet");
   }
 
   leader_cmd_port = leader_port + kMetaPortShiftCmd;
   slash::MutexLock l(&(leader_joint_.mutex));
-  if (is_leader_
+  if (role_ == MetaRole::kLeader
       && (leader_ip == g_zp_conf->local_ip()
         && leader_cmd_port == g_zp_conf->local_port())) {
     // I'm Leader, and stay the same
     return Status::OK();
-  } else if (!is_leader_
+  } else if (role_ == MetaRole::kFollower
       && (leader_ip == leader_joint_.ip
         && leader_cmd_port == leader_joint_.port)) {
     // I'm Follower, and leader stay the same
@@ -603,7 +599,7 @@ Status ZPMetaServer::RefreshLeader() {
     << ", To: " <<  leader_ip << ":" << leader_cmd_port;
 
   // Clear
-  is_leader_ = false;
+  role_ = MetaRole::kNone;
   leader_joint_.CleanLeader();
 
   // I'm new leader
@@ -646,7 +642,7 @@ Status ZPMetaServer::RefreshLeader() {
     condition_cron_->Active();
     LOG(INFO) << "Condition thread active succ";
 
-    is_leader_ = true;
+    role_ = MetaRole::kLeader;
     return Status::OK();
   }
 
@@ -665,6 +661,7 @@ Status ZPMetaServer::RefreshLeader() {
   // Record new leader
   leader_joint_.ip = leader_ip;
   leader_joint_.port = leader_cmd_port;
+  role_ = MetaRole::kFollower;
   return Status::OK();
 }
 
@@ -740,10 +737,20 @@ void ZPMetaServer::InitClientCmdTable() {
 inline bool ZPMetaServer::GetLeader(std::string *ip, int *port) {
   int fy_port = 0;
   bool res = floyd_->GetLeader(ip, &fy_port);
-  if (res) {
-    *port = fy_port - kMetaPortShiftFY;
+  if (!res) {
+    return false;
   }
-  return res;
+  *port = fy_port - kMetaPortShiftFY;
+
+  // Check floyd available,
+  // this is a little trick and should be replaced by floyd lock later
+  Status s = floyd_->Write("##anchor", "anchor");
+  if (!s.ok()) {
+    LOG(ERROR) << "Write anchor failed: " << s.ToString();
+    return false;
+  }
+
+  return true;
 }
 
 void ZPMetaServer::ResetLastSecQueryNum() {
@@ -763,13 +770,13 @@ void ZPMetaServer::DoTimingTask() {
   }
 
   // is_leader only changed by main thread
-  if (is_leader_) {  // Is Leader
+  if (role_ == MetaRole::kLeader) {  // Is Leader
     // Check alive
     CheckNodeAlive();
 
     // Process Migrate if needed
     ProcessMigrateIfNeed();
-  } else {
+  } else if (role_ == MetaRole::kFollower) {
     // Refresh table info
     s = info_store_->Refresh();
     if (!s.ok()) {
@@ -786,5 +793,6 @@ void ZPMetaServer::DoTimingTask() {
   // Update statistic info
   ResetLastSecQueryNum();
   LOG(INFO) << "ServerQueryNum: " << statistic.query_num
-    << " ServerCurrentQps: " << statistic.last_qps;
+    << " ServerCurrentQps: " << statistic.last_qps
+    << " Role: " << MetaRoleMsg[role_];
 }

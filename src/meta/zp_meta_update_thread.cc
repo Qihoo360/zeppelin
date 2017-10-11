@@ -91,7 +91,7 @@ void ZPMetaUpdateThread::UpdateFunc(void *p) {
 
 Status ZPMetaUpdateThread::ApplyUpdates(
     const ZPMetaUpdateTaskDeque& task_deque) {
-  LOG(INFO) << "Begin Appply Updates, task count: " << task_deque.size();
+  LOG(INFO) << "Begin Apply Updates, task count: " << task_deque.size();
   // Get current meta info
   ZPMetaInfoStoreSnap info_store_snap;
   info_store_->GetSnapshot(&info_store_snap);

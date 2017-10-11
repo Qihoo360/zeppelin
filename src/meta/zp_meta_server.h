@@ -39,6 +39,18 @@ using slash::Status;
 extern ZpConf* g_zp_conf;
 typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
 
+enum MetaRole {
+  kNone = 0,
+  kLeader,
+  kFollower,
+};
+
+const std::string MetaRoleMsg[] {
+  "kMetaNone",
+  "kMetaLeader",
+  "kNodeFollower"
+};
+
 struct LeaderJoint {
   slash::Mutex mutex;
   pink::PinkCli* cli;
@@ -138,7 +150,11 @@ class ZPMetaServer  {
   Status RedirectToLeader(const ZPMeta::MetaCmd &request,
       ZPMeta::MetaCmdResponse *response);
   bool IsLeader() {
-    return is_leader_;
+    return role_ == MetaRole::kLeader;
+  }
+
+  bool Available() {
+    return role_ != MetaRole::kNone;
   }
 
 
@@ -156,7 +172,7 @@ class ZPMetaServer  {
   Status OpenFloyd();
 
   // Leader related
-  std::atomic<bool> is_leader_;
+  std::atomic<int> role_;
   slash::Mutex leader_mutex_;
   LeaderJoint leader_joint_;
   bool GetLeader(std::string *ip, int *port);
