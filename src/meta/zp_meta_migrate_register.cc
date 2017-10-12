@@ -124,7 +124,7 @@ Status ZPMetaMigrateRegister::Check(ZPMeta::MigrateStatus* status) {
   if (total_size_ == 0) {
     return Status::Corruption("totol size be zero");
   }
-  status->set_complete_proportion(diff_keys_.size() * 100 / total_size_);
+  status->set_complete_proportion(1 - diff_keys_.size() * 100 / total_size_);
   return Status::OK();
 }
 
@@ -194,8 +194,9 @@ Status ZPMetaMigrateRegister::GetN(uint32_t count,
 
   std::string diff_value;
   ZPMeta::RelationCmdUnit diff;
+  int index = 0;
   for (const auto& dk : diff_keys_) {
-    if (count-- <= 0) {
+    if (index++ >= count) {
       break;
     }
     Status fs = floyd_->Read(dk, &diff_value);

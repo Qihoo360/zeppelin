@@ -712,7 +712,7 @@ void ZPMetaServer::InitClientCmdTable() {
         listmetaptr));
 
   // MetaStatus Command
-  Cmd* meta_status_ptr = new MetaStatusCmd(kCmdFlagsRead);
+  Cmd* meta_status_ptr = new MetaStatusCmd(kCmdFlagsRead | kCmdFlagsRedirect);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::METASTATUS),
         meta_status_ptr));
 

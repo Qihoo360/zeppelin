@@ -68,7 +68,7 @@ void ZPMetaConditionCron::CronFunc(void *p) {
 
 // Error happend, Recover migrate or stuck partition before disard
 bool ZPMetaConditionCron::RecoverWhenError(const OffsetCondition& condition) {
-  Status s;
+  Status s = Status::OK();
   switch (condition.type) {
   case ConditionTaskType::kMigrate:
     migrate_->PutN(1);

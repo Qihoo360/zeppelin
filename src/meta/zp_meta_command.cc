@@ -310,6 +310,11 @@ void MigrateCmd::Do(const google::protobuf::Message *req,
 
   std::vector<ZPMeta::RelationCmdUnit> diffs;
   for (const auto& item : migrate.diff()) {
+    if (item.left().ip() == item.right().ip()
+        && item.left().port() == item.right().port()) {
+      // Skip same node
+      continue;
+    }
     diffs.push_back(item);
   }
 
