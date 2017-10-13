@@ -313,9 +313,27 @@ void MigrateCmd::Do(const google::protobuf::Message *req,
     if (item.left().ip() == item.right().ip()
         && item.left().port() == item.right().port()) {
       // Skip same node
+      LOG(WARNING) << "Skip diff item with same origin and target node. "
+        << item.table() << "_" << item.partition()
+        << ", from: " << item.left().ip() << "_" << item.left().port()
+        << ", to: " << item.right().ip() << "_" << item.right().port();
+      continue;
+    }
+    if (!g_meta_server->IsCharged(item.table(), item.partition(), item.left())
+        || g_meta_server->IsCharged(item.table(), item.partition(),
+          item.right())) {
+      // Skip invalid diff item
+      LOG(WARNING) << "Skip diff invalid diff item. "
+        << item.table() << "_" << item.partition()
+        << ", from: " << item.left().ip() << "_" << item.left().port()
+        << ", to: " << item.right().ip() << "_" << item.right().port();
       continue;
     }
     diffs.push_back(item);
+    LOG(INFO) << "Migrate diff item: "
+      << item.table() << "_" << item.partition()
+      << ", from: " << item.left().ip() << "_" << item.left().port()
+      << ", to: " << item.right().ip() << "_" << item.right().port();
   }
 
   if (diffs.empty()) {

@@ -423,6 +423,13 @@ Status ZPMetaServer::GetMetaStatus(ZPMeta::MetaCmdResponse_MetaStatus* ms) {
   return Status::OK();
 }
 
+// Check whether node is response for specified partition
+bool ZPMetaServer::IsCharged(const std::string& table,
+    int pnum, const ZPMeta::Node& target) {
+  return info_store_->IsSlave(table, pnum, target)
+    || info_store_->IsMaster(table, pnum, target);
+}
+
 Status ZPMetaServer::GetTableList(std::set<std::string>* table_list) {
   return info_store_->GetTableList(table_list);
 }

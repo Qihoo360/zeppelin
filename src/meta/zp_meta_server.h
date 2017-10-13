@@ -139,6 +139,7 @@ class ZPMetaServer  {
       const ZPMeta::Node& node);
   Status GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes);
   Status GetMetaStatus(ZPMeta::MetaCmdResponse_MetaStatus* ms);
+  bool IsCharged(const std::string& table, int pnum, const ZPMeta::Node& node);
 
   // Migrate related
   Status Migrate(int epoch, const std::vector<ZPMeta::RelationCmdUnit>& diffs);

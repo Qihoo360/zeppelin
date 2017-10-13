@@ -72,7 +72,7 @@ bool ZPMetaConditionCron::RecoverWhenError(const OffsetCondition& condition) {
   switch (condition.type) {
   case ConditionTaskType::kMigrate:
     migrate_->PutN(1);
-    break;
+    // Notice: no break here
   case ConditionTaskType::kSetMaster:
     s = update_thread_->PendingUpdate(
         UpdateTask(

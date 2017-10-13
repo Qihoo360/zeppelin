@@ -124,7 +124,7 @@ Status ZPMetaMigrateRegister::Check(ZPMeta::MigrateStatus* status) {
   if (total_size_ == 0) {
     return Status::Corruption("totol size be zero");
   }
-  status->set_complete_proportion(1 - diff_keys_.size() * 100 / total_size_);
+  status->set_complete_proportion(100 - diff_keys_.size() * 100 / total_size_);
   return Status::OK();
 }
 
