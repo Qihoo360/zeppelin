@@ -641,6 +641,10 @@ Status ZPMetaServer::RefreshLeader() {
     // Active Condition
     condition_cron_->Active();
     LOG(INFO) << "Condition thread active succ";
+    
+    // Kill all conns to trigger all client to reconnect
+    // to refresh node infomation
+    server_thread_->KillAllConns();
 
     role_ = MetaRole::kLeader;
     return Status::OK();
@@ -657,6 +661,10 @@ Status ZPMetaServer::RefreshLeader() {
   
   update_thread_->Abandon();
   LOG(INFO) << "Update thread abandon finish";
+
+  // Kill all conns to trigger all client to reconnect
+  // to refresh node infomation
+  server_thread_->KillAllConns();
 
   // Record new leader
   leader_joint_.ip = leader_ip;
@@ -763,13 +771,11 @@ void ZPMetaServer::ResetLastSecQueryNum() {
 }
 
 void ZPMetaServer::DoTimingTask() {
-  // Refresh Leader joint
   Status s = RefreshLeader();
   if (!s.ok()) {
     LOG(WARNING) << "Refresh Leader failed: " << s.ToString();
   }
 
-  // is_leader only changed by main thread
   if (role_ == MetaRole::kLeader) {  // Is Leader
     // Check alive
     CheckNodeAlive();

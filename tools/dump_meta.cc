@@ -30,84 +30,124 @@ int main(int argc, char* argv[]){
   options.create_if_missing = true;
   rocksdb::Status status = rocksdb::DB::Open(options, argv[1], &db);
   if (!status.ok()) {
-    std::cout << "Open db failed! path: " << argv[1] << ", " << status.ToString();
+    std::cout << "Open db failed! path: " << argv[1]
+      << ", " << status.ToString() << std::endl;
     return -1;
   }
 
-  ZPMeta::TableName table_name;
   ZPMeta::TableName new_table_name;
+
+  std::string text_format, value;
+
+  // Print version
+  status = db->Get(rocksdb::ReadOptions(), "##version", &value);
+  if (!status.ok()) {
+    std::cout << "Get Version failed: " << status.ToString() << std::endl;
+    return -1;
+  }
+  std::cout << "----------------------------------------------" << std::endl;
+  std::cout << "Print Version ====> " << std::endl << std::endl;
+  std::cout << std::stoi(value) << std::endl;
+  
+  // Print anchor
+  status = db->Get(rocksdb::ReadOptions(), "##anchor", &value);
+  if (!status.ok()) {
+    std::cout << "Get Anchor failed: " << status.ToString() << std::endl;
+    return -1;
+  }
+  std::cout << "----------------------------------------------" << std::endl;
+  std::cout << "Print Anchor ====> " << std::endl << std::endl;
+  std::cout << value << std::endl;
+
+  // Print nodes
   ZPMeta::Nodes nodes;
+  status = db->Get(rocksdb::ReadOptions(), "##nodes", &value);
+  if (!status.ok()) {
+    std::cout << "Get Nodes failed: " << status.ToString() << std::endl;
+    return -1;
+  }
+  if(!nodes.ParseFromString(value)) {
+    std::cout << "Parse Nodes Error" << std::endl;
+    return -1;
+  }
+  google::protobuf::TextFormat::PrintToString(nodes, &text_format);
+  std::cout << "----------------------------------------------" << std::endl;
+  std::cout << "Print Nodes ====> " << std::endl << std::endl;
+  std::cout << text_format;
+
+  // Print table list
+  ZPMeta::TableName table_name;
+  status = db->Get(rocksdb::ReadOptions(), "##tables", &value);
+  if (!status.ok()) {
+    std::cout << "Get Table list failed: " << status.ToString() << std::endl;
+    return -1;
+  }
+  if(!table_name.ParseFromString(value)) {
+    std::cout << "Parse TableList Error" << std::endl;
+    return -1;
+  }
+  google::protobuf::TextFormat::PrintToString(table_name, &text_format);
+  std::cout << "----------------------------------------------" << std::endl;
+  std::cout << "Print TableList ====> " << std::endl << std::endl;
+  std::cout << text_format;
+
+  // Print table list
   ZPMeta::Table table_info;
-
-  std::string text_format;
-
-  rocksdb::Iterator* it = db->NewIterator(rocksdb::ReadOptions());
-  int table_num = 0;
-  for (it->SeekToFirst(); it->Valid(); it->Next()) {
-    if (it->key().ToString() == "##tables") {
-      if(!table_name.ParseFromString(it->value().ToString())) {
-        std::cout << "Parse TableList Error" << std::endl;
-        return -1;
-      }
-      google::protobuf::TextFormat::PrintToString(table_name, &text_format);
-      std::cout << "----------------------------------------------" << std::endl;
-      std::cout << "Print TableList ====> " << std::endl << std::endl;
-      std::cout << text_format;
-
-    } else if (it->key().ToString() == "##version") {
-      std::cout << "----------------------------------------------" << std::endl;
-      std::cout << "Print Version ====> " << std::endl << std::endl;
-      std::cout << std::stoi(it->value().ToString()) << std::endl;
-    } else if (it->key().ToString() == "##nodes") {
-      if(!nodes.ParseFromString(it->value().ToString())) {
-        std::cout << "Parse Nodes Error" << std::endl;
-        return -1;
-      }
-      google::protobuf::TextFormat::PrintToString(nodes, &text_format);
-      std::cout << "----------------------------------------------" << std::endl;
-      std::cout << "Print Nodes ====> " << std::endl << std::endl;
-      std::cout << text_format;
-    } else {
-      if(!table_info.ParseFromString(it->value().ToString())) {
-        std::cout << "Parse TableInfo Error, key: " << it->key().ToString() << std::endl;
-        return -1;
-      }
-      new_table_name.add_name(table_info.name());
-      table_num++;
-      if (detail) {
-        google::protobuf::TextFormat::PrintToString(table_info, &text_format);
-        std::cout << "----------------------------------------------" << std::endl;
-        std::cout << "Print TableInfo ====> " << std::endl << std::endl;
-        std::cout << text_format;
-      }
-    }
-  }
-
-  if (table_num != table_name.name_size()) {
-    std::cout << "----------------------------------------------" << std::endl;
-    std::cout << "Got Error, TableNum in floyd: " << table_num;
-    std::cout << " TableList size: " << table_name.name_size();
-    std::cout << " NewTableList size: " << new_table_name.name_size() << std::endl;
-    std::cout << " Try to repair TableList..." << std::endl;
-
-    std::string value;
-    if (!new_table_name.SerializeToString(&value)) {
-      std::cout << "Serialization new_table_name failed, value: " <<  value << std::endl;
-      return -1;
-    }
-    status = db->Put(rocksdb::WriteOptions(), "##tables", value);
+  for (const auto t : table_name.name()) {
+    status = db->Get(rocksdb::ReadOptions(), t, &value);
     if (!status.ok()) {
-      std::cout << "Update NewTableList Error: " << status.ToString() << std::endl;
+      std::cout << "Get TableInfo failed: " << status.ToString()
+        << ", table: " << t << std::endl;
       return -1;
     }
-    std::cout << " Try to repair Done..." << std::endl;
-  } else {
-    std::cout << "----------------------------------------------" << std::endl;
-    std::cout << "Table nums: " << table_num << std::endl;
-    std::cout << "Check Successfully" << std::endl;
+    if(!table_info.ParseFromString(value)) {
+      std::cout << "Parse TableInfo Error, table: " << t << std::endl;
+      return -1;
+    }
+    if (detail) {
+      google::protobuf::TextFormat::PrintToString(table_info, &text_format);
+      std::cout << "----------------------------------------------" << std::endl;
+      std::cout << "Print TableInfo ====> " << std::endl << std::endl;
+      std::cout << text_format;
+    }
   }
-  assert(it->status().ok());  // Check for any errors found during the scan
-  delete it;
+
+  // Print migrate
+  ZPMeta::MigrateHead migrate_head;
+  status = db->Get(rocksdb::ReadOptions(), "##migrate", &value);
+  if (!status.ok()) {
+    std::cout << "Get Migrate head failed: " << status.ToString() << std::endl;
+    return -1;
+  }
+  if(!migrate_head.ParseFromString(value)) {
+    std::cout << "Parse Migrate head Error" << std::endl;
+    return -1;
+  }
+  google::protobuf::TextFormat::PrintToString(migrate_head, &text_format);
+  std::cout << "----------------------------------------------" << std::endl;
+  std::cout << "Print MigrateHead ====> " << std::endl << std::endl;
+  std::cout << text_format << std::endl;
+
+  // Print migrate diffs
+  ZPMeta::RelationCmdUnit diff;
+  for (const auto d : migrate_head.diff_name()) {
+    status = db->Get(rocksdb::ReadOptions(), d, &value);
+    if (!status.ok()) {
+      std::cout << "Get Migrate diff failed: " << status.ToString()
+        << ", diff key: " << d << std::endl;
+      return -1;
+    }
+    if(!diff.ParseFromString(value)) {
+      std::cout << "Parse Migrate diff Error, table: " << d << std::endl;
+      return -1;
+    }
+    if (detail) {
+      google::protobuf::TextFormat::PrintToString(diff, &text_format);
+      std::cout << "----------------------------------------------" << std::endl;
+      std::cout << "Print Migrate diff ====> " << std::endl << std::endl;
+      std::cout << text_format << std::endl;
+    }
+  }
 
   delete db;
   return 0;
