@@ -10,8 +10,6 @@ static int64_t BoundaryLimit(int64_t target, int64_t floor, int64_t ceil) {
 
 ZpConf::ZpConf() {
   pthread_rwlock_init(&rwlock_, NULL);
-  seed_ip_ = std::string("127.0.0.1");
-  seed_port_ = 0;
   local_ip_ = std::string("127.0.0.1");
   local_port_ = 9999;
   timeout_ = 100;
@@ -21,7 +19,6 @@ ZpConf::ZpConf() {
   daemonize_ = false;
   pid_file_ = std::string("./pid");
   lock_file_ = std::string("./lock");
-  max_file_descriptor_num_ = 1048576;
   enable_data_delete_ = true;
   meta_thread_num_ = 4;
   data_thread_num_ = 6;
@@ -59,7 +56,6 @@ void ZpConf::Dump() const {
   fprintf (stderr, "    Config.daemonize    : %s\n", daemonize_? "true":"false");
   fprintf (stderr, "    Config.pid_file    : %s\n", pid_file_.c_str());
   fprintf (stderr, "    Config.lock_file    : %s\n", lock_file_.c_str());
-  fprintf (stderr, "    Config.max_file_descriptor_num    : %d\n", max_file_descriptor_num_);
   fprintf (stderr, "    Config.enable_data_delete    : %s\n", enable_data_delete_ ? "true":"false");
   fprintf (stderr, "    Config.meta_thread_num    : %d\n", meta_thread_num_);
   fprintf (stderr, "    Config.data_thread_num    : %d\n", data_thread_num_);
@@ -94,7 +90,6 @@ int ZpConf::Load(const std::string& path) {
   ret = conf_reader.GetConfStr("trash_path", &trash_path_);
   ret = conf_reader.GetConfBool("daemonize", &daemonize_);
   ret = conf_reader.GetConfStrVec("meta_addr", &meta_addr_);
-  ret = conf_reader.GetConfInt("max_file_descriptor_num", &max_file_descriptor_num_);
   ret = conf_reader.GetConfBool("enable_data_delete", &enable_data_delete_);
   ret = conf_reader.GetConfInt("meta_thread_num", &meta_thread_num_);
   ret = conf_reader.GetConfInt("data_thread_num", &data_thread_num_);
@@ -126,7 +121,6 @@ int ZpConf::Load(const std::string& path) {
   pid_file_ = lock_path + "pid";
   lock_file_ = lock_path + "lock";
 
-  max_file_descriptor_num_ = BoundaryLimit(max_file_descriptor_num_, 1, 4294967296);
   meta_thread_num_ = BoundaryLimit(meta_thread_num_, 1, 100);
   data_thread_num_ = BoundaryLimit(data_thread_num_, 1, 100);
   sync_recv_thread_num_ = BoundaryLimit(sync_recv_thread_num_, 1, 100);

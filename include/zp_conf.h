@@ -20,16 +20,6 @@ class ZpConf {
 
   int Load(const std::string& path);
 
-  std::string seed_ip() {
-    RWLock l(&rwlock_, false);
-    return seed_ip_;
-  }
-
-  int seed_port() {
-    RWLock l(&rwlock_, false);
-    return seed_port_;
-  }
-
   std::string local_ip() {
     RWLock l(&rwlock_, false);
     return local_ip_;
@@ -73,11 +63,6 @@ class ZpConf {
   std::string lock_file() {
     RWLock l(&rwlock_, false);
     return lock_file_;
-  }
-
-  int max_file_descriptor_num() {
-    RWLock l(&rwlock_, false);
-    return max_file_descriptor_num_;
   }
 
   bool enable_data_delete() {
@@ -161,8 +146,6 @@ class ZpConf {
 
   // Env
   std::vector<std::string> meta_addr_;
-  std::string seed_ip_;
-  int seed_port_;
   std::string local_ip_;
   int local_port_;
   int64_t timeout_;
@@ -172,7 +155,6 @@ class ZpConf {
   bool daemonize_;
   std::string pid_file_;
   std::string lock_file_;
-  int max_file_descriptor_num_;
   bool enable_data_delete_;
 
   // Thread Num
