@@ -26,3 +26,11 @@
 *.exe
 *.out
 *.app
+
+output
+tags
+tools/check_binlog_hole
+tools/dump_meta
+tools/empty_trash
+tools/distribution
+tools/checknfix

@@ -1,184 +1,177 @@
-RPATH = /usr/local/zeppelin/lib/
-LFLAGS = -Wl,-rpath=$(RPATH)
+CXX= g++
+LDFLAGS= -lpthread -lprotobuf -lglog -lz -lbz2 -lsnappy -lrt
+CXXFLAGS= -g -std=c++11 -fno-builtin-memcmp -msse -msse4.2 
+PROFILING_FLAGS= -pg
+OPT=
 
-UNAME := $(shell if [ -f "/etc/redhat-release" ]; then echo "CentOS"; else echo "Ubuntu"; fi)
+# DEBUG_LEVEL can have two values:
+# * DEBUG_LEVEL=2; this is the ultimate debug mode. It will compile pika
+# without any optimizations. To compile with level 2, issue `make dbg`
+# * DEBUG_LEVEL=0; this is the debug level we use for release. If you're
+# running pika in production you most definitely want to compile pika
+# with debug level 0. To compile with level 0, run `make`,
 
-OSVERSION := $(shell cat /etc/redhat-release | cut -d "." -f 1 | awk '{print $$NF}')
+# Set the default DEBUG_LEVEL to 0
+DEBUG_LEVEL?=0
 
-ifeq ($(UNAME), Ubuntu)
-  SO_PATH = $(CURDIR)/lib/ubuntu
-else ifeq ($(OSVERSION), 5)
-  SO_PATH = $(CURDIR)/lib/5.4
-else
-  SO_PATH = $(CURDIR)/lib/6.2
+ifeq ($(MAKECMDGOALS),dbg)
+  DEBUG_LEVEL=2
 endif
 
-CXX = g++
-
-ifeq ($(__PERF), 1)
-#CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -Wno-unused-function -std=c++11
-	CXXFLAGS = -O0 -g -pipe -fPIC -W -DLOG_LEVEL=LEVEL_DEBUG -DDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wno-unused-parameter -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -gdwarf-2 -Wno-redundant-decls -DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX -DOS_LINUX
+# compile with -O2 if debug level is not 2
+ifneq ($(DEBUG_LEVEL), 2)
+OPT += -O2 -fno-omit-frame-pointer
+# if we're compiling for release, compile without debug code (-DNDEBUG) and
+# don't treat warnings as errors
+OPT += -DNDEBUG
+DISABLE_WARNING_AS_ERROR=1
+# Skip for archs that don't support -momit-leaf-frame-pointer
+ifeq (,$(shell $(CXX) -fsyntax-only -momit-leaf-frame-pointer -xc /dev/null 2>&1))
+OPT += -momit-leaf-frame-pointer
+endif
 else
-	CXXFLAGS = -O2 -g -gstabs+ -pipe -fPIC -W -DNDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wno-unused-parameter -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -Wno-redundant-decls -DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX -DOS_LINUX
+$(warning Warning: Compiling in debug mode. Don't use the resulting binary in production)
+OPT += $(PROFILING_FLAGS)
+DEBUG_SUFFIX = "_debug"
 endif
 
-COMMON_SRC_PATH = ./src/common
-META_SRC_PATH = ./src/meta
-NODE_SRC_PATH = ./src/node
-THIRD_PATH = ./third
-OUTPUT = ./output
-VERSION = -D_GITVER_=$(shell git rev-list HEAD | head -n1) \
-					-D_COMPILEDATE_=$(shell date +%F)
+# ----------------------------------------------
+OUTPUT = $(CURDIR)/output
+THIRD_PATH = $(CURDIR)/third
+SRC_PATH = $(CURDIR)/src
+OPT += -D_GITVER_=$(shell git rev-list HEAD | head -n1)
+OPT += -D_COMPILEDATE_=$(shell date +%F)
+PROCESS_NUM=$(shell cat /proc/cpuinfo | grep "processor" | wc -l)
+# ----------------Dependences-------------------
 
 ifndef SLASH_PATH
-SLASH_PATH = $(realpath $(THIRD_PATH)/slash)
+SLASH_PATH = $(THIRD_PATH)/slash
 endif
+LIBSLASH = $(SLASH_PATH)/slash/lib/libslash$(DEBUG_SUFFIX).a
 
 ifndef PINK_PATH
-PINK_PATH = $(realpath $(THIRD_PATH)/pink)
+PINK_PATH = $(THIRD_PATH)/pink
 endif
-
-ifndef NEMODB_PATH
-NEMODB_PATH = $(realpath $(THIRD_PATH)/nemo-rocksdb)
-endif
+LIBPINK = $(PINK_PATH)/pink/lib/libpink$(DEBUG_SUFFIX).a
 
 ifndef FLOYD_PATH
-FLOYD_PATH = $(realpath $(THIRD_PATH)/floyd)
+FLOYD_PATH = $(THIRD_PATH)/floyd
 endif
+LIBFLOYD = $(FLOYD_PATH)/floyd/lib/libfloyd$(DEBUG_SUFFIX).a
 
 ifndef ROCKSDB_PATH
-ROCKSDB_PATH = $(realpath $(THIRD_PATH)/rocksdb)
+ROCKSDB_PATH = $(THIRD_PATH)/rocksdb
+endif
+LIBROCKSDB = $(ROCKSDB_PATH)/librocksdb$(DEBUG_SUFFIX).a
+
+ifndef NEMODB_PATH
+NEMODB_PATH = $(THIRD_PATH)/nemo-rocksdb
+endif
+LIBNEMODB = $(NEMODB_PATH)/lib/libnemodb$(DEBUG_SUFFIX).a
+
+INCLUDE_PATH = -I. -I$(SLASH_PATH) -I$(PINK_PATH) -I$(FLOYD_PATH) \
+							 -I$(NEMODB_PATH) -I$(ROCKSDB_PATH)/include
+
+# ---------------End Dependences----------------
+
+AM_DEFAULT_VERBOSITY = 0
+
+AM_V_GEN = $(am__v_GEN_$(V))
+am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
+am__v_GEN_0 = @echo "  GEN     " $(notdir $@);
+am__v_GEN_1 =
+AM_V_at = $(am__v_at_$(V))
+am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
+am__v_at_0 = @
+am__v_at_1 =
+
+AM_V_CC = $(am__v_CC_$(V))
+am__v_CC_ = $(am__v_CC_$(AM_DEFAULT_VERBOSITY))
+am__v_CC_0 = @echo "  CC      " $(notdir $@);
+am__v_CC_1 =
+CCLD = $(CC)
+LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CCLD = $(am__v_CCLD_$(V))
+am__v_CCLD_ = $(am__v_CCLD_$(AM_DEFAULT_VERBOSITY))
+am__v_CCLD_0 = @echo "  CCLD    " $(notdir $@);
+am__v_CCLD_1 =
+
+AM_LINK = $(AM_V_CCLD)$(CXX) $^ -o $@ $(LDFLAGS)
+#-----------------------------------------------
+
+# This (the first rule) must depend on "all".
+default: all
+
+WARNING_FLAGS = -W -Wextra -Wall -Wsign-compare \
+  -Wno-unused-parameter -Wno-redundant-decls -Wwrite-strings \
+	-Wpointer-arith -Wreorder -Wswitch -Wsign-promo \
+	-Woverloaded-virtual -Wnon-virtual-dtor -Wno-missing-field-initializers
+
+ifndef DISABLE_WARNING_AS_ERROR
+  WARNING_FLAGS += -Werror
 endif
 
-COMMON_SRC = $(wildcard $(COMMON_SRC_PATH)/*.cc)
+CXXFLAGS += $(WARNING_FLAGS) $(INCLUDE_PATH) $(OPT)
+
+COMMON_SRC = $(wildcard $(SRC_PATH)/common/*.cc)
 COMMON_OBJS = $(patsubst %.cc,%.o,$(COMMON_SRC))
 
-
-META_SRC = $(wildcard $(META_SRC_PATH)/*.cc)
+META_SRC = $(wildcard $(SRC_PATH)/meta/*.cc)
 META_OBJS = $(patsubst %.cc,%.o,$(META_SRC))
 
-NODE_SRC = $(wildcard $(NODE_SRC_PATH)/*.cc)
+NODE_SRC = $(wildcard $(SRC_PATH)/node/*.cc)
 NODE_OBJS = $(patsubst %.cc,%.o,$(NODE_SRC))
 
+ZP_META = zp-meta$(DEBUG_SUFFIX)
 
-ZP_META = zp-meta
+ZP_NODE = zp-node$(DEBUG_SUFFIX)
 
-ZP_NODE = zp-node
+.PHONY: distclean clean dbg all
 
-OBJS = $(COMMON_OBJS) $(META_OBJS) $(NODE_OBJS) 
-
-
-INCLUDE_PATH = -I./ \
-							 -I$(THIRD_PATH)/glog/src/ \
-							 -I$(NEMODB_PATH)/ \
-							 -I$(ROCKSDB_PATH)/ \
-							 -I$(ROCKSDB_PATH)/include \
-							 -I$(SLASH_PATH)/ \
-							 -I$(PINK_PATH)/ \
-							 -I$(FLOYD_PATH)/
-
-LIB_PATH = -L./ \
-					 -L$(FLOYD_PATH)/floyd/lib/ \
-					 -L$(SLASH_PATH)/slash/lib/ \
-					 -L$(PINK_PATH)/pink/lib/ \
-					 -L$(NEMODB_PATH)/output/lib/ \
-					 -L$(ROCKSDB_PATH)/ \
-					 -L$(THIRD_PATH)/glog/.libs/
-
-LIBS = -lpthread \
-			 -lprotobuf \
-			 -lglog \
-			 -lslash \
-			 -lpink \
-			 -lz \
-			 -lbz2 \
-			 -lsnappy \
-			 -lrt \
-
-METALIBS = -lfloyd \
-					 -lrocksdb
-
-NODELIBS = -lnemodb \
-					 -lrocksdb
-
-FLOYD = $(FLOYD_PATH)/floyd/lib/libfloyd.a
-NEMODB = $(NEMODB_PATH)/output/lib/libnemodb.a
-GLOG = $(THIRD_PATH)/glog/.libs/libglog.so.0
-PINK = $(PINK_PATH)/pink/lib/libpink.a
-SLASH = $(SLASH_PATH)/slash/lib/libslash.a
-
-.PHONY: all clean distclean
-
+%.o: %.cc
+	$(AM_V_CC)$(CXX) $(CXXFLAGS) -c $< -o $@
 
 all: $(ZP_META) $(ZP_NODE)
-#all: $(ZP_META)
-#all: 
-	#@echo "COMMON_OBJS $(COMMON_OBJS)"
-	#@echo "ZP_META_OBJS $(META_OBJS)"
-	#@echo "ZP_NODE_OBJS $(NODE_OBJS)"
-	@echo "OBJS $(OBJS)"
-	echo "PINK_PATH $(PINK_PATH)"
-	echo "SLASH_PATH $(SLASH_PATH)"
-	echo "FLOYD_PATH $(FLOYD_PATH)"
-	echo "NEMODB_PATH $(NEMODB_PATH)"
+	$(AM_V_at)rm -rf $(OUTPUT)
+	$(AM_V_at)mkdir $(OUTPUT)
+	$(AM_V_at)mkdir $(OUTPUT)/bin
+	$(AM_V_at)cp -r conf $(OUTPUT)
+	$(AM_V_at)mv $(ZP_META) $(OUTPUT)/bin
+	$(AM_V_at)mv $(ZP_NODE) $(OUTPUT)/bin
+
+dbg: $(ZP_META) $(ZP_NODE)
+
+$(ZP_META): $(COMMON_OBJS) $(META_OBJS) $(LIBFLOYD) $(LIBPINK) $(LIBSLASH) $(LIBROCKSDB)
+	$(AM_V_at)rm -f $@
+	$(AM_V_at)$(AM_LINK)
+
+$(ZP_NODE): $(COMMON_OBJS) $(NODE_OBJS) $(LIBNEMODB) $(LIBPINK) $(LIBSLASH) $(LIBROCKSDB)
+	$(AM_V_at)rm -f $@
+	$(AM_V_at)$(AM_LINK)
+
+$(LIBSLASH):
+	$(AM_V_at)make -C $(SLASH_PATH)/slash DEBUG_LEVEL=$(DEBUG_LEVEL)
+
+$(LIBPINK):
+	$(AM_V_at)make -C $(PINK_PATH)/pink DEBUG_LEVEL=$(DEBUG_LEVEL) SLASH_PATH=$(SLASH_PATH)
+
+$(LIBROCKSDB):
+	$(AM_V_at)make -j $(PROCESSOR_NUMS) -C $(ROCKSDB_PATH) static_lib DISABLE_JEMALLOC=1 DEBUG_LEVEL=$(DEBUG_LEVEL)
+
+$(LIBNEMODB):
+	$(AM_V_at)make -C $(NEMODB_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) DEBUG_LEVEL=$(DEBUG_LEVEL)
+
+$(LIBFLOYD):
+	$(AM_V_at)make -C $(FLOYD_PATH)/floyd DEBUG_LEVEL=$(DEBUG_LEVEL) \
+					ROCKSDB_PATH=$(ROCKSDB_PATH) SLASH_PATH=$(SLASH_PATH) PINK_PATH=$(PINK_PATH)
+
+clean:
 	rm -rf $(OUTPUT)
-	mkdir $(OUTPUT)
-	mkdir $(OUTPUT)/bin
-	#cp -r ./conf $(OUTPUT)/
-	mkdir $(OUTPUT)/lib
-	cp -r $(SO_PATH)/*  $(OUTPUT)/lib
-	mv $(ZP_META) $(OUTPUT)/bin/
-	mv $(ZP_NODE) $(OUTPUT)/bin/
-	cp -r conf $(OUTPUT)
-	#mkdir $(OUTPUT)/tools
-	@echo "Success, go, go, go..."
-
-
-$(ZP_META): $(FLOYD) $(GLOG) $(PINK) $(SLASH) $(COMMON_OBJS) $(META_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJS) $(META_OBJS) $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(METALIBS) $(LIBS)
-
-$(ZP_NODE): $(NEMODB) $(GLOG) $(PINK) $(SLASH) $(COMMON_OBJS) $(NODE_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(COMMON_OBJS) $(NODE_OBJS) $(INCLUDE_PATH) $(LIB_PATH) $(LFLAGS) $(NODELIBS) $(LIBS)
-
-$(OBJS): %.o : %.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) $(VERSION)
-
-$(FLOYD):
-	make -C $(FLOYD_PATH)/floyd/ __PERF=$(__PERF) SLASH_PATH=$(SLASH_PATH) PINK_PATH=$(PINK_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH)
-
-$(NEMODB):
-	make -C $(NEMODB_PATH)/ ROCKSDB_PATH=$(ROCKSDB_PATH)
-
-
-$(SLASH):
-	make -C $(SLASH_PATH)/slash/ __PERF=$(__PERF)
-
-$(PINK):
-	make -C $(PINK_PATH)/pink/ __PERF=$(__PERF)  SLASH_PATH=$(SLASH_PATH)
-
-$(GLOG):
-ifeq ($(SO_PATH), $(wildcard $(SO_PATH)))
-	@echo "$(SO_PATH) exist."
-else
-	@echo "$(SO_PATH) not exist."
-	mkdir $(SO_PATH)
-endif
-	#if [ -d $(THIRD_PATH)/glog/.libs ]; then 
-	if [ ! -f $(GLOG) ]; then \
-		cd $(THIRD_PATH)/glog; \
-		autoreconf -ivf; ./configure; make; echo '*' > .gitignore; cp .libs/libglog.so.0 $(SO_PATH); \
-	fi; 
-	
-clean: 
-	rm -rf $(COMMON_SRC_PATH)/*.o
-	rm -rf $(META_SRC_PATH)/*.o
-	rm -rf $(NODE_SRC_PATH)/*.o
-	rm -rf $(OUTPUT)
+	find $(SRC_PATH) -name "*.[oda]*" -exec rm -f {} \;
+	find $(SRC_PATH) -type f -regex ".*\.\(\(gcda\)\|\(gcno\)\)" -exec rm {} \;
 
 distclean: clean
-	make -C $(PINK_PATH)/pink/ clean
-	make -C $(SLASH_PATH)/slash/ clean
-	make -C $(NEMODB_PATH)/ clean
-	make -C $(FLOYD_PATH)/floyd/ clean
-	#make clean -C $(ROCKSDB_PATH)/
-
+	make -C $(PINK_PATH)/pink clean
+	make -C $(SLASH_PATH)/slash clean
+	make -C $(NEMODB_PATH) clean
+	make -C $(ROCKSDB_PATH) clean
