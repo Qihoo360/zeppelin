@@ -27,6 +27,10 @@
 
 using slash::Status;
 
+const std::string kMetaTables = "##tables";
+const std::string kMetaNodes = "##nodes";
+const std::string kMetaVersion = "##version";
+
 extern std::string NodeOffsetKey(const std::string& table,
     int partition_id);
 

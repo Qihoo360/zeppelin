@@ -30,7 +30,7 @@
 #include "include/client.pb.h"
 #include "include/zp_conf.h"
 #include "include/zp_binlog.h"
-#include "include/zp_meta_utils.h"
+#include "src/node/zp_data_entity.h"
 #include "include/zp_command.h"
 
 class Partition;
@@ -39,6 +39,30 @@ std::shared_ptr<Partition> NewPartition(const std::string &table_name,
     const std::string& log_path, const std::string& data_path,
     const std::string& trash_path, const int partition_id,
     const Node& master, const std::set<Node> &slaves);
+
+enum Role {
+  kNodeSingle = 0,
+  kNodeMaster = 1,
+  kNodeSlave = 2,
+};
+const std::string RoleMsg[] {
+  "kNodeSingle",
+  "kNodeMaster",
+  "kNodeSlave"
+};
+enum ReplState {
+  kNoConnect = 0,
+  kShouldConnect = 1,
+  kConnected = 2,
+  kWaitDBSync = 3,
+};
+// debug only
+const std::string ReplStateMsg[] = {
+  "kNoConnect",
+  "kShouldConnect",
+  "kConnected",
+  "kWaitDBSync"
+};
 
 // Slave item
 struct SlaveItem {

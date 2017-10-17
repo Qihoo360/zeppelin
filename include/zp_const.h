@@ -1,6 +1,5 @@
-#ifndef ZP_CONST_H
-#define ZP_CONST_H
-
+#ifndef INCLUDE_ZP_CONST_H_
+#define INCLUDE_ZP_CONST_H_
 #include <string>
 
 #define dstr(a) #a
@@ -10,46 +9,43 @@ const std::string kZPCompileDate = dxstr(_COMPILEDATE_);
 const std::string kZpPidFile = "zp.pid";
 const std::string kZpLockFile = "zp.lock";
 
-////// Server State /////
-enum Role {
-  kNodeSingle = 0,
-  kNodeMaster = 1,
-  kNodeSlave = 2,
-};
-const std::string RoleMsg[] {
-  "kNodeSingle",
-  "kNodeMaster",
-  "kNodeSlave"
-};
-enum ReplState {
-  kNoConnect = 0,
-  kShouldConnect = 1,
-  kConnected = 2,
-  kWaitDBSync = 3,
-};
-// debug only
-const std::string ReplStateMsg[] = {
-  "kNoConnect",
-  "kShouldConnect",
-  "kConnected",
-  "kWaitDBSync"
-};
-const std::string MetaStateMsg[] = {
-  "kMetaConnect",
-  "kMetaConnected"
-};
-
-// Data port shift
-// TODO DataPort is stall
-//const int kPortShiftDataCmd = 100;
+/* Port shift */
 const int kPortShiftSync = 200;
 const int kPortShiftRsync = 300;
-
-// Meta port shift
 const int kMetaPortShiftCmd = 0;
 const int kMetaPortShiftFY = 100;
 
+/* Binlog related */
+// the block size that we read and write from write2file
+// the default size is 64KB
+const size_t kBlockSize = 64 * 1024;
+// The size of Binlogfile
+//const uint64_t kBinlogSize = 1024 * 100;
+const uint64_t kBinlogSize = 1024 * 1024 * 100;
+// Header is Type(1 byte), length (2 bytes)
+const size_t kHeaderSize = 1 + 3;
+const std::string kBinlogPrefix = "binlog";
+const size_t kBinlogPrefixLen = 6;
+const std::string kManifest = "manifest";
 
+/* DBSync related */
+const uint32_t kDBSyncMaxGap = 1000;
+const std::string kDBSyncModule = "document";
+const uint32_t kDBSyncSpeedLimit = 126; //MBPS
+const int kDBSyncRetryTime = 5;    // retry time to send single file for DBSync
+const std::string kBgsaveInfoFile = "info";
+
+/* Purge Log related */
+const uint32_t kBinlogRemainMinCount = 10;
+const uint32_t kBinlogRemainMaxCount = 60;
+const uint32_t kBinlogRemainMaxDay = 30;
+
+/* Migrate related */
+// how many diff item handled one time
+const int kMetaMigrateOnceCount = 2;
+const int kConditionCronInterval= 3000; // millisecond
+
+/* Sync related */
 // TrySync Delay time := kRecoverSyncDelayCronCount * (kNodeCronInterval * kNodeCronWaitCount)
 const int kRecoverSyncDelayCronCount = 7;
 const int kStuckRecoverSyncDelayCronCount = 450; // for slave stuck out of kConnected
@@ -59,90 +55,30 @@ const int kBinlogRedundantLease = 10;  // some more lease time for redundance
 const int kBinlogMinLease = 20;
 const int kBinlogDefaultLease = 20;
 const int kBinlogTimeSlice = 5;    // should larger than kBinlogSendInterval
-const int kPingInterval = 5;
-const int kMetacmdInterval = 6;
-const int kDispatchCronInterval = 5000;
-const int kDispatchQueueSize = 1000;
-const int kMetaDispathCronInterval = 1000;
-const int kMetaDispathQueueSize = 1000;
-const int kWorkerCronInterval = 5000;
-const int kKeepAlive = 60;  // seconds
-const int kMetaWorkerCronInterval = 1000;
 const int kBinlogReceiverCronInterval = 6000;
-// Server cron wait kNodeCronInterval * kNodeCronWaitCount every time
-const int kNodeCronInterval = 1000;
-const int kNodeCronWaitCount = 2;
-const int kMetaCronInterval = 1000;
-const int kMetaCronWaitCount = 5;
-//const int kBinlogReceiverCronInterval = 1000;
 const int kBinlogReceiveBgWorkerFull = 100;
 
-
-
-////// Binlog related //////
-// the block size that we read and write from write2file
-// the default size is 64KB
-const size_t kBlockSize = 64 * 1024;
-
-// Header is Type(1 byte), length (2 bytes)
-const size_t kHeaderSize = 1 + 3;
-
-const std::string kBinlogPrefix = "binlog";
-const size_t kBinlogPrefixLen = 6;
-
-const std::string kManifest = "manifest";
-
-//#define SLAVE_ITEM_STAGE_ONE 1
-//#define SLAVE_ITEM_STAGE_TWO 2
-
-//
-// The size of Binlogfile
-//
-//const uint64_t kBinlogSize = 128; 
-//const uint64_t kBinlogSize = 1024 * 100;
-const uint64_t kBinlogSize = 1024 * 1024 * 100;
-
-
-//
-// define reply between master and slave
-//
-const std::string kInnerReplOk = "ok";
-const std::string kInnerReplWait = "wait";
-
-const unsigned int kMaxBitOpInputKey = 12800;
-const int kMaxBitOpInputBit = 21;
-
-// DBSync
-//const uint32_t kDBSyncMaxGap = 200;
-const uint32_t kDBSyncMaxGap = 1000;
-const std::string kDBSyncModule = "document";
-const uint32_t kDBSyncSpeedLimit = 126; //MBPS
-const int kDBSyncRetryTime = 5;    // retry time to send single file for DBSync
-const std::string kBgsaveInfoFile = "info";
-
-// Purge binlog
-const uint32_t kBinlogRemainMinCount = 10;
-const uint32_t kBinlogRemainMaxCount = 60;
-const uint32_t kBinlogRemainMaxDay = 30;
-
-
-//
-//meta related
-//
-const std::string kMetaTables = "##tables";
-const std::string kMetaNodes = "##nodes";
-const std::string kMetaVersion = "##version";
-// Define in migrate source file
-// static const std::string kMigrateHead = "##migrate";
-
+/* Heartbeat related */
+const int kPingInterval = 5;
 // timeout between node and meta server
 // the one for meta should large than for node
 // and both larger than kPingInterval
 const int kNodeMetaTimeoutN = 10;
 const int kNodeMetaTimeoutM = 30;
 
-// how many diff item handled one time
-const int kMetaMigrateOnceCount = 2;
-const int kConditionCronInterval= 3000; // millisecond
+/* Dispatch related */
+const int kDispatchCronInterval = 5000;
+const int kDispatchQueueSize = 1000;
+const int kMetaDispathCronInterval = 1000;
+const int kMetaDispathQueueSize = 1000;
+const int kKeepAlive = 60;  // seconds
+const int kMetacmdInterval = 6;
 
-#endif
+/* Server cron related */
+// Server cron wait kNodeCronInterval * kNodeCronWaitCount every time
+const int kNodeCronInterval = 1000;
+const int kNodeCronWaitCount = 2;
+const int kMetaCronInterval = 1000;
+const int kMetaCronWaitCount = 5;
+
+#endif  // INCLUDE_ZP_CONST_H_

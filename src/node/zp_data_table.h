@@ -24,7 +24,7 @@
 #include "include/zp_const.h"
 #include "include/client.pb.h"
 #include "include/zp_meta.pb.h"
-#include "include/zp_meta_utils.h"
+#include "src/node/zp_data_entity.h"
 
 class Table;
 class Partition;
