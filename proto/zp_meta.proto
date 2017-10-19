@@ -51,6 +51,11 @@ message MetaNodes {
   optional Node leader = 2;
 }
 
+message MetaLeader {
+  required Node leader = 1;
+  required int64 last_active = 2;
+}
+
 message Partitions {
   required int32 id = 1;
   required PState state = 2;
@@ -121,7 +126,7 @@ message MetaCmd {
   // Init
   message Init {
     required string name = 1;
-    required int32 num = 2;
+    required Table table = 2;
   }
   optional Init init = 4;
 

@@ -38,6 +38,7 @@ class Node;
 class NodeStatus;
 class Nodes;
 class MetaNodes;
+class MetaLeader;
 class Partitions;
 class TableName;
 class Table;
@@ -523,6 +524,100 @@ class MetaNodes : public ::google::protobuf::Message {
 
   void InitAsDefaultInstance();
   static MetaNodes* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class MetaLeader : public ::google::protobuf::Message {
+ public:
+  MetaLeader();
+  virtual ~MetaLeader();
+
+  MetaLeader(const MetaLeader& from);
+
+  inline MetaLeader& operator=(const MetaLeader& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const MetaLeader& default_instance();
+
+  void Swap(MetaLeader* other);
+
+  // implements Message ----------------------------------------------
+
+  MetaLeader* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const MetaLeader& from);
+  void MergeFrom(const MetaLeader& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required .ZPMeta.Node leader = 1;
+  inline bool has_leader() const;
+  inline void clear_leader();
+  static const int kLeaderFieldNumber = 1;
+  inline const ::ZPMeta::Node& leader() const;
+  inline ::ZPMeta::Node* mutable_leader();
+  inline ::ZPMeta::Node* release_leader();
+  inline void set_allocated_leader(::ZPMeta::Node* leader);
+
+  // required int64 last_active = 2;
+  inline bool has_last_active() const;
+  inline void clear_last_active();
+  static const int kLastActiveFieldNumber = 2;
+  inline ::google::protobuf::int64 last_active() const;
+  inline void set_last_active(::google::protobuf::int64 value);
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.MetaLeader)
+ private:
+  inline void set_has_leader();
+  inline void clear_has_leader();
+  inline void set_has_last_active();
+  inline void clear_has_last_active();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::ZPMeta::Node* leader_;
+  ::google::protobuf::int64 last_active_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static MetaLeader* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -1652,24 +1747,26 @@ class MetaCmd_Init : public ::google::protobuf::Message {
   inline ::std::string* release_name();
   inline void set_allocated_name(::std::string* name);
 
-  // required int32 num = 2;
-  inline bool has_num() const;
-  inline void clear_num();
-  static const int kNumFieldNumber = 2;
-  inline ::google::protobuf::int32 num() const;
-  inline void set_num(::google::protobuf::int32 value);
+  // required .ZPMeta.Table table = 2;
+  inline bool has_table() const;
+  inline void clear_table();
+  static const int kTableFieldNumber = 2;
+  inline const ::ZPMeta::Table& table() const;
+  inline ::ZPMeta::Table* mutable_table();
+  inline ::ZPMeta::Table* release_table();
+  inline void set_allocated_table(::ZPMeta::Table* table);
 
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd.Init)
  private:
   inline void set_has_name();
   inline void clear_has_name();
-  inline void set_has_num();
-  inline void clear_has_num();
+  inline void set_has_table();
+  inline void clear_has_table();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
   ::std::string* name_;
-  ::google::protobuf::int32 num_;
+  ::ZPMeta::Table* table_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
@@ -3288,6 +3385,70 @@ inline void MetaNodes::set_allocated_leader(::ZPMeta::Node* leader) {
 
 // -------------------------------------------------------------------
 
+// MetaLeader
+
+// required .ZPMeta.Node leader = 1;
+inline bool MetaLeader::has_leader() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void MetaLeader::set_has_leader() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void MetaLeader::clear_has_leader() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void MetaLeader::clear_leader() {
+  if (leader_ != NULL) leader_->::ZPMeta::Node::Clear();
+  clear_has_leader();
+}
+inline const ::ZPMeta::Node& MetaLeader::leader() const {
+  return leader_ != NULL ? *leader_ : *default_instance_->leader_;
+}
+inline ::ZPMeta::Node* MetaLeader::mutable_leader() {
+  set_has_leader();
+  if (leader_ == NULL) leader_ = new ::ZPMeta::Node;
+  return leader_;
+}
+inline ::ZPMeta::Node* MetaLeader::release_leader() {
+  clear_has_leader();
+  ::ZPMeta::Node* temp = leader_;
+  leader_ = NULL;
+  return temp;
+}
+inline void MetaLeader::set_allocated_leader(::ZPMeta::Node* leader) {
+  delete leader_;
+  leader_ = leader;
+  if (leader) {
+    set_has_leader();
+  } else {
+    clear_has_leader();
+  }
+}
+
+// required int64 last_active = 2;
+inline bool MetaLeader::has_last_active() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void MetaLeader::set_has_last_active() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void MetaLeader::clear_has_last_active() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void MetaLeader::clear_last_active() {
+  last_active_ = GOOGLE_LONGLONG(0);
+  clear_has_last_active();
+}
+inline ::google::protobuf::int64 MetaLeader::last_active() const {
+  return last_active_;
+}
+inline void MetaLeader::set_last_active(::google::protobuf::int64 value) {
+  set_has_last_active();
+  last_active_ = value;
+}
+
+// -------------------------------------------------------------------
+
 // Partitions
 
 // required int32 id = 1;
@@ -4406,26 +4567,42 @@ inline void MetaCmd_Init::set_allocated_name(::std::string* name) {
   }
 }
 
-// required int32 num = 2;
-inline bool MetaCmd_Init::has_num() const {
+// required .ZPMeta.Table table = 2;
+inline bool MetaCmd_Init::has_table() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void MetaCmd_Init::set_has_num() {
+inline void MetaCmd_Init::set_has_table() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void MetaCmd_Init::clear_has_num() {
+inline void MetaCmd_Init::clear_has_table() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void MetaCmd_Init::clear_num() {
-  num_ = 0;
-  clear_has_num();
+inline void MetaCmd_Init::clear_table() {
+  if (table_ != NULL) table_->::ZPMeta::Table::Clear();
+  clear_has_table();
 }
-inline ::google::protobuf::int32 MetaCmd_Init::num() const {
-  return num_;
+inline const ::ZPMeta::Table& MetaCmd_Init::table() const {
+  return table_ != NULL ? *table_ : *default_instance_->table_;
 }
-inline void MetaCmd_Init::set_num(::google::protobuf::int32 value) {
-  set_has_num();
-  num_ = value;
+inline ::ZPMeta::Table* MetaCmd_Init::mutable_table() {
+  set_has_table();
+  if (table_ == NULL) table_ = new ::ZPMeta::Table;
+  return table_;
+}
+inline ::ZPMeta::Table* MetaCmd_Init::release_table() {
+  clear_has_table();
+  ::ZPMeta::Table* temp = table_;
+  table_ = NULL;
+  return temp;
+}
+inline void MetaCmd_Init::set_allocated_table(::ZPMeta::Table* table) {
+  delete table_;
+  table_ = table;
+  if (table) {
+    set_has_table();
+  } else {
+    clear_has_table();
+  }
 }
 
 // -------------------------------------------------------------------
