@@ -369,7 +369,26 @@ void CancelMigrateCmd::Do(const google::protobuf::Message *req,
   }
 }
 
-// void CheckMigrateCmd::Do(const google::protobuf::Message *req,
-//    google::protobuf::Message *res, void* partition = NULL) const {
-//
-// }
+void RemoveNodesCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+
+  std::vector<ZPMeta::Node> nodes;
+  for (int i = 0; i < request->remove_nodes().nodes_size(); i++) {
+    nodes.push_back(request->remove_nodes().nodes(i));
+  }
+
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
+
+  response->set_type(ZPMeta::Type::REMOVENODES);
+
+  Status s = g_meta_server->RemoveNodes(nodes);
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("RemoveNodes OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
+}

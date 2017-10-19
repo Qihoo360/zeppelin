@@ -55,6 +55,7 @@ class MetaCmd_AddSlave;
 class MetaCmd_RemoveSlave;
 class MetaCmd_DropTable;
 class MetaCmd_Migrate;
+class MetaCmd_RemoveNodes;
 class MetaCmdResponse;
 class MetaCmdResponse_Ping;
 class MetaCmdResponse_Pull;
@@ -96,11 +97,12 @@ enum Type {
   DROPTABLE = 10,
   METASTATUS = 11,
   MIGRATE = 12,
-  CANCELMIGRATE = 13
+  CANCELMIGRATE = 13,
+  REMOVENODES = 14
 };
 bool Type_IsValid(int value);
 const Type Type_MIN = PING;
-const Type Type_MAX = CANCELMIGRATE;
+const Type Type_MAX = REMOVENODES;
 const int Type_ARRAYSIZE = Type_MAX + 1;
 
 const ::google::protobuf::EnumDescriptor* Type_descriptor();
@@ -2117,6 +2119,91 @@ class MetaCmd_Migrate : public ::google::protobuf::Message {
 };
 // -------------------------------------------------------------------
 
+class MetaCmd_RemoveNodes : public ::google::protobuf::Message {
+ public:
+  MetaCmd_RemoveNodes();
+  virtual ~MetaCmd_RemoveNodes();
+
+  MetaCmd_RemoveNodes(const MetaCmd_RemoveNodes& from);
+
+  inline MetaCmd_RemoveNodes& operator=(const MetaCmd_RemoveNodes& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const MetaCmd_RemoveNodes& default_instance();
+
+  void Swap(MetaCmd_RemoveNodes* other);
+
+  // implements Message ----------------------------------------------
+
+  MetaCmd_RemoveNodes* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const MetaCmd_RemoveNodes& from);
+  void MergeFrom(const MetaCmd_RemoveNodes& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // repeated .ZPMeta.Node nodes = 1;
+  inline int nodes_size() const;
+  inline void clear_nodes();
+  static const int kNodesFieldNumber = 1;
+  inline const ::ZPMeta::Node& nodes(int index) const;
+  inline ::ZPMeta::Node* mutable_nodes(int index);
+  inline ::ZPMeta::Node* add_nodes();
+  inline const ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node >&
+      nodes() const;
+  inline ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node >*
+      mutable_nodes();
+
+  // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd.RemoveNodes)
+ private:
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node > nodes_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
+  friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
+  friend void protobuf_ShutdownFile_zp_5fmeta_2eproto();
+
+  void InitAsDefaultInstance();
+  static MetaCmd_RemoveNodes* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class MetaCmd : public ::google::protobuf::Message {
  public:
   MetaCmd();
@@ -2177,6 +2264,7 @@ class MetaCmd : public ::google::protobuf::Message {
   typedef MetaCmd_RemoveSlave RemoveSlave;
   typedef MetaCmd_DropTable DropTable;
   typedef MetaCmd_Migrate Migrate;
+  typedef MetaCmd_RemoveNodes RemoveNodes;
 
   // accessors -------------------------------------------------------
 
@@ -2259,6 +2347,15 @@ class MetaCmd : public ::google::protobuf::Message {
   inline ::ZPMeta::MetaCmd_Migrate* release_migrate();
   inline void set_allocated_migrate(::ZPMeta::MetaCmd_Migrate* migrate);
 
+  // optional .ZPMeta.MetaCmd.RemoveNodes remove_nodes = 10;
+  inline bool has_remove_nodes() const;
+  inline void clear_remove_nodes();
+  static const int kRemoveNodesFieldNumber = 10;
+  inline const ::ZPMeta::MetaCmd_RemoveNodes& remove_nodes() const;
+  inline ::ZPMeta::MetaCmd_RemoveNodes* mutable_remove_nodes();
+  inline ::ZPMeta::MetaCmd_RemoveNodes* release_remove_nodes();
+  inline void set_allocated_remove_nodes(::ZPMeta::MetaCmd_RemoveNodes* remove_nodes);
+
   // @@protoc_insertion_point(class_scope:ZPMeta.MetaCmd)
  private:
   inline void set_has_type();
@@ -2279,6 +2376,8 @@ class MetaCmd : public ::google::protobuf::Message {
   inline void clear_has_drop_table();
   inline void set_has_migrate();
   inline void clear_has_migrate();
+  inline void set_has_remove_nodes();
+  inline void clear_has_remove_nodes();
 
   ::google::protobuf::UnknownFieldSet _unknown_fields_;
 
@@ -2290,10 +2389,11 @@ class MetaCmd : public ::google::protobuf::Message {
   ::ZPMeta::MetaCmd_RemoveSlave* remove_slave_;
   ::ZPMeta::MetaCmd_DropTable* drop_table_;
   ::ZPMeta::MetaCmd_Migrate* migrate_;
+  ::ZPMeta::MetaCmd_RemoveNodes* remove_nodes_;
   int type_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(9 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(10 + 31) / 32];
 
   friend void  protobuf_AddDesc_zp_5fmeta_2eproto();
   friend void protobuf_AssignDesc_zp_5fmeta_2eproto();
@@ -4681,6 +4781,35 @@ MetaCmd_Migrate::mutable_diff() {
 
 // -------------------------------------------------------------------
 
+// MetaCmd_RemoveNodes
+
+// repeated .ZPMeta.Node nodes = 1;
+inline int MetaCmd_RemoveNodes::nodes_size() const {
+  return nodes_.size();
+}
+inline void MetaCmd_RemoveNodes::clear_nodes() {
+  nodes_.Clear();
+}
+inline const ::ZPMeta::Node& MetaCmd_RemoveNodes::nodes(int index) const {
+  return nodes_.Get(index);
+}
+inline ::ZPMeta::Node* MetaCmd_RemoveNodes::mutable_nodes(int index) {
+  return nodes_.Mutable(index);
+}
+inline ::ZPMeta::Node* MetaCmd_RemoveNodes::add_nodes() {
+  return nodes_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node >&
+MetaCmd_RemoveNodes::nodes() const {
+  return nodes_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::ZPMeta::Node >*
+MetaCmd_RemoveNodes::mutable_nodes() {
+  return &nodes_;
+}
+
+// -------------------------------------------------------------------
+
 // MetaCmd
 
 // required .ZPMeta.Type type = 1;
@@ -5007,6 +5136,44 @@ inline void MetaCmd::set_allocated_migrate(::ZPMeta::MetaCmd_Migrate* migrate) {
     set_has_migrate();
   } else {
     clear_has_migrate();
+  }
+}
+
+// optional .ZPMeta.MetaCmd.RemoveNodes remove_nodes = 10;
+inline bool MetaCmd::has_remove_nodes() const {
+  return (_has_bits_[0] & 0x00000200u) != 0;
+}
+inline void MetaCmd::set_has_remove_nodes() {
+  _has_bits_[0] |= 0x00000200u;
+}
+inline void MetaCmd::clear_has_remove_nodes() {
+  _has_bits_[0] &= ~0x00000200u;
+}
+inline void MetaCmd::clear_remove_nodes() {
+  if (remove_nodes_ != NULL) remove_nodes_->::ZPMeta::MetaCmd_RemoveNodes::Clear();
+  clear_has_remove_nodes();
+}
+inline const ::ZPMeta::MetaCmd_RemoveNodes& MetaCmd::remove_nodes() const {
+  return remove_nodes_ != NULL ? *remove_nodes_ : *default_instance_->remove_nodes_;
+}
+inline ::ZPMeta::MetaCmd_RemoveNodes* MetaCmd::mutable_remove_nodes() {
+  set_has_remove_nodes();
+  if (remove_nodes_ == NULL) remove_nodes_ = new ::ZPMeta::MetaCmd_RemoveNodes;
+  return remove_nodes_;
+}
+inline ::ZPMeta::MetaCmd_RemoveNodes* MetaCmd::release_remove_nodes() {
+  clear_has_remove_nodes();
+  ::ZPMeta::MetaCmd_RemoveNodes* temp = remove_nodes_;
+  remove_nodes_ = NULL;
+  return temp;
+}
+inline void MetaCmd::set_allocated_remove_nodes(::ZPMeta::MetaCmd_RemoveNodes* remove_nodes) {
+  delete remove_nodes_;
+  remove_nodes_ = remove_nodes;
+  if (remove_nodes) {
+    set_has_remove_nodes();
+  } else {
+    clear_has_remove_nodes();
   }
 }
 

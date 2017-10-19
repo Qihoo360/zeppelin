@@ -290,6 +290,14 @@ Status ZPMetaServer::RemovePartitionSlave(const std::string& table, int pnum,
   return Status::OK();
 }
 
+Status ZPMetaServer::RemoveNodes(const std::vector<ZPMeta::Node>& nodes) {
+  LOG(INFO) << "Remove nodes";
+  for (auto& node : nodes) {
+    LOG(INFO) << "node: " << node.ip() << " " << node.port();
+  }
+  return Status::OK();
+}
+
 Status ZPMetaServer::WaitSetMaster(const ZPMeta::Node& node,
     const std::string table, int partition) {
   // Check node is slave
@@ -387,7 +395,6 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
   int leader_port = 0;
   bool ret = GetLeader(&leader_ip, &leader_port);
   if (ret) {
-    ZPMeta::Node leader;
     ZPMeta::Node *np = p->mutable_leader();
     np->set_ip(leader_ip);
     np->set_port(leader_port);
@@ -747,6 +754,9 @@ void ZPMetaServer::InitClientCmdTable() {
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(
           ZPMeta::Type::CANCELMIGRATE), cancel_migrate_ptr));
 
+  Cmd* remove_nodes_ptr = new RemoveNodesCmd(kCmdFlagsWrite | kCmdFlagsRedirect);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::REMOVENODES),
+        remove_nodes_ptr));
 }
 
 inline bool ZPMetaServer::GetLeader(std::string *ip, int *port) {

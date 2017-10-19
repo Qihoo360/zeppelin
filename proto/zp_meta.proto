@@ -20,6 +20,7 @@ enum Type {
   METASTATUS = 11;
   MIGRATE = 12;
   CANCELMIGRATE = 13;
+  REMOVENODES = 14;
 }
 
 enum PState {
@@ -150,6 +151,11 @@ message MetaCmd {
     repeated RelationCmdUnit diff = 2;
   }
   optional Migrate migrate = 9;
+
+  message RemoveNodes {
+    repeated Node nodes = 1;
+  }
+  optional RemoveNodes remove_nodes = 10;
 }
 
 message MetaCmdResponse {

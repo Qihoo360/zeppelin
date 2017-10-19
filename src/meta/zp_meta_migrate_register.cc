@@ -194,7 +194,7 @@ Status ZPMetaMigrateRegister::GetN(uint32_t count,
 
   std::string diff_value;
   ZPMeta::RelationCmdUnit diff;
-  int index = 0;
+  size_t index = 0;
   for (const auto& dk : diff_keys_) {
     if (index++ >= count) {
       break;
