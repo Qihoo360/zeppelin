@@ -387,7 +387,6 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
   int leader_port = 0;
   bool ret = GetLeader(&leader_ip, &leader_port);
   if (ret) {
-    ZPMeta::Node leader;
     ZPMeta::Node *np = p->mutable_leader();
     np->set_ip(leader_ip);
     np->set_port(leader_port);
@@ -401,12 +400,12 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
     }
     if (ret
         && ip == leader_ip
-        && port - kMetaPortShiftFY == leader_port) {
+        && port == leader_port) {
       continue;
     }
     ZPMeta::Node *np = p->add_followers();
     np->set_ip(ip);
-    np->set_port(port - kMetaPortShiftFY);
+    np->set_port(port);
   }
   return Status::OK();
 }
@@ -749,22 +748,58 @@ void ZPMetaServer::InitClientCmdTable() {
 
 }
 
-inline bool ZPMetaServer::GetLeader(std::string *ip, int *port) {
-  int fy_port = 0;
-  bool res = floyd_->GetLeader(ip, &fy_port);
-  if (!res) {
-    return false;
-  }
-  *port = fy_port - kMetaPortShiftFY;
-
-  // Check floyd available,
-  // this is a little trick and should be replaced by floyd lock later
-  Status s = floyd_->Write("##anchor", "anchor");
+inline bool ZPMetaServer::GetLeader(std::string *ip, int *port,
+    bool is_retry) {
+  std::string local_ip = g_zp_conf->local_ip();
+  int local_port = g_zp_conf->local_port();
+  std::string mine = slash::IpPortString(local_ip, local_port);
+  Status s = floyd_->TryLock(kElectLockKey, mine,
+      kMetaLeaderLockTimeout * 1000);
   if (!s.ok()) {
-    LOG(ERROR) << "Write anchor failed: " << s.ToString();
-    return false;
+    LOG(WARNING) << "TryLock ElectLock failed." << s.ToString();
+    // Only retry once
+    return is_retry ? false : GetLeader(ip, port, true);
   }
 
+  std::string value;
+  s = floyd_->Read(kLeaderKey, &value);
+  if (!s.ok()) {
+    LOG(WARNING) << "Read Leader Key failed: " << s.ToString();
+    floyd_->UnLock(kElectLockKey, mine);
+    return is_retry ? false : GetLeader(ip, port, true);
+  }
+  ZPMeta::MetaLeader mleader;
+  if (!mleader.ParseFromString(value)) {
+    LOG(WARNING) << "Parse Meta Leader failed";
+    floyd_->UnLock(kElectLockKey, mine);
+    return is_retry ? false : GetLeader(ip, port, true);
+  }
+
+  if ((mleader.leader().ip() == local_ip
+        && mleader.leader().port() == local_port)     // I'm Leader
+      || (mleader.last_active() + kMetaLeaderLockTimeout
+        < static_cast<int64_t>(slash::NowMicros()))) {                      // Old leader timeout
+    // Update
+    mleader.mutable_leader()->set_ip(local_ip);
+    mleader.mutable_leader()->set_port(local_port);
+    mleader.set_last_active(slash::NowMicros());
+
+    // Write back
+    if (!mleader.SerializeToString(&value)) {
+      LOG(WARNING) << "SerializeToString ZPMeta::MetaLeader failed.";
+      floyd_->UnLock(kElectLockKey, mine);
+      return is_retry ? false : GetLeader(ip, port, true);
+    }
+    s = floyd_->Write(kLeaderKey, value);
+    if (!s.ok()) {
+      LOG(WARNING) << "Write Meta Leader failed." << s.ToString();
+      floyd_->UnLock(kElectLockKey, mine);
+      return is_retry ? false : GetLeader(ip, port, true);
+    }
+  }
+
+  *ip = mleader.leader().ip();
+  *port = mleader.leader().port();
   return true;
 }
 

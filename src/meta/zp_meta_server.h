@@ -51,6 +51,9 @@ const std::string MetaRoleMsg[] {
   "kNodeFollower"
 };
 
+const std::string kElectLockKey = "##elect_lock";
+const std::string kLeaderKey = "##meta_leader";
+
 struct LeaderJoint {
   slash::Mutex mutex;
   pink::PinkCli* cli;
@@ -176,7 +179,7 @@ class ZPMetaServer  {
   std::atomic<int> role_;
   slash::Mutex leader_mutex_;
   LeaderJoint leader_joint_;
-  bool GetLeader(std::string *ip, int *port);
+  bool GetLeader(std::string *ip, int *port, bool is_retry = false);
   Status RefreshLeader();
 
   // Cmd related

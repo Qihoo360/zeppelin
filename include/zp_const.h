@@ -81,4 +81,7 @@ const int kNodeCronWaitCount = 2;
 const int kMetaCronInterval = 1000;
 const int kMetaCronWaitCount = 5;
 
+/* Meta elect */
+const int kMetaLeaderLockTimeout = 5;
+
 #endif  // INCLUDE_ZP_CONST_H_

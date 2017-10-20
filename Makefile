@@ -67,7 +67,7 @@ LIBROCKSDB = $(ROCKSDB_PATH)/librocksdb$(DEBUG_SUFFIX).a
 ifndef NEMODB_PATH
 NEMODB_PATH = $(THIRD_PATH)/nemo-rocksdb
 endif
-LIBNEMODB = $(NEMODB_PATH)/lib/libnemodb$(DEBUG_SUFFIX).a
+LIBNEMODB = $(NEMODB_PATH)/output/lib/libnemodb$(DEBUG_SUFFIX).a
 
 INCLUDE_PATH = -I. -I$(SLASH_PATH) -I$(PINK_PATH) -I$(FLOYD_PATH) \
 							 -I$(NEMODB_PATH) -I$(ROCKSDB_PATH)/include
