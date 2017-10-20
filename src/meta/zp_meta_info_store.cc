@@ -22,6 +22,7 @@
 
 #include "slash/include/env.h"
 #include "slash/include/slash_string.h"
+#include "slash/include/slash_coding.h"
 #include "slash/include/slash_mutex.h"
 #include "include/zp_const.h"
 
@@ -108,6 +109,18 @@ Status ZPMetaInfoStoreSnap::DownNode(const std::string& ip_port) {
       node_changed_ = true;
     }
     nodes_[ip_port].last_alive_time = 0;
+  }
+  return Status::OK();
+}
+
+Status ZPMetaInfoStoreSnap::RemoveNodes(const std::string& ip_ports) {
+  std::string nodes = ip_ports;
+  std::string n;
+  while (slash::GetLengthPrefixedString(&nodes, &n)) {
+    if (nodes_.find(n) != nodes_.end()) {
+      node_changed_ = true;
+      nodes_.erase(n);
+    }
   }
   return Status::OK();
 }

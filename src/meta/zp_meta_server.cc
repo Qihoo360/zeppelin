@@ -24,6 +24,7 @@
 
 #include "pink/include/pink_cli.h"
 #include "slash/include/env.h"
+#include "slash/include/slash_coding.h"
 #include "include/zp_meta.pb.h"
 
 ZPMetaServer::ZPMetaServer()
@@ -292,9 +293,31 @@ Status ZPMetaServer::RemovePartitionSlave(const std::string& table, int pnum,
 
 Status ZPMetaServer::RemoveNodes(const std::vector<ZPMeta::Node>& nodes) {
   LOG(INFO) << "Remove nodes";
+  std::unordered_map<std::string, NodeInfo> node_infos;
+  info_store_->GetAllNodes(&node_infos);
+  std::string buf;
   for (auto& node : nodes) {
-    LOG(INFO) << "node: " << node.ip() << " " << node.port();
+    std::string n = slash::IpPortString(node.ip(), node.port());
+    if (node_infos.find(n) != node_infos.end() &&
+        node_infos[n].StateEqual(ZPMeta::NodeState::UP)) {
+      LOG(WARNING) << "Someone try remove node which is online";
+      return Status::Corruption("Cannot remove online node");
+    }
+    slash::PutLengthPrefixedString(&buf, n);
   }
+
+  Status s = update_thread_->PendingUpdate(
+      UpdateTask(
+        kOpRemoveNodes,
+        buf));
+  if (!s.ok()) {
+    LOG(WARNING) << "Pending RemoveNodes task failed: ";
+    for (auto& node : nodes) {
+      LOG(WARNING) << "  --- " << node.ip() << ":" << node.port();
+    }
+    return s;
+  }
+
   return Status::OK();
 }
 

@@ -29,6 +29,7 @@
 enum ZPMetaUpdateOP : unsigned int {
   kOpUpNode = 0,
   kOpDownNode,
+  kOpRemoveNodes,
   kOpAddTable,
   kOpRemoveTable,
   kOpAddSlave,
@@ -42,6 +43,7 @@ enum ZPMetaUpdateOP : unsigned int {
 const std::string UpdateOPMsg[] {
   "kOpUpNode",
   "kOpDownNode",
+  "kOpRemoveNodes",
   "kOpAddTable",
   "kOpRemoveTable",
   "kOpAddSlave",

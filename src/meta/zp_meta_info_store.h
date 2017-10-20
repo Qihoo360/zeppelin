@@ -61,6 +61,7 @@ class ZPMetaInfoStoreSnap   {
     ZPMetaInfoStoreSnap();
     Status UpNode(const std::string& ip_port);
     Status DownNode(const std::string& ip_port);
+    Status RemoveNodes(const std::string& ip_port);
     Status AddSlave(const std::string& table, int partition,
         const std::string& ip_port);
     Status DeleteSlave(const std::string& table, int partition,
