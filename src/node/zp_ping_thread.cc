@@ -145,9 +145,6 @@ void* ZPPingThread::ThreadMain() {
             << ") failed! caz: " << s.ToString();
           continue;
         }
-        if (is_first) {
-          is_first = false;
-        }
         DLOG(INFO) << "Ping send to ("<< meta_ip << ":" << meta_port
           << ") success!";
 
@@ -157,6 +154,10 @@ void* ZPPingThread::ThreadMain() {
           LOG(WARNING) << "Ping recv from ("<< meta_ip << ":" << meta_port
             << ") failed! caz: " << s.ToString();
           continue;
+        }
+
+        if (is_first) {
+          is_first = false;
         }
 
         gettimeofday(&last_interaction, NULL);

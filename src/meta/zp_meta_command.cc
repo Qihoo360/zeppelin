@@ -368,8 +368,3 @@ void CancelMigrateCmd::Do(const google::protobuf::Message *req,
     response->set_msg(s.ToString());
   }
 }
-
-// void CheckMigrateCmd::Do(const google::protobuf::Message *req,
-//    google::protobuf::Message *res, void* partition = NULL) const {
-//
-// }
