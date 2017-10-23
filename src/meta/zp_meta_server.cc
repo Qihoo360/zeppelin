@@ -472,6 +472,7 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
   }
   LOG(INFO) << "Begin Process " << diffs.size() << " migrate item";
 
+  int remain_count = diffs.size();
   for (const auto& diff : diffs) {
     // Add Slave
     s = update_thread_->PendingUpdate(
@@ -493,6 +494,7 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
 
     if (!s.ok()) {
       LOG(WARNING) << "Pending migrate item failed: " << s.ToString();
+      migrate_register_->PutN(remain_count);
       break;
     }
 
@@ -522,6 +524,8 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
           diff.left(),
           diff.right()),
         updates);
+
+    remain_count--;
   }
 }
 

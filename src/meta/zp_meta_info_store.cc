@@ -538,7 +538,7 @@ Status ZPMetaInfoStore::Refresh() {
   }
 
   LOG(INFO) << "Update node_table_ from floyd succ.";
-  NodesDebug();
+  //NodesDebug();
 
   // Update Version
   epoch_ = tmp_epoch;
@@ -662,8 +662,8 @@ Status ZPMetaInfoStore::GetNodeOffset(const ZPMeta::Node& node,
   if (node_infos_.find(ip_port) == node_infos_.end()) {
     return Status::NotFound("node not exist");
   }
-  LOG(INFO) << "node: " << node.ip() << ":" << node.port();
-  node_infos_.at(ip_port).Dump();
+  //LOG(INFO) << "node: " << node.ip() << ":" << node.port();
+  //node_infos_.at(ip_port).Dump();
   return node_infos_.at(ip_port).GetOffset(table, partition_id, noffset);
 }
 
