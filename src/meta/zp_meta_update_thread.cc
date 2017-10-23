@@ -113,6 +113,9 @@ Status ZPMetaUpdateThread::ApplyUpdates(
       case ZPMetaUpdateOP::kOpDownNode:
         s = info_store_snap.DownNode(cur_task.ip_port);
         break;
+      case ZPMetaUpdateOP::kOpRemoveNodes:
+        s = info_store_snap.RemoveNodes(cur_task.ip_port);
+        break;
       case ZPMetaUpdateOP::kOpAddSlave:
         s = info_store_snap.AddSlave(cur_task.table, cur_task.partition,
             cur_task.ip_port);

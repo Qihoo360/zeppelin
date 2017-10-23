@@ -34,3 +34,8 @@ tools/dump_meta
 tools/empty_trash
 tools/distribution
 tools/checknfix
+
+zp-node
+zp-meta
+zp-node_debug
+zp-meta_debug
