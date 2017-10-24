@@ -30,14 +30,18 @@
 #include "include/zp_conf.h"
 #include "include/zp_const.h"
 #include "src/meta/zp_meta_command.h"
-#include "src/meta/zp_meta_update_thread.h"
 #include "src/meta/zp_meta_client_conn.h"
-#include "src/meta/zp_meta_migrate_register.h"
-#include "src/meta/zp_meta_condition_cron.h"
+#include "src/meta/zp_meta_info_store.h"
 
 using slash::Status;
 extern ZpConf* g_zp_conf;
 typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
+
+class ZPMetaUpdateThread;
+class ZPMetaConditionCron;
+class ZPMetaElection;
+class ZPMetaInfoStore;
+class ZPMetaMigrateRegister;
 
 enum MetaRole {
   kNone = 0,
@@ -50,9 +54,6 @@ const std::string MetaRoleMsg[] {
   "kMetaLeader",
   "kNodeFollower"
 };
-
-const std::string kElectLockKey = "##elect_lock";
-const std::string kLeaderKey = "##meta_leader";
 
 struct LeaderJoint {
   slash::Mutex mutex;
@@ -147,10 +148,8 @@ class ZPMetaServer  {
 
   // Migrate related
   Status Migrate(int epoch, const std::vector<ZPMeta::RelationCmdUnit>& diffs);
-  Status CancelMigrate() {
-    return migrate_register_->Cancel();
-  }
-
+  Status CancelMigrate();
+ 
   // Leader related
   Status RedirectToLeader(const ZPMeta::MetaCmd &request,
       ZPMeta::MetaCmdResponse *response);
@@ -177,6 +176,7 @@ class ZPMetaServer  {
   Status OpenFloyd();
 
   // Leader related
+  ZPMetaElection* election_;
   std::atomic<int> role_;
   slash::Mutex leader_mutex_;
   LeaderJoint leader_joint_;

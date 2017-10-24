@@ -26,6 +26,10 @@
 #include "slash/include/env.h"
 #include "slash/include/slash_coding.h"
 #include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta_update_thread.h"
+#include "src/meta/zp_meta_condition_cron.h"
+#include "src/meta/zp_meta_election.h"
+#include "src/meta/zp_meta_migrate_register.h"
 
 ZPMetaServer::ZPMetaServer()
   : should_exit_(false),
@@ -42,6 +46,9 @@ ZPMetaServer::ZPMetaServer()
   if (!s.ok()) {
     LOG(FATAL) << "Failed to open floyd, error: " << s.ToString();
   }
+
+  // Init Election
+  election_ = new ZPMetaElection(floyd_);
 
   // Open InfoStore
   info_store_ = new ZPMetaInfoStore(floyd_);
@@ -81,6 +88,7 @@ ZPMetaServer::~ZPMetaServer() {
   delete update_thread_;
   delete migrate_register_;
   delete info_store_;
+  delete election_;
   delete floyd_;
 
   slash::MutexLock l(&(leader_joint_.mutex));
@@ -416,7 +424,7 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
   ZPMeta::MetaNodes *p = nodes->mutable_nodes();
   std::string leader_ip;
   int leader_port = 0;
-  bool ret = GetLeader(&leader_ip, &leader_port);
+  bool ret = election_->GetLeader(&leader_ip, &leader_port);
   if (ret) {
     ZPMeta::Node *np = p->mutable_leader();
     np->set_ip(leader_ip);
@@ -485,6 +493,10 @@ Status ZPMetaServer::Migrate(int epoch,
 
   // Leave the begin of ProcessMigrate in the cron
   return s;
+}
+
+Status ZPMetaServer::CancelMigrate() {
+  return migrate_register_->Cancel();
 }
 
 void ZPMetaServer::ProcessMigrateIfNeed() {
@@ -600,7 +612,7 @@ Status ZPMetaServer::RedirectToLeader(const ZPMeta::MetaCmd &request,
 Status ZPMetaServer::RefreshLeader() {
   std::string leader_ip;
   int leader_port = 0, leader_cmd_port = 0;
-  if (!GetLeader(&leader_ip, &leader_port)) {
+  if (!election_->GetLeader(&leader_ip, &leader_port)) {
     LOG(WARNING) << "No leader yet";
     slash::MutexLock l(&(leader_joint_.mutex));
     if (role_ == MetaRole::kLeader) {
@@ -782,60 +794,7 @@ void ZPMetaServer::InitClientCmdTable() {
         remove_nodes_ptr));
 }
 
-inline bool ZPMetaServer::GetLeader(std::string *ip, int *port,
-    bool is_retry) {
-  std::string local_ip = g_zp_conf->local_ip();
-  int local_port = g_zp_conf->local_port();
-  std::string mine = slash::IpPortString(local_ip, local_port);
-  Status s = floyd_->TryLock(kElectLockKey, mine,
-      kMetaLeaderLockTimeout * 1000);
-  if (!s.ok()) {
-    LOG(WARNING) << "TryLock ElectLock failed." << s.ToString();
-    // Only retry once
-    return is_retry ? false : GetLeader(ip, port, true);
-  }
 
-  std::string value;
-  s = floyd_->Read(kLeaderKey, &value);
-  if (!s.ok()) {
-    LOG(WARNING) << "Read Leader Key failed: " << s.ToString();
-    floyd_->UnLock(kElectLockKey, mine);
-    return is_retry ? false : GetLeader(ip, port, true);
-  }
-  ZPMeta::MetaLeader mleader;
-  if (!mleader.ParseFromString(value)) {
-    LOG(WARNING) << "Parse Meta Leader failed";
-    floyd_->UnLock(kElectLockKey, mine);
-    return is_retry ? false : GetLeader(ip, port, true);
-  }
-
-  if ((mleader.leader().ip() == local_ip
-        && mleader.leader().port() == local_port)     // I'm Leader
-      || (mleader.last_active() + kMetaLeaderLockTimeout
-        < static_cast<int64_t>(slash::NowMicros()))) {                      // Old leader timeout
-    // Update
-    mleader.mutable_leader()->set_ip(local_ip);
-    mleader.mutable_leader()->set_port(local_port);
-    mleader.set_last_active(slash::NowMicros());
-
-    // Write back
-    if (!mleader.SerializeToString(&value)) {
-      LOG(WARNING) << "SerializeToString ZPMeta::MetaLeader failed.";
-      floyd_->UnLock(kElectLockKey, mine);
-      return is_retry ? false : GetLeader(ip, port, true);
-    }
-    s = floyd_->Write(kLeaderKey, value);
-    if (!s.ok()) {
-      LOG(WARNING) << "Write Meta Leader failed." << s.ToString();
-      floyd_->UnLock(kElectLockKey, mine);
-      return is_retry ? false : GetLeader(ip, port, true);
-    }
-  }
-
-  *ip = mleader.leader().ip();
-  *port = mleader.leader().port();
-  return true;
-}
 
 void ZPMetaServer::ResetLastSecQueryNum() {
   uint64_t cur_time_us = slash::NowMicros();

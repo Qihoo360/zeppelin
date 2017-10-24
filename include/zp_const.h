@@ -83,5 +83,7 @@ const int kMetaCronWaitCount = 5;
 
 /* Meta elect */
 const int kMetaLeaderLockTimeout = 5;
+const int kMetaLeaderTimeout = 60;
+const int kMetaLeaderRemainThreshold = 10; // Should large than kMetaCronInterval * kMetaCronWaitCount
 
 #endif  // INCLUDE_ZP_CONST_H_
