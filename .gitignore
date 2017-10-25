@@ -27,6 +27,12 @@
 *.out
 *.app
 
+# Intermediate files
+src/meta/zp_meta.pb.cc
+src/meta/zp_meta.pb.h
+src/node/client.pb.cc
+src/node/client.pb.h
+
 output
 tags
 tools/check_binlog_hole

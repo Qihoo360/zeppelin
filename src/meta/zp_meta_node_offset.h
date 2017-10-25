@@ -15,7 +15,7 @@
 #define SRC_META_ZP_META_NODE_OFFSET_H_
 #include <string>
 #include <map>
-#include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta.pb.h"
 
 struct NodeOffset {
   int32_t filenum;

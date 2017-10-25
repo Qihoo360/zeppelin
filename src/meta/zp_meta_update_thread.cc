@@ -14,7 +14,7 @@
 #include "src/meta/zp_meta_update_thread.h"
 #include <google/protobuf/text_format.h>
 #include "include/zp_const.h"
-#include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta.pb.h"
 #include "src/meta/zp_meta_server.h"
 #include "src/meta/zp_meta_info_store.h"
 

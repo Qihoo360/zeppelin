@@ -1,4 +1,5 @@
 CXX= g++
+PROTOC = protoc
 LDFLAGS= -lpthread -lprotobuf -lglog -lz -lbz2 -lsnappy -lrt
 CXXFLAGS= -g -std=c++11 -fno-builtin-memcmp -msse -msse4.2 
 PROFILING_FLAGS= -pg
@@ -67,14 +68,14 @@ LIBROCKSDB = $(ROCKSDB_PATH)/librocksdb$(DEBUG_SUFFIX).a
 ifndef NEMODB_PATH
 NEMODB_PATH = $(THIRD_PATH)/nemo-rocksdb
 endif
-LIBNEMODB = $(NEMODB_PATH)/output/lib/libnemodb$(DEBUG_SUFFIX).a
+LIBNEMODB = $(NEMODB_PATH)/lib/libnemodb$(DEBUG_SUFFIX).a
 
 INCLUDE_PATH = -I. -I$(SLASH_PATH) -I$(PINK_PATH) -I$(FLOYD_PATH) \
 							 -I$(NEMODB_PATH) -I$(ROCKSDB_PATH)/include
 
 # ---------------End Dependences----------------
 
-AM_DEFAULT_VERBOSITY = 0
+AM_DEFAULT_VERBOSITY= 0
 
 AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
@@ -116,17 +117,26 @@ CXXFLAGS += $(WARNING_FLAGS) $(INCLUDE_PATH) $(OPT)
 COMMON_SRC = $(wildcard $(SRC_PATH)/common/*.cc)
 COMMON_OBJS = $(patsubst %.cc,%.o,$(COMMON_SRC))
 
+META_PROTO = $(wildcard $(SRC_PATH)/meta/*.proto)
+META_PROTO_GENS = $(META_PROTO:%.proto=%.pb.cc) $(META_PROTO:%.proto=%.pb.h)
+META_PROTO_SRC = $(META_PROTO:%.proto=%.pb.cc)
 META_SRC = $(wildcard $(SRC_PATH)/meta/*.cc)
 META_OBJS = $(patsubst %.cc,%.o,$(META_SRC))
 
+NODE_PROTO = $(wildcard $(SRC_PATH)/node/*.proto)
+NODE_PROTO_GENS = $(NODE_PROTO:%.proto=%.pb.cc) $(NODE_PROTO:%.proto=%.pb.h)
+NODE_PROTO_SRC = $(NODE_PROTO:%.proto=%.pb.cc)
 NODE_SRC = $(wildcard $(SRC_PATH)/node/*.cc)
 NODE_OBJS = $(patsubst %.cc,%.o,$(NODE_SRC))
 
 ZP_META = zp-meta$(DEBUG_SUFFIX)
-
 ZP_NODE = zp-node$(DEBUG_SUFFIX)
 
-.PHONY: distclean clean dbg all
+.PHONY: distclean clean dbg all proto_gens
+
+%.pb.cc: %.proto
+	$(AM_V_GEN)
+	$(AM_V_at)$(PROTOC) -I$(dir $<) --cpp_out=$(dir $<) $<
 
 %.o: %.cc
 	$(AM_V_CC)$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -141,11 +151,13 @@ all: $(ZP_META) $(ZP_NODE)
 
 dbg: $(ZP_META) $(ZP_NODE)
 
-$(ZP_META): $(COMMON_OBJS) $(META_OBJS) $(LIBFLOYD) $(LIBPINK) $(LIBSLASH) $(LIBROCKSDB)
+$(ZP_META): $(META_PROTO_SRC) $(COMMON_OBJS) $(META_OBJS) \
+				$(LIBFLOYD) $(LIBPINK) $(LIBSLASH) $(LIBROCKSDB)
 	$(AM_V_at)rm -f $@
 	$(AM_V_at)$(AM_LINK)
 
-$(ZP_NODE): $(COMMON_OBJS) $(NODE_OBJS) $(LIBNEMODB) $(LIBPINK) $(LIBSLASH) $(LIBROCKSDB)
+$(ZP_NODE): $(META_PROTO_SRC) $(NODE_PROTO_SRC) $(COMMON_OBJS) $(NODE_OBJS) \
+				$(LIBNEMODB) $(LIBPINK) $(LIBSLASH) $(LIBROCKSDB)
 	$(AM_V_at)rm -f $@
 	$(AM_V_at)$(AM_LINK)
 
@@ -166,12 +178,17 @@ $(LIBFLOYD):
 					ROCKSDB_PATH=$(ROCKSDB_PATH) SLASH_PATH=$(SLASH_PATH) PINK_PATH=$(PINK_PATH)
 
 clean:
-	rm -rf $(OUTPUT)
-	find $(SRC_PATH) -name "*.[oda]*" -exec rm -f {} \;
-	find $(SRC_PATH) -type f -regex ".*\.\(\(gcda\)\|\(gcno\)\)" -exec rm {} \;
+	$(AM_V_at)echo "Cleaning"
+	$(AM_V_at)rm -rf $(OUTPUT)
+	$(AM_V_at)rm -f $(ZP_META) $(ZP_NODE)
+	$(AM_V_at)rm -f $(META_PROTO_GENS) $(NODE_PROTO_GENS)
+	$(AM_V_at)find $(SRC_PATH) -name "*.[oda]*" -exec rm -f {} \;
+	$(AM_V_at)find $(SRC_PATH) -type f -regex ".*\.\(\(gcda\)\|\(gcno\)\)" -exec rm {} \;
 
 distclean: clean
-	make -C $(PINK_PATH)/pink clean
-	make -C $(SLASH_PATH)/slash clean
-	make -C $(NEMODB_PATH) clean
-	make -C $(ROCKSDB_PATH) clean
+	$(AM_V_at)echo "Cleaning all"
+	$(AM_V_at)make -C $(PINK_PATH)/pink clean
+	$(AM_V_at)make -C $(SLASH_PATH)/slash clean
+	$(AM_V_at)make -C $(NEMODB_PATH) clean
+	$(AM_V_at)make -C $(ROCKSDB_PATH) clean
+	$(AM_V_at)make -C $(FLOYD_PATH) clean

@@ -2,7 +2,7 @@
 // source: client.proto
 
 #define INTERNAL_SUPPRESS_PROTOBUF_FIELD_DEPRECATION
-#include "include/client.pb.h"
+#include "client.pb.h"
 
 #include <algorithm>
 

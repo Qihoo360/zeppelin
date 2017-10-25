@@ -20,7 +20,7 @@
 
 #include "glog/logging.h"
 #include "slash/include/slash_string.h"
-#include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta.pb.h"
 #include "src/meta/zp_meta_server.h"
 
 extern ZPMetaServer *g_meta_server;

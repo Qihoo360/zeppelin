@@ -22,8 +22,8 @@
 #include "pink/include/pink_thread.h"
 #include "pink/include/pink_cli.h"
 
-#include "include/client.pb.h"
 #include "include/zp_binlog.h"
+#include "src/node/client.pb.h"
 #include "src/node/zp_data_entity.h"
 
 using slash::Status;

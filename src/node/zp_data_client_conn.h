@@ -19,7 +19,7 @@
 #include "pink/include/pink_thread.h"
 #include "pink/include/server_thread.h"
 
-#include "include/client.pb.h"
+#include "src/node/client.pb.h"
 
 class ZPDataClientConn : public pink::PbConn  {
  public:

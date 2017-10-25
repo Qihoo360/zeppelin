@@ -22,8 +22,8 @@
 
 #include "include/zp_util.h"
 #include "include/zp_const.h"
-#include "include/client.pb.h"
-#include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta.pb.h"
+#include "src/node/client.pb.h"
 #include "src/node/zp_data_entity.h"
 
 class Table;

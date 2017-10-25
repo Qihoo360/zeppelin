@@ -15,9 +15,9 @@
 #define SRC_NODE_ZP_SYNC_CONN_H_
 
 #include <string>
-#include "include/client.pb.h"
 #include "pink/include/pb_conn.h"
 #include "pink/include/server_thread.h"
+#include "src/node/client.pb.h"
 
 class ZPSyncConn: public pink::PbConn  {
  public:

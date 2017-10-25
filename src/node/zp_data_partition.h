@@ -27,11 +27,11 @@
 
 #include "slash/include/env.h"
 #include "include/zp_const.h"
-#include "include/client.pb.h"
 #include "include/zp_conf.h"
 #include "include/zp_binlog.h"
-#include "src/node/zp_data_entity.h"
 #include "include/zp_command.h"
+#include "src/node/client.pb.h"
+#include "src/node/zp_data_entity.h"
 
 class Partition;
 std::string NewPartitionPath(const std::string& name, const uint32_t current);
