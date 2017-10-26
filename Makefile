@@ -119,13 +119,13 @@ COMMON_OBJS = $(patsubst %.cc,%.o,$(COMMON_SRC))
 
 META_PROTO = $(wildcard $(SRC_PATH)/meta/*.proto)
 META_PROTO_GENS = $(META_PROTO:%.proto=%.pb.cc) $(META_PROTO:%.proto=%.pb.h)
-META_PROTO_SRC = $(META_PROTO:%.proto=%.pb.cc)
+META_PROTO_OBJ = $(META_PROTO:%.proto=%.pb.o)
 META_SRC = $(wildcard $(SRC_PATH)/meta/*.cc)
 META_OBJS = $(patsubst %.cc,%.o,$(META_SRC))
 
 NODE_PROTO = $(wildcard $(SRC_PATH)/node/*.proto)
 NODE_PROTO_GENS = $(NODE_PROTO:%.proto=%.pb.cc) $(NODE_PROTO:%.proto=%.pb.h)
-NODE_PROTO_SRC = $(NODE_PROTO:%.proto=%.pb.cc)
+NODE_PROTO_OBJ = $(NODE_PROTO:%.proto=%.pb.o)
 NODE_SRC = $(wildcard $(SRC_PATH)/node/*.cc)
 NODE_OBJS = $(patsubst %.cc,%.o,$(NODE_SRC))
 
@@ -134,7 +134,7 @@ ZP_NODE = zp-node$(DEBUG_SUFFIX)
 
 .PHONY: distclean clean dbg all proto_gens
 
-%.pb.cc: %.proto
+%.pb.cc %.pb.h: %.proto
 	$(AM_V_GEN)
 	$(AM_V_at)$(PROTOC) -I$(dir $<) --cpp_out=$(dir $<) $<
 
@@ -151,12 +151,14 @@ all: $(ZP_META) $(ZP_NODE)
 
 dbg: $(ZP_META) $(ZP_NODE)
 
-$(ZP_META): $(META_PROTO_SRC) $(COMMON_OBJS) $(META_OBJS) \
+proto: $(META_PROTO_GENS) $(NODE_PROTO_GENS)
+
+$(ZP_META): $(META_PROTO_OBJ) $(NODE_PROTO_OBJ) $(COMMON_OBJS) $(META_OBJS) \
 				$(LIBFLOYD) $(LIBPINK) $(LIBSLASH) $(LIBROCKSDB)
 	$(AM_V_at)rm -f $@
 	$(AM_V_at)$(AM_LINK)
 
-$(ZP_NODE): $(META_PROTO_SRC) $(NODE_PROTO_SRC) $(COMMON_OBJS) $(NODE_OBJS) \
+$(ZP_NODE): $(META_PROTO_OBJ) $(NODE_PROTO_OBJ) $(COMMON_OBJS) $(NODE_OBJS) \
 				$(LIBNEMODB) $(LIBPINK) $(LIBSLASH) $(LIBROCKSDB)
 	$(AM_V_at)rm -f $@
 	$(AM_V_at)$(AM_LINK)

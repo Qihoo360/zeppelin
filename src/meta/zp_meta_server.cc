@@ -439,12 +439,12 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
     }
     if (ret
         && ip == leader_ip
-        && port == leader_port) {
+        && port == leader_port + kMetaPortShiftFY) {
       continue;
     }
     ZPMeta::Node *np = p->add_followers();
     np->set_ip(ip);
-    np->set_port(port);
+    np->set_port(port - kMetaPortShiftFY);
   }
   return Status::OK();
 }

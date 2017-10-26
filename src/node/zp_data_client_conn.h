@@ -41,8 +41,9 @@ class ZPDataClientConnHandle : public pink::ServerHandle  {
   ZPDataClientConnHandle() {}
   virtual ~ZPDataClientConnHandle() {}
 
-  virtual void CronHandle() const;
-  virtual bool AccessHandle(const std::string& ip) const {
+  virtual void CronHandle() const override;
+  using pink::ServerHandle::AccessHandle;
+  virtual bool AccessHandle(std::string& ip) const override {
     return true;
   }
 };

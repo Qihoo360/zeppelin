@@ -85,39 +85,27 @@ void PullCmd::Do(const google::protobuf::Message *req,
 
 void InitCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
-  ZPMeta::MetaCmdResponse* response
-    = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+  const ZPMeta::Table& table = request->init().table();
+  ZPMeta::MetaCmdResponse* response = 
+    static_cast<ZPMeta::MetaCmdResponse*>(res);
+  response->set_type(ZPMeta::Type::INIT);
+
+  LOG(INFO) << "Create table: " << table.name();
+  for (int i = 0; i < table.partitions_size(); i++) {
+    const ZPMeta::Partitions& p = table.partitions(i);
+    const ZPMeta::Node& master = p.master();
+    LOG(INFO) << " - Partition id: " << p.id() << ", master: " <<
+      master.ip() << ":" << master.port();
+    for (int j = 0; j < p.slaves_size(); j++) {
+      const ZPMeta::Node& slave = p.slaves(j);
+      LOG(INFO) << "  -- slaves: " << slave.ip() << ":" << slave.port();
+    }
+  }
+
+  // Status s = g_meta_server->CreateTable(table, pnum);
   response->set_code(ZPMeta::StatusCode::OK);
   response->set_msg("Init OK!");
- 
-  //const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
-  // std::string raw_table = request->init().name();
-  // std::string table = slash::StringToLower(raw_table);
-  // int pnum = request->init().num();
-  // ZPMeta::MetaCmdResponse* response
-  //   = static_cast<ZPMeta::MetaCmdResponse*>(res);
-
- // response->set_type(ZPMeta::Type::INIT);
- // if (table.empty()) {
- //   response->set_code(ZPMeta::StatusCode::ERROR);
- //   response->set_msg("TableName cannot be empty");
- //   return;
- // }
-
- // if (pnum <= 0) {
- //   response->set_code(ZPMeta::StatusCode::ERROR);
- //   response->set_msg("Invalid partition number");
- //   return;
- // }
-
- // Status s = g_meta_server->CreateTable(table, pnum);
- // if (s.ok()) {
- //   response->set_code(ZPMeta::StatusCode::OK);
- //   response->set_msg("Init OK!");
- // } else {
- //   response->set_code(ZPMeta::StatusCode::ERROR);
- //   response->set_msg(s.ToString());
- // }
 }
 
 void SetMasterCmd::Do(const google::protobuf::Message *req,

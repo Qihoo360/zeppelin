@@ -126,8 +126,7 @@ message MetaCmd {
 
   // Init
   message Init {
-    required string name = 1;
-    required Table table = 2;
+    required Table table = 1;
   }
   optional Init init = 4;
 
