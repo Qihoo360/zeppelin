@@ -84,6 +84,7 @@ class ZPMetaInfoStoreSnap   {
     int snap_epoch_;
     std::unordered_map<std::string, ZPMeta::Table> tables_;
     std::unordered_map<std::string, NodeInfo> nodes_;
+    std::unordered_map<std::string, std::set<std::string>> node_table_;
     bool node_changed_;
     std::unordered_map<std::string, bool> table_changed_;
     void SerializeNodes(ZPMeta::Nodes* nodes_ptr) const;

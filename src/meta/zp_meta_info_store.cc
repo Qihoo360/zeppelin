@@ -118,10 +118,15 @@ Status ZPMetaInfoStoreSnap::RemoveNodes(
   for (int i = 0; i < remove_nodes_cmd.nodes_size(); i++) {
     const ZPMeta::Node& n = remove_nodes_cmd.nodes(i);
     std::string node = slash::IpPortString(n.ip(), n.port());
-    if (nodes_.find(node) != nodes_.end()) {
-      node_changed_ = true;
-      nodes_.erase(node);
+    if (IsNodeUp(n)) {
+      return Status::Corruption("Node " + node + " is running");
     }
+    if (node_table_.find(node) != node_table_.end() &&
+        node_table_.at(node).size() > 0) {  // node has table load
+      return Status::Corruption("Node " + node + " has table load");
+    }
+    node_changed_ = true;
+    nodes_.erase(node);
   }
   return Status::OK();
 }
@@ -739,11 +744,12 @@ void ZPMetaInfoStore::GetSnapshot(ZPMetaInfoStoreSnap* snap) {
   // under which situation the snapshot will be invalid and should be discarded,
   // Apply function will check and handle this.
   snap->snap_epoch_ = epoch_;
-  GetAllTables(&(snap->tables_));
+  GetAllTables(&snap->tables_);
   for (const auto& t : snap->tables_) {
     snap->table_changed_[t.first] = false;
   }
-  GetAllNodes(&(snap->nodes_));
+  GetAllNodes(&snap->nodes_);
+  snap->node_table_ = node_table_;
 }
 
 // Return IOError means error happened when access floyd.
