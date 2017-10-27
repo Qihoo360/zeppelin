@@ -91,21 +91,14 @@ void InitCmd::Do(const google::protobuf::Message *req,
     static_cast<ZPMeta::MetaCmdResponse*>(res);
   response->set_type(ZPMeta::Type::INIT);
 
-  LOG(INFO) << "Create table: " << table.name();
-  for (int i = 0; i < table.partitions_size(); i++) {
-    const ZPMeta::Partitions& p = table.partitions(i);
-    const ZPMeta::Node& master = p.master();
-    LOG(INFO) << " - Partition id: " << p.id() << ", master: " <<
-      master.ip() << ":" << master.port();
-    for (int j = 0; j < p.slaves_size(); j++) {
-      const ZPMeta::Node& slave = p.slaves(j);
-      LOG(INFO) << "  -- slaves: " << slave.ip() << ":" << slave.port();
-    }
+  Status s = g_meta_server->CreateTable(table);
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("Init OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
   }
-
-  // Status s = g_meta_server->CreateTable(table, pnum);
-  response->set_code(ZPMeta::StatusCode::OK);
-  response->set_msg("Init OK!");
 }
 
 void SetMasterCmd::Do(const google::protobuf::Message *req,
@@ -365,18 +358,14 @@ void CancelMigrateCmd::Do(const google::protobuf::Message *req,
 void RemoveNodesCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
-
-  std::vector<ZPMeta::Node> nodes;
-  for (int i = 0; i < request->remove_nodes().nodes_size(); i++) {
-    nodes.push_back(request->remove_nodes().nodes(i));
-  }
+  const ZPMeta::MetaCmd_RemoveNodes& remove_nodes_cmd = request->remove_nodes();
 
   ZPMeta::MetaCmdResponse* response
     = static_cast<ZPMeta::MetaCmdResponse*>(res);
 
   response->set_type(ZPMeta::Type::REMOVENODES);
 
-  Status s = g_meta_server->RemoveNodes(nodes);
+  Status s = g_meta_server->RemoveNodes(remove_nodes_cmd);
   if (s.ok()) {
     response->set_code(ZPMeta::StatusCode::OK);
     response->set_msg("RemoveNodes OK!");
