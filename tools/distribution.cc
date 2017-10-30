@@ -30,7 +30,7 @@ struct Host {
 std::vector<std::deque<Host> > cabinets;
 std::vector<std::vector<Host> > result;
 
-const int kMaxRetry = 10;
+const int kMaxRetry = 100;
 
 bool Load(const std::string& file) {
   ifstream in(file);
@@ -325,6 +325,22 @@ void Distribution() {
           }
           retry_times++;
         }
+        // After random picking, we still have replicaset on the same host,
+        // so we need to continue to pick randomly, making replicaset
+        // on same host but different nodes
+        if (retry_times == kMaxRetry) {
+          retry_times = 0;
+          while (retry_times < kMaxRetry) {
+            next_node_idx = std::rand() % cabinets[next_cab_idx].size();
+            if (cabinets[next_cab_idx][next_node_idx].host !=
+                cab[idx[0]][0].host &&
+                cabinets[next_cab_idx][next_node_idx].host !=
+                cab[idx[0]][1].host) {
+              break;
+            }
+            retry_times++;
+          }
+        }
         partition.push_back(cabinets[next_cab_idx][next_node_idx]);
 //        std::cout << cabinets[next_cab_idx][next_node_idx].host << std::endl;
       }
@@ -376,6 +392,19 @@ void Distribution() {
           }
           retry_times++;
         }
+        // After random picking, we still have replicaset on the same host,
+        // so we need to continue to pick randomly, making replicaset
+        // on same host but different nodes
+        if (retry_times == kMaxRetry) {
+          retry_times = 0;
+          while (retry_times < kMaxRetry) {
+            next_node_idx = std::rand() % cabinets[idx[0]].size();
+            if (cabinets[next_cab_idx][next_node_idx].host != partition[0].host) {
+              break;
+            }
+            retry_times++;
+          }
+        }
         partition.push_back(cabinets[next_cab_idx][next_node_idx]);
 //        std::cout << cabinets[next_cab_idx][next_node_idx].host << " ";
       } else {
@@ -392,6 +421,21 @@ void Distribution() {
           }
           retry_times++;
         }
+        // After random picking, we still have replicaset on the same host,
+        // so we need to continue to pick randomly, making replicaset
+        // on same host but different nodes
+        if (retry_times == kMaxRetry) {
+          retry_times = 0;
+          while (retry_times < kMaxRetry) {
+            next_node_idx = std::rand() % cabinets[next_cab_idx].size();
+            if (cabinets[next_cab_idx][next_node_idx].host !=
+                partition[0].host) {
+              idx_2_host_id = cabinets[next_cab_idx][next_node_idx].host_id;
+              break;
+            }
+            retry_times++;
+          }
+        }
         partition.push_back(cabinets[next_cab_idx][next_node_idx]);
 //        std::cout << cabinets[next_cab_idx][next_node_idx].host << " ";
 
@@ -404,6 +448,23 @@ void Distribution() {
             break;
           }
           retry_times++;
+        }
+        // After random picking, we still have replicaset on the same host,
+        // so we need to continue to pick randomly, making replicaset
+        // on same host but different nodes
+        if (retry_times == kMaxRetry) {
+          retry_times = 0;
+          while (retry_times < kMaxRetry) {
+            next_node_idx = std::rand() % cabinets[next_cab_idx].size();
+            if (cabinets[next_cab_idx][next_node_idx].host !=
+                partition[0].host &&
+                cabinets[next_cab_idx][next_node_idx].host !=
+                partition[1].host) {
+              idx_2_host_id = cabinets[next_cab_idx][next_node_idx].host_id;
+              break;
+            }
+            retry_times++;
+          }
         }
         partition.push_back(cabinets[next_cab_idx][next_node_idx]);
 //        std::cout << cabinets[next_cab_idx][next_node_idx].host << " ";
