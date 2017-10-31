@@ -52,9 +52,20 @@ Status ZPMetaElection::WriteLeaderRecord(const ZPMeta::MetaLeader& cleader) {
 }
 
 bool ZPMetaElection::Jeopardy(std::string* ip, int* port) {
-  if (!last_leader_.IsInitialized()  // no last
-      || IsLeaderTimeout(last_leader_.last_active(),  // timeout
-        kNodeCronInterval * kNodeCronWaitCount)) {
+  if (!last_leader_.IsInitialized()) {
+    // no last
+    LOG(WARNING) << "Jeopardy finished since no last leader";
+    return false;
+  }
+  uint64_t timeout = kMetaLeaderTimeout;
+  if (last_leader_.leader().ip() == g_zp_conf->local_ip()
+      && last_leader_.leader().port() == g_zp_conf->local_port()) {
+    // Smaller timeout for leader so that it could give up leadership on time
+    // before any follower think it could be leader
+    timeout -= kMetaLeaderRemainThreshold;
+  }
+  if (IsLeaderTimeout(last_leader_.last_active(), timeout)) {
+    LOG(WARNING) << "Jeopardy finished since timeout";
     return false;
   }
   *ip = last_leader_.leader().ip();
@@ -73,6 +84,8 @@ bool ZPMetaElection::GetLeader(std::string* ip, int* port) {
   ZPMeta::MetaLeader cleader; 
   Status s = ReadLeaderRecord(&cleader);
   if (!s.ok() && !s.IsNotFound()) {
+    LOG(WARNING) << "pre-ReadLeaderRecord failed: " << s.ToString()
+      << ", check jeopardy";
     return Jeopardy(ip, port);  
   } else if (s.ok()) {
     last_leader_.CopyFrom(cleader);
@@ -100,6 +113,8 @@ bool ZPMetaElection::GetLeader(std::string* ip, int* port) {
     LOG(WARNING) << "ReadLeaderRecord after lock failed, Jeopardy then. Error:"
       << s.ToString();
     floyd_->UnLock(kElectLockKey, mine);
+    LOG(WARNING) << "ReadLeaderRecord failed: " << s.ToString()
+      << ", check jeopardy";
     return Jeopardy(ip, port);  
   } else if (s.ok()) {
     last_leader_.CopyFrom(cleader);
@@ -113,6 +128,12 @@ bool ZPMetaElection::GetLeader(std::string* ip, int* port) {
         && cleader.leader().port() == local_port)     // I'm Leader
       || IsLeaderTimeout(cleader.last_active(),
         kMetaLeaderTimeout)) {  // Old leader timeout
+    if (cleader.leader().ip() != local_ip
+        || cleader.leader().port() != local_port) {
+      LOG(INFO) << "Take over the leadership, since: "
+        << (s.IsNotFound() ? "no leader record" : "old leader timeout"); 
+    }
+
     // Update
     cleader.mutable_leader()->set_ip(local_ip);
     cleader.mutable_leader()->set_port(local_port);
