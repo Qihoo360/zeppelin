@@ -15,9 +15,9 @@
 
 #include <glog/logging.h>
 #include <google/protobuf/text_format.h>
-#include "src/node/zp_data_server.h"
-#include "include/zp_meta.pb.h"
 #include "include/zp_const.h"
+#include "src/meta/zp_meta.pb.h"
+#include "src/node/zp_data_server.h"
 
 extern ZPDataServer* zp_data_server;
 

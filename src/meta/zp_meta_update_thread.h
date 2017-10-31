@@ -22,7 +22,7 @@
 #include "slash/include/slash_string.h"
 #include "slash/include/slash_mutex.h"
 #include "slash/include/slash_status.h"
-#include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta.pb.h"
 #include "src/meta/zp_meta_info_store.h"
 #include "src/meta/zp_meta_migrate_register.h"
 

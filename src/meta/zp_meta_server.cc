@@ -25,7 +25,7 @@
 #include "pink/include/pink_cli.h"
 #include "slash/include/env.h"
 #include "slash/include/slash_coding.h"
-#include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta.pb.h"
 #include "src/meta/zp_meta_update_thread.h"
 #include "src/meta/zp_meta_condition_cron.h"
 #include "src/meta/zp_meta_election.h"

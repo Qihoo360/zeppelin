@@ -17,7 +17,7 @@
 #include <string>
 #include "pink/include/pb_conn.h"
 #include "pink/include/server_thread.h"
-#include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta.pb.h"
 
 class ZPMetaClientConn;
 class ZPMetaClientConnFactory;

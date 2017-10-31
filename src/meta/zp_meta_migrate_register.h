@@ -21,7 +21,7 @@
 #include "slash/include/slash_status.h"
 #include "floyd/include/floyd.h"
 
-#include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta.pb.h"
 
 using slash::Status;
 

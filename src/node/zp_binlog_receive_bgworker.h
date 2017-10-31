@@ -14,8 +14,8 @@
 #ifndef SRC_NODE_ZP_BINLOG_RECEIVE_BGWORKER_H_
 #define SRC_NODE_ZP_BINLOG_RECEIVE_BGWORKER_H_
 #include "pink/include/bg_thread.h"
-#include "include/client.pb.h"
 #include "include/zp_command.h"
+#include "src/node/client.pb.h"
 #include "src/node/zp_data_partition.h"
 
 struct ZPBinlogReceiveTask {
