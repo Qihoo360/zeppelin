@@ -523,7 +523,7 @@ Status Partition::SlaveAskSync(const Node &node, BinlogOffset boffset) {
       << boffset.filenum << ", " << boffset.offset;
   } else if (s.IsInvalidArgument()) {
     // Invalid filenum and offset
-    LOG(INFO) << "Failed AddBinlogSendTask for Table " << table_name_
+    LOG(WARNING) << "Failed AddBinlogSendTask for Table " << table_name_
       << " Partition " << partition_id_ << " To " << node.ip << ":" << node.port
       << " Since the Invalid Offset : " << boffset.filenum
       << ", " << boffset.offset;
