@@ -40,47 +40,15 @@ enum ZPMetaUpdateOP : unsigned int {
   kOpSetActive  // ACTIVE the partition
 };
 
-const std::string UpdateOPMsg[] {
-  "kOpUpNode",
-  "kOpDownNode",
-  "kOpRemoveNodes",
-  "kOpAddTable",
-  "kOpRemoveTable",
-  "kOpAddSlave",
-  "kOpRemoveSlave",
-  "kOpHandover",
-  "kOpSetMaster",
-  "kOpSetStuck",
-  "kOpSetActive"
-};
-
 struct UpdateTask {
   ZPMetaUpdateOP op;
-  std::string ip_port;
-  std::string ip_port_o;
-  std::string table;
-  int partition;  // or partiiton num for kOpAddTable
 
-  UpdateTask(ZPMetaUpdateOP o,
-      const std::string& ip,
-      const std::string& ip1,
-      const std::string&t,
-      int p)
-    : op(o), ip_port(ip), ip_port_o(ip1),
-    table(t), partition(p) {
-    }
-
-  UpdateTask(ZPMetaUpdateOP o,
-      const std::string& ip,
-      const std::string&t,
-      int p)
-    : op(o), ip_port(ip), table(t), partition(p) {
-    }
-
-  UpdateTask(ZPMetaUpdateOP o,
-      const std::string& ip)
-    : op(o), ip_port(ip), partition(-1) {
-    }
+  std::string opt1;
+  std::string opt2;
+  std::string opt3;
+  std::string opt4;
+  int opt5;
+  int opt6;
 };
 
 typedef std::deque<UpdateTask> ZPMetaUpdateTaskDeque;

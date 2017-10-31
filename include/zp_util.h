@@ -4,7 +4,7 @@
 #include <string>
 #include <glog/logging.h>
 
-#include "zp_conf.h"
+#include "include/zp_conf.h"
 
 #include "slash/include/env.h"
 

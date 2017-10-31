@@ -12,7 +12,7 @@
 # include <inttypes.h>
 #endif 
 
-#include "zp_const.h"
+#include "include/zp_const.h"
 
 #include "slash/include/env.h"
 #include "slash/include/slash_status.h"

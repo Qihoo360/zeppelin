@@ -113,14 +113,20 @@ Status ZPMetaInfoStoreSnap::DownNode(const std::string& ip_port) {
   return Status::OK();
 }
 
-Status ZPMetaInfoStoreSnap::RemoveNodes(const std::string& ip_ports) {
-  std::string nodes = ip_ports;
-  std::string n;
-  while (slash::GetLengthPrefixedString(&nodes, &n)) {
-    if (nodes_.find(n) != nodes_.end()) {
-      node_changed_ = true;
-      nodes_.erase(n);
+Status ZPMetaInfoStoreSnap::RemoveNodes(
+    const ZPMeta::MetaCmd_RemoveNodes& remove_nodes_cmd) {
+  for (int i = 0; i < remove_nodes_cmd.nodes_size(); i++) {
+    const ZPMeta::Node& n = remove_nodes_cmd.nodes(i);
+    std::string node = slash::IpPortString(n.ip(), n.port());
+    if (IsNodeUp(n)) {
+      return Status::Corruption("Node " + node + " is running");
     }
+    if (node_table_.find(node) != node_table_.end() &&
+        node_table_.at(node).size() > 0) {  // node has table load
+      return Status::Corruption("Node " + node + " has table load");
+    }
+    node_changed_ = true;
+    nodes_.erase(node);
   }
   return Status::OK();
 }
@@ -160,19 +166,19 @@ Status ZPMetaInfoStoreSnap::AddSlave(const std::string& table, int partition,
   return Status::OK();
 }
 
-// Handover from ip_port_o to ip_port
+// Handover from left_node to right_node
 Status ZPMetaInfoStoreSnap::Handover(const std::string& table, int partition,
-    const std::string& ip_port, const std::string& ip_port_o) {
+    const std::string& left_node, const std::string& right_node) {
   Status s = Status::OK();
 
-  // Assume the ip_port_o is slave and try
-  if (DeleteSlave(table, partition, ip_port_o).IsInvalidArgument()) {
+  // Assume the left_node is slave and try
+  if (DeleteSlave(table, partition, left_node).IsInvalidArgument()) {
     // Table and parition is exist but current node is master
-    s = SetMaster(table, partition, ip_port);
+    s = SetMaster(table, partition, right_node);
     if (!s.ok()) {
       return s;
     }
-    s = DeleteSlave(table, partition, ip_port_o);
+    s = DeleteSlave(table, partition, left_node);
   }
   return s;
 }
@@ -251,72 +257,14 @@ Status ZPMetaInfoStoreSnap::SetMaster(const std::string& table, int partition,
   return Status::OK();
 }
 
-Status ZPMetaInfoStoreSnap::AddTable(const std::string& table, int num) {
-  if (tables_.find(table) != tables_.end()) {
+Status ZPMetaInfoStoreSnap::AddTable(
+    const std::string& table_name, const ZPMeta::Table& table) {
+  if (tables_.find(table_name) != tables_.end()) {
     return Status::Complete("Table already exist");
   }
 
-  // Distinguish node with the server address its located on
-  std::string ip;
-  int port = 0;
-  ZPMeta::Node node;
-  std::map<std::string, std::vector<ZPMeta::Node> > server_nodes;
-  for (const auto& n : nodes_) {
-    if (n.second.last_alive_time == 0) {
-      continue;
-    }
-    slash::ParseIpPortString(n.first, ip, port);
-    if (server_nodes.find(ip) == server_nodes.end()) {
-      server_nodes.insert(std::pair<std::string, std::vector<ZPMeta::Node> >(
-            ip, std::vector<ZPMeta::Node>()));
-    }
-    node.Clear();
-    node.set_ip(ip);
-    node.set_port(port);
-    server_nodes[ip].push_back(node);
-  }
-
-  // Reorganize
-  size_t node_index = 0, finish_count = 0;
-  std::vector<ZPMeta::Node> cross_nodes;
-  while (finish_count < server_nodes.size()) {
-    finish_count = 0;
-    for (const auto& sn : server_nodes) {
-      if (node_index >= sn.second.size()) {
-        // No more node on this sever
-        finish_count++;
-        continue;
-      }
-      ZPMeta::Node mnode;
-      mnode.CopyFrom(sn.second.at(node_index));
-      cross_nodes.push_back(mnode);
-    }
-    node_index++;
-  }
-
-  if (cross_nodes.empty()) {
-    return Status::Corruption("No zp node exist");
-  }
-
-  // Distribute
-  ZPMeta::Table meta_table;
-  meta_table.set_name(table);
-  std::srand(std::time(0));
-  int rand_pos = (std::rand() % cross_nodes.size());
-  for (int i = 0; i < num; i++) {
-    ZPMeta::Partitions *p = meta_table.add_partitions();
-    p->set_id(i);
-    p->set_state(ZPMeta::PState::ACTIVE);
-
-    p->mutable_master()->CopyFrom(
-        cross_nodes[(i + rand_pos) % cross_nodes.size()]);
-    p->add_slaves()->CopyFrom(
-        cross_nodes[(i + rand_pos + 1) % cross_nodes.size()]);
-    p->add_slaves()->CopyFrom(
-        cross_nodes[(i + rand_pos + 2) % cross_nodes.size()]);
-  }
-  tables_.insert(std::pair<std::string, ZPMeta::Table>(table, meta_table));
-  table_changed_.insert(std::pair<std::string, bool>(table, true));
+  tables_.insert(std::make_pair(table_name, table));
+  table_changed_.insert(std::make_pair(table_name, true));
   return Status::OK();
 }
 
@@ -796,11 +744,12 @@ void ZPMetaInfoStore::GetSnapshot(ZPMetaInfoStoreSnap* snap) {
   // under which situation the snapshot will be invalid and should be discarded,
   // Apply function will check and handle this.
   snap->snap_epoch_ = epoch_;
-  GetAllTables(&(snap->tables_));
+  GetAllTables(&snap->tables_);
   for (const auto& t : snap->tables_) {
     snap->table_changed_[t.first] = false;
   }
-  GetAllNodes(&(snap->nodes_));
+  GetAllNodes(&snap->nodes_);
+  snap->node_table_ = node_table_;
 }
 
 // Return IOError means error happened when access floyd.

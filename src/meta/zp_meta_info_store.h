@@ -65,17 +65,17 @@ class ZPMetaInfoStoreSnap   {
     ZPMetaInfoStoreSnap();
     Status UpNode(const std::string& ip_port);
     Status DownNode(const std::string& ip_port);
-    Status RemoveNodes(const std::string& ip_port);
+    Status RemoveNodes(const ZPMeta::MetaCmd_RemoveNodes& remove_nodes_cmd);
     Status AddSlave(const std::string& table, int partition,
         const std::string& ip_port);
     Status DeleteSlave(const std::string& table, int partition,
         const std::string& ip_port);
     Status Handover(const std::string& table, int partition,
-        const std::string& ip_port, const std::string& ip_port_o);
+        const std::string& left_node, const std::string& right_node);
     Status SetMaster(const std::string& table, int partition,
         const std::string& ip_port);
     Status ChangePState(const std::string& table, int partition, bool to_stuck);
-    Status AddTable(const std::string& table, int num);
+    Status AddTable(const std::string& table_name, const ZPMeta::Table& table);
     Status RemoveTable(const std::string& table);
     void RefreshTableWithNodeAlive();
 
@@ -84,6 +84,7 @@ class ZPMetaInfoStoreSnap   {
     int snap_epoch_;
     std::unordered_map<std::string, ZPMeta::Table> tables_;
     std::unordered_map<std::string, NodeInfo> nodes_;
+    std::unordered_map<std::string, std::set<std::string>> node_table_;
     bool node_changed_;
     std::unordered_map<std::string, bool> table_changed_;
     void SerializeNodes(ZPMeta::Nodes* nodes_ptr) const;
