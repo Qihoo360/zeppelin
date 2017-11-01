@@ -12,7 +12,7 @@ const std::string kElectLockKey = "##elect_lock";
 const std::string kLeaderKey = "##meta_leader11111";
 
 static bool IsLeaderTimeout(uint64_t last_active, uint64_t timeout) {
-  return last_active + timeout * 1000 > slash::NowMicros();
+  return last_active + timeout * 1000 * 1000 <= slash::NowMicros();
 }
 
 ZPMetaElection::ZPMetaElection(floyd::Floyd* f)
@@ -30,7 +30,7 @@ Status ZPMetaElection::ReadLeaderRecord(ZPMeta::MetaLeader* cleader) {
     return s;
   }
   if (!cleader->ParseFromString(value)) {
-    LOG(WARNING) << "Parse MetaLeader failed," << value << "###";
+    LOG(WARNING) << "Parse MetaLeader failed";
     return Status::Corruption("Parse MetaLeader failed");
   }
   return Status::OK();
@@ -101,7 +101,7 @@ bool ZPMetaElection::GetLeader(std::string* ip, int* port) {
 
   // Lock and update
   s = floyd_->TryLock(kElectLockKey, mine,
-      kMetaLeaderLockTimeout * 1000);
+      kMetaLeaderLockTimeout * 1000 * 1000);
   if (!s.ok()) {
     LOG(WARNING) << "TryLock ElectLock failed." << s.ToString();
     return Jeopardy(ip, port);  

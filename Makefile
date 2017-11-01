@@ -189,8 +189,8 @@ clean:
 
 distclean: clean
 	$(AM_V_at)echo "Cleaning all"
+	$(AM_V_at)make -C $(FLOYD_PATH)/floyd clean
 	$(AM_V_at)make -C $(PINK_PATH)/pink clean
 	$(AM_V_at)make -C $(SLASH_PATH)/slash clean
 	$(AM_V_at)make -C $(NEMODB_PATH) clean
 	$(AM_V_at)make -C $(ROCKSDB_PATH) clean
-	$(AM_V_at)make -C $(FLOYD_PATH) clean
