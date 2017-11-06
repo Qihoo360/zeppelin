@@ -76,8 +76,14 @@ bool ZPMetaConditionCron::RecoverWhenError(const OffsetCondition& condition) {
       // Notice: no break here
     case ConditionTaskType::kSetMaster:
       task.op = kOpSetActive;
-      task.opt2 = condition.table;
-      task.opt5 = condition.partition_id;
+      task.print_args_text = [condition]() {
+        std::ostringstream out;
+        out << "task: SetActive, table: " << condition.table
+            << ", partition: " << condition.partition_id;
+        return out.str();
+      };
+      task.sargs[0] = condition.table;
+      task.iargs[0] = condition.partition_id;
       s = update_thread_->PendingUpdate(task);
       break;
     default:
