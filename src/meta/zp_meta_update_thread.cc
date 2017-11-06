@@ -99,6 +99,8 @@ Status ZPMetaUpdateThread::ApplyUpdates(
   Status s;
   bool has_succ = false;
   int handover_count = 0;
+
+  // Will parse from task's arguments
   std::string node;
   std::string table_name;
   std::string right_node;
@@ -108,95 +110,63 @@ Status ZPMetaUpdateThread::ApplyUpdates(
   int partition;
 
   for (const auto cur_task : task_deque) {
+    LOG(INFO) << "Apply one task, " << cur_task.print_args_text();
     switch (cur_task.op) {
       case ZPMetaUpdateOP::kOpUpNode:
-        node = cur_task.opt1;
-        LOG(INFO) << "Apply one task kOpUpNode, node: " << node;
-
+        node = cur_task.sargs[0];
         s = info_store_snap.UpNode(node);
         break;
       case ZPMetaUpdateOP::kOpDownNode:
-        node = cur_task.opt1;
-        LOG(INFO) << "Apply one task kOpDownNode, host: " << node;
-
+        node = cur_task.sargs[0];
         s = info_store_snap.DownNode(node);
         break;
       case ZPMetaUpdateOP::kOpRemoveNodes:
-        remove_nodes_cmd.ParseFromString(cur_task.opt3);
-        LOG(INFO) << "Apply one task kOpRemoveNodes";
-        for (int i = 0; i < remove_nodes_cmd.nodes_size(); i++) {
-          const ZPMeta::Node& n = remove_nodes_cmd.nodes(i);
-          LOG(INFO) << "  --- node: " << n.ip() << ":" << n.port();
-        }
-
+        remove_nodes_cmd.ParseFromString(cur_task.sargs[0]);
         s = info_store_snap.RemoveNodes(remove_nodes_cmd);
         break;
       case ZPMetaUpdateOP::kOpAddSlave:
-        node = cur_task.opt1;
-        table_name = cur_task.opt2;
-        partition = cur_task.opt5;
-        LOG(INFO) << "Apply one task kOpAddSlave, node: " << node <<
-          ", table: " << table_name << ", partition: " << partition;
-
+        node = cur_task.sargs[0];
+        table_name = cur_task.sargs[1];
+        partition = cur_task.iargs[0];
         s = info_store_snap.AddSlave(table_name, partition, node);
         break;
       case ZPMetaUpdateOP::kOpHandover:
-        table_name = cur_task.opt3;
-        left_node = cur_task.opt1;
-        right_node = cur_task.opt2;
-        partition = cur_task.opt5;
-        LOG(INFO) << "Apply one task kOpHandover, table: " << table_name <<
-          ", left: " << left_node << ", right: " << right_node <<
-          ", partition: " << partition;
+        left_node = cur_task.sargs[0];
+        right_node = cur_task.sargs[1];
+        table_name = cur_task.sargs[2];
+        partition = cur_task.iargs[0];
 
         handover_count++;
         s = info_store_snap.Handover(table_name, partition, left_node, right_node);
         break;
       case ZPMetaUpdateOP::kOpRemoveSlave:
-        node = cur_task.opt1;
-        table_name = cur_task.opt2;
-        partition = cur_task.opt5;
-        LOG(INFO) << "Apply one task kOpRemoveSlave, node: " << node <<
-          ", table: " << table_name << ", partition: " << partition;
-
+        node = cur_task.sargs[0];
+        table_name = cur_task.sargs[1];
+        partition = cur_task.iargs[0];
         s = info_store_snap.DeleteSlave(table_name, partition, node);
         break;
       case ZPMetaUpdateOP::kOpSetMaster:
-        node = cur_task.opt1;
-        table_name = cur_task.opt2;
-        partition = cur_task.opt5;
-        LOG(INFO) << "Apply one task kOpSetMaster, node: " << node <<
-          ", table: " << table_name << ", partition: " << partition;
-
+        node = cur_task.sargs[0];
+        table_name = cur_task.sargs[1];
+        partition = cur_task.iargs[0];
         s = info_store_snap.SetMaster(table_name, partition, node);
         break;
       case ZPMetaUpdateOP::kOpAddTable:
-        table_name = cur_task.opt2;
-        table.ParseFromString(cur_task.opt3);
-        LOG(INFO) << "Apply one task kOpAddTable, table: " << table_name;
-
-        s = info_store_snap.AddTable(table_name, table);
+        table.ParseFromString(cur_task.sargs[0]);
+        s = info_store_snap.AddTable(table);
         break;
       case ZPMetaUpdateOP::kOpRemoveTable:
-        table_name = cur_task.opt2;
-        LOG(INFO) << "Apply one task kOpRemoveTable, table: " << table_name;
-
+        table_name = cur_task.sargs[0];
         s = info_store_snap.RemoveTable(table_name);
         break;
       case ZPMetaUpdateOP::kOpSetStuck:
-        table_name = cur_task.opt2;
-        partition = cur_task.opt5;
-        LOG(INFO) << "Apply one task kOpSetStuck, table: " << table_name <<
-          ", partition: " << partition;
-
+        table_name = cur_task.sargs[0];
+        partition = cur_task.iargs[0];
         s = info_store_snap.ChangePState(table_name, partition, true);
         break;
       case ZPMetaUpdateOP::kOpSetActive:
-        table_name = cur_task.opt2;
-        partition = cur_task.opt5;
-        LOG(INFO) << "Apply one task kOpSetActive, table: " << table_name <<
-          ", partition: " << partition;
-
+        table_name = cur_task.sargs[0];
+        partition = cur_task.iargs[0];
         s = info_store_snap.ChangePState(table_name, partition, false);
         break;
       default:
@@ -204,11 +174,8 @@ Status ZPMetaUpdateThread::ApplyUpdates(
     }
 
     if (!s.ok()) {
-      LOG(WARNING) << "Update task process failed: " << s.ToString()
-        << ", task: (" << static_cast<int>(cur_task.op)
-        << ", opt1" << cur_task.opt1
-        << ", opt2" << cur_task.opt2
-        << ", opt5" << cur_task.opt5 << ")";
+      LOG(WARNING) << "Update task process failed: " << s.ToString() << ", "
+        << cur_task.print_args_text();
     } else {
       has_succ = true;
     }
@@ -256,15 +223,15 @@ Status ZPMetaUpdateThread::ApplyUpdates(
   // Some finish touches
   for (const auto cur_task : task_deque) {
     if (cur_task.op == ZPMetaUpdateOP::kOpHandover) {
-      std::string left_node = cur_task.opt1;
-      std::string right_node = cur_task.opt2;
-      std::string table = cur_task.opt3;
-      int partition = cur_task.opt5;
+      left_node = cur_task.sargs[0];
+      right_node = cur_task.sargs[1];
+      table_name = cur_task.sargs[2];
+      partition = cur_task.iargs[0];
 
-      migrate_->Erase(DiffKey(table, partition, left_node, right_node));
+      migrate_->Erase(DiffKey(table_name, partition, left_node, right_node));
 
       LOG(INFO) << "Migrate item finish, partition: "
-        << table << "_" << partition
+        << table_name << "_" << partition
         << ", from: " << left_node
         << ", to: " << right_node;
     }

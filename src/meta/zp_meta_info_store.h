@@ -75,7 +75,7 @@ class ZPMetaInfoStoreSnap   {
     Status SetMaster(const std::string& table, int partition,
         const std::string& ip_port);
     Status ChangePState(const std::string& table, int partition, bool to_stuck);
-    Status AddTable(const std::string& table_name, const ZPMeta::Table& table);
+    Status AddTable(const ZPMeta::Table& table);
     Status RemoveTable(const std::string& table);
     void RefreshTableWithNodeAlive();
 

@@ -257,8 +257,8 @@ Status ZPMetaInfoStoreSnap::SetMaster(const std::string& table, int partition,
   return Status::OK();
 }
 
-Status ZPMetaInfoStoreSnap::AddTable(
-    const std::string& table_name, const ZPMeta::Table& table) {
+Status ZPMetaInfoStoreSnap::AddTable(const ZPMeta::Table& table) {
+  const std::string& table_name = table.name();
   if (tables_.find(table_name) != tables_.end()) {
     return Status::Complete("Table already exist");
   }

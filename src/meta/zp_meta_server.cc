@@ -19,6 +19,7 @@
 #include <google/protobuf/repeated_field.h>
 
 #include <string>
+#include <sstream>
 #include <utility>
 #include <algorithm>
 
@@ -211,12 +212,15 @@ Status ZPMetaServer::CreateTable(const ZPMeta::Table& table) {
   // were handled asynchronously
   UpdateTask task;
   task.op = kOpAddTable;
-  task.opt2 = table_name;
-  table.SerializeToString(&task.opt3);
+  task.print_args_text = [table_name]() {
+    return "task: CreateTable, table: " + table_name;
+  };
+  table.SerializeToString(&task.sargs[0]);
+
   Status s = update_thread_->PendingUpdate(task);
   if (!s.ok()) {
-    LOG(WARNING) << "Pending CreateTable task failed: " << s.ToString()
-      << ", table: " << table_name;
+    LOG(WARNING) << "Pending task failed, " << s.ToString() << ", "
+      << task.print_args_text();
     return s;
   }
   return Status::OK();
@@ -233,11 +237,15 @@ Status ZPMetaServer::DropTable(const std::string& table) {
   // were handled asynchronously
   UpdateTask task;
   task.op = kOpRemoveTable;
-  task.opt2 = table;
+  task.print_args_text = [table]() {
+    return "task: DropTable, table: " + table;
+  };
+  task.sargs[0] = table;
+
   Status s = update_thread_->PendingUpdate(task);
   if (!s.ok()) {
-    LOG(WARNING) << "Pending RemoveTable task failed: " << s.ToString()
-      << "Table: " << table;
+    LOG(WARNING) << "Pending task failed, " << s.ToString() << ", "
+      << task.print_args_text();
     return s;
   }
   return Status::OK();
@@ -253,14 +261,21 @@ Status ZPMetaServer::AddPartitionSlave(const std::string& table, int pnum,
 
   UpdateTask task;
   task.op = kOpAddSlave;
-  task.opt1 = slash::IpPortString(target.ip(), target.port());
-  task.opt2 = table;
-  task.opt5 = pnum;
+  task.print_args_text = [table, pnum, target]() {
+    std::ostringstream out;
+    out << "task: AddSlave, table: " << table
+        << ", partition: " << pnum
+        << ", target: " << target.ip() << ":" << target.port();
+    return out.str();
+  };
+  task.sargs[0] = slash::IpPortString(target.ip(), target.port());
+  task.sargs[1] = table;
+  task.iargs[0] = pnum;
+
   Status s = update_thread_->PendingUpdate(task);
   if (!s.ok()) {
-    LOG(WARNING) << "Pending AddSlave task failed: " << s.ToString()
-      << "Table: " << table << ", pnum: " << pnum
-      << ", target: " << target.ip() << ":" << target.port();
+    LOG(WARNING) << "Pending task failed, " << s.ToString() << ", "
+      << task.print_args_text();
     return s;
   }
 
@@ -281,14 +296,21 @@ Status ZPMetaServer::RemovePartitionSlave(const std::string& table, int pnum,
 
   UpdateTask task;
   task.op = kOpRemoveSlave;
-  task.opt1 = slash::IpPortString(target.ip(), target.port());
-  task.opt2 = table;
-  task.opt5 = pnum;
+  task.print_args_text = [table, pnum, target]() {
+    std::ostringstream out;
+    out << "task: RemoveSlave, table: " << table
+        << ", partition: " << pnum
+        << ", target: " << target.ip() << ":" << target.port();
+    return out.str();
+  };
+  task.sargs[0] = slash::IpPortString(target.ip(), target.port());
+  task.sargs[1] = table;
+  task.iargs[0] = pnum;
+
   Status s = update_thread_->PendingUpdate(task);
   if (!s.ok()) {
-    LOG(WARNING) << "Pending RemoveSlave task failed: " << s.ToString()
-      << "Table: " << table << ", pnum: " << pnum
-      << ", target: " << target.ip() << ":" << target.port();
+    LOG(WARNING) << "Pending task failed, " << s.ToString() << ", "
+      << task.print_args_text();
     return s;
   }
 
@@ -311,14 +333,21 @@ Status ZPMetaServer::RemoveNodes(
 
   UpdateTask task;
   task.op = kOpRemoveNodes;
-  remove_nodes_cmd.SerializeToString(&task.opt3);
-  Status s = update_thread_->PendingUpdate(task);
-  if (!s.ok()) {
-    LOG(WARNING) << "Pending RemoveNodes task failed: ";
+  task.print_args_text = [remove_nodes_cmd]() {
+    std::ostringstream out;
+    out << "task: RemoveNodes" << std::endl;
     for (int i = 0; i < remove_nodes_cmd.nodes_size(); i++) {
       const ZPMeta::Node& node = remove_nodes_cmd.nodes(i);
-      LOG(WARNING) << "  --- " << node.ip() << ":" << node.port();
+      out << "  --- " << node.ip() << ":" << node.port() << std::endl;
     }
+    return out.str();
+  };
+  remove_nodes_cmd.SerializeToString(&task.sargs[0]);
+
+  Status s = update_thread_->PendingUpdate(task);
+  if (!s.ok()) {
+    LOG(WARNING) << "Pending task failed, " << s.ToString() << ", "
+      << task.print_args_text();
     return s;
   }
 
@@ -342,24 +371,45 @@ Status ZPMetaServer::WaitSetMaster(const ZPMeta::Node& node,
 
   // Stuck partition
   task1.op = kOpSetStuck;
-  task1.opt2 = table;
-  task1.opt5 = partition;
+  task1.print_args_text = [table, partition]() {
+    std::ostringstream out;
+    out << "task: SetStuck, table: " << table
+        << ", partition: " << partition;
+    return out.str();
+  };
+  task1.sargs[0] = table;
+  task1.iargs[0] = partition;
+
   s = update_thread_->PendingUpdate(task1);
   if (!s.ok()) {
-    LOG(WARNING) << "Pending SetMaster task failed: " << s.ToString()
-      << "Table: " << table << "_" << partition;
+    LOG(WARNING) << "Pending task failed, " << s.ToString() << ", "
+      << task1.print_args_text();
     return s;
   }
 
   // SetMaster when current node catched up with the master
   task2.op = kOpSetMaster;
-  task2.opt1 = slash::IpPortString(node.ip(), node.port());
-  task2.opt2 = table;
-  task2.opt5 = partition;
+  task2.print_args_text = [table, partition, node]() {
+    std::ostringstream out;
+    out << "task: SetMaster"
+        << ", table: " << table
+        << ", partition: " << partition
+        << ", target: " << node.ip() << ":" << node.port();
+    return out.str();
+  };
+  task2.sargs[0] = slash::IpPortString(node.ip(), node.port());
+  task2.sargs[1] = table;
+  task2.iargs[0] = partition;
 
   task3.op = kOpSetActive;
-  task3.opt2 = table;
-  task3.opt5 = partition;
+  task3.print_args_text = [table, partition]() {
+    std::ostringstream out;
+    out << "task: SetActive, table: " << table
+        << ", partition: " << partition;
+    return out.str();
+  };
+  task3.sargs[0] = table;
+  task3.iargs[0] = partition;
 
   std::vector<UpdateTask> updates = {
     task2,  // Handover from old node to new
@@ -380,16 +430,23 @@ Status ZPMetaServer::WaitSetMaster(const ZPMeta::Node& node,
 
 void ZPMetaServer::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
   if (!info_store_->UpdateNodeInfo(ping)) {
+    const ZPMeta::Node& node = ping.node();
+
     UpdateTask task;  // new node
     task.op = kOpUpNode;
-    task.opt1 = slash::IpPortString(ping.node().ip(), ping.node().port());
-    LOG(INFO) << "Pending Update Node Up task: " << task.opt1 <<
-      ", node: " << ping.node().ip() << ":" << ping.node().port();
+    task.print_args_text = [node]() {
+      std::ostringstream out;
+      out << "task: NodeUp, node: "
+          << node.ip() << ":" << node.port();
+      return out.str();
+    };
+    task.sargs[0] = slash::IpPortString(ping.node().ip(), ping.node().port());
+    LOG(INFO) << "Pending task, " << task.print_args_text();
 
     Status s = update_thread_->PendingUpdate(task);
     if (!s.ok()) {
-      LOG(WARNING) << "Pending Update Node Up failed: " << s.ToString() <<
-        ", node: " << ping.node().ip() << ":" << ping.node().port();
+      LOG(WARNING) << "Pending task failed, " << s.ToString() << ", "
+        << task.print_args_text();
     }
   }
 }
@@ -398,14 +455,18 @@ void ZPMetaServer::CheckNodeAlive() {
   std::set<std::string> nodes;
   info_store_->FetchExpiredNode(&nodes);
   for (const auto& n : nodes) {
-    LOG(INFO) << "PendingUpdate to remove Node Alive: " << n;
     UpdateTask task;
     task.op = kOpDownNode;
-    task.opt1 = n;
+    task.print_args_text = [n]() {
+      return "task: NodeDown, node: " + n;
+    };
+    task.sargs[0] = n;
+    LOG(INFO) << "Pending task to remove Node Alive: " << n;
+
     Status s = update_thread_->PendingUpdate(task);
     if (!s.ok()) {
-      LOG(WARNING) << "Pending Update Node Down failed: " << s.ToString() <<
-        ", " << n;
+      LOG(WARNING) << "Pending task failed, " << s.ToString() << ", "
+        << task.print_args_text();
     }
   }
 }
@@ -508,18 +569,37 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
   LOG(INFO) << "Begin Process " << diffs.size() << " migrate item";
 
   for (const auto& diff : diffs) {
+    const ZPMeta::Node& right_node = diff.right();
+    const ZPMeta::Node& left_node = diff.left();
+    const std::string& table_name = diff.table();
+    int partition = diff.partition();
+
     UpdateTask task1, task2, task3, task4;
     // Add Slave
     task1.op = kOpAddSlave;
-    task1.opt1 = slash::IpPortString(diff.right().ip(), diff.right().port());
-    task1.opt2 = diff.table();
-    task1.opt5 = diff.partition();
+    task1.print_args_text = [table_name, partition, right_node]() {
+      std::ostringstream out;
+      out << "task: AddSlave"
+          << ", table: " << table_name
+          << ", partition: " << partition
+          << ", target: " << right_node.ip() << ":" << right_node.port();
+      return out.str();
+    };
+    task1.sargs[0] = slash::IpPortString(right_node.ip(), right_node.port());
+    task1.sargs[1] = table_name;
+    task1.iargs[0] = partition;
     s = update_thread_->PendingUpdate(task1);
 
     // Stuck partition
     task2.op = kOpSetStuck;
-    task2.opt2 = diff.table();
-    task2.opt5 = diff.partition();
+    task2.print_args_text = [table_name, partition]() {
+      std::ostringstream out;
+      out << "task: SetStuck, table: " << table_name
+          << ", partition: " << partition;
+      return out.str();
+    };
+    task2.sargs[0] = table_name;
+    task2.iargs[0] = partition;
     if (s.ok()) {
       s = update_thread_->PendingUpdate(task2);
     }
@@ -531,14 +611,28 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
 
     // Begin offset condition wait
     task3.op = kOpHandover;
-    task3.opt1 = slash::IpPortString(diff.left().ip(), diff.left().port());
-    task3.opt2 = slash::IpPortString(diff.right().ip(), diff.right().port());
-    task3.opt3 = diff.table();
-    task3.opt5 = diff.partition();
+    task3.print_args_text = [left_node, right_node, table_name, partition]() {
+      std::ostringstream out;
+      out << "task: Handover, table: " << table_name
+          << ", partition: " << partition
+          << ", left: " << left_node.ip() << ":" << left_node.port()
+          << ", right: " << right_node.ip() << ":" << right_node.port();
+      return out.str();
+    };
+    task3.sargs[0] = slash::IpPortString(left_node.ip(), left_node.port());
+    task3.sargs[1] = slash::IpPortString(right_node.ip(), right_node.port());
+    task3.sargs[2] = table_name;
+    task3.iargs[0] = partition;
 
     task4.op = kOpSetActive;
-    task4.opt2 = diff.table();
-    task4.opt5 = diff.partition();
+    task4.print_args_text = [table_name, partition]() {
+      std::ostringstream out;
+      out << "task: SetActive, table: " << table_name
+          << ", partition: " << partition;
+      return out.str();
+    };
+    task4.sargs[0] = table_name;
+    task4.iargs[0] = partition;
     std::vector<UpdateTask> updates = {
       task3,  // Handover from old node to new
       task4,  // Recover Active
@@ -547,10 +641,10 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
     condition_cron_->AddCronTask(
         OffsetCondition(
           ConditionTaskType::kMigrate,
-          diff.table(),
-          diff.partition(),
-          diff.left(),
-          diff.right()),
+          table_name,
+          partition,
+          left_node,
+          right_node),
           updates);
   }
 }
