@@ -17,6 +17,7 @@
 #include <deque>
 #include <string>
 #include <unordered_map>
+#include <functional>
 
 #include "pink/include/bg_thread.h"
 #include "slash/include/slash_string.h"
@@ -40,15 +41,12 @@ enum ZPMetaUpdateOP : unsigned int {
   kOpSetActive  // ACTIVE the partition
 };
 
+const int MAX_ARGS = 8;
 struct UpdateTask {
   ZPMetaUpdateOP op;
-
-  std::string opt1;
-  std::string opt2;
-  std::string opt3;
-  std::string opt4;
-  int opt5;
-  int opt6;
+  std::function<std::string()> print_args_text;
+  std::string sargs[MAX_ARGS];
+  int iargs[MAX_ARGS];
 };
 
 typedef std::deque<UpdateTask> ZPMetaUpdateTaskDeque;
