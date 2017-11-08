@@ -1255,6 +1255,13 @@ bool Partition::CheckBinlogFiles() {
       binlog_nums.insert(index);
     }
   }
+
+  if (binlog_nums.empty()) {
+    LOG(WARNING) << "Empty binlog path. Partition:"
+      << table_name_ << "_" << partition_id_;
+    return true;
+  }
+
   std::set<uint32_t>::iterator num_it = binlog_nums.begin(),
     pre_num_it = binlog_nums.begin();
   {
