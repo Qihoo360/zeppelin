@@ -755,8 +755,8 @@ bool Partition::CheckSyncOption(const PartitionSyncOption& option,
     LOG(WARNING) << "Discard binlog item from " << option.from_node
       << ", is opened:" << opened_
       << ", partition:" << partition_id_
-      << ", my current role: " << static_cast<int>(role_)
-      << ", my current connection state: " << static_cast<int>(repl_state_);
+      << ", my current role: " << RoleMsg[role_]
+      << ", my current connection state: " << ReplStateMsg[repl_state_];
     return false;
   }
 
