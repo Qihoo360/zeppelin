@@ -46,11 +46,37 @@ enum CmdFlags {
   kCmdFlagsRedirect          = 512,
 };
 
+enum CmdType {
+  // Data related
+  kSetCmd,
+  kGetCmd,
+  kDelCmd,
+  kInfoCmd,
+  kSyncCmd,
+  kMgetCmd,
+  kFlushDBCmd,
+  // Meta related
+  kPingCmd,
+  kPullCmd,
+  kInitCmd,
+  kSetMasterCmd,
+  kAddSlaveCmd,
+  kRemoveSlaveCmd,
+  kListTableCmd,
+  kListNodeCmd,
+  kListMetaCmd,
+  kMetaStatusCmd,
+  kDropTableCmd,
+  kMigrateCmd,
+  kCancelMigrateCmd,
+  kRemoveNodesCmd,
+};
 
 class Cmd {
  public:
-  Cmd(int flag) : flag_(flag) {}
+  Cmd(int flag, CmdType type) : type_(type), flag_(flag) {}
   virtual ~Cmd() {}
+  const CmdType type_;
 
   virtual void Do(const google::protobuf::Message *request,
       google::protobuf::Message *response, void* arg = NULL) const = 0;

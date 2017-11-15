@@ -163,7 +163,10 @@ class ZPDataServer  {
       TablePartitionOffsets *all_offset);
 
   // Statistic related
-  void PlusStat(const StatType type, const std::string &table);
+  void PlusQueryStat(const StatType type, const std::string &table);
+  void PlusLatencyStat(
+      const StatType type, const std::string &table,
+      CmdType cmd_type, size_t latency_ms);
   void ResetLastStat(const StatType type);
   bool GetTotalStat(const StatType type, Statistic* stat);
 

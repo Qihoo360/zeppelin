@@ -19,7 +19,7 @@
 
 class PingCmd : public Cmd  {
  public:
-  explicit PingCmd(int flag) : Cmd(flag) {}
+  explicit PingCmd(int flag) : Cmd(flag, kPingCmd) {}
   virtual std::string name() const  {
     return "Ping";
   }
@@ -29,7 +29,7 @@ class PingCmd : public Cmd  {
 
 class PullCmd : public Cmd  {
  public:
-  explicit PullCmd(int flag) : Cmd(flag) {}
+  explicit PullCmd(int flag) : Cmd(flag, kPullCmd) {}
   virtual std::string name() const  {
     return "Pull";
   }
@@ -39,7 +39,7 @@ class PullCmd : public Cmd  {
 
 class InitCmd : public Cmd  {
  public:
-  explicit InitCmd(int flag) : Cmd(flag) {}
+  explicit InitCmd(int flag) : Cmd(flag, kInitCmd) {}
   virtual std::string name() const  {
     return "Init";
   }
@@ -49,7 +49,7 @@ class InitCmd : public Cmd  {
 
 class SetMasterCmd : public Cmd  {
  public:
-  explicit SetMasterCmd(int flag) : Cmd(flag) {}
+  explicit SetMasterCmd(int flag) : Cmd(flag, kSetMasterCmd) {}
   virtual std::string name() const  {
     return "SetMaster";
   }
@@ -59,7 +59,7 @@ class SetMasterCmd : public Cmd  {
 
 class AddSlaveCmd : public Cmd  {
  public:
-  explicit AddSlaveCmd(int flag) : Cmd(flag) {}
+  explicit AddSlaveCmd(int flag) : Cmd(flag, kAddSlaveCmd) {}
   virtual std::string name() const  {
     return "AddSlave";
   }
@@ -69,7 +69,7 @@ class AddSlaveCmd : public Cmd  {
 
 class RemoveSlaveCmd : public Cmd  {
  public:
-  explicit RemoveSlaveCmd(int flag) : Cmd(flag) {}
+  explicit RemoveSlaveCmd(int flag) : Cmd(flag, kRemoveSlaveCmd) {}
   virtual std::string name() const  {
     return "RemoveSlave";
   }
@@ -79,7 +79,7 @@ class RemoveSlaveCmd : public Cmd  {
 
 class ListTableCmd : public Cmd  {
  public:
-  explicit ListTableCmd(int flag) : Cmd(flag) {}
+  explicit ListTableCmd(int flag) : Cmd(flag, kListTableCmd) {}
   virtual std::string name() const  {
     return "ListTable";
   }
@@ -89,7 +89,7 @@ class ListTableCmd : public Cmd  {
 
 class ListNodeCmd : public Cmd  {
  public:
-  explicit ListNodeCmd(int flag) : Cmd(flag) {}
+  explicit ListNodeCmd(int flag) : Cmd(flag, kListNodeCmd) {}
   virtual std::string name() const  {
     return "ListNode";
   }
@@ -99,7 +99,7 @@ class ListNodeCmd : public Cmd  {
 
 class ListMetaCmd : public Cmd  {
  public:
-  explicit ListMetaCmd(int flag) : Cmd(flag) {}
+  explicit ListMetaCmd(int flag) : Cmd(flag, kListMetaCmd) {}
   virtual std::string name() const  {
     return "ListMeta";
   }
@@ -109,7 +109,7 @@ class ListMetaCmd : public Cmd  {
 
 class MetaStatusCmd : public Cmd  {
  public:
-  explicit MetaStatusCmd(int flag) : Cmd(flag) {}
+  explicit MetaStatusCmd(int flag) : Cmd(flag, kMetaStatusCmd) {}
   virtual std::string name() const  {
     return "MetaStatus";
   }
@@ -119,7 +119,7 @@ class MetaStatusCmd : public Cmd  {
 
 class DropTableCmd : public Cmd  {
  public:
-  explicit DropTableCmd(int flag) : Cmd(flag) {}
+  explicit DropTableCmd(int flag) : Cmd(flag, kDropTableCmd) {}
   virtual std::string name() const  {
     return "DropTable";
   }
@@ -129,7 +129,7 @@ class DropTableCmd : public Cmd  {
 
 class MigrateCmd : public Cmd  {
  public:
-  explicit MigrateCmd(int flag) : Cmd(flag) {}
+  explicit MigrateCmd(int flag) : Cmd(flag, kMigrateCmd) {}
   virtual std::string name() const  {
     return "Migrate";
   }
@@ -139,7 +139,7 @@ class MigrateCmd : public Cmd  {
 
 class CancelMigrateCmd : public Cmd  {
  public:
-  explicit CancelMigrateCmd(int flag) : Cmd(flag) {}
+  explicit CancelMigrateCmd(int flag) : Cmd(flag, kCancelMigrateCmd) {}
   virtual std::string name() const  {
     return "CancelMigrateTable";
   }
@@ -149,7 +149,7 @@ class CancelMigrateCmd : public Cmd  {
 
 class RemoveNodesCmd : public Cmd  {
  public:
-  explicit RemoveNodesCmd(int flag) : Cmd(flag) {}
+  explicit RemoveNodesCmd(int flag) : Cmd(flag, kRemoveNodesCmd) {}
   virtual std::string name() const  {
     return "RemoveNodes";
   }

@@ -440,19 +440,66 @@ bool ZPDataServer::GetStat(const StatType type,
   return true;
 }
 
-void ZPDataServer::PlusStat(const StatType type, const std::string &table) {
+void ZPDataServer::PlusQueryStat(const StatType type, const std::string &table) {
   slash::MutexLock l(&(stats_[type].mu));
   if (table.empty()) {
     stats_[type].other_stat.querys++;
   } else {
+    Statistic* pstat = nullptr;
     auto it = stats_[type].table_stats.find(table);
     if (it == stats_[type].table_stats.end()) {
-      Statistic* pstat = new Statistic;
+      pstat = new Statistic;
       pstat->table_name = table;
-      pstat->querys++;
       stats_[type].table_stats[table] = pstat;
     } else {
-      (it->second)->querys++;
+      pstat = it->second;
+    }
+    assert(pstat != nullptr);
+    pstat->querys++;
+  }
+}
+
+void ZPDataServer::PlusLatencyStat(
+    const StatType type, const std::string &table,
+    CmdType cmd_type, size_t latency_ms) {
+  slash::MutexLock l(&(stats_[type].mu));
+  if (!table.empty()) {
+    Statistic* pstat = nullptr;
+    auto it = stats_[type].table_stats.find(table);
+    if (it == stats_[type].table_stats.end()) {
+      pstat = new Statistic;
+      pstat->table_name = table;
+      stats_[type].table_stats[table] = pstat;
+    } else {
+      pstat = it->second;
+    }
+    assert(pstat != nullptr);
+
+    switch (cmd_type) {
+      case kGetCmd:
+      case kMgetCmd:
+        // read cmd
+        pstat->read_queries++;
+        if (pstat->read_queries == 0) {pstat->read_queries = 1; }
+        pstat->read_max_latency = std::max(pstat->read_max_latency, latency_ms);
+        pstat->read_min_latency = std::min(pstat->read_max_latency, latency_ms);
+        pstat->read_avg_latency =
+          (pstat->read_avg_latency * (pstat->read_queries - 1) + latency_ms)
+          / (pstat->read_queries);
+        break;
+      case kSetCmd:
+      case kDelCmd:
+        // write cmd
+        pstat->write_queries++;
+        if (pstat->write_queries == 0) {pstat->write_queries = 1; }
+        pstat->write_max_latency = std::max(pstat->write_max_latency, latency_ms);
+        pstat->write_min_latency = std::min(pstat->write_max_latency, latency_ms);
+        pstat->write_avg_latency =
+          (pstat->write_avg_latency * (pstat->write_queries - 1) + latency_ms)
+          / (pstat->write_queries);
+        break;
+      default:
+        break;
     }
   }
 }
