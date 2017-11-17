@@ -1,4 +1,5 @@
 #include "include/zp_conf.h"
+#include "include/zp_const.h"
 
 #include "slash/include/base_conf.h"
 
@@ -8,34 +9,37 @@ static int64_t BoundaryLimit(int64_t target, int64_t floor, int64_t ceil) {
   return target;
 }
 
-ZpConf::ZpConf() {
+ZpConf::ZpConf()
+    : local_ip_("127.0.0.1"),
+      local_port_(9999),
+      timeout_(100),
+      data_path_("data"),
+      log_path_("log"),
+      trash_path_("trash"),
+      daemonize_(false),
+      pid_file_(log_path_ + "/" + kZpPidFile),
+      lock_file_(log_path_ + "/" + kZpLockFile),
+      enable_data_delete_(true),
+      meta_thread_num_(4),
+      data_thread_num_(6),
+      sync_recv_thread_num_(4),
+      sync_send_thread_num_(4),
+      max_background_flushes_(24),
+      max_background_compactions_(24),
+      binlog_remain_days_(kBinlogRemainMaxDay),
+      binlog_remain_min_count_(kBinlogRemainMinCount),
+      binlog_remain_max_count_(kBinlogRemainMaxCount),
+      db_write_buffer_size_(256 * 1024), // 256KB
+      db_max_write_buffer_(20 * 1024 * 1024), // 20MB
+      db_target_file_size_base_(256 * 1024), // 256KB
+      db_max_open_files_(4096),
+      db_block_size_(16), // 16
+      slowlog_slower_than_(-1),
+      floyd_check_leader_us_(15000000),
+      floyd_heartbeat_us_(6000000),
+      floyd_append_entries_size_once_(1024000),
+      floyd_append_entries_count_once_(128) {
   pthread_rwlock_init(&rwlock_, NULL);
-  local_ip_ = std::string("127.0.0.1");
-  local_port_ = 9999;
-  timeout_ = 100;
-  data_path_ = std::string("./data/");
-  log_path_ = std::string("./log/");
-  trash_path_ = std::string("./trash/");
-  daemonize_ = false;
-  pid_file_ = std::string("./pid");
-  lock_file_ = std::string("./lock");
-  enable_data_delete_ = true;
-  meta_thread_num_ = 4;
-  data_thread_num_ = 6;
-  sync_recv_thread_num_ = 4;
-  sync_send_thread_num_ = 4;
-  max_background_flushes_ = 24;
-  max_background_compactions_ = 24;
-  db_write_buffer_size_ = 256 * 1024; // 256M
-  db_max_write_buffer_ = 20 * 1024 * 1024; // 20G
-  db_target_file_size_base_ = 256 * 1024; // 256M
-  db_max_open_files_ = 4096;
-  db_block_size_ = 16; // 16K
-  slowlog_slower_than_ = -1;
-  floyd_check_leader_us_ = 15000000;
-  floyd_heartbeat_us_ = 6000000;
-  floyd_append_entries_size_once_ = 1024000;
-  floyd_append_entries_count_once_ = 128;
 }
 
 ZpConf::~ZpConf() {
@@ -45,34 +49,41 @@ ZpConf::~ZpConf() {
 void ZpConf::Dump() const {
   auto iter = meta_addr_.begin();
   while (iter != meta_addr_.end()) {
-    fprintf(stderr, "    Config.meta_addr   : %s\n", iter->c_str());
+    fprintf(stderr, "    Config.meta_addr         : %s\n", iter->c_str());
     iter++;
   }
-  fprintf (stderr, "    Config.local_ip    : %s\n", local_ip_.c_str());
-  fprintf (stderr, "    Config.local_port  : %d\n", local_port_);
-  fprintf (stderr, "    Config.data_path   : %s\n", data_path_.c_str());
-  fprintf (stderr, "    Config.log_path    : %s\n", log_path_.c_str());
-  fprintf (stderr, "    Config.trash_path    : %s\n", trash_path_.c_str());
-  fprintf (stderr, "    Config.daemonize    : %s\n", daemonize_? "true":"false");
-  fprintf (stderr, "    Config.pid_file    : %s\n", pid_file_.c_str());
-  fprintf (stderr, "    Config.lock_file    : %s\n", lock_file_.c_str());
-  fprintf (stderr, "    Config.enable_data_delete    : %s\n", enable_data_delete_ ? "true":"false");
-  fprintf (stderr, "    Config.meta_thread_num    : %d\n", meta_thread_num_);
-  fprintf (stderr, "    Config.data_thread_num    : %d\n", data_thread_num_);
-  fprintf (stderr, "    Config.sync_recv_thread_num   : %d\n", sync_recv_thread_num_);
-  fprintf (stderr, "    Config.sync_send_thread_num   : %d\n", sync_send_thread_num_);
-  fprintf (stderr, "    Config.max_background_flushes    : %d\n", max_background_flushes_);
-  fprintf (stderr, "    Config.max_background_compactions   : %d\n", max_background_compactions_);
-  fprintf (stderr, "    Config.db_write_buffer_size   : %dKB\n", db_write_buffer_size_);
-  fprintf (stderr, "    Config.db_max_write_buffer   : %dKB\n", db_max_write_buffer_);
-  fprintf (stderr, "    Config.db_target_file_size_base   : %dKB\n", db_target_file_size_base_);
-  fprintf (stderr, "    Config.db_max_open_files   : %d\n", db_max_open_files_);
-  fprintf (stderr, "    Config.db_block_size   : %dKB\n", db_block_size_);
-  fprintf (stderr, "    Config.slowlog_slower_than   : %d\n", slowlog_slower_than_);
-  fprintf (stderr, "    Config.floyd_check_leader_us   : %d\n", floyd_check_leader_us_);
-  fprintf (stderr, "    Config.floyd_heartbeat_us   : %d\n", floyd_heartbeat_us_);
-  fprintf (stderr, "    Config.floyd_append_entries_size_once_   : %d\n", floyd_append_entries_size_once_);
-  fprintf (stderr, "    Config.floyd_append_entries_count_once_   : %d\n", floyd_append_entries_count_once_);
+  fprintf (stderr, "    Config.local_ip           : %s\n", local_ip_.c_str());
+  fprintf (stderr, "    Config.local_port         : %d\n", local_port_);
+  fprintf (stderr, "    Config.data_path          : %s\n", data_path_.c_str());
+  fprintf (stderr, "    Config.log_path           : %s\n", log_path_.c_str());
+  fprintf (stderr, "    Config.trash_path         : %s\n", trash_path_.c_str());
+  fprintf (stderr, "    Config.daemonize          : %s\n", daemonize_? "true":"false");
+  fprintf (stderr, "    Config.pid_file           : %s\n", pid_file_.c_str());
+  fprintf (stderr, "    Config.lock_file          : %s\n", lock_file_.c_str());
+  fprintf (stderr, "    Config.enable_data_delete : %s\n", enable_data_delete_ ? "true":"false");
+
+  fprintf (stderr, "    Config.meta_thread_num            : %d\n", meta_thread_num_);
+  fprintf (stderr, "    Config.data_thread_num            : %d\n", data_thread_num_);
+  fprintf (stderr, "    Config.sync_recv_thread_num       : %d\n", sync_recv_thread_num_);
+  fprintf (stderr, "    Config.sync_send_thread_num       : %d\n", sync_send_thread_num_);
+  fprintf (stderr, "    Config.max_background_flushes     : %d\n", max_background_flushes_);
+  fprintf (stderr, "    Config.max_background_compactions : %d\n", max_background_compactions_);
+
+  fprintf (stderr, "    Config.binlog_remain_days       : %d\n", binlog_remain_days_);
+  fprintf (stderr, "    Config.binlog_remain_min_count  : %d\n", binlog_remain_min_count_);
+  fprintf (stderr, "    Config.binlog_remain_max_count  : %d\n", binlog_remain_max_count_);
+
+  fprintf (stderr, "    Config.db_write_buffer_size     : %dKB\n", db_write_buffer_size_);
+  fprintf (stderr, "    Config.db_max_write_buffer      : %dKB\n", db_max_write_buffer_);
+  fprintf (stderr, "    Config.db_target_file_size_base : %dKB\n", db_target_file_size_base_);
+  fprintf (stderr, "    Config.db_max_open_files        : %d\n", db_max_open_files_);
+  fprintf (stderr, "    Config.db_block_size            : %dKB\n", db_block_size_);
+  fprintf (stderr, "    Config.slowlog_slower_than      : %d\n", slowlog_slower_than_);
+
+  fprintf (stderr, "    Config.floyd_check_leader_us            : %d\n", floyd_check_leader_us_);
+  fprintf (stderr, "    Config.floyd_heartbeat_us               : %d\n", floyd_heartbeat_us_);
+  fprintf (stderr, "    Config.floyd_append_entries_size_once_  : %d\n", floyd_append_entries_size_once_);
+  fprintf (stderr, "    Config.floyd_append_entries_count_once_ : %d\n", floyd_append_entries_count_once_);
 }
 
 int ZpConf::Load(const std::string& path) {
@@ -97,6 +108,9 @@ int ZpConf::Load(const std::string& path) {
   ret = conf_reader.GetConfInt("sync_send_thread_num", &sync_send_thread_num_);
   ret = conf_reader.GetConfInt("max_background_flushes", &max_background_flushes_);
   ret = conf_reader.GetConfInt("max_background_compactions", &max_background_compactions_);
+  ret = conf_reader.GetConfInt("binlog_remain_days", &binlog_remain_days_);
+  ret = conf_reader.GetConfInt("binlog_remain_min_count", &binlog_remain_min_count_);
+  ret = conf_reader.GetConfInt("binlog_remain_max_count", &binlog_remain_max_count_);
   ret = conf_reader.GetConfInt("db_write_buffer_size", &db_write_buffer_size_);
   ret = conf_reader.GetConfInt("db_max_write_buffer", &db_max_write_buffer_);
   ret = conf_reader.GetConfInt("db_target_file_size_base", &db_target_file_size_base_);
@@ -127,6 +141,11 @@ int ZpConf::Load(const std::string& path) {
   sync_send_thread_num_ = BoundaryLimit(sync_send_thread_num_, 1, 100);
   max_background_flushes_ = BoundaryLimit(max_background_flushes_, 10, 100);
   max_background_compactions_ = BoundaryLimit(max_background_compactions_, 10, 100);
+  binlog_remain_days_ = BoundaryLimit(binlog_remain_days_, 0, 30);
+  binlog_remain_min_count_ = BoundaryLimit(binlog_remain_min_count_, 10, 60);
+  binlog_remain_max_count_ = BoundaryLimit(binlog_remain_max_count_, 10, 60);
+  binlog_remain_min_count_ = binlog_remain_min_count_ > binlog_remain_max_count_ ?
+    binlog_remain_max_count_ : binlog_remain_min_count_;
   slowlog_slower_than_ = BoundaryLimit(slowlog_slower_than_, -1, 10000000);
   db_write_buffer_size_ = BoundaryLimit(db_write_buffer_size_, 4 * 1024, 10 * 1024 * 1024); // 4M ~ 10G
   db_max_write_buffer_ = BoundaryLimit(db_max_write_buffer_, 1024 * 1024, 500 * 1024 * 1024); // 1G ~ 500G

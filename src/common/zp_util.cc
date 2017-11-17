@@ -32,10 +32,9 @@ void create_pid_file() {
 
   size_t pos = path.find_last_of('/');
   if (pos != std::string::npos) {
-    // mkpath(path.substr(0, pos).c_str(), 0755);
     slash::CreateDir(path.substr(0, pos));
   } else {
-    path = kZpPidFile;
+    path = g_zp_conf->log_path() + "/" + kZpPidFile;
   }
 
   FILE *fp = fopen(path.c_str(), "w");

@@ -1178,21 +1178,23 @@ bool Partition::PurgeFiles(uint32_t to, bool manual) {
     return false;
   }
 
-  if (binlogs.size() <= kBinlogRemainMinCount) {
+  if (static_cast<int>(binlogs.size()) <=
+      g_zp_conf->binlog_remain_min_count()) {
     // No need purge
     return true;
   }
 
   int delete_num = 0;
   struct stat file_stat;
-  int remain_expire_num = binlogs.size() - kBinlogRemainMaxCount;
+  int remain_expire_num = binlogs.size() - g_zp_conf->binlog_remain_max_count();
   std::map<uint32_t, std::string>::iterator it;
 
   for (it = binlogs.begin(); it != binlogs.end(); ++it) {
     if ((manual && it->first <= to) ||           // Argument bound
         remain_expire_num > 0 ||                 // Expire num trigger
         (stat(((log_path_ + it->second)).c_str(), &file_stat) == 0 &&
-         file_stat.st_mtime < time(NULL) - kBinlogRemainMaxDay*24*3600)) {  // Expire time trigger
+         file_stat.st_mtime <
+         time(NULL) - g_zp_conf->binlog_remain_days()*24*3600)) {  // Expire time trigger
       // We check this every time to avoid lock when we do file deletion
       if (!CouldPurge(it->first)) {
         return false;
