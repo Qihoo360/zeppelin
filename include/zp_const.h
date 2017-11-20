@@ -86,4 +86,7 @@ const int kMetaLeaderLockTimeout = 5;
 const int kMetaLeaderTimeout = 60;
 const int kMetaLeaderRemainThreshold = 10; // Should large than kMetaCronInterval * kMetaCronWaitCount
 
+const int kMetaOffsetStuckDist =  1024 * 100;  // when begin to stuck parititon, should small than kBinlogSize
+const int kSlowdownDelayRatio = 60;  // Percent of write request to delay
+
 #endif  // INCLUDE_ZP_CONST_H_

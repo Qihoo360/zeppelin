@@ -880,14 +880,19 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
     return;
   }
 
-  if (cmd->is_write() && pstate_ == ZPMeta::PState::STUCK) {
+  if (cmd->is_write()
+      && (pstate_ == ZPMeta::PState::STUCK
+        || (pstate_ == ZPMeta::PState::SLOWDOWN
+          && slash::NowMicros() % 100 > kSlowdownDelayRatio))) {
+    // Have some chance survive, about 1 - kSlowdownDelayRatio%
+
     res->set_type(req.type());
     res->set_code(client::StatusCode::kWait);
-    res->set_msg("partition stucked");
+    res->set_msg("partition slowdown or stuck");
 
-    DLOG(WARNING) << "Partition Stuck, failed to DoCommand  at table: "
-      << table_name_ << ", Partition: " << partition_id_
-      << " Role:" << RoleMsg[role_] << " ParititionState:"
+    DLOG(WARNING) << "Partition Slowdown or Stuck, failed to DoCommand"
+      << ", Table: " << table_name_ << ", Partition: " << partition_id_
+      << ", Role:" << RoleMsg[role_] << " ParititionState:"
       << static_cast<int>(pstate_);
     return;
   }

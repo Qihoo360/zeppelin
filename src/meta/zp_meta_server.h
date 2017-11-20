@@ -13,7 +13,6 @@
 // limitations under the License.
 #ifndef SRC_META_ZP_META_SERVER_H_
 #define SRC_META_ZP_META_SERVER_H_
-
 #include <stdio.h>
 #include <string>
 #include <unordered_map>
@@ -33,8 +32,9 @@
 #include "src/meta/zp_meta_client_conn.h"
 #include "src/meta/zp_meta_info_store.h"
 
-using slash::Status;
 extern ZpConf* g_zp_conf;
+
+using slash::Status;
 typedef std::unordered_map<std::string, struct timeval> NodeAliveMap;
 
 class ZPMetaUpdateThread;
@@ -191,6 +191,8 @@ class ZPMetaServer  {
   ZPMetaInfoStore* info_store_;
   void CheckNodeAlive();
   bool TableExist(const std::string& table);
+  Status SlowdownAndStuck(const std::string table, int partition,
+      const ZPMeta::Node& left, const ZPMeta::Node& right);
 
   // Migrate related
   ZPMetaMigrateRegister* migrate_register_;

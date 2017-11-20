@@ -37,8 +37,9 @@ enum ZPMetaUpdateOP : unsigned int {
   kOpRemoveSlave,
   kOpHandover,  // Replace one node by another with the same role
   kOpSetMaster,
+  kOpSetActive,  // ACTIVE the partition
   kOpSetStuck,  // Stuck the partition
-  kOpSetActive  // ACTIVE the partition
+  kOpSetSlowdown  // Slowdown the partition
 };
 
 const int MAX_ARGS = 8;

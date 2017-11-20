@@ -26,6 +26,7 @@ enum Type {
 enum PState {
   ACTIVE = 1;
   STUCK = 2;
+  SLOWDOWN = 3;
 }
 
 enum NodeState {

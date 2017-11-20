@@ -270,7 +270,7 @@ Status ZPMetaInfoStoreSnap::AddTable(const ZPMeta::Table& table) {
 
 // Set stuck if to_stuck is true, otherwise set alive
 Status ZPMetaInfoStoreSnap::ChangePState(const std::string& table,
-    int partition, bool to_stuck) {
+    int partition, const ZPMeta::PState& target_s) {
   if (tables_.find(table) == tables_.end()) {
     return Status::NotFound("Table not exist");
   }
@@ -280,17 +280,12 @@ Status ZPMetaInfoStoreSnap::ChangePState(const std::string& table,
     return Status::NotFound("Partition not exist");
   }
   
-  if (to_stuck ==
-      (pptr->state() == ZPMeta::PState::STUCK)) {
+  if (pptr->state() == target_s) {
     // No changed
     return Status::OK();
   }
 
-  if (to_stuck) {
-    pptr->set_state(ZPMeta::PState::STUCK);
-  } else {
-    pptr->set_state(ZPMeta::PState::ACTIVE);
-  }
+  pptr->set_state(target_s);
   table_changed_[table] = true;
   return Status::OK();
 }

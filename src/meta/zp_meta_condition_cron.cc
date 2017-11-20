@@ -70,11 +70,11 @@ void ZPMetaConditionCron::CronFunc(void *p) {
 bool ZPMetaConditionCron::RecoverWhenError(const OffsetCondition& condition) {
   Status s = Status::OK();
   UpdateTask task;
-  switch (condition.type) {
-    case ConditionTaskType::kMigrate:
+  switch (condition.error_tag) {
+    case ConditionErrorTag::kRecoverMigrate:
       migrate_->PutN(1);
       // Notice: no break here
-    case ConditionTaskType::kSetMaster:
+    case ConditionErrorTag::kRecoverActive:
       task.op = kOpSetActive;
       task.print_args_text = [condition]() {
         std::ostringstream out;
@@ -124,9 +124,30 @@ bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
     return RecoverWhenError(condition);
   }
 
-  if (left_offset != right_offset) {
-    // Not yet equal
-    return false;
+  // Check condition
+  switch (condition.type) {
+    case ConditionType::kCloseToNotEqual:
+      if (left_offset.filenum != right_offset.filenum
+          || (left_offset.offset - right_offset.offset
+            > kMetaOffsetStuckDist)) {
+        return false;  // Not yet
+      } else if (left_offset <= right_offset) {
+        // We miss the condition, just abandon it
+        return RecoverWhenError(condition);
+      }
+      break; // Met ClostToNotEqual here
+    case ConditionType::kEqual:
+      if (left_offset != right_offset) {
+        return false;  // Not yet
+      }
+      break; // Met Equal here
+    default:
+      LOG(WARNING) << "ConditionCron unknown ConditionType: "
+        << static_cast<int>(condition.type)
+        << ", table: " << condition.table
+        << ", partition: " << condition.partition_id
+        << ", right: " << condition.right.ip() << ":" << condition.right.port();
+      return RecoverWhenError(condition);
   }
 
   // Met the condition

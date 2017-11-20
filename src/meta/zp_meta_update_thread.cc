@@ -159,15 +159,23 @@ Status ZPMetaUpdateThread::ApplyUpdates(
         table_name = cur_task.sargs[0];
         s = info_store_snap.RemoveTable(table_name);
         break;
-      case ZPMetaUpdateOP::kOpSetStuck:
-        table_name = cur_task.sargs[0];
-        partition = cur_task.iargs[0];
-        s = info_store_snap.ChangePState(table_name, partition, true);
-        break;
       case ZPMetaUpdateOP::kOpSetActive:
         table_name = cur_task.sargs[0];
         partition = cur_task.iargs[0];
-        s = info_store_snap.ChangePState(table_name, partition, false);
+        s = info_store_snap.ChangePState(table_name, partition,
+            ZPMeta::PState::ACTIVE);
+        break;
+      case ZPMetaUpdateOP::kOpSetStuck:
+        table_name = cur_task.sargs[0];
+        partition = cur_task.iargs[0];
+        s = info_store_snap.ChangePState(table_name, partition,
+            ZPMeta::PState::STUCK);
+        break;
+      case ZPMetaUpdateOP::kOpSetSlowdown:
+        table_name = cur_task.sargs[0];
+        partition = cur_task.iargs[0];
+        s = info_store_snap.ChangePState(table_name, partition,
+            ZPMeta::PState::SLOWDOWN);
         break;
       default:
         s = Status::Corruption("Unknown task type");

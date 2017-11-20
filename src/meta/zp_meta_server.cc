@@ -354,6 +354,56 @@ Status ZPMetaServer::RemoveNodes(
   return Status::OK();
 }
 
+// Invoke when SetMaster or Migrate
+// Slowdown the partition and
+// set condition task to stuck the parition when offset catching up
+Status ZPMetaServer::SlowdownAndStuck(const std::string table, int partition,
+    const ZPMeta::Node& left, const ZPMeta::Node& right) {
+  UpdateTask task_slowdown, task_stuck;
+
+  // Slow down partition
+  task_slowdown.op = kOpSetSlowdown;
+  task_slowdown.print_args_text = [table, partition]() {
+    std::ostringstream out;
+    out << "task: SetSlowdown, table: " << table
+      << ", partition: " << partition;
+    return out.str();
+  };
+  task_slowdown.sargs[0] = table;
+  task_slowdown.iargs[0] = partition;
+  Status s = update_thread_->PendingUpdate(task_slowdown);
+  if (!s.ok()) {
+    LOG(WARNING) << "SetMaster pending Slowdown failed: " << s.ToString();
+    return s;
+  }
+
+  // Wait and set stuck
+  task_stuck.op = kOpSetStuck;
+  task_stuck.print_args_text = [table, partition]() {
+    std::ostringstream out;
+    out << "task: SetStuck, table: " << table
+      << ", partition: " << partition;
+    return out.str();
+  };
+  task_stuck.sargs[0] = table;
+  task_stuck.iargs[0] = partition;
+  std::vector<UpdateTask> updates_stuck = {
+    task_stuck,  // Handover from old node to new
+  };
+
+  condition_cron_->AddCronTask(
+      OffsetCondition(
+        ConditionType::kCloseToNotEqual,
+        table,
+        partition,
+        left,
+        right,
+        ConditionErrorTag::kRecoverNone
+        ),
+      updates_stuck);
+  return Status::OK();
+}
+
 Status ZPMetaServer::WaitSetMaster(const ZPMeta::Node& node,
     const std::string table, int partition) {
   // Check node is slave
@@ -367,62 +417,51 @@ Status ZPMetaServer::WaitSetMaster(const ZPMeta::Node& node,
     return s;
   }
 
-  UpdateTask task1, task2, task3;
-
-  // Stuck partition
-  task1.op = kOpSetStuck;
-  task1.print_args_text = [table, partition]() {
-    std::ostringstream out;
-    out << "task: SetStuck, table: " << table
-        << ", partition: " << partition;
-    return out.str();
-  };
-  task1.sargs[0] = table;
-  task1.iargs[0] = partition;
-
-  s = update_thread_->PendingUpdate(task1);
+  // Slowdown and wait to stuck
+  s = SlowdownAndStuck(table, partition, master, node);
   if (!s.ok()) {
-    LOG(WARNING) << "Pending task failed, " << s.ToString() << ", "
-      << task1.print_args_text();
     return s;
   }
 
   // SetMaster when current node catched up with the master
-  task2.op = kOpSetMaster;
-  task2.print_args_text = [table, partition, node]() {
+  UpdateTask task_master, task_active;
+  task_master.op = kOpSetMaster;
+  task_master.print_args_text = [table, partition, node]() {
     std::ostringstream out;
     out << "task: SetMaster"
-        << ", table: " << table
-        << ", partition: " << partition
-        << ", target: " << node.ip() << ":" << node.port();
+      << ", table: " << table
+      << ", partition: " << partition
+      << ", target: " << node.ip() << ":" << node.port();
     return out.str();
   };
-  task2.sargs[0] = slash::IpPortString(node.ip(), node.port());
-  task2.sargs[1] = table;
-  task2.iargs[0] = partition;
+  task_master.sargs[0] = slash::IpPortString(node.ip(), node.port());
+  task_master.sargs[1] = table;
+  task_master.iargs[0] = partition;
 
-  task3.op = kOpSetActive;
-  task3.print_args_text = [table, partition]() {
+  task_active.op = kOpSetActive;
+  task_active.print_args_text = [table, partition]() {
     std::ostringstream out;
     out << "task: SetActive, table: " << table
-        << ", partition: " << partition;
+      << ", partition: " << partition;
     return out.str();
   };
-  task3.sargs[0] = table;
-  task3.iargs[0] = partition;
+  task_active.sargs[0] = table;
+  task_active.iargs[0] = partition;
 
   std::vector<UpdateTask> updates = {
-    task2,  // Handover from old node to new
-    task3,  // Recover Active
+    task_master,  // Handover from old node to new
+    task_active,  // Recover Active
   };
 
   condition_cron_->AddCronTask(
       OffsetCondition(
-        ConditionTaskType::kSetMaster,
+        ConditionType::kEqual,
         table,
         partition,
         master,
-        node),
+        node,
+        ConditionErrorTag::kRecoverActive
+        ),
         updates);
 
   return Status::OK();
@@ -574,10 +613,10 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
     const std::string& table_name = diff.table();
     int partition = diff.partition();
 
-    UpdateTask task1, task2, task3, task4;
+    UpdateTask task_slave, task_slowdown, task_stuck, task_handover, task_active;
     // Add Slave
-    task1.op = kOpAddSlave;
-    task1.print_args_text = [table_name, partition, right_node]() {
+    task_slave.op = kOpAddSlave;
+    task_slave.print_args_text = [table_name, partition, right_node]() {
       std::ostringstream out;
       out << "task: AddSlave"
           << ", table: " << table_name
@@ -585,33 +624,25 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
           << ", target: " << right_node.ip() << ":" << right_node.port();
       return out.str();
     };
-    task1.sargs[0] = slash::IpPortString(right_node.ip(), right_node.port());
-    task1.sargs[1] = table_name;
-    task1.iargs[0] = partition;
-    s = update_thread_->PendingUpdate(task1);
-
-    // Stuck partition
-    task2.op = kOpSetStuck;
-    task2.print_args_text = [table_name, partition]() {
-      std::ostringstream out;
-      out << "task: SetStuck, table: " << table_name
-          << ", partition: " << partition;
-      return out.str();
-    };
-    task2.sargs[0] = table_name;
-    task2.iargs[0] = partition;
-    if (s.ok()) {
-      s = update_thread_->PendingUpdate(task2);
-    }
-
+    task_slave.sargs[0] = slash::IpPortString(right_node.ip(), right_node.port());
+    task_slave.sargs[1] = table_name;
+    task_slave.iargs[0] = partition;
+    s = update_thread_->PendingUpdate(task_slave);
     if (!s.ok()) {
-      LOG(WARNING) << "Pending migrate item failed: " << s.ToString();
+      LOG(WARNING) << "Migrate pending Addslave failed: " << s.ToString();
       break;
     }
 
-    // Begin offset condition wait
-    task3.op = kOpHandover;
-    task3.print_args_text = [left_node, right_node, table_name, partition]() {
+    // Slowdown and wait to stuck
+    s = SlowdownAndStuck(table_name, partition, left_node, right_node);
+    if (!s.ok()) {
+      LOG(WARNING) << "Migrate SlowdownAndStuck failed: " << s.ToString();
+      break;
+    }
+
+    // Wait and handover
+    task_handover.op = kOpHandover;
+    task_handover.print_args_text = [left_node, right_node, table_name, partition]() {
       std::ostringstream out;
       out << "task: Handover, table: " << table_name
           << ", partition: " << partition
@@ -619,33 +650,35 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
           << ", right: " << right_node.ip() << ":" << right_node.port();
       return out.str();
     };
-    task3.sargs[0] = slash::IpPortString(left_node.ip(), left_node.port());
-    task3.sargs[1] = slash::IpPortString(right_node.ip(), right_node.port());
-    task3.sargs[2] = table_name;
-    task3.iargs[0] = partition;
+    task_handover.sargs[0] = slash::IpPortString(left_node.ip(), left_node.port());
+    task_handover.sargs[1] = slash::IpPortString(right_node.ip(), right_node.port());
+    task_handover.sargs[2] = table_name;
+    task_handover.iargs[0] = partition;
 
-    task4.op = kOpSetActive;
-    task4.print_args_text = [table_name, partition]() {
+    task_active.op = kOpSetActive;
+    task_active.print_args_text = [table_name, partition]() {
       std::ostringstream out;
       out << "task: SetActive, table: " << table_name
           << ", partition: " << partition;
       return out.str();
     };
-    task4.sargs[0] = table_name;
-    task4.iargs[0] = partition;
-    std::vector<UpdateTask> updates = {
-      task3,  // Handover from old node to new
-      task4,  // Recover Active
+    task_active.sargs[0] = table_name;
+    task_active.iargs[0] = partition;
+    std::vector<UpdateTask> updates_handover = {
+      task_handover,  // Handover from old node to new
+      task_active,  // Recover Active
     };
 
     condition_cron_->AddCronTask(
         OffsetCondition(
-          ConditionTaskType::kMigrate,
+          ConditionType::kEqual,
           table_name,
           partition,
           left_node,
-          right_node),
-          updates);
+          right_node,
+          ConditionErrorTag::kRecoverMigrate
+          ),
+          updates_handover);
   }
 }
 
