@@ -16,10 +16,12 @@
 #include <string>
 #include <vector>
 #include "pink/include/bg_thread.h"
+#include "include/zp_conf.h"
 #include "src/meta/zp_meta.pb.h"
 #include "src/meta/zp_meta_update_thread.h"
 #include "src/meta/zp_meta_info_store.h"
 
+extern ZpConf* g_zp_conf;
 enum ConditionType {
   kEqual = 0,
   kCloseToNotEqual,

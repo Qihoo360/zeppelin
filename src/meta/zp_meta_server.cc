@@ -612,8 +612,8 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
     const ZPMeta::Node& left_node = diff.left();
     const std::string& table_name = diff.table();
     int partition = diff.partition();
-
-    UpdateTask task_slave, task_slowdown, task_stuck, task_handover, task_active;
+    
+    UpdateTask task_slave, task_handover, task_active;
     // Add Slave
     task_slave.op = kOpAddSlave;
     task_slave.print_args_text = [table_name, partition, right_node]() {
@@ -669,6 +669,11 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
       task_active,  // Recover Active
     };
 
+    // Compare offset between origin and target node,
+    // rather than current master and target node.
+    // since the master may changed during the wait process,
+    // which may make us compound to dangerous level
+    // when we just catch up a slave but replace a master
     condition_cron_->AddCronTask(
         OffsetCondition(
           ConditionType::kEqual,

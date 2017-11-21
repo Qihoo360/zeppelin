@@ -883,8 +883,9 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
   if (cmd->is_write()
       && (pstate_ == ZPMeta::PState::STUCK
         || (pstate_ == ZPMeta::PState::SLOWDOWN
-          && slash::NowMicros() % 100 > kSlowdownDelayRatio))) {
-    // Have some chance survive, about 1 - kSlowdownDelayRatio%
+          && slash::NowMicros() % 100 > static_cast<uint64_t>(
+            g_zp_conf->slowdown_delay_radio())))) {
+    // Have some chance survive, about 1 - slowdown_delay_radio
 
     res->set_type(req.type());
     res->set_code(client::StatusCode::kWait);

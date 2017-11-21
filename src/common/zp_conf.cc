@@ -32,6 +32,8 @@ ZpConf::ZpConf() {
   db_max_open_files_ = 4096;
   db_block_size_ = 16; // 16K
   slowlog_slower_than_ = -1;
+  stuck_offset_dist_ = 10 * 1024;
+  slowdown_delay_radio_ = 60;
   floyd_check_leader_us_ = 15000000;
   floyd_heartbeat_us_ = 6000000;
   floyd_append_entries_size_once_ = 1024000;
@@ -69,6 +71,8 @@ void ZpConf::Dump() const {
   fprintf (stderr, "    Config.db_max_open_files   : %d\n", db_max_open_files_);
   fprintf (stderr, "    Config.db_block_size   : %dKB\n", db_block_size_);
   fprintf (stderr, "    Config.slowlog_slower_than   : %d\n", slowlog_slower_than_);
+  fprintf (stderr, "    Config.stuck_offset_dist   : %d\n", stuck_offset_dist_);
+  fprintf (stderr, "    Config.slowdown_delay_radio   : %d\n", slowdown_delay_radio_);
   fprintf (stderr, "    Config.floyd_check_leader_us   : %d\n", floyd_check_leader_us_);
   fprintf (stderr, "    Config.floyd_heartbeat_us   : %d\n", floyd_heartbeat_us_);
   fprintf (stderr, "    Config.floyd_append_entries_size_once_   : %d\n", floyd_append_entries_size_once_);
@@ -103,6 +107,8 @@ int ZpConf::Load(const std::string& path) {
   ret = conf_reader.GetConfInt("db_max_open_files", &db_max_open_files_);
   ret = conf_reader.GetConfInt("db_block_size", &db_block_size_);
   ret = conf_reader.GetConfInt("slowlog_slower_than", &slowlog_slower_than_);
+  ret = conf_reader.GetConfInt("stuck_offset_dist", &stuck_offset_dist_);
+  ret = conf_reader.GetConfInt("slowdown_delay_radio", &slowdown_delay_radio_);
   ret = conf_reader.GetConfInt("floyd_check_leader_us", &floyd_check_leader_us_);
   ret = conf_reader.GetConfInt("floyd_heartbeat_us", &floyd_heartbeat_us_);
   ret = conf_reader.GetConfInt("floyd_append_entries_size_once", &floyd_append_entries_size_once_);
@@ -128,6 +134,8 @@ int ZpConf::Load(const std::string& path) {
   max_background_flushes_ = BoundaryLimit(max_background_flushes_, 10, 100);
   max_background_compactions_ = BoundaryLimit(max_background_compactions_, 10, 100);
   slowlog_slower_than_ = BoundaryLimit(slowlog_slower_than_, -1, 10000000);
+  stuck_offset_dist_ = BoundaryLimit(stuck_offset_dist_, 1, 100 * 1024 * 1024);
+  slowdown_delay_radio_ = BoundaryLimit(slowdown_delay_radio_, 1, 100);
   db_write_buffer_size_ = BoundaryLimit(db_write_buffer_size_, 4 * 1024, 10 * 1024 * 1024); // 4M ~ 10G
   db_max_write_buffer_ = BoundaryLimit(db_max_write_buffer_, 1024 * 1024, 500 * 1024 * 1024); // 1G ~ 500G
   db_target_file_size_base_ = BoundaryLimit(db_target_file_size_base_, 4 * 1024, 10 * 1024 * 1024); // 4M ~ 10G

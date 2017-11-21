@@ -129,7 +129,7 @@ bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
     case ConditionType::kCloseToNotEqual:
       if (left_offset.filenum != right_offset.filenum
           || (left_offset.offset - right_offset.offset
-            > kMetaOffsetStuckDist)) {
+            > g_zp_conf->stuck_offset_dist())) {
         return false;  // Not yet
       } else if (left_offset <= right_offset) {
         // We miss the condition, just abandon it
