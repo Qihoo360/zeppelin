@@ -197,6 +197,18 @@ void MgetCmd::Do(const google::protobuf::Message *req,
   response->set_code(client::StatusCode::kOk);
 }
 
+static std::string FormatLatency(const Statistic& stat) {
+  // latency ms
+  char buf[256];
+  snprintf(buf, 256, "read max latency: %lu ms\nread avg latency: %lu ms\n"
+           "read min latency: %lu ms\nwrite max latency: %lu ms\n"
+           "write avg latency: %lu ms\nwrite min latency: %lu ms",
+           stat.read_max_latency, stat.read_avg_latency,
+           stat.read_min_latency, stat.write_max_latency,
+           stat.write_avg_latency, stat.write_min_latency);
+  return std::string(buf);
+}
+
 void InfoCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* p) const {
   const client::CmdRequest* request =
@@ -222,6 +234,7 @@ void InfoCmd::Do(const google::protobuf::Message *req,
         info_stat->set_table_name(it->table_name);
         info_stat->set_total_querys(it->querys);
         info_stat->set_qps(it->last_qps);
+        info_stat->set_latency_info(FormatLatency(*it));
       }
       break;
     }

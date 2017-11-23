@@ -32,10 +32,9 @@ void create_pid_file() {
 
   size_t pos = path.find_last_of('/');
   if (pos != std::string::npos) {
-    // mkpath(path.substr(0, pos).c_str(), 0755);
     slash::CreateDir(path.substr(0, pos));
   } else {
-    path = kZpPidFile;
+    path = g_zp_conf->log_path() + "/" + kZpPidFile;
   }
 
   FILE *fp = fopen(path.c_str(), "w");
@@ -61,12 +60,37 @@ FileLocker::~FileLocker() {
 }
 
 Statistic::Statistic()
-  : last_querys(0), querys(0), last_qps(0), used_disk(0), free_disk(0) {}
+    : last_querys(0),
+      querys(0),
+      last_qps(0),
+      used_disk(0),
+      free_disk(0),
+      read_queries(0),
+      write_queries(0),
+      read_max_latency(0),
+      read_avg_latency(0),
+      read_min_latency(0),
+      write_max_latency(0),
+      write_avg_latency(0),
+      write_min_latency(0) {
+}
 
 Statistic::Statistic(const Statistic& stat)
-  : table_name(stat.table_name),
-    last_querys(stat.last_querys), querys(stat.querys), last_qps(stat.last_qps),
-    used_disk(stat.used_disk), free_disk(stat.free_disk) {}
+    : table_name(stat.table_name),
+      last_querys(stat.last_querys),
+      querys(stat.querys),
+      last_qps(stat.last_qps),
+      used_disk(stat.used_disk),
+      free_disk(stat.free_disk),
+      read_queries(stat.read_queries),
+      write_queries(stat.write_queries),
+      read_max_latency(stat.read_max_latency),
+      read_avg_latency(stat.read_avg_latency),
+      read_min_latency(stat.read_min_latency),
+      write_max_latency(stat.write_max_latency),
+      write_avg_latency(stat.write_avg_latency),
+      write_min_latency(stat.write_min_latency) {
+}
 
 void Statistic::Reset() {
   table_name.clear();
@@ -75,6 +99,14 @@ void Statistic::Reset() {
   last_qps = 0;
   used_disk = 0;
   free_disk = 0;
+  read_queries = 0;
+  write_queries = 0;
+  read_max_latency = 0;
+  read_avg_latency = 0;
+  read_min_latency = 0;
+  write_max_latency = 0;
+  write_avg_latency = 0;
+  write_min_latency = 0;
 }
 
 void Statistic::Add(const Statistic& stat) {

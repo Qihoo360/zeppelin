@@ -99,6 +99,18 @@ class ZpConf {
     RWLock l(&rwlock_, false);
     return max_background_compactions_;
   }
+  int binlog_remain_days() {
+    RWLock l(&rwlock_, false);
+    return binlog_remain_days_;
+  }
+  int binlog_remain_min_count() {
+    RWLock l(&rwlock_, false);
+    return binlog_remain_min_count_;
+  }
+  int binlog_remain_max_count() {
+    RWLock l(&rwlock_, false);
+    return binlog_remain_max_count_;
+  }
   int slowlog_slower_than() {
     RWLock l(&rwlock_, false);
     return slowlog_slower_than_;
@@ -172,6 +184,11 @@ class ZpConf {
   int sync_send_thread_num_;
   int max_background_flushes_;
   int max_background_compactions_;
+
+  // Binlog related
+  int binlog_remain_days_;
+  int binlog_remain_min_count_;
+  int binlog_remain_max_count_;
 
   // DB
   int db_write_buffer_size_; // KB

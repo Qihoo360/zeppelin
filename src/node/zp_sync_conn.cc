@@ -126,7 +126,7 @@ int ZPSyncConn::DealMessage() {
       << ", table=" << table_name
       << " key=" << cmd->ExtractKey(&crequest);
 
-    zp_data_server->PlusStat(StatType::kSync, table_name);
+    zp_data_server->PlusQueryStat(StatType::kSync, table_name);
 
     int partition_id = cmd->ExtractPartition(&crequest);
     if (partition_id < 0) {

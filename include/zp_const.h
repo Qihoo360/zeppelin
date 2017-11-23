@@ -6,8 +6,8 @@
 #define dxstr(a) dstr(a)
 const std::string kZPVersion = dxstr(_GITVER_);
 const std::string kZPCompileDate = dxstr(_COMPILEDATE_);
-const std::string kZpPidFile = "zp.pid";
-const std::string kZpLockFile = "zp.lock";
+const std::string kZpPidFile = "pid";
+const std::string kZpLockFile = "lock";
 
 /* Port shift */
 const int kPortShiftSync = 200;

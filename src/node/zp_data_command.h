@@ -20,7 +20,7 @@
 ////// kv ///// /
 class SetCmd : public Cmd  {
  public:
-  explicit SetCmd(int flag) : Cmd(flag) {}
+  explicit SetCmd(int flag) : Cmd(flag, kSetCmd) {}
   virtual std::string name() const {
     return "Set";
   }
@@ -42,7 +42,7 @@ class SetCmd : public Cmd  {
 
 class GetCmd : public Cmd  {
  public:
-  explicit GetCmd(int flag) : Cmd(flag) {}
+  explicit GetCmd(int flag) : Cmd(flag, kGetCmd) {}
   virtual std::string name() const {
     return "Get";
   }
@@ -62,7 +62,7 @@ class GetCmd : public Cmd  {
 
 class DelCmd : public Cmd  {
  public:
-  explicit DelCmd(int flag) : Cmd(flag) {}
+  explicit DelCmd(int flag) : Cmd(flag, kDelCmd) {}
   virtual std::string name() const {
     return "Del";
   }
@@ -83,7 +83,7 @@ class DelCmd : public Cmd  {
 ////// Info Cmds //// /
 class InfoCmd : public Cmd  {
  public:
-  explicit InfoCmd(int flag) : Cmd(flag) {}
+  explicit InfoCmd(int flag) : Cmd(flag, kInfoCmd) {}
   virtual std::string name() const {
     return "Info";
   }
@@ -102,7 +102,7 @@ class InfoCmd : public Cmd  {
 ////// Sync ///// /
 class SyncCmd : public Cmd  {
  public:
-  explicit SyncCmd(int flag) : Cmd(flag) {}
+  explicit SyncCmd(int flag) : Cmd(flag, kSyncCmd) {}
   virtual std::string name() const {
     return "Sync";
   }
@@ -122,7 +122,7 @@ class SyncCmd : public Cmd  {
 
 class MgetCmd : public Cmd  {
  public:
-  explicit MgetCmd(int flag) : Cmd(flag) {}
+  explicit MgetCmd(int flag) : Cmd(flag, kMgetCmd) {}
   virtual std::string name() const {
     return "Mget";
   }
@@ -137,7 +137,7 @@ class MgetCmd : public Cmd  {
 
 class FlushDBCmd : public Cmd  {
  public:
-  explicit FlushDBCmd(int flag) : Cmd(flag) {}
+  explicit FlushDBCmd(int flag) : Cmd(flag, kFlushDBCmd) {}
   virtual std::string name() const {
     return "FlushDB";
   }

@@ -44,6 +44,16 @@ struct Statistic {
   uint64_t used_disk;
   uint64_t free_disk;  // not used for now
 
+  uint64_t read_queries;
+  uint64_t write_queries;
+  // latency ms
+  size_t read_max_latency;
+  size_t read_avg_latency;
+  size_t read_min_latency;
+  size_t write_max_latency;
+  size_t write_avg_latency;
+  size_t write_min_latency;
+
   Statistic();
   Statistic(const Statistic& stat);
 
