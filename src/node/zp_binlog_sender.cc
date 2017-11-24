@@ -67,14 +67,20 @@ ZPBinlogSendTask::ZPBinlogSendTask(uint64_t seq, const std::string &table,
   pre_filenum_(0),
   pre_offset_(0),
   pre_has_content_(false),
-  binlog_filename_(binlog_prefix) {
+  binlog_filename_(binlog_prefix),
+  queue_(NULL),
+  reader_(NULL) {
     name_ = ZPBinlogSendTaskName(table, partition_id_, target);
     pre_content_.reserve(1024 * 1024);
   }
 
 ZPBinlogSendTask::~ZPBinlogSendTask() {
-  delete reader_;
-  delete queue_;
+  if (reader_) {
+    delete reader_;
+  }
+  if (queue_) {
+    delete queue_;
+  }
 }
 
 Status ZPBinlogSendTask::Init() {

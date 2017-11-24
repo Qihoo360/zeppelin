@@ -703,7 +703,7 @@ Status Partition::SetBinlogOffset(const BinlogOffset& target) {
   uint64_t actual_offset = 0;
   BinlogOffset old;
   Status s = logger_->SetProducerStatus(target.filenum, target.offset,
-      &actual_offset, &old.filenum, &old.offset);
+      &actual_offset, &old.filenum, &old.offset, &purged_index_);
   if (target.offset != actual_offset) {
     LOG(WARNING) << "SetBinlogOffset actual_offset small than expected"
       << ", expect:" << target.offset << ", actual_offset:" << actual_offset;

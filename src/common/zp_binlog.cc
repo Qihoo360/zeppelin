@@ -525,8 +525,10 @@ Status Binlog::RemoveBetween(int lbound, int rbound) {
 //    since we don't want to append any blank content into binlog
 //    instead of that, this could be fill by the subsequence sync
 // cur_num and cur_offset, return the old point
+// change start_num if needed
 Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset,
-    uint64_t* actual_offset, uint32_t* cur_num, uint64_t* cur_offset) {
+    uint64_t* actual_offset, uint32_t* cur_num, uint64_t* cur_offset,
+    uint32_t* start_num) {
   slash::MutexLock l(&mutex_);
   version_->Fetch(cur_num, cur_offset);
 
@@ -538,9 +540,13 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset,
   if (*cur_num < pro_num) {
     // delele all binlog before cur_num
     RemoveBetween(0, *cur_num);
+    *start_num = pro_num;
   } else if (*cur_num >= pro_num) {
     // delete all binlog between pro_num and cur_num
     RemoveBetween(pro_num, *cur_num);
+    if (pro_num < *start_num) {
+      *start_num = pro_num;
+    }
   }
 
   // Create binlog file
