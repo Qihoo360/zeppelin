@@ -860,6 +860,8 @@ void Partition::DoCommand(const Cmd* cmd, const client::CmdRequest &req,
     client::CmdResponse *res) {
   std::string key = cmd->ExtractKey(&req);
 
+  zp_data_server->PlusQueryStat(StatType::kClient, table_name_);
+
   slash::RWLock l(&state_rw_, false);
   if (!opened_
       || role_ != Role::kNodeMaster) {

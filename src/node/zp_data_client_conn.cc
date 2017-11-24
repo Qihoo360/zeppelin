@@ -68,8 +68,6 @@ int ZPDataClientConn::DealMessageInternal() {
     << ", table=" << cmd->ExtractTable(&request_)
     << " key=" << cmd->ExtractKey(&request_);
 
-  zp_data_server->PlusQueryStat(StatType::kClient, cmd->ExtractTable(&request_));
-
   if (!cmd->is_single_paritition()) {
     cmd->Do(&request_, &response_);
     return 0;
