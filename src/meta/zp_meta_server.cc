@@ -598,7 +598,8 @@ Status ZPMetaServer::CancelMigrate() {
 void ZPMetaServer::ProcessMigrateIfNeed() {
   // Get next
   std::vector<ZPMeta::RelationCmdUnit> diffs;
-  Status s = migrate_register_->GetN(kMetaMigrateOnceCount, &diffs);
+  int remain_diff_count = kMetaMigrateOnceCount;
+  Status s = migrate_register_->GetN(remain_diff_count, &diffs);
   if (!s.ok()) {
     if (!s.IsNotFound()) {
       LOG(WARNING) << "Get next N migrate diffs failed, error: "
@@ -651,12 +652,13 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
       break;
     }
 
-    // Assume right_node online
+    // Assume right_node online, if left node is offline, just hand over to
+    // right node instead of waiting its offset equal to right node
     NodeInfo info;
     if (!info_store_->GetNodeInfo(left_node, &info)) {
       LOG(ERROR) << "Unknow left_node: " <<
         left_node.ip() << ":" << left_node.port();
-      continue;
+      break;
     } else if (info.StateEqual(ZPMeta::NodeState::DOWN)) {
       s = update_thread_->PendingUpdate(task_handover);
       if (!s.ok()) {
@@ -664,6 +666,7 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
           << task_handover.print_args_text();
         break;
       }
+      remain_diff_count--;
       continue;
     }
 
@@ -705,6 +708,12 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
           ConditionErrorTag::kRecoverMigrate
           ),
           updates_handover);
+
+    remain_diff_count--;
+  }
+  // Something wrong happended, put reference back
+  if (!s.ok()) {
+    migrate_register_->PutN(remain_diff_count);
   }
 }
 
