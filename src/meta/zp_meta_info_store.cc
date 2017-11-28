@@ -586,6 +586,16 @@ bool ZPMetaInfoStore::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
   return true;
 }
 
+bool ZPMetaInfoStore::GetNodeInfo(const ZPMeta::Node& node, NodeInfo* info) {
+  slash::RWLock l(&nodes_rw_, false);
+  std::string n = slash::IpPortString(node.ip(), node.port());
+  if (node_infos_.find(n) == node_infos_.end()) {
+    return false;
+  }
+  *info = node_infos_.at(n);
+  return true;
+}
+
 void ZPMetaInfoStore::FetchExpiredNode(std::set<std::string>* nodes) {
   nodes->clear();
   slash::RWLock l(&nodes_rw_, false);

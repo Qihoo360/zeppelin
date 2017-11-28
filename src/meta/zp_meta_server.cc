@@ -319,13 +319,14 @@ Status ZPMetaServer::RemovePartitionSlave(const std::string& table, int pnum,
 
 Status ZPMetaServer::RemoveNodes(
     const ZPMeta::MetaCmd_RemoveNodes& remove_nodes_cmd) {
-  std::unordered_map<std::string, NodeInfo> node_infos;
-  info_store_->GetAllNodes(&node_infos);
+  // Sanitization check
   for (int i = 0; i < remove_nodes_cmd.nodes_size(); i++) {
     const ZPMeta::Node& node = remove_nodes_cmd.nodes(i);
-    std::string n = slash::IpPortString(node.ip(), node.port());
-    if (node_infos.find(n) != node_infos.end() &&
-        node_infos[n].StateEqual(ZPMeta::NodeState::UP)) {
+    NodeInfo info;
+    if (!info_store_->GetNodeInfo(node, &info)) {
+      return Status::Corruption("Cannot find removing node info");
+    }
+    if (info.StateEqual(ZPMeta::NodeState::UP)) {
       LOG(WARNING) << "Someone try remove node which is online";
       return Status::Corruption("Cannot remove online node");
     }
@@ -612,11 +613,11 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
     const ZPMeta::Node& left_node = diff.left();
     const std::string& table_name = diff.table();
     int partition = diff.partition();
-    
-    UpdateTask task_slave, task_handover, task_active;
-    // Add Slave
-    task_slave.op = kOpAddSlave;
-    task_slave.print_args_text = [table_name, partition, right_node]() {
+
+    // Add slave task
+    UpdateTask task_addslave, task_handover;
+    task_addslave.op = kOpAddSlave;
+    task_addslave.print_args_text = [table_name, partition, right_node]() {
       std::ostringstream out;
       out << "task: AddSlave"
           << ", table: " << table_name
@@ -624,23 +625,12 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
           << ", target: " << right_node.ip() << ":" << right_node.port();
       return out.str();
     };
-    task_slave.sargs[0] = slash::IpPortString(right_node.ip(), right_node.port());
-    task_slave.sargs[1] = table_name;
-    task_slave.iargs[0] = partition;
-    s = update_thread_->PendingUpdate(task_slave);
-    if (!s.ok()) {
-      LOG(WARNING) << "Migrate pending Addslave failed: " << s.ToString();
-      break;
-    }
+    task_addslave.sargs[0] =
+      slash::IpPortString(right_node.ip(), right_node.port());
+    task_addslave.sargs[1] = table_name;
+    task_addslave.iargs[0] = partition;
 
-    // Slowdown and wait to stuck
-    s = SlowdownAndStuck(table_name, partition, left_node, right_node);
-    if (!s.ok()) {
-      LOG(WARNING) << "Migrate SlowdownAndStuck failed: " << s.ToString();
-      break;
-    }
-
-    // Wait and handover
+    // Hand over task
     task_handover.op = kOpHandover;
     task_handover.print_args_text = [left_node, right_node, table_name, partition]() {
       std::ostringstream out;
@@ -655,6 +645,37 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
     task_handover.sargs[2] = table_name;
     task_handover.iargs[0] = partition;
 
+    s = update_thread_->PendingUpdate(task_addslave);
+    if (!s.ok()) {
+      LOG(WARNING) << "Migrate pending Addslave failed: " << s.ToString();
+      break;
+    }
+
+    // Assume right_node online
+    NodeInfo info;
+    if (!info_store_->GetNodeInfo(left_node, &info)) {
+      LOG(ERROR) << "Unknow left_node: " <<
+        left_node.ip() << ":" << left_node.port();
+      continue;
+    } else if (info.StateEqual(ZPMeta::NodeState::DOWN)) {
+      s = update_thread_->PendingUpdate(task_handover);
+      if (!s.ok()) {
+        LOG(WARNING) << "Migrate pending Handover failed, " << s.ToString() << ", "
+          << task_handover.print_args_text();
+        break;
+      }
+      continue;
+    }
+
+    // Slowdown and wait to stuck
+    s = SlowdownAndStuck(table_name, partition, left_node, right_node);
+    if (!s.ok()) {
+      LOG(WARNING) << "Migrate SlowdownAndStuck failed: " << s.ToString();
+      break;
+    }
+
+    // Wait and handover
+    UpdateTask task_active;
     task_active.op = kOpSetActive;
     task_active.print_args_text = [table_name, partition]() {
       std::ostringstream out;

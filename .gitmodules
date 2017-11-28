@@ -1,15 +1,15 @@
 [submodule "third/pink"]
 	path = third/pink
-	url = https://github.com/baotiao/pink.git
+	url = https://github.com/Qihoo360/pink.git
 [submodule "third/slash"]
 	path = third/slash
-	url = https://github.com/baotiao/slash.git
+	url = https://github.com/Qihoo360/slash.git
 [submodule "third/floyd"]
 	path = third/floyd
-	url = https://github.com/baotiao/floyd.git
+	url = https://github.com/Qihoo360/floyd.git
 [submodule "third/nemo-rocksdb"]
 	path = third/nemo-rocksdb
   url = https://github.com/Qihoo360/nemo-rocksdb.git
 [submodule "third/rocksdb"]
 	path = third/rocksdb
-	url = git@github.com:facebook/rocksdb.git
+	url = https://github.com/facebook/rocksdb.git

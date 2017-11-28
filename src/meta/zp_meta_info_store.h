@@ -109,6 +109,7 @@ class ZPMetaInfoStore   {
     Status RestoreNodeInfos();  // clean and refresh
     Status RefreshNodeInfos();
     bool UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping);
+    bool GetNodeInfo(const ZPMeta::Node& node, NodeInfo* info);
     void FetchExpiredNode(std::set<std::string>* nodes);
     void GetAllNodes(std::unordered_map<std::string, NodeInfo>* all_nodes);
     Status GetNodeOffset(const ZPMeta::Node& node,

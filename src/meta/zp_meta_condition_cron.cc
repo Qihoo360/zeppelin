@@ -169,4 +169,3 @@ bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
 
   return true;
 }
-
