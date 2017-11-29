@@ -127,6 +127,7 @@ class ZPMetaInfoStore   {
         int partition, const ZPMeta::Node& target);
     bool IsMaster(const std::string& table,
         int partition, const ZPMeta::Node& target);
+    bool PartitionExist(const std::string& table, int partition);
 
     // Interact with floyd
     Status Refresh();
@@ -140,6 +141,7 @@ class ZPMetaInfoStore   {
     pthread_rwlock_t tables_rw_;
     // table => ZPMeta::Table set
     std::unordered_map<std::string, ZPMeta::Table> table_info_;
+    bool PartitionExistNoLock(const std::string& table, int partition);
     // node => tables
     std::unordered_map<std::string, std::set<std::string> > node_table_;
     void NodesDebug();

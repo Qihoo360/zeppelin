@@ -254,9 +254,10 @@ Status ZPMetaServer::DropTable(const std::string& table) {
 Status ZPMetaServer::AddPartitionSlave(const std::string& table, int pnum,
     const ZPMeta::Node& target) {
   // Check node is already slave
-  if (info_store_->IsSlave(table, pnum, target)
+  if (!info_store_->PartitionExist(table, pnum)
+      || info_store_->IsSlave(table, pnum, target)
       || info_store_->IsMaster(table, pnum, target)) {
-    return Status::InvalidArgument("Partition not exist or Already exist");
+    return Status::InvalidArgument("Partition not exsit or Already exist");
   }
 
   UpdateTask task;
@@ -560,8 +561,9 @@ Status ZPMetaServer::GetMetaStatus(ZPMeta::MetaCmdResponse_MetaStatus* ms) {
 // Check whether node is response for specified partition
 bool ZPMetaServer::IsCharged(const std::string& table,
     int pnum, const ZPMeta::Node& target) {
-  return info_store_->IsSlave(table, pnum, target)
-    || info_store_->IsMaster(table, pnum, target);
+  return info_store_->PartitionExist(table, pnum)
+    && (info_store_->IsSlave(table, pnum, target)
+        || info_store_->IsMaster(table, pnum, target));
 }
 
 Status ZPMetaServer::GetTableList(std::set<std::string>* table_list) {

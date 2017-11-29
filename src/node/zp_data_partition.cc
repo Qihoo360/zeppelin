@@ -755,8 +755,8 @@ bool Partition::CheckSyncOption(const PartitionSyncOption& option,
     LOG(WARNING) << "Discard binlog item from " << option.from_node
       << ", is opened:" << opened_
       << ", partition:" << partition_id_
-      << ", my current role: " << static_cast<int>(role_)
-      << ", my current connection state: " << static_cast<int>(repl_state_);
+      << ", my current role: " << RoleMsg[role_]
+      << ", my current connection state: " << ReplStateMsg[repl_state_];
     return false;
   }
 
@@ -1259,6 +1259,13 @@ bool Partition::CheckBinlogFiles() {
       binlog_nums.insert(index);
     }
   }
+
+  if (binlog_nums.empty()) {
+    LOG(WARNING) << "Empty binlog path. Partition:"
+      << table_name_ << "_" << partition_id_;
+    return true;
+  }
+
   std::set<uint32_t>::iterator num_it = binlog_nums.begin(),
     pre_num_it = binlog_nums.begin();
   {

@@ -137,7 +137,7 @@ Status ZPBinlogSendTask::ProcessTask() {
       if (!s.ok()) {
         LOG(WARNING) << "Failed to roll to next binlog file:" << (filenum_ + 1)
           << " Error:" << s.ToString() << ", Partition: " << table_name_
-          << "_" << partition_id_;
+          << "_" << partition_id_ << ", Send to " << node_;
         return s;
       }
       reader_ = new BinlogReader(queue_);
@@ -147,17 +147,17 @@ Status ZPBinlogSendTask::ProcessTask() {
     } else {
       LOG(WARNING) << "Read end of binlog file, but no next binlog exist:"
         << (filenum_ + 1) << ", Partition: " << table_name_
-        << "_" << partition_id_;
+        << "_" << partition_id_ << ", Send to " << node_;
       return s;
     }
   } else if (s.IsIncomplete()) {
     LOG(WARNING) << "ZPBinlogSendTask Consume Incomplete record: "
       << s.ToString() << ", table: " << table_name_ << ", partition:"
-      << partition_id_;
+      << partition_id_ << ", Send to " << node_;
   } else if (!s.ok()) {
     LOG(WARNING) << "ZPBinlogSendTask failed to Consume: " << s.ToString()
       << ", table: " << table_name_ << ", partition:" << partition_id_
-      << ", skip to next block";
+      << ", Send to " << node_ << ", skip to next block";
     reader_->SkipNextBlock(&consume_len);
   }
 

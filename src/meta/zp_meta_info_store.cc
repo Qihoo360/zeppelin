@@ -146,10 +146,10 @@ Status ZPMetaInfoStoreSnap::AddSlave(const std::string& table, int partition,
     return Status::NotFound("Table not exist");
   }
   ZPMeta::Table* tptr = &(tables_[table]);
-  ZPMeta::Partitions* pptr = tptr->mutable_partitions(partition);
-  if (!pptr) {
+  if (partition < 0 || partition >= tptr->partitions_size()) {
     return Status::NotFound("Partition not exist");
   }
+  ZPMeta::Partitions* pptr = tptr->mutable_partitions(partition);
 
   if (IsSameNode(pptr->master(), ip_port)) {
     return Status::OK();  // Already be master
@@ -190,10 +190,10 @@ Status ZPMetaInfoStoreSnap::DeleteSlave(const std::string& table, int partition,
     return Status::NotFound("Table not exist");
   }
   ZPMeta::Table* tptr = &(tables_[table]);
-  ZPMeta::Partitions* pptr = tptr->mutable_partitions(partition);
-  if (!pptr) {
+  if (partition < 0 || partition >= tptr->partitions_size()) {
     return Status::NotFound("Partition not exist");
   }
+  ZPMeta::Partitions* pptr = tptr->mutable_partitions(partition);
 
   if (IsSameNode(pptr->master(), ip_port)) {
     return Status::InvalidArgument("Not slave");  // not slave
@@ -223,10 +223,10 @@ Status ZPMetaInfoStoreSnap::SetMaster(const std::string& table, int partition,
     return Status::NotFound("Table not exist");
   }
   ZPMeta::Table* tptr = &(tables_[table]);
-  ZPMeta::Partitions* pptr = tptr->mutable_partitions(partition);
-  if (!pptr) {
+  if (partition < 0 || partition >= tptr->partitions_size()) {
     return Status::NotFound("Partition not exist");
   }
+  ZPMeta::Partitions* pptr = tptr->mutable_partitions(partition);
 
   if (IsSameNode(pptr->master(), ip_port)) {
     return Status::OK();  // Already be master
@@ -275,10 +275,10 @@ Status ZPMetaInfoStoreSnap::ChangePState(const std::string& table,
     return Status::NotFound("Table not exist");
   }
   ZPMeta::Table* tptr = &(tables_[table]);
-  ZPMeta::Partitions* pptr = tptr->mutable_partitions(partition);
-  if (!pptr) {
+  if (partition < 0 || partition >= tptr->partitions_size()) {
     return Status::NotFound("Partition not exist");
   }
+  ZPMeta::Partitions* pptr = tptr->mutable_partitions(partition);
   
   if (pptr->state() == target_s) {
     // No changed
@@ -494,7 +494,7 @@ Status ZPMetaInfoStore::Refresh() {
   }
 
   LOG(INFO) << "Update node_table_ from floyd succ.";
-  NodesDebug();
+  //NodesDebug();
 
   // Update Version
   epoch_ = tmp_epoch;
@@ -628,8 +628,8 @@ Status ZPMetaInfoStore::GetNodeOffset(const ZPMeta::Node& node,
   if (node_infos_.find(ip_port) == node_infos_.end()) {
     return Status::NotFound("node not exist");
   }
-  LOG(INFO) << "node: " << node.ip() << ":" << node.port();
-  node_infos_.at(ip_port).Dump();
+  //LOG(INFO) << "node: " << node.ip() << ":" << node.port();
+  //node_infos_.at(ip_port).Dump();
   return node_infos_.at(ip_port).GetOffset(table, partition_id, noffset);
 }
 
@@ -705,10 +705,9 @@ Status ZPMetaInfoStore::GetPartitionMaster(const std::string& table,
 bool ZPMetaInfoStore::IsSlave(const std::string& table,
     int partition, const ZPMeta::Node& target) {
   slash::RWLock l(&tables_rw_, false);
-  if (table_info_.find(table) == table_info_.end()
-      || table_info_.at(table).partitions_size() <= partition) {
+  if (!PartitionExistNoLock(table, partition)) {
     return false;
-  }
+  } 
 
   for (const auto slave :
       table_info_.at(table).partitions(partition).slaves()) {
@@ -723,10 +722,9 @@ bool ZPMetaInfoStore::IsSlave(const std::string& table,
 bool ZPMetaInfoStore::IsMaster(const std::string& table,
     int partition, const ZPMeta::Node& target) {
   slash::RWLock l(&tables_rw_, false);
-  if (table_info_.find(table) == table_info_.end()
-      || table_info_.at(table).partitions_size() <= partition) {
+  if (!PartitionExistNoLock(table, partition)) {
     return false;
-  }
+  } 
 
   ZPMeta::Node master = table_info_.at(table).partitions(partition).master();
   if (master.ip() == target.ip()
@@ -734,6 +732,22 @@ bool ZPMetaInfoStore::IsMaster(const std::string& table,
     return true;
   }
   return false;
+}
+
+bool ZPMetaInfoStore::PartitionExist(const std::string& table,
+    int partition) {
+  slash::RWLock l(&tables_rw_, false);
+  return PartitionExistNoLock(table, partition);
+}
+
+bool ZPMetaInfoStore::PartitionExistNoLock(const std::string& table,
+    int partition) {
+  if (table_info_.find(table) == table_info_.end()
+      || table_info_.at(table).partitions_size() <= partition
+      || partition < 0) {
+    return false;
+  }
+  return true;
 }
 
 void ZPMetaInfoStore::GetSnapshot(ZPMetaInfoStoreSnap* snap) {
