@@ -193,6 +193,7 @@ class ZPMetaServer  {
   bool TableExist(const std::string& table);
   Status SlowdownAndStuck(const std::string table, int partition,
       const ZPMeta::Node& left, const ZPMeta::Node& right);
+  Status ActiveAllPartition();
 
   // Migrate related
   ZPMetaMigrateRegister* migrate_register_;

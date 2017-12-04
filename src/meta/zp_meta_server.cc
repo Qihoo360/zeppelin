@@ -213,7 +213,7 @@ Status ZPMetaServer::CreateTable(const ZPMeta::Table& table) {
   UpdateTask task;
   task.op = kOpAddTable;
   task.print_args_text = [table_name]() {
-    return "task: CreateTable, table: " + table_name;
+    return "task: CreateTable, when: CreateTable, table: " + table_name;
   };
   table.SerializeToString(&task.sargs[0]);
 
@@ -238,7 +238,7 @@ Status ZPMetaServer::DropTable(const std::string& table) {
   UpdateTask task;
   task.op = kOpRemoveTable;
   task.print_args_text = [table]() {
-    return "task: DropTable, table: " + table;
+    return "task: DropTable, when: DropTable, table: " + table;
   };
   task.sargs[0] = table;
 
@@ -264,7 +264,7 @@ Status ZPMetaServer::AddPartitionSlave(const std::string& table, int pnum,
   task.op = kOpAddSlave;
   task.print_args_text = [table, pnum, target]() {
     std::ostringstream out;
-    out << "task: AddSlave, table: " << table
+    out << "task: AddSlave, when: AddPartitionSlave, table: " << table
         << ", partition: " << pnum
         << ", target: " << target.ip() << ":" << target.port();
     return out.str();
@@ -299,7 +299,7 @@ Status ZPMetaServer::RemovePartitionSlave(const std::string& table, int pnum,
   task.op = kOpRemoveSlave;
   task.print_args_text = [table, pnum, target]() {
     std::ostringstream out;
-    out << "task: RemoveSlave, table: " << table
+    out << "task: RemoveSlave, when: RemovePartitionSlave, table: " << table
         << ", partition: " << pnum
         << ", target: " << target.ip() << ":" << target.port();
     return out.str();
@@ -337,7 +337,7 @@ Status ZPMetaServer::RemoveNodes(
   task.op = kOpRemoveNodes;
   task.print_args_text = [remove_nodes_cmd]() {
     std::ostringstream out;
-    out << "task: RemoveNodes" << std::endl;
+    out << "task: RemoveNodes, when: RemoveNodes" << std::endl;
     for (int i = 0; i < remove_nodes_cmd.nodes_size(); i++) {
       const ZPMeta::Node& node = remove_nodes_cmd.nodes(i);
       out << "  --- " << node.ip() << ":" << node.port() << std::endl;
@@ -356,6 +356,48 @@ Status ZPMetaServer::RemoveNodes(
   return Status::OK();
 }
 
+Status ZPMetaServer::ActiveAllPartition() {
+  std::set<std::string> table_list;
+  Status s = info_store_->GetTableList(&table_list);
+  if (!s.ok()) {
+    LOG(WARNING) << "GetTableList failed: " << s.ToString();
+    return s;
+  }
+
+  for (const auto& table_name : table_list) {
+    ZPMeta::Table table_info;
+    s = info_store_->GetTableMeta(table_name, &table_info);
+    if (!s.ok()) {
+      LOG(WARNING) << "GetTableMeta failed: " << s.ToString()
+        << ", table: " << table_name;
+      return s;
+    }
+    for (const auto& pinfo : table_info.partitions()) {
+      if (pinfo.state() != ZPMeta::PState::ACTIVE) {
+        int partition_id = pinfo.id();
+        UpdateTask task_active;
+        task_active.op = kOpSetActive;
+        task_active.print_args_text = [table_name, partition_id]() {
+          std::ostringstream out;
+          out << "task: SetActive, when: ActiveAllPartition"
+            << ", table: " << table_name
+            << ", partition: " << partition_id;
+          return out.str();
+        };
+        task_active.sargs[0] = table_name;
+        task_active.iargs[0] = partition_id;
+        s = update_thread_->PendingUpdate(task_active);
+        if (!s.ok()) {
+          LOG(WARNING) << "Pending task failed: " << s.ToString()
+            << task_active.print_args_text();
+          return s;
+        }
+      }
+    }
+  }
+  return Status::OK();
+}
+
 // Invoke when SetMaster or Migrate
 // Slowdown the partition and
 // set condition task to stuck the parition when offset catching up
@@ -367,7 +409,7 @@ Status ZPMetaServer::SlowdownAndStuck(const std::string table, int partition,
   task_slowdown.op = kOpSetSlowdown;
   task_slowdown.print_args_text = [table, partition]() {
     std::ostringstream out;
-    out << "task: SetSlowdown, table: " << table
+    out << "task: SetSlowdown, when:SlowdownAndStuck, table: " << table
       << ", partition: " << partition;
     return out.str();
   };
@@ -383,7 +425,7 @@ Status ZPMetaServer::SlowdownAndStuck(const std::string table, int partition,
   task_stuck.op = kOpSetStuck;
   task_stuck.print_args_text = [table, partition]() {
     std::ostringstream out;
-    out << "task: SetStuck, table: " << table
+    out << "task: SetStuck, when: SlowdownAndStuck, table: " << table
       << ", partition: " << partition;
     return out.str();
   };
@@ -430,7 +472,7 @@ Status ZPMetaServer::WaitSetMaster(const ZPMeta::Node& node,
   task_master.op = kOpSetMaster;
   task_master.print_args_text = [table, partition, node]() {
     std::ostringstream out;
-    out << "task: SetMaster"
+    out << "task: SetMaster, when: WaitSetMaster,"
       << ", table: " << table
       << ", partition: " << partition
       << ", target: " << node.ip() << ":" << node.port();
@@ -477,7 +519,7 @@ void ZPMetaServer::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
     task.op = kOpUpNode;
     task.print_args_text = [node]() {
       std::ostringstream out;
-      out << "task: NodeUp, node: "
+      out << "task: NodeUp, when: UpdateNodeInfo,"
           << node.ip() << ":" << node.port();
       return out.str();
     };
@@ -499,7 +541,7 @@ void ZPMetaServer::CheckNodeAlive() {
     UpdateTask task;
     task.op = kOpDownNode;
     task.print_args_text = [n]() {
-      return "task: NodeDown, node: " + n;
+      return "task: NodeDown, when: CheckNodeAlive, node: " + n;
     };
     task.sargs[0] = n;
     LOG(INFO) << "Pending task to remove Node Alive: " << n;
@@ -622,7 +664,7 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
     task_addslave.op = kOpAddSlave;
     task_addslave.print_args_text = [table_name, partition, right_node]() {
       std::ostringstream out;
-      out << "task: AddSlave"
+      out << "task: AddSlave, when: ProcessMigrateIfNeed,"
           << ", table: " << table_name
           << ", partition: " << partition
           << ", target: " << right_node.ip() << ":" << right_node.port();
@@ -637,7 +679,7 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
     task_handover.op = kOpHandover;
     task_handover.print_args_text = [left_node, right_node, table_name, partition]() {
       std::ostringstream out;
-      out << "task: Handover, table: " << table_name
+      out << "task: Handover, when: ProcessMigrateIfNeed, table: " << table_name
           << ", partition: " << partition
           << ", left: " << left_node.ip() << ":" << left_node.port()
           << ", right: " << right_node.ip() << ":" << right_node.port();
@@ -684,8 +726,9 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
     task_active.op = kOpSetActive;
     task_active.print_args_text = [table_name, partition]() {
       std::ostringstream out;
-      out << "task: SetActive, table: " << table_name
-          << ", partition: " << partition;
+      out << "task: SetActive, when: ProcessMigrateIfNeed"
+        <<", table: " << table_name
+        << ", partition: " << partition;
       return out.str();
     };
     task_active.sargs[0] = table_name;
@@ -811,9 +854,6 @@ Status ZPMetaServer::RefreshLeader() {
       leader_cmd_port == g_zp_conf->local_port()) {
     LOG(INFO) << "Become leader: " << leader_ip << ":" << leader_port;
 
-    // Delay a period of time to wait for the old leader's demotion
-    sleep(2 * kMetaCronWaitCount * kMetaCronInterval / 1000);
-
     // Refresh table info
     s = info_store_->Refresh();
     if (!s.ok()) {
@@ -844,6 +884,13 @@ Status ZPMetaServer::RefreshLeader() {
     // Active Condition
     condition_cron_->Active();
     LOG(INFO) << "Condition thread active succ";
+
+    // Recover all partition active
+    s = ActiveAllPartition();
+    if (!s.ok()) {
+      LOG(ERROR) << "Active all partition failed: " << s.ToString();
+      return s;
+    }
     
     // Kill all conns to trigger all client to reconnect
     // to refresh node infomation
