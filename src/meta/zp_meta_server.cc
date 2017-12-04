@@ -232,6 +232,10 @@ Status ZPMetaServer::DropTable(const std::string& table) {
     return Status::InvalidArgument("Table not exist");
   }
 
+  if (migrate_register_->ExistWithLock()) {
+    return Status::Corruption("Migrate exist");
+  }
+
   // Update command such like
   // Init, DropTable, SetMaster, AddSlave and RemoveSlave
   // were handled asynchronously
@@ -891,6 +895,7 @@ Status ZPMetaServer::RefreshLeader() {
       LOG(ERROR) << "Active all partition failed: " << s.ToString();
       return s;
     }
+    LOG(ERROR) << "Active all partition succ";
     
     // Kill all conns to trigger all client to reconnect
     // to refresh node infomation
