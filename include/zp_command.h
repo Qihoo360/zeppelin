@@ -72,6 +72,8 @@ enum CmdType {
   kRemoveNodesCmd,
 };
 
+const std::string kTagBracket = "_###_";
+
 class Cmd {
  public:
   Cmd(int flag, CmdType type) : type_(type), flag_(flag) {}

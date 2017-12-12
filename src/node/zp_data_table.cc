@@ -79,7 +79,20 @@ bool Table::SetPartitionCount(const int count) {
 std::shared_ptr<Partition> Table::GetPartition(const std::string &key) {
   slash::RWLock l(&partition_rw_, false);
   if (partition_cnt_ > 0) {
-    int partition_id = std::hash<std::string>()(key) % partition_cnt_;
+    // key := hash_tag
+    std::string hash_tag(key);
+
+    size_t l_bracket = key.find(kTagBracket);
+    if (l_bracket != std::string::npos) {
+      // key := ... + kTagBracket + hash_tag + kTagBracket + ...
+      size_t r_bracket = key.find(kTagBracket, l_bracket + kTagBracket.size());
+      if (r_bracket != std::string::npos) {
+        hash_tag.assign(key.begin() + l_bracket + kTagBracket.size(),
+                        key.begin() + r_bracket);
+      }
+    }
+
+    int partition_id = std::hash<std::string>()(hash_tag) % partition_cnt_;
     auto it = partitions_.find(partition_id);
     if (it != partitions_.end()) {
       return it->second;
