@@ -149,6 +149,57 @@ void DelCmd::Do(const google::protobuf::Message *req,
   }
 }
 
+void ListbyTagCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
+  const client::CmdRequest* request =
+    static_cast<const client::CmdRequest*>(req);
+  client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+  response->Clear();
+  response->set_type(client::Type::LISTBYTAG);
+
+  Partition* ptr = static_cast<Partition*>(partition);
+
+  rocksdb::Iterator* iter = ptr->db()->NewIterator(
+    rocksdb::ReadOptions(), ptr->db()->DefaultColumnFamily());
+
+  const std::string& hash_tag = request->listby_tag().hash_tag();
+  iter->Seek(hash_tag);
+  for (; iter->Valid(); iter->Next()) {
+    if (memcmp(iter->key().data(), hash_tag.data(), hash_tag.size()) != 0) {
+      break;
+    }
+    auto r = response->add_listby_tag();
+    r->set_key(iter->key().ToString());
+    r->set_value(iter->value().ToString());
+  }
+  response->set_code(client::StatusCode::kOk);
+}
+
+void DeletebyTagCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
+  const client::CmdRequest* request =
+    static_cast<const client::CmdRequest*>(req);
+  client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+  response->Clear();
+  response->set_type(client::Type::DELETEBYTAG);
+
+  Partition* ptr = static_cast<Partition*>(partition);
+
+  rocksdb::Iterator* iter = ptr->db()->NewIterator(
+    rocksdb::ReadOptions(), ptr->db()->DefaultColumnFamily());
+
+  const std::string& hash_tag = request->deleteby_tag().hash_tag();
+  iter->Seek(hash_tag);
+  for (; iter->Valid(); iter->Next()) {
+    if (memcmp(iter->key().data(), hash_tag.data(), hash_tag.size()) != 0) {
+      break;
+    }
+    // TODO(gaodq) Use rocksdb::WriteBatch ?
+    ptr->db()->Delete(rocksdb::WriteOptions(), iter->key());
+  }
+  response->set_code(client::StatusCode::kOk);
+}
+
 void MgetCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* ptr) const {
   const client::CmdRequest* request =

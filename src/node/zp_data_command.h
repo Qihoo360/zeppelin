@@ -80,6 +80,48 @@ class DelCmd : public Cmd  {
   }
 };
 
+class ListbyTagCmd : public Cmd {
+ public:
+  explicit ListbyTagCmd(int flag) : Cmd(flag, kListbyTagCmd) {}
+  virtual std::string name() const {
+    return "ListbyTag";
+  }
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition) const;
+  virtual std::string ExtractTable(const google::protobuf::Message *req) const {
+    const client::CmdRequest* request =
+      static_cast<const client::CmdRequest*>(req);
+    return request->listby_tag().table_name();
+  }
+  // Namely hashtag
+  virtual std::string ExtractKey(const google::protobuf::Message *req) const {
+    const client::CmdRequest* request =
+      static_cast<const client::CmdRequest*>(req);
+    return request->listby_tag().hash_tag();
+  }
+};
+
+class DeletebyTagCmd : public Cmd {
+ public:
+  explicit DeletebyTagCmd(int flag) : Cmd(flag, kDeletebyTagCmd) {}
+  virtual std::string name() const {
+    return "DeletebyTag";
+  }
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition) const;
+  virtual std::string ExtractTable(const google::protobuf::Message *req) const {
+    const client::CmdRequest* request =
+      static_cast<const client::CmdRequest*>(req);
+    return request->deleteby_tag().table_name();
+  }
+  // Namely hashtag
+  virtual std::string ExtractKey(const google::protobuf::Message *req) const {
+    const client::CmdRequest* request =
+      static_cast<const client::CmdRequest*>(req);
+    return request->deleteby_tag().hash_tag();
+  }
+};
+
 ////// Info Cmds //// /
 class InfoCmd : public Cmd  {
  public:

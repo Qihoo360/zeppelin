@@ -82,13 +82,12 @@ std::shared_ptr<Partition> Table::GetPartition(const std::string &key) {
     // key := hash_tag
     std::string hash_tag(key);
 
-    size_t l_bracket = key.find(kTagBracket);
-    if (l_bracket != std::string::npos) {
+    size_t l_brace = key.find(kLBrace);
+    if (l_brace != std::string::npos) {
       // key := ... + kTagBracket + hash_tag + kTagBracket + ...
-      size_t r_bracket = key.find(kTagBracket, l_bracket + kTagBracket.size());
-      if (r_bracket != std::string::npos) {
-        hash_tag.assign(key.begin() + l_bracket + kTagBracket.size(),
-                        key.begin() + r_bracket);
+      size_t r_brace = key.find(kRBrace, l_brace + 1);
+      if (r_brace != std::string::npos) {
+        hash_tag.assign(key.begin() + l_brace + 1, key.begin() + r_brace);
       }
     }
 

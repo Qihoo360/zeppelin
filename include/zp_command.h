@@ -51,6 +51,8 @@ enum CmdType {
   kSetCmd,
   kGetCmd,
   kDelCmd,
+  kListbyTagCmd,
+  kDeletebyTagCmd,
   kInfoCmd,
   kSyncCmd,
   kMgetCmd,
@@ -72,7 +74,8 @@ enum CmdType {
   kRemoveNodesCmd,
 };
 
-const std::string kTagBracket = "_###_";
+const std::string kLBrace = "{";
+const std::string kRBrace = "}";
 
 class Cmd {
  public:

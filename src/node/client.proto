@@ -11,6 +11,9 @@ enum Type {
   MGET = 7;
   INFOSERVER = 8;
   FLUSHDB = 9;
+  WRITEBATCH = 10;
+  LISTBYTAG = 11;
+  DELETEBYTAG = 12;
 }
 
 enum SyncType {
@@ -113,6 +116,25 @@ message CmdRequest {
   }
   optional FlushDB flushdb = 8;
 
+  message WriteBatch {
+    required string table_name = 1;
+    repeated string keys_to_add = 2;
+    repeated string values_to_add = 3;
+    repeated string keys_to_delete = 4;
+  }
+  optional WriteBatch write_batch = 9;
+
+  message ListbyTag {
+    required string table_name = 1;
+    required string hash_tag = 2;
+  }
+  optional ListbyTag listby_tag = 10;
+
+  message DeletebyTag {
+    required string table_name = 1;
+    required string hash_tag = 2;
+  }
+  optional DeletebyTag deleteby_tag = 11;
 }
 
 message CmdResponse {
@@ -174,6 +196,7 @@ message CmdResponse {
   }
   optional InfoServer info_server = 11;
 
+  repeated Mget listby_tag = 12;
 }
 
 message BinlogSkip {
