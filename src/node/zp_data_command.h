@@ -122,6 +122,27 @@ class DeletebyTagCmd : public Cmd {
   }
 };
 
+class WriteBatchCmd : public Cmd {
+ public:
+  explicit WriteBatchCmd(int flag) : Cmd(flag, kWriteBatchCmd) {}
+  virtual std::string name() const {
+    return "WriteBatch";
+  }
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition) const;
+  virtual std::string ExtractTable(const google::protobuf::Message *req) const {
+    const client::CmdRequest* request =
+      static_cast<const client::CmdRequest*>(req);
+    return request->write_batch().table_name();
+  }
+  // Namely hashtag
+  virtual std::string ExtractKey(const google::protobuf::Message *req) const {
+    const client::CmdRequest* request =
+      static_cast<const client::CmdRequest*>(req);
+    return request->write_batch().hash_tag();
+  }
+};
+
 ////// Info Cmds //// /
 class InfoCmd : public Cmd  {
  public:

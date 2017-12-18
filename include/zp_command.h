@@ -51,6 +51,7 @@ enum CmdType {
   kSetCmd,
   kGetCmd,
   kDelCmd,
+  kWriteBatchCmd,
   kListbyTagCmd,
   kDeletebyTagCmd,
   kInfoCmd,

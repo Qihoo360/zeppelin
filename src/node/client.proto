@@ -121,6 +121,7 @@ message CmdRequest {
     repeated string keys_to_add = 2;
     repeated string values_to_add = 3;
     repeated string keys_to_delete = 4;
+    required string hash_tag = 5;
   }
   optional WriteBatch write_batch = 9;
 

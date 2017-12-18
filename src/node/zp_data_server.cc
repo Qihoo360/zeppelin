@@ -642,6 +642,10 @@ void ZPDataServer::InitClientCmdTable() {
   Cmd* deletebytagptr = new DeletebyTagCmd(kCmdFlagsKv | kCmdFlagsWrite);
   cmds_.insert(std::pair<int, Cmd*>(
         static_cast<int>(client::Type::DELETEBYTAG), deletebytagptr));
+  // WriteBatchCmd
+  Cmd* writebatchptr = new WriteBatchCmd(kCmdFlagsKv | kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::WRITEBATCH), writebatchptr));
   // One InfoCmd handle many type queries;
   Cmd* infostatsptr = new InfoCmd(
       kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
