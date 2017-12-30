@@ -133,30 +133,29 @@ class ZPMetaServer  {
       std::unordered_map<std::string, NodeInfo>* node_infos);
   Status WaitSetMaster(const ZPMeta::Node& node,
       const std::string table, int partition);
-
-  // Meta info related
-  Status CreateTable(const ZPMeta::Table& table);
-  Status DropTable(const std::string& table);
+  Status RemoveNodes(const ZPMeta::MetaCmd_RemoveNodes& remove_nodes_cmd);
+  bool IsCharged(const std::string& table, int pnum, const ZPMeta::Node& node);
   Status AddPartitionSlave(const std::string& table, int pnum,
       const ZPMeta::Node& node);
   Status RemovePartitionSlave(const std::string& table, int pnum,
       const ZPMeta::Node& node);
+  Status CreateTable(const ZPMeta::Table& table);
+  Status DropTable(const std::string& table);
+  
+  // Meta info related
   Status GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes);
   Status GetMetaStatus(ZPMeta::MetaCmdResponse_MetaStatus* ms);
-  bool IsCharged(const std::string& table, int pnum, const ZPMeta::Node& node);
-  Status RemoveNodes(const ZPMeta::MetaCmd_RemoveNodes& remove_nodes_cmd);
-
-  // Migrate related
-  Status Migrate(int epoch, const std::vector<ZPMeta::RelationCmdUnit>& diffs);
-  Status CancelMigrate();
- 
-  // Leader related
   Status RedirectToLeader(const ZPMeta::MetaCmd &request,
       ZPMeta::MetaCmdResponse *response);
+  Status MembershipChange(const std::string& node, bool is_add);
   bool IsLeader() {
     return role_ == MetaRole::kLeader;
   }
 
+  // Migrate related
+  Status Migrate(int epoch, const std::vector<ZPMeta::RelationCmdUnit>& diffs);
+  Status CancelMigrate();
+  
   bool Available() {
     return role_ != MetaRole::kNone;
   }

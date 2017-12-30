@@ -374,3 +374,47 @@ void RemoveNodesCmd::Do(const google::protobuf::Message *req,
     response->set_msg(s.ToString());
   }
 }
+
+void AddMetaNodeCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+  const ZPMeta::Node& add_meta_node_cmd = request->add_meta_node();
+
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
+
+  response->set_type(ZPMeta::Type::ADDMETANODE);
+
+  Status s = g_meta_server->MembershipChange(
+      slash::IpPortString(add_meta_node.ip(), add_meta_node.port()),
+      true);
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("AddMetaNode OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
+}
+
+void RemoveMetaNodeCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
+  const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
+  const ZPMeta::Node& remove_meta_node_cmd = request->remove_meta_node();
+
+  ZPMeta::MetaCmdResponse* response
+    = static_cast<ZPMeta::MetaCmdResponse*>(res);
+
+  response->set_type(ZPMeta::Type::REMOVEMETANODE);
+
+  Status s = g_meta_server->MembershipChange(
+      slash::IpPortString(remove_meta_node.ip(), remove_meta_node.port()),
+      false);
+  if (s.ok()) {
+    response->set_code(ZPMeta::StatusCode::OK);
+    response->set_msg("RemoveMetaNode OK!");
+  } else {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+  }
+}

@@ -39,7 +39,9 @@ enum ZPMetaUpdateOP : unsigned int {
   kOpSetMaster,
   kOpSetActive,  // ACTIVE the partition
   kOpSetStuck,  // Stuck the partition
-  kOpSetSlowdown  // Slowdown the partition
+  kOpSetSlowdown,  // Slowdown the partition
+  kOpAddMeta,
+  kOpRemoveMeta
 };
 
 const int MAX_ARGS = 8;

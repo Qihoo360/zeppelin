@@ -21,6 +21,8 @@ enum Type {
   MIGRATE = 12;
   CANCELMIGRATE = 13;
   REMOVENODES = 14;
+  ADDMETANODE = 15;
+  REMOVEMETANODE = 16;
 }
 
 enum PState {

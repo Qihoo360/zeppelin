@@ -177,6 +177,14 @@ Status ZPMetaUpdateThread::ApplyUpdates(
         s = info_store_snap.ChangePState(table_name, partition,
             ZPMeta::PState::SLOWDOWN);
         break;
+      case ZPMetaUpdateOP::kOpAddMeta:
+        node = cur_task.sargs[0];
+        s = info_store_snap.MembersChange(node, true);
+        break;
+      case ZPMetaUpdateOP::kOpRemoveMeta:
+        node = cur_task.sargs[0];
+        s = info_store_snap.MembersChange(node, true);
+        break;
       default:
         s = Status::Corruption("Unknown task type");
     }

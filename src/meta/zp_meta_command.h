@@ -157,4 +157,24 @@ class RemoveNodesCmd : public Cmd  {
       google::protobuf::Message *res, void* partition = NULL) const;
 };
 
+class AddMetaNodeCmd : public Cmd  {
+ public:
+  explicit AddMetaNodeCmd(int flag) : Cmd(flag, kAddMetaNodeCmd) {}
+  virtual std::string name() const  {
+    return "AddMetaNode";
+  }
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition = NULL) const;
+};
+
+class RemoveMetaNodeCmd : public Cmd  {
+ public:
+  explicit RemoveMetaNodeCmd(int flag) : Cmd(flag, kRemoveMetaNodeCmd) {}
+  virtual std::string name() const  {
+    return "RemoveMetaNode";
+  }
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition = NULL) const;
+};
+
 #endif  // SRC_META_ZP_META_COMMAND_H_

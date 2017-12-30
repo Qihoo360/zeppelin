@@ -79,10 +79,12 @@ class ZPMetaInfoStoreSnap   {
     Status AddTable(const ZPMeta::Table& table);
     Status RemoveTable(const std::string& table);
     void RefreshTableWithNodeAlive();
+    Status MembersChange(std::string node, bool is_add);
 
  private:
     friend class ZPMetaInfoStore;
     int snap_epoch_;
+    std::map<std::string, bool> members_change;  // value true for add
     std::unordered_map<std::string, ZPMeta::Table> tables_;
     std::unordered_map<std::string, NodeInfo> nodes_;
     std::unordered_map<std::string, std::set<std::string>> node_table_;
@@ -96,13 +98,23 @@ class ZPMetaInfoStoreSnap   {
         NodeOffset* noffset) const;
 };
 
-class ZPMetaInfoStore   {
+class ZPMetaInfoStore {
  public:
     explicit ZPMetaInfoStore(floyd::Floyd* floyd);
     ~ZPMetaInfoStore();
 
+    bool initialized() {
+      return initialized_;
+    }
+
+    // Epoch related
     int epoch() {
       return epoch_;
+    }
+    
+    // members_ related
+    Status GetMembers(std::set<std::string> *ms) {
+      *ms = members_;
     }
 
     // node_infos_ related
@@ -136,8 +148,14 @@ class ZPMetaInfoStore   {
 
  private:
     floyd::Floyd* floyd_;
+    std::atomic<bool> initialized_;
     std::atomic<int> epoch_;
 
+    // Membership config releated
+    pthread_rwlock_t members_rw_;
+    std::set<std::string> members_;
+
+    // Table releated
     pthread_rwlock_t tables_rw_;
     // table => ZPMeta::Table set
     std::unordered_map<std::string, ZPMeta::Table> table_info_;
@@ -148,6 +166,7 @@ class ZPMetaInfoStore   {
     void GetAllTables(
         std::unordered_map<std::string, ZPMeta::Table>* all_tables);
 
+    // Nodes releated
     pthread_rwlock_t nodes_rw_;
     // node => alive time + offset set, 0 means already down node
     // only valid for leader

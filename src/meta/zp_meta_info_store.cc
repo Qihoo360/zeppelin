@@ -299,6 +299,16 @@ Status ZPMetaInfoStoreSnap::RemoveTable(const std::string& table) {
   return Status::OK();
 }
 
+Status ZPMetaInfoStoreSnap::MembersChange(std::string node, bool is_add) {
+  if (!members_change.empty()) {
+    // limited by the floyd implemetation,
+    // only one node could be add to or remove from current members at the once
+    return Status::Incomplete("Only one node could be add or remove once");
+  }
+  members_change.insert(std::pair<string, bool>(node, is_add));
+  return Status::OK();
+}
+
 void ZPMetaInfoStoreSnap::RefreshTableWithNodeAlive() {
   std::string ip_port;
   for (auto& table : tables_) {
@@ -383,7 +393,8 @@ inline bool ZPMetaInfoStoreSnap::IsNodeUp(const ZPMeta::Node& node) const {
 
 ZPMetaInfoStore::ZPMetaInfoStore(floyd::Floyd* floyd)
   : floyd_(floyd),
-  epoch_(-1) {
+  initialized_(false),
+  epoch_(-2) {
     // We prefer write for nodes_info_
     // since its on the critical path of Ping, which is latency sensitive
     pthread_rwlockattr_t attr;
@@ -400,7 +411,7 @@ ZPMetaInfoStore::~ZPMetaInfoStore() {
   pthread_rwlock_destroy(&tables_rw_);
 }
 
-// Refresh node_table_, table_info_
+// Refresh node_table_, table_info_, membership
 Status ZPMetaInfoStore::Refresh() {
   std::string value;
 
@@ -410,9 +421,9 @@ Status ZPMetaInfoStore::Refresh() {
   if (fs.ok()) {
     tmp_epoch = std::stoi(value);
   } else if (fs.IsNotFound()) {
+    // First time, need load
+    tmp_epoch = -1;
     LOG(INFO) << "Epoch not found in floyd, set -1";
-    epoch_ = -1;
-    return Status::OK();
   } else {
     LOG(ERROR) << "Load epoch failed: " << fs.ToString();
     return Status::IOError(fs.ToString());
@@ -420,8 +431,33 @@ Status ZPMetaInfoStore::Refresh() {
 
   if (tmp_epoch == epoch_) {
     return Status::OK();
+  } else if (tmp_epoch < epoch_) {
+    LOG(FATAL) << "Epoch fallback from " << epoch_
+      << " to " << tmp_epoch << ", It's very dangerous";
   }
+  // tmp_epoch > epoch_
   LOG(INFO) << "Load epoch from floyd succ, tmp version : " << tmp_epoch;
+
+  // Read Members
+  std::set<std::string> all_servers;
+  fs = floyd_->GetAllServers(&all_servers);
+  if (!fs.ok()) {
+    LOG(ERROR) << "Load all servers failed: " << fs.ToString();
+    return Status::IOError(fs.ToString());
+  }
+  {
+  slash::RWLock l(&members_rw_, true);
+  members_.clear();
+  members_ = all_servers;
+  }
+
+  if (tmp_epoch == -1) {
+    // No need to load anything else, since they will not exist
+    epoch_ = tmp_epoch;
+    LOG(INFO) << "Update epoch: " << epoch_;
+    initialized_ = true;
+    return Status::OK();
+  }
 
   // Read table names
   ZPMeta::TableName table_names;
@@ -498,6 +534,7 @@ Status ZPMetaInfoStore::Refresh() {
 
   // Update Version
   epoch_ = tmp_epoch;
+  initialized_ = true;
   LOG(INFO) << "Update epoch: " << epoch_;
   return Status::OK();
 }
@@ -768,7 +805,11 @@ void ZPMetaInfoStore::GetSnapshot(ZPMetaInfoStoreSnap* snap) {
     snap->table_changed_[t.first] = false;
   }
   GetAllNodes(&snap->nodes_);
-  snap->node_table_ = node_table_;
+  
+  {
+    slash::RWLock l(&tables_rw_, false);
+    snap->node_table_ = node_table_;
+  }
 }
 
 // Return IOError means error happened when access floyd.
@@ -832,8 +873,8 @@ Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
     LOG(INFO) << "Write table list to floyd succ";
   }
 
+  // Update nodes_
   if (snap.node_changed_) {
-    // Update nodes_
     ZPMeta::Nodes new_nodes;
     snap.SerializeNodes(&new_nodes);
     if (!new_nodes.SerializeToString(&value)) {
@@ -846,6 +887,23 @@ Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
       return Status::IOError(s.ToString());
     }
     LOG(INFO) << "Write nodes to floyd succ";
+  }
+
+  // Update Membership
+  if (!snap.members_change_.empty()) {
+    std::string node_s = snap.members_change_.begin().first;
+    if (snap.members_change_.begin().second) {
+      s = floyd_->AddServer(node_s);
+    } else {
+      s = floyd_->RemoveServer(node_s);
+    }
+    if (!s.ok()) {
+      LOG(ERROR) << "Membership change failed: " << s.ToString()
+        << ", Node: " << node_s;
+      return Status::IOError(s.ToString());
+    }
+    epoch_change = true;
+    LOG(INFO) << "Membership change succ, Node: " << node_s;
   }
 
   if (epoch_change) {

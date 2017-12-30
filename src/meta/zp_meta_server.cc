@@ -561,8 +561,13 @@ void ZPMetaServer::CheckNodeAlive() {
 Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
   std::string value;
   ZPMeta::Nodes allnodes;
-  std::vector<std::string> meta_nodes;
-  floyd_->GetAllNodes(&meta_nodes);
+  std::set<std::string> meta_nodes;
+ // Status s = floyd_->GetAllServers(&meta_nodes);
+ // if (!s.ok()) {
+ //   return s;
+ // }
+ //TODO
+ get from cache
 
   ZPMeta::MetaNodes *p = nodes->mutable_nodes();
   std::string leader_ip;
@@ -928,6 +933,30 @@ Status ZPMetaServer::RefreshLeader() {
   return Status::OK();
 }
 
+Status ZPMetaServer::MembershipChange(const std::string& node, bool is_add) {
+  UpdateTask task;
+  if (is_add) {
+    task.op = kOpAddMeta;
+    task.print_args_text = [table_name]() {
+      return "task: AddMeta, when: MembershipChange, node: " + node;
+    };
+  } else {
+    task.op = kOpRemoveMeta;
+    task.print_args_text = [table_name]() {
+      return "task: RemoveMeta, when: MembershipChange, node: " + node;
+    };
+  }
+  task.sargs[0] = node;
+
+  Status s = update_thread_->PendingUpdate(task);
+  if (!s.ok()) {
+    LOG(WARNING) << "Pending task failed, " << s.ToString() << ", "
+      << task.print_args_text();
+    return s;
+  }
+  
+}
+
 void ZPMetaServer::InitClientCmdTable() {
   // Ping Command
   Cmd* pingptr = new PingCmd(kCmdFlagsRead | kCmdFlagsRedirect);
@@ -995,12 +1024,24 @@ void ZPMetaServer::InitClientCmdTable() {
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(
           ZPMeta::Type::CANCELMIGRATE), cancel_migrate_ptr));
 
-  Cmd* remove_nodes_ptr = new RemoveNodesCmd(kCmdFlagsWrite | kCmdFlagsRedirect);
+  // Remove Nodes Command
+  Cmd* remove_nodes_ptr = new RemoveNodesCmd(kCmdFlagsWrite
+      | kCmdFlagsRedirect);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::REMOVENODES),
         remove_nodes_ptr));
+
+  // Add Meta Node Command
+  Cmd* add_meta_node_ptr = new AddMetaNodeCmd(kCmdFlagsAdmin
+      | kCmdFlagsRedirect);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::ADDMETANODE),
+        add_meta_node_ptr));
+  
+  // Remove Meta Node Command
+  Cmd* remove_meta_node_ptr = new AddMetaNodeCmd(kCmdFlagsAdmin
+      | kCmdFlagsRedirect);
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::ADDMETANODE),
+        remove_meta_node_ptr));
 }
-
-
 
 void ZPMetaServer::ResetLastSecQueryNum() {
   uint64_t cur_time_us = slash::NowMicros();

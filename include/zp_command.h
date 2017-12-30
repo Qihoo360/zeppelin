@@ -70,6 +70,8 @@ enum CmdType {
   kMigrateCmd,
   kCancelMigrateCmd,
   kRemoveNodesCmd,
+  kAddMetaNodeCmd,
+  kRemoveMetaNodeCmd,
 };
 
 class Cmd {
