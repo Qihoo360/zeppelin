@@ -73,6 +73,17 @@ void PullCmd::Do(const google::protobuf::Message *req,
     }
   }
 
+  // Send Members
+  if (s.ok()) {
+    std::vector<ZPMeta::Node> members;
+    s = GetAllMetaNodes(&members);
+    if (s.ok()) {
+      for (const auto& m : members) {
+        ms_info->add_meta_members().CopyFrom(m);
+      }
+    }
+  }
+
   if (!s.ok()) {
     response->release_pull();
     response->set_code(ZPMeta::StatusCode::ERROR);
@@ -254,8 +265,17 @@ void ListMetaCmd::Do(const google::protobuf::Message *req,
   ZPMeta::MetaCmdResponse_ListMeta *metas = response->mutable_list_meta();
 
   response->set_type(ZPMeta::Type::LISTMETA);
-
-  Status s = g_meta_server->GetAllMetaNodes(metas);
+  
+  ZPMeta::MetaNodes *p = nodes->mutable_nodes();
+  std::vector<ZPMeta::Node> members;
+  Status s = g_meta_server->GetAllMetaNodes(&members);
+  for (int i = 0; i < members.size(); ++i) {
+    if (i == 0) {
+      p->mutable_leader().CopyFrom(members.at(i));
+    } else {
+      p->add_followers().CopyFrom(members.at(i));
+    }
+  }
 
   if (s.ok()) {
     response->set_code(ZPMeta::StatusCode::OK);

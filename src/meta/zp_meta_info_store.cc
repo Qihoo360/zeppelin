@@ -393,7 +393,6 @@ inline bool ZPMetaInfoStoreSnap::IsNodeUp(const ZPMeta::Node& node) const {
 
 ZPMetaInfoStore::ZPMetaInfoStore(floyd::Floyd* floyd)
   : floyd_(floyd),
-  initialized_(false),
   epoch_(-2) {
     // We prefer write for nodes_info_
     // since its on the critical path of Ping, which is latency sensitive
@@ -447,15 +446,32 @@ Status ZPMetaInfoStore::Refresh() {
   }
   {
   slash::RWLock l(&members_rw_, true);
-  members_.clear();
-  members_ = all_servers;
+  if (all_servers != members_) {
+    // Membership changed
+    members_.clear();
+    members_ = all_servers;
+    MetasDebug();
+
+    std::string my_floyd_add = slash::IpPortString(g_zp_conf->local_ip(),
+        g_zp_conf->local_port() + kMetaPortShiftFY);
+    if (members_.find(my_floyd_add) == members_.end()) {
+      // Log and exist
+      LOG(FATAL) << "Remove from cluster, floyd addr: " << my_floyd_add;
+    } else {
+      // Rewrite log
+      g_zp_conf->SetMetaAddr(members_);
+      if (g_zp_conf->Rewrite()) {
+        LOG(WARNING) << "Rewrite conf after membership changed failed"; 
+      }
+      LOG(INFO) << "Rewrite conf after membership changed succ";
+    }
+  }
   }
 
   if (tmp_epoch == -1) {
     // No need to load anything else, since they will not exist
     epoch_ = tmp_epoch;
     LOG(INFO) << "Update epoch: " << epoch_;
-    initialized_ = true;
     return Status::OK();
   }
 
@@ -534,8 +550,16 @@ Status ZPMetaInfoStore::Refresh() {
 
   // Update Version
   epoch_ = tmp_epoch;
-  initialized_ = true;
   LOG(INFO) << "Update epoch: " << epoch_;
+  return Status::OK();
+}
+
+Status ZPMetaInfoStore::GetMembers(std::set<std::string> *ms) {
+  if (!initialed()) {
+    return Status::Incomplete("Not initialed yet");
+  }
+  slash::RWLock l(&members_rw_, false);
+  *ms = members_;
   return Status::OK();
 }
 
@@ -592,6 +616,9 @@ Status ZPMetaInfoStore::RefreshNodeInfos() {
 
 // Return false when the node is new alive
 bool ZPMetaInfoStore::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
+  if (!initialed()) {
+    return false;
+  } 
   slash::RWLock l(&nodes_rw_, true);
   std::string node = slash::IpPortString(ping.node().ip(),
       ping.node().port());
@@ -624,6 +651,9 @@ bool ZPMetaInfoStore::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
 }
 
 bool ZPMetaInfoStore::GetNodeInfo(const ZPMeta::Node& node, NodeInfo* info) {
+  if (!initialed()) {
+    return false;
+  }
   slash::RWLock l(&nodes_rw_, false);
   std::string n = slash::IpPortString(node.ip(), node.port());
   if (node_infos_.find(n) == node_infos_.end()) {
@@ -649,17 +679,24 @@ void ZPMetaInfoStore::FetchExpiredNode(std::set<std::string>* nodes) {
   }
 }
 
-void ZPMetaInfoStore::GetAllNodes(
+bool ZPMetaInfoStore::GetAllNodes(
     std::unordered_map<std::string, NodeInfo>* all_nodes) {
+  if (!initialed()) {
+    return false;
+  }
   all_nodes->clear();
   slash::RWLock l(&nodes_rw_, false);
   for (const auto& t : node_infos_) {
     (*all_nodes)[t.first] = t.second;
   }
+  return false;
 }
 
 Status ZPMetaInfoStore::GetNodeOffset(const ZPMeta::Node& node,
     const std::string& table, int partition_id, NodeOffset* noffset) {
+  if (!initialed()) {
+    return Status::Incomplete("not initial yet");
+  }
   slash::RWLock l(&nodes_rw_, false);
   std::string ip_port = slash::IpPortString(node.ip(), node.port());
   if (node_infos_.find(ip_port) == node_infos_.end()) {
@@ -683,7 +720,18 @@ void ZPMetaInfoStore::NodesDebug() {
   LOG(INFO) << "------------------------------------------.";
 }
 
+void ZPMetaInfoStore::MetasDebug() {
+  std::string str("Metas: ");
+  for (auto iter = members_.begin(); iter != members_.end(); iter++) {
+    str += *iter + " ";
+  }
+  LOG(INFO) << str;
+}
+
 Status ZPMetaInfoStore::GetTableList(std::set<std::string>* table_list) {
+  if (!initialed()) {
+    return Status::Incomplete("not initial yet");
+  }
   table_list->clear();
   slash::RWLock l(&tables_rw_, false);
   for (const auto& t : table_info_) {
@@ -694,6 +742,9 @@ Status ZPMetaInfoStore::GetTableList(std::set<std::string>* table_list) {
 
 Status ZPMetaInfoStore::GetTablesForNode(const std::string &ip_port,
     std::set<std::string> *tables) {
+  if (!initialed()) {
+    return Status::Incomplete("not initial yet");
+  }
   slash::RWLock l(&tables_rw_, false);
   const auto iter = node_table_.find(ip_port);
   if (iter == node_table_.end()) {
@@ -706,6 +757,9 @@ Status ZPMetaInfoStore::GetTablesForNode(const std::string &ip_port,
 
 Status ZPMetaInfoStore::GetTableMeta(const std::string& table,
     ZPMeta::Table* table_meta) {
+  if (!initialed()) {
+    return Status::Incomplete("not initial yet");
+  }
   slash::RWLock l(&tables_rw_, false);
   const auto iter = table_info_.find(table);
 
@@ -728,6 +782,9 @@ void ZPMetaInfoStore::GetAllTables(
 
 Status ZPMetaInfoStore::GetPartitionMaster(const std::string& table,
     int partition, ZPMeta::Node* master) {
+  if (!initialed()) {
+    return Status::Incomplete("not initial yet");
+  }
   slash::RWLock l(&tables_rw_, false);
   if (table_info_.find(table) == table_info_.end()
       || table_info_.at(table).partitions_size() <= partition) {
@@ -741,6 +798,9 @@ Status ZPMetaInfoStore::GetPartitionMaster(const std::string& table,
 
 bool ZPMetaInfoStore::IsSlave(const std::string& table,
     int partition, const ZPMeta::Node& target) {
+  if (!initialed()) {
+    return false;
+  }
   slash::RWLock l(&tables_rw_, false);
   if (!PartitionExistNoLock(table, partition)) {
     return false;
@@ -758,6 +818,9 @@ bool ZPMetaInfoStore::IsSlave(const std::string& table,
 
 bool ZPMetaInfoStore::IsMaster(const std::string& table,
     int partition, const ZPMeta::Node& target) {
+  if (!initialed()) {
+    return false;
+  }
   slash::RWLock l(&tables_rw_, false);
   if (!PartitionExistNoLock(table, partition)) {
     return false;
@@ -773,6 +836,9 @@ bool ZPMetaInfoStore::IsMaster(const std::string& table,
 
 bool ZPMetaInfoStore::PartitionExist(const std::string& table,
     int partition) {
+  if (!initialed()) {
+    return false;
+  }
   slash::RWLock l(&tables_rw_, false);
   return PartitionExistNoLock(table, partition);
 }
@@ -787,6 +853,7 @@ bool ZPMetaInfoStore::PartitionExistNoLock(const std::string& table,
   return true;
 }
 
+// Required: ZPMetaInfoStore initialed
 void ZPMetaInfoStore::GetSnapshot(ZPMetaInfoStoreSnap* snap) {
   // No lock here may give rise to the inconsistence
   // between snap epcho and snap table or snap nodes,
@@ -815,6 +882,7 @@ void ZPMetaInfoStore::GetSnapshot(ZPMetaInfoStoreSnap* snap) {
 // Return IOError means error happened when access floyd.
 // Notice: the Apply process may be partially completed,
 // so it is designed to be reentrant
+// Required: ZPMetaInfoStore initialed
 Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
   if (epoch_ != snap.snap_epoch_) {
     // Epoch has changed, which means leader has changed not long ago

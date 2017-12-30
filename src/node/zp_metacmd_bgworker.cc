@@ -179,6 +179,23 @@ Status ZPMetacmdBGWorker::ParsePullResponse(
 
   // Print partitioin info
   zp_data_server->DumpTablePartitions();
+
+  // Update meta memberships if need
+  if (pull.has_meta_members()) {
+    std::string mstr("Metas membership change to : ");
+    std::string maddr;
+    std::set<std::string> metas;
+    for (const auto& m : pull.meta_members()) {
+      maddr = slash::IpPortString(m.ip(), m.port());
+      mstr += maddr + " ";
+    }
+    LOG(INFO) << mstr;
+    g_zp_conf->SetMetaAddr(metas);
+    if (g_zp_conf->Rewrite()) {
+      LOG(WARNING) << "Rewrite conf after meta membership changed failed"; 
+    }
+    LOG(INFO) << "Rewrite conf after meta membership changed succ";
+  }
   return Status::OK();
 }
 

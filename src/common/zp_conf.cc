@@ -90,6 +90,40 @@ void ZpConf::Dump() const {
   fprintf (stderr, "    Config.floyd_append_entries_count_once_ : %d\n", floyd_append_entries_count_once_);
 }
 
+bool ZpConf::Rewrite(const std::string& path) {
+  slash::BaseConf conf_writer(path);
+  conf_writer.SetConfStr("local_ip", &local_ip_);
+  conf_writer.SetConfInt("local_port", &local_port_);
+  conf_writer.SetConfStr("data_path", &data_path_);
+  conf_writer.SetConfStr("log_path", &log_path_);
+  conf_writer.SetConfStr("trash_path", &trash_path_);
+  conf_writer.SetConfBool("daemonize", &daemonize_);
+  conf_writer.SetConfStrVec("meta_addr", &meta_addr_);
+  conf_writer.SetConfBool("enable_data_delete", &enable_data_delete_);
+  conf_writer.SetConfInt("meta_thread_num", &meta_thread_num_);
+  conf_writer.SetConfInt("data_thread_num", &data_thread_num_);
+  conf_writer.SetConfInt("sync_recv_thread_num", &sync_recv_thread_num_);
+  conf_writer.SetConfInt("sync_send_thread_num", &sync_send_thread_num_);
+  conf_writer.SetConfInt("max_background_flushes", &max_background_flushes_);
+  conf_writer.SetConfInt("max_background_compactions", &max_background_compactions_);
+  conf_writer.SetConfInt("binlog_remain_days", &binlog_remain_days_);
+  conf_writer.SetConfInt("binlog_remain_min_count", &binlog_remain_min_count_);
+  conf_writer.SetConfInt("binlog_remain_max_count", &binlog_remain_max_count_);
+  conf_writer.SetConfInt("db_write_buffer_size", &db_write_buffer_size_);
+  conf_writer.SetConfInt("db_max_write_buffer", &db_max_write_buffer_);
+  conf_writer.SetConfInt("db_target_file_size_base", &db_target_file_size_base_);
+  conf_writer.SetConfInt("db_max_open_files", &db_max_open_files_);
+  conf_writer.SetConfInt("db_block_size", &db_block_size_);
+  conf_writer.SetConfInt("slowlog_slower_than", &slowlog_slower_than_);
+  conf_writer.SetConfInt("stuck_offset_dist", &stuck_offset_dist_);
+  conf_writer.SetConfInt("slowdown_delay_radio", &slowdown_delay_radio_);
+  conf_writer.SetConfInt("floyd_check_leader_us", &floyd_check_leader_us_);
+  conf_writer.SetConfInt("floyd_heartbeat_us", &floyd_heartbeat_us_);
+  conf_writer.SetConfInt("floyd_append_entries_size_once", &floyd_append_entries_size_once_);
+  conf_writer.SetConfInt("floyd_append_entries_count_once", &floyd_append_entries_count_once_);
+  return conf_writer.WriteBack();
+}
+
 int ZpConf::Load(const std::string& path) {
   slash::BaseConf conf_reader(path);
   int res = conf_reader.LoadConf();

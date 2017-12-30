@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 
 #include "include/zp_const.h"
 
@@ -19,6 +20,8 @@ class ZpConf {
   void Dump() const;
 
   int Load(const std::string& path);
+
+  int Rewrite(const std::string& path);
 
   std::string local_ip() {
     RWLock l(&rwlock_, false);
@@ -160,6 +163,14 @@ class ZpConf {
   int floyd_append_entries_count_once() {
     RWLock l(&rwlock_, false);
     return floyd_append_entries_count_once_;
+  }
+
+  void SetMetaAddr(const std::set<std::string>& new_addrs) {
+    RWLock l(&rwlock_, true);
+    for (const auto& addr : new_addrs) {
+      meta_addr_.clear();
+      meta_addr_.push_back(addr);
+    }
   }
 
  private:

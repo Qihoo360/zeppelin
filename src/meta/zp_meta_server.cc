@@ -558,29 +558,27 @@ void ZPMetaServer::CheckNodeAlive() {
   }
 }
 
-Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
-  std::string value;
-  ZPMeta::Nodes allnodes;
-  std::set<std::string> meta_nodes;
- // Status s = floyd_->GetAllServers(&meta_nodes);
- // if (!s.ok()) {
- //   return s;
- // }
- //TODO
- get from cache
-
-  ZPMeta::MetaNodes *p = nodes->mutable_nodes();
+// First is leader
+Status ZPMetaServer::GetAllMetaNodes(std::vector<ZPMeta::Node> *nodes) {
   std::string leader_ip;
   int leader_port = 0;
   bool ret = election_->GetLeader(&leader_ip, &leader_port);
   if (ret) {
-    ZPMeta::Node *np = p->mutable_leader();
-    np->set_ip(leader_ip);
-    np->set_port(leader_port);
+    ZPMeta::Node leader;
+    leader.set_ip(leader_ip);
+    leader.set_port(leader_port);
+    nodes->push_back(leader);
   }
 
-  std::string ip;
+  std::set<std::string> meta_nodes;
+  Status s = info_store_.GetMembers(&meta_nodes);
+  if (!s.ok()) {
+    return s;
+  }
+
   int port = 0;
+  std::string ip;
+  ZPMeta::Node follower;
   for (const auto& iter : meta_nodes) {
     if (!slash::ParseIpPortString(iter, ip, port)) {
       return Status::Corruption("parse ip port error");
@@ -590,9 +588,10 @@ Status ZPMetaServer::GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes) {
         && port == leader_port + kMetaPortShiftFY) {
       continue;
     }
-    ZPMeta::Node *np = p->add_followers();
-    np->set_ip(ip);
-    np->set_port(port - kMetaPortShiftFY);
+    follower.Clear();
+    follower.set_ip(ip);
+    follower.set_port(port - kMetaPortShiftFY);
+    nodes->push_back(follower);
   }
   return Status::OK();
 }
@@ -623,7 +622,9 @@ Status ZPMetaServer::GetTableList(std::set<std::string>* table_list) {
 
 Status ZPMetaServer::GetNodeStatusList(
     std::unordered_map<std::string, NodeInfo>* node_infos) {
-  info_store_->GetAllNodes(node_infos);
+  if (!info_store_->GetAllNodes(node_infos)) {
+    return Status::Incomplete("Not initialed yet");
+  }
   return Status::OK();
 }
 

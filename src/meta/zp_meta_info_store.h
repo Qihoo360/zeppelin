@@ -103,19 +103,13 @@ class ZPMetaInfoStore {
     explicit ZPMetaInfoStore(floyd::Floyd* floyd);
     ~ZPMetaInfoStore();
 
-    bool initialized() {
-      return initialized_;
-    }
-
     // Epoch related
     int epoch() {
       return epoch_;
     }
-    
+
     // members_ related
-    Status GetMembers(std::set<std::string> *ms) {
-      *ms = members_;
-    }
+    Status GetMembers(std::set<std::string> *ms);
 
     // node_infos_ related
     Status RestoreNodeInfos();  // clean and refresh
@@ -123,7 +117,7 @@ class ZPMetaInfoStore {
     bool UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping);
     bool GetNodeInfo(const ZPMeta::Node& node, NodeInfo* info);
     void FetchExpiredNode(std::set<std::string>* nodes);
-    void GetAllNodes(std::unordered_map<std::string, NodeInfo>* all_nodes);
+    bool GetAllNodes(std::unordered_map<std::string, NodeInfo>* all_nodes);
     Status GetNodeOffset(const ZPMeta::Node& node,
         const std::string& table, int partition_id, NodeOffset* noffset);
 
@@ -148,12 +142,22 @@ class ZPMetaInfoStore {
 
  private:
     floyd::Floyd* floyd_;
-    std::atomic<bool> initialized_;
+
+    // -2 for uninitialed
+    // -1 for initialed but no table
+    // Otherwise non-negtive integer and monotone increasing
     std::atomic<int> epoch_;
+
+    // Currently, the only situation may encouter uninitialed problem is
+    // Worker thread execute command before server do Refresh at the first time
+    bool initialed() {
+      return epoch_ > -2;
+    }
 
     // Membership config releated
     pthread_rwlock_t members_rw_;
     std::set<std::string> members_;
+    void MetasDebug();
 
     // Table releated
     pthread_rwlock_t tables_rw_;

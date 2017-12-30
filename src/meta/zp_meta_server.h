@@ -143,7 +143,7 @@ class ZPMetaServer  {
   Status DropTable(const std::string& table);
   
   // Meta info related
-  Status GetAllMetaNodes(ZPMeta::MetaCmdResponse_ListMeta *nodes);
+  Status GetAllMetaNodes(std::vector<ZPMeta::Node> *nodes);
   Status GetMetaStatus(ZPMeta::MetaCmdResponse_MetaStatus* ms);
   Status RedirectToLeader(const ZPMeta::MetaCmd &request,
       ZPMeta::MetaCmdResponse *response);
