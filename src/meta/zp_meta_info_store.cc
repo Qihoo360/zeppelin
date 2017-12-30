@@ -25,6 +25,9 @@
 #include "slash/include/slash_coding.h"
 #include "slash/include/slash_mutex.h"
 #include "include/zp_const.h"
+#include "include/zp_conf.h"
+
+extern ZpConf *g_zp_conf;
 
 std::string NodeOffsetKey(const std::string& table, int partition_id) {
   char buf[256];
@@ -300,12 +303,12 @@ Status ZPMetaInfoStoreSnap::RemoveTable(const std::string& table) {
 }
 
 Status ZPMetaInfoStoreSnap::MembersChange(std::string node, bool is_add) {
-  if (!members_change.empty()) {
+  if (!members_change_.empty()) {
     // limited by the floyd implemetation,
     // only one node could be add to or remove from current members at the once
     return Status::Incomplete("Only one node could be add or remove once");
   }
-  members_change.insert(std::pair<string, bool>(node, is_add));
+  members_change_.insert(std::pair<std::string, bool>(node, is_add));
   return Status::OK();
 }
 
@@ -959,8 +962,8 @@ Status ZPMetaInfoStore::Apply(const ZPMetaInfoStoreSnap& snap) {
 
   // Update Membership
   if (!snap.members_change_.empty()) {
-    std::string node_s = snap.members_change_.begin().first;
-    if (snap.members_change_.begin().second) {
+    std::string node_s = snap.members_change_.begin()->first;
+    if (snap.members_change_.begin()->second) {
       s = floyd_->AddServer(node_s);
     } else {
       s = floyd_->RemoveServer(node_s);

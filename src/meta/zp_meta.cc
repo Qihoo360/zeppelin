@@ -96,8 +96,8 @@ void ZpConfInit(int argc, char* argv[]) {
     exit(-1);
   }
 
-  g_zp_conf = new ZpConf();
-  if (g_zp_conf->Load(path) != 0) {
+  g_zp_conf = new ZpConf(path);
+  if (g_zp_conf->Load() != 0) {
     fprintf(stderr, "zp-meta load conf file error\n");
     exit(-1);
   }

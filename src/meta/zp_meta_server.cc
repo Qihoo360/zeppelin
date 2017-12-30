@@ -571,7 +571,7 @@ Status ZPMetaServer::GetAllMetaNodes(std::vector<ZPMeta::Node> *nodes) {
   }
 
   std::set<std::string> meta_nodes;
-  Status s = info_store_.GetMembers(&meta_nodes);
+  Status s = info_store_->GetMembers(&meta_nodes);
   if (!s.ok()) {
     return s;
   }
@@ -938,12 +938,12 @@ Status ZPMetaServer::MembershipChange(const std::string& node, bool is_add) {
   UpdateTask task;
   if (is_add) {
     task.op = kOpAddMeta;
-    task.print_args_text = [table_name]() {
+    task.print_args_text = [node]() {
       return "task: AddMeta, when: MembershipChange, node: " + node;
     };
   } else {
     task.op = kOpRemoveMeta;
-    task.print_args_text = [table_name]() {
+    task.print_args_text = [node]() {
       return "task: RemoveMeta, when: MembershipChange, node: " + node;
     };
   }
@@ -955,7 +955,7 @@ Status ZPMetaServer::MembershipChange(const std::string& node, bool is_add) {
       << task.print_args_text();
     return s;
   }
-  
+  return Status::OK();
 }
 
 void ZPMetaServer::InitClientCmdTable() {

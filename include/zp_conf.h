@@ -9,19 +9,20 @@
 
 #include "slash/include/slash_string.h"
 #include "slash/include/slash_mutex.h"
+#include "slash/include/base_conf.h"
 
 typedef slash::RWLock RWLock;
 
 class ZpConf {
  public:
-  ZpConf();
+  ZpConf(const std::string& path);
   ~ZpConf();
 
   void Dump() const;
 
-  int Load(const std::string& path);
+  int Load();
 
-  int Rewrite(const std::string& path);
+  bool Rewrite();
 
   std::string local_ip() {
     RWLock l(&rwlock_, false);
@@ -174,6 +175,7 @@ class ZpConf {
   }
 
  private:
+  slash::BaseConf conf_adaptor_;
 
   // Env
   std::vector<std::string> meta_addr_;

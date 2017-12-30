@@ -9,40 +9,41 @@ static int64_t BoundaryLimit(int64_t target, int64_t floor, int64_t ceil) {
   return target;
 }
 
-ZpConf::ZpConf()
-    : local_ip_("127.0.0.1"),
-      local_port_(9999),
-      timeout_(100),
-      data_path_("data"),
-      log_path_("log"),
-      trash_path_("trash"),
-      daemonize_(false),
-      pid_file_(log_path_ + "/" + kZpPidFile),
-      lock_file_(log_path_ + "/" + kZpLockFile),
-      enable_data_delete_(true),
-      meta_thread_num_(4),
-      data_thread_num_(6),
-      sync_recv_thread_num_(4),
-      sync_send_thread_num_(4),
-      max_background_flushes_(24),
-      max_background_compactions_(24),
-      binlog_remain_days_(kBinlogRemainMaxDay),
-      binlog_remain_min_count_(kBinlogRemainMinCount),
-      binlog_remain_max_count_(kBinlogRemainMaxCount),
-      db_write_buffer_size_(256 * 1024), // 256KB
-      db_max_write_buffer_(20 * 1024 * 1024), // 20MB
-      db_target_file_size_base_(256 * 1024), // 256KB
-      db_max_open_files_(4096),
-      db_block_size_(16), // 16 B
-      slowlog_slower_than_(-1),
-      stuck_offset_dist_(kMetaOffsetStuckDist), // 100KB
-      slowdown_delay_radio_(kSlowdownDelayRatio),  // 60%
-      floyd_check_leader_us_(15000000),
-      floyd_heartbeat_us_(6000000),
-      floyd_append_entries_size_once_(1024000),
-      floyd_append_entries_count_once_(128) {
-  pthread_rwlock_init(&rwlock_, NULL);
-}
+ZpConf::ZpConf(const std::string& path)
+  : conf_adaptor_(path),
+  local_ip_("127.0.0.1"),
+  local_port_(9999),
+  timeout_(100),
+  data_path_("data"),
+  log_path_("log"),
+  trash_path_("trash"),
+  daemonize_(false),
+  pid_file_(log_path_ + "/" + kZpPidFile),
+  lock_file_(log_path_ + "/" + kZpLockFile),
+  enable_data_delete_(true),
+  meta_thread_num_(4),
+  data_thread_num_(6),
+  sync_recv_thread_num_(4),
+  sync_send_thread_num_(4),
+  max_background_flushes_(24),
+  max_background_compactions_(24),
+  binlog_remain_days_(kBinlogRemainMaxDay),
+  binlog_remain_min_count_(kBinlogRemainMinCount),
+  binlog_remain_max_count_(kBinlogRemainMaxCount),
+  db_write_buffer_size_(256 * 1024), // 256KB
+  db_max_write_buffer_(20 * 1024 * 1024), // 20MB
+  db_target_file_size_base_(256 * 1024), // 256KB
+  db_max_open_files_(4096),
+  db_block_size_(16), // 16 B
+  slowlog_slower_than_(-1),
+  stuck_offset_dist_(kMetaOffsetStuckDist), // 100KB
+  slowdown_delay_radio_(kSlowdownDelayRatio),  // 60%
+  floyd_check_leader_us_(15000000),
+  floyd_heartbeat_us_(6000000),
+  floyd_append_entries_size_once_(1024000),
+  floyd_append_entries_count_once_(128) {
+    pthread_rwlock_init(&rwlock_, NULL);
+  }
 
 ZpConf::~ZpConf() {
   pthread_rwlock_destroy(&rwlock_);
@@ -90,77 +91,75 @@ void ZpConf::Dump() const {
   fprintf (stderr, "    Config.floyd_append_entries_count_once_ : %d\n", floyd_append_entries_count_once_);
 }
 
-bool ZpConf::Rewrite(const std::string& path) {
-  slash::BaseConf conf_writer(path);
-  conf_writer.SetConfStr("local_ip", &local_ip_);
-  conf_writer.SetConfInt("local_port", &local_port_);
-  conf_writer.SetConfStr("data_path", &data_path_);
-  conf_writer.SetConfStr("log_path", &log_path_);
-  conf_writer.SetConfStr("trash_path", &trash_path_);
-  conf_writer.SetConfBool("daemonize", &daemonize_);
-  conf_writer.SetConfStrVec("meta_addr", &meta_addr_);
-  conf_writer.SetConfBool("enable_data_delete", &enable_data_delete_);
-  conf_writer.SetConfInt("meta_thread_num", &meta_thread_num_);
-  conf_writer.SetConfInt("data_thread_num", &data_thread_num_);
-  conf_writer.SetConfInt("sync_recv_thread_num", &sync_recv_thread_num_);
-  conf_writer.SetConfInt("sync_send_thread_num", &sync_send_thread_num_);
-  conf_writer.SetConfInt("max_background_flushes", &max_background_flushes_);
-  conf_writer.SetConfInt("max_background_compactions", &max_background_compactions_);
-  conf_writer.SetConfInt("binlog_remain_days", &binlog_remain_days_);
-  conf_writer.SetConfInt("binlog_remain_min_count", &binlog_remain_min_count_);
-  conf_writer.SetConfInt("binlog_remain_max_count", &binlog_remain_max_count_);
-  conf_writer.SetConfInt("db_write_buffer_size", &db_write_buffer_size_);
-  conf_writer.SetConfInt("db_max_write_buffer", &db_max_write_buffer_);
-  conf_writer.SetConfInt("db_target_file_size_base", &db_target_file_size_base_);
-  conf_writer.SetConfInt("db_max_open_files", &db_max_open_files_);
-  conf_writer.SetConfInt("db_block_size", &db_block_size_);
-  conf_writer.SetConfInt("slowlog_slower_than", &slowlog_slower_than_);
-  conf_writer.SetConfInt("stuck_offset_dist", &stuck_offset_dist_);
-  conf_writer.SetConfInt("slowdown_delay_radio", &slowdown_delay_radio_);
-  conf_writer.SetConfInt("floyd_check_leader_us", &floyd_check_leader_us_);
-  conf_writer.SetConfInt("floyd_heartbeat_us", &floyd_heartbeat_us_);
-  conf_writer.SetConfInt("floyd_append_entries_size_once", &floyd_append_entries_size_once_);
-  conf_writer.SetConfInt("floyd_append_entries_count_once", &floyd_append_entries_count_once_);
-  return conf_writer.WriteBack();
+bool ZpConf::Rewrite() {
+  conf_adaptor_.SetConfStr("local_ip", local_ip_);
+  conf_adaptor_.SetConfInt("local_port", local_port_);
+  conf_adaptor_.SetConfStr("data_path", data_path_);
+  conf_adaptor_.SetConfStr("log_path", log_path_);
+  conf_adaptor_.SetConfStr("trash_path", trash_path_);
+  conf_adaptor_.SetConfBool("daemonize", daemonize_);
+  conf_adaptor_.SetConfStrVec("meta_addr", meta_addr_);
+  conf_adaptor_.SetConfBool("enable_data_delete", enable_data_delete_);
+  conf_adaptor_.SetConfInt("meta_thread_num", meta_thread_num_);
+  conf_adaptor_.SetConfInt("data_thread_num", data_thread_num_);
+  conf_adaptor_.SetConfInt("sync_recv_thread_num", sync_recv_thread_num_);
+  conf_adaptor_.SetConfInt("sync_send_thread_num", sync_send_thread_num_);
+  conf_adaptor_.SetConfInt("max_background_flushes", max_background_flushes_);
+  conf_adaptor_.SetConfInt("max_background_compactions", max_background_compactions_);
+  conf_adaptor_.SetConfInt("binlog_remain_days", binlog_remain_days_);
+  conf_adaptor_.SetConfInt("binlog_remain_min_count", binlog_remain_min_count_);
+  conf_adaptor_.SetConfInt("binlog_remain_max_count", binlog_remain_max_count_);
+  conf_adaptor_.SetConfInt("db_write_buffer_size", db_write_buffer_size_);
+  conf_adaptor_.SetConfInt("db_max_write_buffer", db_max_write_buffer_);
+  conf_adaptor_.SetConfInt("db_target_file_size_base", db_target_file_size_base_);
+  conf_adaptor_.SetConfInt("db_max_open_files", db_max_open_files_);
+  conf_adaptor_.SetConfInt("db_block_size", db_block_size_);
+  conf_adaptor_.SetConfInt("slowlog_slower_than", slowlog_slower_than_);
+  conf_adaptor_.SetConfInt("stuck_offset_dist", stuck_offset_dist_);
+  conf_adaptor_.SetConfInt("slowdown_delay_radio", slowdown_delay_radio_);
+  conf_adaptor_.SetConfInt("floyd_check_leader_us", floyd_check_leader_us_);
+  conf_adaptor_.SetConfInt("floyd_heartbeat_us", floyd_heartbeat_us_);
+  conf_adaptor_.SetConfInt("floyd_append_entries_size_once", floyd_append_entries_size_once_);
+  conf_adaptor_.SetConfInt("floyd_append_entries_count_once", floyd_append_entries_count_once_);
+  return conf_adaptor_.WriteBack();
 }
 
-int ZpConf::Load(const std::string& path) {
-  slash::BaseConf conf_reader(path);
-  int res = conf_reader.LoadConf();
+int ZpConf::Load() {
+  int res = conf_adaptor_.LoadConf();
   if (res != 0) {
     return res;
   }
 
   bool ret = false;
-  ret = conf_reader.GetConfStr("local_ip", &local_ip_);
-  ret = conf_reader.GetConfInt("local_port", &local_port_);
-  ret = conf_reader.GetConfStr("data_path", &data_path_);
-  ret = conf_reader.GetConfStr("log_path", &log_path_);
-  ret = conf_reader.GetConfStr("trash_path", &trash_path_);
-  ret = conf_reader.GetConfBool("daemonize", &daemonize_);
-  ret = conf_reader.GetConfStrVec("meta_addr", &meta_addr_);
-  ret = conf_reader.GetConfBool("enable_data_delete", &enable_data_delete_);
-  ret = conf_reader.GetConfInt("meta_thread_num", &meta_thread_num_);
-  ret = conf_reader.GetConfInt("data_thread_num", &data_thread_num_);
-  ret = conf_reader.GetConfInt("sync_recv_thread_num", &sync_recv_thread_num_);
-  ret = conf_reader.GetConfInt("sync_send_thread_num", &sync_send_thread_num_);
-  ret = conf_reader.GetConfInt("max_background_flushes", &max_background_flushes_);
-  ret = conf_reader.GetConfInt("max_background_compactions", &max_background_compactions_);
-  ret = conf_reader.GetConfInt("binlog_remain_days", &binlog_remain_days_);
-  ret = conf_reader.GetConfInt("binlog_remain_min_count", &binlog_remain_min_count_);
-  ret = conf_reader.GetConfInt("binlog_remain_max_count", &binlog_remain_max_count_);
-  ret = conf_reader.GetConfInt("db_write_buffer_size", &db_write_buffer_size_);
-  ret = conf_reader.GetConfInt("db_max_write_buffer", &db_max_write_buffer_);
-  ret = conf_reader.GetConfInt("db_target_file_size_base", &db_target_file_size_base_);
-  ret = conf_reader.GetConfInt("db_max_open_files", &db_max_open_files_);
-  ret = conf_reader.GetConfInt("db_block_size", &db_block_size_);
-  ret = conf_reader.GetConfInt("slowlog_slower_than", &slowlog_slower_than_);
-  ret = conf_reader.GetConfInt("stuck_offset_dist", &stuck_offset_dist_);
-  ret = conf_reader.GetConfInt("slowdown_delay_radio", &slowdown_delay_radio_);
-  ret = conf_reader.GetConfInt("floyd_check_leader_us", &floyd_check_leader_us_);
-  ret = conf_reader.GetConfInt("floyd_heartbeat_us", &floyd_heartbeat_us_);
-  ret = conf_reader.GetConfInt("floyd_append_entries_size_once", &floyd_append_entries_size_once_);
-  ret = conf_reader.GetConfInt("floyd_append_entries_count_once", &floyd_append_entries_count_once_);
+  ret = conf_adaptor_.GetConfStr("local_ip", &local_ip_);
+  ret = conf_adaptor_.GetConfInt("local_port", &local_port_);
+  ret = conf_adaptor_.GetConfStr("data_path", &data_path_);
+  ret = conf_adaptor_.GetConfStr("log_path", &log_path_);
+  ret = conf_adaptor_.GetConfStr("trash_path", &trash_path_);
+  ret = conf_adaptor_.GetConfBool("daemonize", &daemonize_);
+  ret = conf_adaptor_.GetConfStrVec("meta_addr", &meta_addr_);
+  ret = conf_adaptor_.GetConfBool("enable_data_delete", &enable_data_delete_);
+  ret = conf_adaptor_.GetConfInt("meta_thread_num", &meta_thread_num_);
+  ret = conf_adaptor_.GetConfInt("data_thread_num", &data_thread_num_);
+  ret = conf_adaptor_.GetConfInt("sync_recv_thread_num", &sync_recv_thread_num_);
+  ret = conf_adaptor_.GetConfInt("sync_send_thread_num", &sync_send_thread_num_);
+  ret = conf_adaptor_.GetConfInt("max_background_flushes", &max_background_flushes_);
+  ret = conf_adaptor_.GetConfInt("max_background_compactions", &max_background_compactions_);
+  ret = conf_adaptor_.GetConfInt("binlog_remain_days", &binlog_remain_days_);
+  ret = conf_adaptor_.GetConfInt("binlog_remain_min_count", &binlog_remain_min_count_);
+  ret = conf_adaptor_.GetConfInt("binlog_remain_max_count", &binlog_remain_max_count_);
+  ret = conf_adaptor_.GetConfInt("db_write_buffer_size", &db_write_buffer_size_);
+  ret = conf_adaptor_.GetConfInt("db_max_write_buffer", &db_max_write_buffer_);
+  ret = conf_adaptor_.GetConfInt("db_target_file_size_base", &db_target_file_size_base_);
+  ret = conf_adaptor_.GetConfInt("db_max_open_files", &db_max_open_files_);
+  ret = conf_adaptor_.GetConfInt("db_block_size", &db_block_size_);
+  ret = conf_adaptor_.GetConfInt("slowlog_slower_than", &slowlog_slower_than_);
+  ret = conf_adaptor_.GetConfInt("stuck_offset_dist", &stuck_offset_dist_);
+  ret = conf_adaptor_.GetConfInt("slowdown_delay_radio", &slowdown_delay_radio_);
+  ret = conf_adaptor_.GetConfInt("floyd_check_leader_us", &floyd_check_leader_us_);
+  ret = conf_adaptor_.GetConfInt("floyd_heartbeat_us", &floyd_heartbeat_us_);
+  ret = conf_adaptor_.GetConfInt("floyd_append_entries_size_once", &floyd_append_entries_size_once_);
+  ret = conf_adaptor_.GetConfInt("floyd_append_entries_count_once", &floyd_append_entries_count_once_);
   
   if (data_path_.back() != '/') {
     data_path_.append("/");

@@ -84,7 +84,7 @@ class ZPMetaInfoStoreSnap   {
  private:
     friend class ZPMetaInfoStore;
     int snap_epoch_;
-    std::map<std::string, bool> members_change;  // value true for add
+    std::map<std::string, bool> members_change_;  // value true for add
     std::unordered_map<std::string, ZPMeta::Table> tables_;
     std::unordered_map<std::string, NodeInfo> nodes_;
     std::unordered_map<std::string, std::set<std::string>> node_table_;

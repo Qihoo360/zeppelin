@@ -76,10 +76,10 @@ void PullCmd::Do(const google::protobuf::Message *req,
   // Send Members
   if (s.ok()) {
     std::vector<ZPMeta::Node> members;
-    s = GetAllMetaNodes(&members);
+    s = g_meta_server->GetAllMetaNodes(&members);
     if (s.ok()) {
       for (const auto& m : members) {
-        ms_info->add_meta_members().CopyFrom(m);
+        ms_info->add_meta_members()->CopyFrom(m);
       }
     }
   }
@@ -266,14 +266,14 @@ void ListMetaCmd::Do(const google::protobuf::Message *req,
 
   response->set_type(ZPMeta::Type::LISTMETA);
   
-  ZPMeta::MetaNodes *p = nodes->mutable_nodes();
+  ZPMeta::MetaNodes *p = metas->mutable_nodes();
   std::vector<ZPMeta::Node> members;
   Status s = g_meta_server->GetAllMetaNodes(&members);
-  for (int i = 0; i < members.size(); ++i) {
+  for (size_t i = 0; i < members.size(); ++i) {
     if (i == 0) {
-      p->mutable_leader().CopyFrom(members.at(i));
+      p->mutable_leader()->CopyFrom(members.at(i));
     } else {
-      p->add_followers().CopyFrom(members.at(i));
+      p->add_followers()->CopyFrom(members.at(i));
     }
   }
 
@@ -398,7 +398,7 @@ void RemoveNodesCmd::Do(const google::protobuf::Message *req,
 void AddMetaNodeCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
-  const ZPMeta::Node& add_meta_node_cmd = request->add_meta_node();
+  const ZPMeta::Node& add_meta_node = request->add_meta_node();
 
   ZPMeta::MetaCmdResponse* response
     = static_cast<ZPMeta::MetaCmdResponse*>(res);
@@ -420,7 +420,7 @@ void AddMetaNodeCmd::Do(const google::protobuf::Message *req,
 void RemoveMetaNodeCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* partition) const {
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
-  const ZPMeta::Node& remove_meta_node_cmd = request->remove_meta_node();
+  const ZPMeta::Node& remove_meta_node = request->remove_meta_node();
 
   ZPMeta::MetaCmdResponse* response
     = static_cast<ZPMeta::MetaCmdResponse*>(res);

@@ -181,7 +181,7 @@ Status ZPMetacmdBGWorker::ParsePullResponse(
   zp_data_server->DumpTablePartitions();
 
   // Update meta memberships if need
-  if (pull.has_meta_members()) {
+  if (pull.meta_members_size() > 0) {
     std::string mstr("Metas membership change to : ");
     std::string maddr;
     std::set<std::string> metas;
