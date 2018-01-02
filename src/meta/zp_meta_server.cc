@@ -1042,9 +1042,9 @@ void ZPMetaServer::InitClientCmdTable() {
         add_meta_node_ptr));
   
   // Remove Meta Node Command
-  Cmd* remove_meta_node_ptr = new AddMetaNodeCmd(kCmdFlagsAdmin
+  Cmd* remove_meta_node_ptr = new RemoveMetaNodeCmd(kCmdFlagsAdmin
       | kCmdFlagsRedirect);
-  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::ADDMETANODE),
+  cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::REMOVEMETANODE),
         remove_meta_node_ptr));
 }
 
