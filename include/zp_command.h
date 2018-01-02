@@ -51,6 +51,9 @@ enum CmdType {
   kSetCmd,
   kGetCmd,
   kDelCmd,
+  kWriteBatchCmd,
+  kListbyTagCmd,
+  kDeletebyTagCmd,
   kInfoCmd,
   kSyncCmd,
   kMgetCmd,
@@ -73,6 +76,9 @@ enum CmdType {
   kAddMetaNodeCmd,
   kRemoveMetaNodeCmd,
 };
+
+const std::string kLBrace = "{";
+const std::string kRBrace = "}";
 
 class Cmd {
  public:

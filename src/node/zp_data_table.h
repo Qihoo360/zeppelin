@@ -51,7 +51,7 @@ class Table  {
   void LeaveAllPartition();
   void LeavePartition(int pid);
 
-  uint32_t KeyToPartition(const std::string &key);
+  int KeyToPartitionId(const std::string &key);
 
   void Dump();
   void DoTimingTask();

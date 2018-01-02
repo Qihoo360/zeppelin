@@ -149,6 +149,119 @@ void DelCmd::Do(const google::protobuf::Message *req,
   }
 }
 
+void ListbyTagCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
+  const client::CmdRequest* request =
+    static_cast<const client::CmdRequest*>(req);
+  client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+  response->Clear();
+  response->set_type(client::Type::LISTBYTAG);
+
+  Partition* ptr = static_cast<Partition*>(partition);
+
+  rocksdb::Iterator* iter = ptr->db()->NewIterator(
+    rocksdb::ReadOptions(), ptr->db()->DefaultColumnFamily());
+
+  const std::string& hash_tag = request->listby_tag().hash_tag();
+  iter->Seek(hash_tag);
+  for (; iter->Valid(); iter->Next()) {
+    if (memcmp(iter->key().data(), hash_tag.data(), hash_tag.size()) != 0) {
+      break;
+    }
+    auto r = response->add_listby_tag();
+    r->set_key(iter->key().ToString());
+    r->set_value(iter->value().ToString());
+  }
+  response->set_code(client::StatusCode::kOk);
+}
+
+void DeletebyTagCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
+  const client::CmdRequest* request =
+    static_cast<const client::CmdRequest*>(req);
+  client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+  response->Clear();
+  response->set_type(client::Type::DELETEBYTAG);
+
+  Partition* ptr = static_cast<Partition*>(partition);
+
+  rocksdb::Iterator* iter = ptr->db()->NewIterator(
+    rocksdb::ReadOptions(), ptr->db()->DefaultColumnFamily());
+
+  const std::string& hash_tag = request->deleteby_tag().hash_tag();
+  iter->Seek(hash_tag);
+  rocksdb::WriteBatch batch;
+  for (; iter->Valid(); iter->Next()) {
+    if (memcmp(iter->key().data(), hash_tag.data(), hash_tag.size()) != 0) {
+      break;
+    }
+    // TODO(gaodq) Use rocksdb::WriteBatch ?
+    batch.Delete(iter->key());
+  }
+
+  if (batch.Count() > 0) {
+    rocksdb::Status s = ptr->db()->Write(rocksdb::WriteOptions(), &batch);
+    if (!s.ok()) {
+      response->set_code(client::StatusCode::kError);
+      response->set_msg(s.ToString());
+      LOG(WARNING) << "command failed: DeletebyTag(" << hash_tag
+        << ") at " << ptr->table_name() << "_" << ptr->partition_id()
+        << ", caz:" << s.ToString();
+      return;
+    }
+  }
+  response->set_code(client::StatusCode::kOk);
+}
+
+void WriteBatchCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* partition) const {
+  const client::CmdRequest* request =
+    static_cast<const client::CmdRequest*>(req);
+  client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+  response->Clear();
+  response->set_type(client::Type::WRITEBATCH);
+
+  Partition* ptr = static_cast<Partition*>(partition);
+  const std::string& hash_tag = request->write_batch().hash_tag();
+
+  rocksdb::Status s;
+  do {
+    rocksdb::WriteBatch batch;
+    if (request->write_batch().keys_to_add_size() !=
+        request->write_batch().values_to_add_size()) {
+      LOG(WARNING) << "command failed: WriteBatch(" << hash_tag
+        << ") at " << ptr->table_name() << "_" << ptr->partition_id()
+        << ", caz: keys_to_add_size not equal values_to_add_size";
+      break;
+    }
+
+    for (int i = 0; i < request->write_batch().keys_to_add_size(); i++) {
+      const std::string& key = request->write_batch().keys_to_add(i);
+      const std::string& value = request->write_batch().values_to_add(i);
+      batch.Put(key, value);
+    }
+
+    for (auto& key : request->write_batch().keys_to_delete()) {
+      batch.Delete(key);
+    }
+
+    if (batch.Count() > 0) {
+      s = ptr->db()->Write(rocksdb::WriteOptions(), &batch);
+      if (!s.ok()) {
+        LOG(WARNING) << "command failed: WriteBatch(" << hash_tag
+          << ") at " << ptr->table_name() << "_" << ptr->partition_id()
+          << ", caz: " << s.ToString();
+        break;
+      }
+    }
+    response->set_code(client::StatusCode::kOk);
+    return;  // Success
+  } while (0);
+  // Something wrong happend
+  response->set_code(client::StatusCode::kError);
+  response->set_msg(s.ToString());
+}
+
 void MgetCmd::Do(const google::protobuf::Message *req,
     google::protobuf::Message *res, void* ptr) const {
   const client::CmdRequest* request =

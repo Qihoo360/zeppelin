@@ -131,7 +131,7 @@ int ZPSyncConn::DealMessage() {
     int partition_id = cmd->ExtractPartition(&crequest);
     if (partition_id < 0) {
       // Do not provice partition_id, calculate it by key
-      partition_id = zp_data_server->KeyToPartition(table_name,
+      partition_id = zp_data_server->KeyToPartitionId(table_name,
           cmd->ExtractKey(&crequest));
     }
     if (partition_id < 0) {

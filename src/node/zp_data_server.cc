@@ -357,11 +357,11 @@ std::shared_ptr<Partition> ZPDataServer::GetTablePartitionById(
   return table ? table->GetPartitionById(partition_id) : NULL;
 }
 
-int ZPDataServer::KeyToPartition(const std::string& table_name,
+int ZPDataServer::KeyToPartitionId(const std::string& table_name,
     const std::string &key) {
   slash::RWLock l(&table_rw_, false);
   std::shared_ptr<Table> table = GetTable(table_name);
-  return table ? table->KeyToPartition(key) : -1;
+  return table ? table->KeyToPartitionId(key) : -1;
 }
 
 void ZPDataServer::BGSaveTaskSchedule(void (*function)(void*), void* arg) {
@@ -634,6 +634,18 @@ void ZPDataServer::InitClientCmdTable() {
   Cmd* delptr = new DelCmd(kCmdFlagsKv | kCmdFlagsWrite);
   cmds_.insert(std::pair<int, Cmd*>(
         static_cast<int>(client::Type::DEL), delptr));
+  // ListbyTagCmd
+  Cmd* listbytagptr = new ListbyTagCmd(kCmdFlagsKv | kCmdFlagsRead);
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::LISTBYTAG), listbytagptr));
+  // DeletebyTagCmd
+  Cmd* deletebytagptr = new DeletebyTagCmd(kCmdFlagsKv | kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::DELETEBYTAG), deletebytagptr));
+  // WriteBatchCmd
+  Cmd* writebatchptr = new WriteBatchCmd(kCmdFlagsKv | kCmdFlagsWrite);
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::WRITEBATCH), writebatchptr));
   // One InfoCmd handle many type queries;
   Cmd* infostatsptr = new InfoCmd(
       kCmdFlagsAdmin | kCmdFlagsRead | kCmdFlagsMultiPartition);
