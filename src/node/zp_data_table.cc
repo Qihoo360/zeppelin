@@ -76,22 +76,30 @@ bool Table::SetPartitionCount(const int count) {
   return true;
 }
 
+int Table::KeyToPartitionId(const std::string& key) {
+  if (partition_cnt_ <= 0) {
+    return -1;
+  }
+  // key := hash_tag
+  std::string hash_tag(key);
+
+  size_t l_brace = key.find(kLBrace);
+  if (l_brace != std::string::npos) {
+    // key := ... + kTagBracket + hash_tag + kTagBracket + ...
+    size_t r_brace = key.find(kRBrace, l_brace + 1);
+    if (r_brace != std::string::npos) {
+      hash_tag.assign(key.begin() + l_brace + 1, key.begin() + r_brace);
+    }
+  }
+
+  int partition_id = std::hash<std::string>()(hash_tag) % partition_cnt_;
+  return partition_id;
+}
+
 std::shared_ptr<Partition> Table::GetPartition(const std::string &key) {
   slash::RWLock l(&partition_rw_, false);
   if (partition_cnt_ > 0) {
-    // key := hash_tag
-    std::string hash_tag(key);
-
-    size_t l_brace = key.find(kLBrace);
-    if (l_brace != std::string::npos) {
-      // key := ... + kTagBracket + hash_tag + kTagBracket + ...
-      size_t r_brace = key.find(kRBrace, l_brace + 1);
-      if (r_brace != std::string::npos) {
-        hash_tag.assign(key.begin() + l_brace + 1, key.begin() + r_brace);
-      }
-    }
-
-    int partition_id = std::hash<std::string>()(hash_tag) % partition_cnt_;
+    int partition_id = KeyToPartitionId(key);
     auto it = partitions_.find(partition_id);
     if (it != partitions_.end()) {
       return it->second;
@@ -143,11 +151,6 @@ void Table::LeavePartition(int pid) {
     return;
   }
   partitions_[pid]->Leave();
-}
-
-uint32_t Table::KeyToPartition(const std::string &key) {
-  assert(partition_cnt_ != 0);
-  return std::hash<std::string>()(key) % partition_cnt_;
 }
 
 void Table::Dump() {

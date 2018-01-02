@@ -134,7 +134,7 @@ class ZPDataServer  {
       const std::string &table_name, const std::string &key);
   std::shared_ptr<Partition> GetTablePartitionById(
       const std::string &table_name, const int partition_id);
-  int KeyToPartition(const std::string& table_name, const std::string &key);
+  int KeyToPartitionId(const std::string& table_name, const std::string &key);
 
   void DumpTablePartitions();
   void DumpBinlogSendTask();
