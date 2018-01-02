@@ -30,13 +30,19 @@ void PingCmd::Do(const google::protobuf::Message *req,
   const ZPMeta::MetaCmd* request = static_cast<const ZPMeta::MetaCmd*>(req);
   ZPMeta::MetaCmdResponse* response
     = static_cast<ZPMeta::MetaCmdResponse*>(res);
+  response->set_type(ZPMeta::Type::PING);
 
   // Update Node Info
-  g_meta_server->UpdateNodeInfo(request->ping());
+  Status s = g_meta_server->UpdateNodeInfo(request->ping());
+  if (!s.ok()) {
+    response->set_code(ZPMeta::StatusCode::ERROR);
+    response->set_msg(s.ToString());
+    return;
+  }
 
+  // Update OK
   ZPMeta::MetaCmdResponse_Ping* ping = response->mutable_ping();
   ping->set_version(g_meta_server->epoch());
-  response->set_type(ZPMeta::Type::PING);
   response->set_code(ZPMeta::StatusCode::OK);
   response->set_msg("Ping OK!");
 

@@ -114,7 +114,7 @@ class ZPMetaInfoStore {
     // node_infos_ related
     Status RestoreNodeInfos();  // clean and refresh
     Status RefreshNodeInfos();
-    bool UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping);
+    Status UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping);
     bool GetNodeInfo(const ZPMeta::Node& node, NodeInfo* info);
     void FetchExpiredNode(std::set<std::string>* nodes);
     bool GetAllNodes(std::unordered_map<std::string, NodeInfo>* all_nodes);
@@ -158,6 +158,7 @@ class ZPMetaInfoStore {
     pthread_rwlock_t members_rw_;
     std::set<std::string> members_;
     void MetasDebug();
+    Status LoadMembers();
 
     // Table releated
     pthread_rwlock_t tables_rw_;

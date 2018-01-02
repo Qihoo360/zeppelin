@@ -121,7 +121,7 @@ class ZPMetaServer  {
   Cmd* GetCmd(const int op);
 
   // Node alive related
-  void UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping);
+  Status UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping);
 
   // Node info related
   Status GetMetaInfoByTable(const std::string& table,

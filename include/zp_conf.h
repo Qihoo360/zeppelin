@@ -168,8 +168,8 @@ class ZpConf {
 
   void SetMetaAddr(const std::set<std::string>& new_addrs) {
     RWLock l(&rwlock_, true);
+    meta_addr_.clear();
     for (const auto& addr : new_addrs) {
-      meta_addr_.clear();
       meta_addr_.push_back(addr);
     }
   }

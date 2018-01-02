@@ -406,11 +406,58 @@ ZPMetaInfoStore::ZPMetaInfoStore(floyd::Floyd* floyd)
     pthread_rwlock_init(&nodes_rw_, &attr);
 
     pthread_rwlock_init(&tables_rw_, NULL);
+    pthread_rwlock_init(&members_rw_, NULL);
   }
 
 ZPMetaInfoStore::~ZPMetaInfoStore() {
-  pthread_rwlock_destroy(&nodes_rw_);
+  pthread_rwlock_destroy(&members_rw_);
   pthread_rwlock_destroy(&tables_rw_);
+  pthread_rwlock_destroy(&nodes_rw_);
+}
+
+Status ZPMetaInfoStore::LoadMembers() {
+  // Read Members
+  std::set<std::string> all_servers;
+  Status fs = floyd_->GetAllServers(&all_servers);
+  if (!fs.ok()) {
+    LOG(ERROR) << "Load all servers failed: " << fs.ToString();
+    return Status::IOError(fs.ToString());
+  }
+
+  // Converse port from floyd port
+  std::set<std::string> tmp_members;
+  std::string ip;
+  int port = 0;
+  for (const auto& s_entry: all_servers) {
+    if (!slash::ParseIpPortString(s_entry, ip, port)) {
+      return Status::Corruption("parse ip port error");
+    }
+    tmp_members.insert(slash::IpPortString(ip, port - kMetaPortShiftFY));
+  }
+
+  {
+  slash::RWLock l(&members_rw_, true);
+  if (tmp_members != members_) {
+    // Membership changed
+    members_.clear();
+    members_ = tmp_members;
+    MetasDebug();
+
+    std::string my_addr = slash::IpPortString(g_zp_conf->local_ip(),
+        g_zp_conf->local_port());
+    if (members_.find(my_addr) == members_.end()) {
+      // Log and exist
+      LOG(FATAL) << "Remove from cluster, floyd addr: " << my_addr;
+    } else {
+      // Rewrite log
+      g_zp_conf->SetMetaAddr(members_);
+      g_zp_conf->Rewrite();
+      LOG(INFO) << "Rewrite conf after membership changed, members size: "
+        << members_.size();
+    }
+  }
+  }
+  return Status::OK();
 }
 
 // Refresh node_table_, table_info_, membership
@@ -440,35 +487,11 @@ Status ZPMetaInfoStore::Refresh() {
   // tmp_epoch > epoch_
   LOG(INFO) << "Load epoch from floyd succ, tmp version : " << tmp_epoch;
 
-  // Read Members
-  std::set<std::string> all_servers;
-  fs = floyd_->GetAllServers(&all_servers);
+  // Load membership from floyd
+  fs = LoadMembers();
   if (!fs.ok()) {
-    LOG(ERROR) << "Load all servers failed: " << fs.ToString();
-    return Status::IOError(fs.ToString());
-  }
-  {
-  slash::RWLock l(&members_rw_, true);
-  if (all_servers != members_) {
-    // Membership changed
-    members_.clear();
-    members_ = all_servers;
-    MetasDebug();
-
-    std::string my_floyd_add = slash::IpPortString(g_zp_conf->local_ip(),
-        g_zp_conf->local_port() + kMetaPortShiftFY);
-    if (members_.find(my_floyd_add) == members_.end()) {
-      // Log and exist
-      LOG(FATAL) << "Remove from cluster, floyd addr: " << my_floyd_add;
-    } else {
-      // Rewrite log
-      g_zp_conf->SetMetaAddr(members_);
-      if (g_zp_conf->Rewrite()) {
-        LOG(WARNING) << "Rewrite conf after membership changed failed"; 
-      }
-      LOG(INFO) << "Rewrite conf after membership changed succ";
-    }
-  }
+    LOG(ERROR) << "Load membership failed: " << fs.ToString();
+    return fs;
   }
 
   if (tmp_epoch == -1) {
@@ -618,9 +641,9 @@ Status ZPMetaInfoStore::RefreshNodeInfos() {
 }
 
 // Return false when the node is new alive
-bool ZPMetaInfoStore::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
+Status ZPMetaInfoStore::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
   if (!initialed()) {
-    return false;
+    return Status::Incomplete("not initialed yet");
   } 
   slash::RWLock l(&nodes_rw_, true);
   std::string node = slash::IpPortString(ping.node().ip(),
@@ -628,6 +651,8 @@ bool ZPMetaInfoStore::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
   bool not_found = false;
   if (node_infos_.find(node) == node_infos_.end()
       || node_infos_[node].last_alive_time == 0) {
+    // last_alive_time=0 means
+    // the last time the subsequence process failed to up the node
     not_found = true;
   }
 
@@ -645,12 +670,12 @@ bool ZPMetaInfoStore::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
   if (not_found) {
     // Do not add alive time info here.
     // Leave this in Refresh() to keep it consistent with what in floyd
-    return false;
+    return Status::NotFound("not fount node");
   }
 
   // Update alive time
   node_infos_.at(node).last_alive_time = slash::NowMicros();
-  return true;
+  return Status::OK();
 }
 
 bool ZPMetaInfoStore::GetNodeInfo(const ZPMeta::Node& node, NodeInfo* info) {
@@ -692,7 +717,7 @@ bool ZPMetaInfoStore::GetAllNodes(
   for (const auto& t : node_infos_) {
     (*all_nodes)[t.first] = t.second;
   }
-  return false;
+  return true;
 }
 
 Status ZPMetaInfoStore::GetNodeOffset(const ZPMeta::Node& node,

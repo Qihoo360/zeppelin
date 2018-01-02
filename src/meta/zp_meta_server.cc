@@ -515,8 +515,10 @@ Status ZPMetaServer::WaitSetMaster(const ZPMeta::Node& node,
   return Status::OK();
 }
 
-void ZPMetaServer::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
-  if (!info_store_->UpdateNodeInfo(ping)) {
+Status ZPMetaServer::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
+  Status s = info_store_->UpdateNodeInfo(ping);
+  if (s.IsNotFound()) {
+    // Add new node
     const ZPMeta::Node& node = ping.node();
 
     UpdateTask task;  // new node
@@ -535,7 +537,9 @@ void ZPMetaServer::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
       LOG(WARNING) << "Pending task failed, " << s.ToString() << ", "
         << task.print_args_text();
     }
+    return Status::OK();
   }
+  return s;
 }
 
 void ZPMetaServer::CheckNodeAlive() {
@@ -585,12 +589,12 @@ Status ZPMetaServer::GetAllMetaNodes(std::vector<ZPMeta::Node> *nodes) {
     }
     if (ret
         && ip == leader_ip
-        && port == leader_port + kMetaPortShiftFY) {
+        && port == leader_port) {
       continue;
     }
     follower.Clear();
     follower.set_ip(ip);
-    follower.set_port(port - kMetaPortShiftFY);
+    follower.set_port(port);
     nodes->push_back(follower);
   }
   return Status::OK();
@@ -623,7 +627,7 @@ Status ZPMetaServer::GetTableList(std::set<std::string>* table_list) {
 Status ZPMetaServer::GetNodeStatusList(
     std::unordered_map<std::string, NodeInfo>* node_infos) {
   if (!info_store_->GetAllNodes(node_infos)) {
-    return Status::Incomplete("Not initialed yet");
+    return Status::Incomplete("GetAllNodes failed");
   }
   return Status::OK();
 }
