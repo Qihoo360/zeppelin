@@ -411,9 +411,9 @@ void AddMetaNodeCmd::Do(const google::protobuf::Message *req,
 
   response->set_type(ZPMeta::Type::ADDMETANODE);
 
-  Status s = g_meta_server->MembershipChange(
-      slash::IpPortString(add_meta_node.ip(), add_meta_node.port()),
-      true);
+  std::string floyd_svr = slash::IpPortString(
+    add_meta_node.ip(), add_meta_node.port() + kMetaPortShiftFY);
+  Status s = g_meta_server->MembershipChange(floyd_svr, true);
   if (s.ok()) {
     response->set_code(ZPMeta::StatusCode::OK);
     response->set_msg("AddMetaNode OK!");
@@ -433,9 +433,9 @@ void RemoveMetaNodeCmd::Do(const google::protobuf::Message *req,
 
   response->set_type(ZPMeta::Type::REMOVEMETANODE);
 
-  Status s = g_meta_server->MembershipChange(
-      slash::IpPortString(remove_meta_node.ip(), remove_meta_node.port()),
-      false);
+  std::string floyd_svr = slash::IpPortString(
+    remove_meta_node.ip(), remove_meta_node.port() + kMetaPortShiftFY);
+  Status s = g_meta_server->MembershipChange(floyd_svr, false);
   if (s.ok()) {
     response->set_code(ZPMeta::StatusCode::OK);
     response->set_msg("RemoveMetaNode OK!");

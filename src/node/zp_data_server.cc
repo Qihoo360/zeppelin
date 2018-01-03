@@ -262,7 +262,7 @@ void ZPDataServer::NextMeta(std::string* ip, long* port) {
   // New meta_index_ may not exactly increased by one since thread contention
   meta_index_ = (meta_index_ + 1) % g_zp_conf->meta_addr().size();
   auto addr = g_zp_conf->meta_addr()[meta_index_];
-  auto pos = addr.find("/");
+  auto pos = addr.find(":");
   if (pos != std::string::npos) {
     *ip = addr.substr(0, pos);
     auto str_port = addr.substr(pos+1);

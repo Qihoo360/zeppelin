@@ -187,12 +187,14 @@ Status ZPMetacmdBGWorker::ParsePullResponse(
     std::set<std::string> metas;
     for (const auto& m : pull.meta_members()) {
       maddr = slash::IpPortString(m.ip(), m.port());
+      metas.insert(maddr);
       mstr += maddr + " ";
     }
     LOG(INFO) << mstr;
     g_zp_conf->SetMetaAddr(metas);
-    if (g_zp_conf->Rewrite()) {
+    if (!g_zp_conf->Rewrite()) {
       LOG(WARNING) << "Rewrite conf after meta membership changed failed"; 
+      return Status::Corruption("Rewrite conf failed");
     }
     LOG(INFO) << "Rewrite conf after meta membership changed succ";
   }

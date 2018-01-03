@@ -443,8 +443,8 @@ Status ZPMetaInfoStore::LoadMembers() {
     members_ = tmp_members;
     MetasDebug();
 
-    std::string my_addr = slash::IpPortString(g_zp_conf->local_ip(),
-        g_zp_conf->local_port());
+    std::string my_addr =
+      slash::IpPortString(g_zp_conf->local_ip(), g_zp_conf->local_port());
     if (members_.find(my_addr) == members_.end()) {
       // Log and exist
       LOG(FATAL) << "Remove from cluster, floyd addr: " << my_addr;
