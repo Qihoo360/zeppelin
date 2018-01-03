@@ -460,51 +460,15 @@ Status ZPMetaInfoStore::LoadMembers() {
   return Status::OK();
 }
 
-// Refresh node_table_, table_info_, membership
-Status ZPMetaInfoStore::Refresh() {
-  std::string value;
-
-  // Get Version
-  int tmp_epoch = -1;
-  Status fs = floyd_->Read(kMetaVersion, &value);
-  if (fs.ok()) {
-    tmp_epoch = std::stoi(value);
-  } else if (fs.IsNotFound()) {
-    // First time, need load
-    tmp_epoch = -1;
-    LOG(INFO) << "Epoch not found in floyd, set -1";
-  } else {
-    LOG(ERROR) << "Load epoch failed: " << fs.ToString();
-    return Status::IOError(fs.ToString());
-  }
-
-  if (tmp_epoch == epoch_) {
-    return Status::OK();
-  } else if (tmp_epoch < epoch_) {
-    LOG(FATAL) << "Epoch fallback from " << epoch_
-      << " to " << tmp_epoch << ", It's very dangerous";
-  }
-  // tmp_epoch > epoch_
-  LOG(INFO) << "Load epoch from floyd succ, tmp version : " << tmp_epoch;
-
-  // Load membership from floyd
-  fs = LoadMembers();
-  if (!fs.ok()) {
-    LOG(ERROR) << "Load membership failed: " << fs.ToString();
-    return fs;
-  }
-
-  if (tmp_epoch == -1) {
-    // No need to load anything else, since they will not exist
-    epoch_ = tmp_epoch;
-    LOG(INFO) << "Update epoch: " << epoch_;
-    return Status::OK();
-  }
-
+Status ZPMetaInfoStore::LoadMetaInfo() {
   // Read table names
+  std::string value;
   ZPMeta::TableName table_names;
-  fs = floyd_->Read(kMetaTables, &value);
-  if (!fs.ok()) {
+  Status fs = floyd_->Read(kMetaTables, &value);
+  if (fs.IsNotFound()) {
+    LOG(WARNING) << "Load meta table names, not found";
+    return Status::OK();
+  } else if (!fs.ok()) {
     LOG(ERROR) << "Load meta table names failed: " << fs.ToString();
     return Status::IOError(fs.ToString());
   }
@@ -558,7 +522,6 @@ Status ZPMetaInfoStore::Refresh() {
         AddNodeTable(ip_port, t, &tmp_node_table);
       }
     }
-
     }
   }
 
@@ -573,6 +536,50 @@ Status ZPMetaInfoStore::Refresh() {
 
   LOG(INFO) << "Update node_table_ from floyd succ.";
   //NodesDebug();
+
+  return Status::OK();
+}
+
+// Refresh node_table_, table_info_, membership
+Status ZPMetaInfoStore::Refresh() {
+
+  // Get Version
+  int tmp_epoch = -1;
+  std::string value;
+  Status fs = floyd_->Read(kMetaVersion, &value);
+  if (fs.ok()) {
+    tmp_epoch = std::stoi(value);
+  } else if (fs.IsNotFound()) {
+    // First time, need load
+    tmp_epoch = -1;
+    LOG(INFO) << "Epoch not found in floyd, set -1";
+  } else {
+    LOG(ERROR) << "Load epoch failed: " << fs.ToString();
+    return Status::IOError(fs.ToString());
+  }
+
+  if (tmp_epoch == epoch_) {
+    return Status::OK();
+  } else if (tmp_epoch < epoch_) {
+    LOG(FATAL) << "Epoch fallback from " << epoch_
+      << " to " << tmp_epoch << ", It's very dangerous";
+  }
+  // tmp_epoch > epoch_
+  LOG(INFO) << "Load epoch from floyd succ, tmp version : " << tmp_epoch;
+
+  // Load membership from floyd
+  fs = LoadMembers();
+  if (!fs.ok()) {
+    LOG(ERROR) << "Load membership failed: " << fs.ToString();
+    return fs;
+  }
+
+  // Load table and node info
+  fs = LoadMetaInfo();
+  if (!fs.ok()) {
+    LOG(ERROR) << "Load meta info failed: " << fs.ToString();
+    return fs;
+  }
 
   // Update Version
   epoch_ = tmp_epoch;

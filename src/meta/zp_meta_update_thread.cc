@@ -183,7 +183,7 @@ Status ZPMetaUpdateThread::ApplyUpdates(
         break;
       case ZPMetaUpdateOP::kOpRemoveMeta:
         node = cur_task.sargs[0];
-        s = info_store_snap.MembersChange(node, true);
+        s = info_store_snap.MembersChange(node, false);
         break;
       default:
         s = Status::Corruption("Unknown task type");

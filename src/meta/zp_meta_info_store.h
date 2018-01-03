@@ -159,6 +159,7 @@ class ZPMetaInfoStore {
     std::set<std::string> members_;
     void MetasDebug();
     Status LoadMembers();
+    Status LoadMetaInfo();
 
     // Table releated
     pthread_rwlock_t tables_rw_;
