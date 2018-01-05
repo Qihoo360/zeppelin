@@ -566,7 +566,7 @@ void ZPMetaServer::CheckNodeAlive() {
 Status ZPMetaServer::GetAllMetaNodes(std::vector<ZPMeta::Node> *nodes) {
   std::string leader_ip;
   int leader_port = 0;
-  bool ret = election_->GetLeader(&leader_ip, &leader_port);
+  bool ret = election_->CurrentLeader(&leader_ip, &leader_port);
   if (ret) {
     ZPMeta::Node leader;
     leader.set_ip(leader_ip);

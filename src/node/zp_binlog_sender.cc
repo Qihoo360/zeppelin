@@ -221,7 +221,6 @@ ZPBinlogSendTaskPool::ZPBinlogSendTaskPool()
   : next_sequence_(0) {
   pthread_rwlock_init(&tasks_rwlock_, NULL);
   task_ptrs_.reserve(1000);
-  LOG(INFO) << "size: " << tasks_.size();
 }
 
 ZPBinlogSendTaskPool::~ZPBinlogSendTaskPool() {

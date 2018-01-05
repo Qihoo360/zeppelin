@@ -17,9 +17,11 @@ static bool IsLeaderTimeout(uint64_t last_active, uint64_t timeout) {
 
 ZPMetaElection::ZPMetaElection(floyd::Floyd* f)
   : floyd_(f) {
+    pthread_rwlock_init(&last_leader_rw_, NULL);
   }
 
 ZPMetaElection::~ZPMetaElection() {
+  pthread_rwlock_destroy(&last_leader_rw_);
 }
 
 Status ZPMetaElection::ReadLeaderRecord(ZPMeta::MetaLeader* cleader) {
@@ -52,6 +54,7 @@ Status ZPMetaElection::WriteLeaderRecord(const ZPMeta::MetaLeader& cleader) {
 }
 
 bool ZPMetaElection::Jeopardy(std::string* ip, int* port) {
+  slash::RWLock l(&last_leader_rw_, false);
   if (!last_leader_.IsInitialized()) {
     // no last
     LOG(WARNING) << "Jeopardy finished since no last leader";
@@ -88,7 +91,10 @@ bool ZPMetaElection::GetLeader(std::string* ip, int* port) {
       << ", check jeopardy";
     return Jeopardy(ip, port);  
   } else if (s.ok()) {
+    {
+    slash::RWLock l(&last_leader_rw_, true);
     last_leader_.CopyFrom(cleader);
+    }
     if ((local_ip != cleader.leader().ip()
           || local_port != cleader.leader().port())
         && !IsLeaderTimeout(cleader.last_active(), kMetaLeaderTimeout)) {
@@ -101,7 +107,7 @@ bool ZPMetaElection::GetLeader(std::string* ip, int* port) {
 
   // Lock and update
   s = floyd_->TryLock(kElectLockKey, mine,
-      kMetaLeaderLockTimeout * 1000 * 1000);
+      kMetaLeaderLockTimeout * 1000);
   if (!s.ok()) {
     LOG(WARNING) << "TryLock ElectLock failed." << s.ToString();
     return Jeopardy(ip, port);  
@@ -117,6 +123,7 @@ bool ZPMetaElection::GetLeader(std::string* ip, int* port) {
       << ", check jeopardy";
     return Jeopardy(ip, port);  
   } else if (s.ok()) {
+    slash::RWLock l(&last_leader_rw_, true);
     last_leader_.CopyFrom(cleader);
   }
 
@@ -142,6 +149,7 @@ bool ZPMetaElection::GetLeader(std::string* ip, int* port) {
     s = WriteLeaderRecord(cleader);
     if (s.ok()) {
       // Refresh cache
+      slash::RWLock l(&last_leader_rw_, true);
       last_leader_.CopyFrom(cleader);
     }
   }

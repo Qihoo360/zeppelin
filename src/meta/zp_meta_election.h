@@ -27,10 +27,15 @@ class ZPMetaElection {
   ZPMetaElection(floyd::Floyd* f);
   ~ZPMetaElection();
   
+  // Juet for user-friendly
+  bool CurrentLeader(std::string* ip, int* port) {
+    return Jeopardy(ip, port);
+  }
   bool GetLeader(std::string* ip, int* port);
 
  private:
   floyd::Floyd* floyd_;
+  pthread_rwlock_t last_leader_rw_;
   ZPMeta::MetaLeader last_leader_;
   bool Jeopardy(std::string* ip, int* port);
   Status ReadLeaderRecord(ZPMeta::MetaLeader* cleader);
