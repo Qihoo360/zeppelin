@@ -605,8 +605,8 @@ Status ZPMetaServer::GetMetaStatus(ZPMeta::MetaCmdResponse_MetaStatus* ms) {
   std::string* floyd_status = ms->mutable_consistency_stautus();
   floyd_->GetServerStatus(floyd_status);
   ZPMeta::MigrateStatus migrate_s;
-  Status s = migrate_register_->Check(&migrate_s);
-  if (s.ok()) {
+  if (IsLeader()
+      && migrate_register_->Check(&migrate_s).ok()) {
     ms->mutable_migrate_status()->CopyFrom(migrate_s);
   }
   return Status::OK();
@@ -1009,7 +1009,7 @@ void ZPMetaServer::InitClientCmdTable() {
         listmetaptr));
 
   // MetaStatus Command
-  Cmd* meta_status_ptr = new MetaStatusCmd(kCmdFlagsRead | kCmdFlagsRedirect);
+  Cmd* meta_status_ptr = new MetaStatusCmd(kCmdFlagsRead);
   cmds_.insert(std::pair<int, Cmd*>(static_cast<int>(ZPMeta::Type::METASTATUS),
         meta_status_ptr));
 

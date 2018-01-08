@@ -83,7 +83,16 @@ int ZPMetaClientConn::DealMessage() {
 
   g_meta_server->PlusQueryNum();
 
+  uint64_t start_us = slash::NowMicros();
+ 
   cmd->Do(&request_, &response_);
   res_ = &response_;
+  
+  int64_t duration = slash::NowMicros() - start_us;
+  if (g_zp_conf->slowlog_slower_than() > 0
+      && duration > g_zp_conf->slowlog_slower_than()) {
+    LOG(WARNING) << "slow client command:" << cmd->name()
+      << ", duration(us): " << duration;
+  }
   return 0;
 }

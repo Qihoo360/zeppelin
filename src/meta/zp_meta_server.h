@@ -160,7 +160,6 @@ class ZPMetaServer  {
     return role_ != MetaRole::kNone;
   }
 
-
  private:
   // Server related
   std::atomic<bool> should_exit_;
