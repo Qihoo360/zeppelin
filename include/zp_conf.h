@@ -127,6 +127,10 @@ class ZpConf {
     RWLock l(&rwlock_, false);
     return slowdown_delay_radio_;
   }
+  int migrate_count_once() {
+    RWLock l(&rwlock_, false);
+    return migrate_count_once_;
+  }
   int db_write_buffer_size() {
     RWLock l(&rwlock_, false);
     return db_write_buffer_size_;
@@ -214,6 +218,7 @@ class ZpConf {
   int slowlog_slower_than_;
   int stuck_offset_dist_;
   int slowdown_delay_radio_;  // Percent
+  int migrate_count_once_;
 
   // Floyd options
   int floyd_check_leader_us_;

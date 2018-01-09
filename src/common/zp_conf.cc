@@ -38,6 +38,7 @@ ZpConf::ZpConf(const std::string& path)
   slowlog_slower_than_(-1),
   stuck_offset_dist_(kMetaOffsetStuckDist), // 100KB
   slowdown_delay_radio_(kSlowdownDelayRatio),  // 60%
+  migrate_count_once_(kMetaMigrateOnceCount),  // 2
   floyd_check_leader_us_(15000000),
   floyd_heartbeat_us_(6000000),
   floyd_append_entries_size_once_(1024000),
@@ -84,6 +85,7 @@ void ZpConf::Dump() const {
   fprintf (stderr, "    Config.slowlog_slower_than      : %d\n", slowlog_slower_than_);
   fprintf (stderr, "    Config.stuck_offset_dist        : %dKB\n", stuck_offset_dist_ / 1024);
   fprintf (stderr, "    Config.slowdown_delay_radio     : %d%%\n", slowdown_delay_radio_);
+  fprintf (stderr, "    Config.migrate_count_once     : %d%%\n", migrate_count_once_);
 
   fprintf (stderr, "    Config.floyd_check_leader_us            : %d\n", floyd_check_leader_us_);
   fprintf (stderr, "    Config.floyd_heartbeat_us               : %d\n", floyd_heartbeat_us_);
@@ -117,6 +119,7 @@ bool ZpConf::Rewrite() {
   conf_adaptor_.SetConfInt("slowlog_slower_than", slowlog_slower_than_);
   conf_adaptor_.SetConfInt("stuck_offset_dist", stuck_offset_dist_);
   conf_adaptor_.SetConfInt("slowdown_delay_radio", slowdown_delay_radio_);
+  conf_adaptor_.SetConfInt("migrate_count_once", migrate_count_once_);
   conf_adaptor_.SetConfInt("floyd_check_leader_us", floyd_check_leader_us_);
   conf_adaptor_.SetConfInt("floyd_heartbeat_us", floyd_heartbeat_us_);
   conf_adaptor_.SetConfInt("floyd_append_entries_size_once", floyd_append_entries_size_once_);
@@ -156,6 +159,7 @@ int ZpConf::Load() {
   ret = conf_adaptor_.GetConfInt("slowlog_slower_than", &slowlog_slower_than_);
   ret = conf_adaptor_.GetConfInt("stuck_offset_dist", &stuck_offset_dist_);
   ret = conf_adaptor_.GetConfInt("slowdown_delay_radio", &slowdown_delay_radio_);
+  ret = conf_adaptor_.GetConfInt("migrate_count_once", &migrate_count_once_);
   ret = conf_adaptor_.GetConfInt("floyd_check_leader_us", &floyd_check_leader_us_);
   ret = conf_adaptor_.GetConfInt("floyd_heartbeat_us", &floyd_heartbeat_us_);
   ret = conf_adaptor_.GetConfInt("floyd_append_entries_size_once", &floyd_append_entries_size_once_);
@@ -188,6 +192,7 @@ int ZpConf::Load() {
   slowlog_slower_than_ = BoundaryLimit(slowlog_slower_than_, -1, 10000000);
   stuck_offset_dist_ = BoundaryLimit(stuck_offset_dist_, 1, 100 * 1024 * 1024);
   slowdown_delay_radio_ = BoundaryLimit(slowdown_delay_radio_, 1, 100);
+  migrate_count_once_ = BoundaryLimit(migrate_count_once_, 1, 100);
   db_write_buffer_size_ = BoundaryLimit(db_write_buffer_size_, 4 * 1024, 10 * 1024 * 1024); // 4M ~ 10G
   db_max_write_buffer_ = BoundaryLimit(db_max_write_buffer_, 1024 * 1024, 500 * 1024 * 1024); // 1G ~ 500G
   db_target_file_size_base_ = BoundaryLimit(db_target_file_size_base_, 4 * 1024, 10 * 1024 * 1024); // 4M ~ 10G

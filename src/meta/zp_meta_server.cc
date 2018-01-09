@@ -656,7 +656,7 @@ Status ZPMetaServer::CancelMigrate() {
 void ZPMetaServer::ProcessMigrateIfNeed() {
   // Get next
   std::vector<ZPMeta::RelationCmdUnit> diffs;
-  int remain_diff_count = kMetaMigrateOnceCount;
+  int remain_diff_count = g_zp_conf->migrate_count_once();
   Status s = migrate_register_->GetN(remain_diff_count, &diffs);
   if (!s.ok()) {
     if (!s.IsNotFound()) {
