@@ -595,8 +595,8 @@ void Partition::BecomeSlave() {
 
 // Get binlog offset when I win the election
 // Return false if I'm not a master
+// Requeired: hold read lock of state_rw_
 bool Partition::GetWinBinlogOffset(BinlogOffset* win) {
-  slash::RWLock l(&state_rw_, false);
   if (role_ != Role::kNodeMaster) {
     return false;
   }
