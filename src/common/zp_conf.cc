@@ -85,7 +85,7 @@ void ZpConf::Dump() const {
   fprintf (stderr, "    Config.slowlog_slower_than      : %d\n", slowlog_slower_than_);
   fprintf (stderr, "    Config.stuck_offset_dist        : %dKB\n", stuck_offset_dist_ / 1024);
   fprintf (stderr, "    Config.slowdown_delay_radio     : %d%%\n", slowdown_delay_radio_);
-  fprintf (stderr, "    Config.migrate_count_once     : %d%%\n", migrate_count_once_);
+  fprintf (stderr, "    Config.migrate_count_once     : %d\n", migrate_count_once_);
 
   fprintf (stderr, "    Config.floyd_check_leader_us            : %d\n", floyd_check_leader_us_);
   fprintf (stderr, "    Config.floyd_heartbeat_us               : %d\n", floyd_heartbeat_us_);

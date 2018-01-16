@@ -492,7 +492,6 @@ void* ZPBinlogSendThread::ThreadMain() {
         }
 
         if (!item_s.ok()) {
-          pool_->PutBack(task);
           task->renew_process_error_time();
           break;
         }
@@ -540,10 +539,13 @@ void* ZPBinlogSendThread::ThreadMain() {
       if (slash::NowMicros() - time_begin > kBinlogTimeSlice * 1000000) {
         // Switch Task
         RenewPeerLease(task);
-        pool_->PutBack(task);
         break;
       }
     }
+
+    // Return task back
+    pool_->PutBack(task);
+
   }
 
   return NULL;
