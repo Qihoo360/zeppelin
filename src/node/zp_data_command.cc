@@ -172,6 +172,7 @@ void ListbyTagCmd::Do(const google::protobuf::Message *req,
     r->set_key(iter->key().ToString());
     r->set_value(iter->value().ToString());
   }
+  delete iter;
   response->set_code(client::StatusCode::kOk);
 }
 
@@ -198,7 +199,7 @@ void DeletebyTagCmd::Do(const google::protobuf::Message *req,
     // TODO(gaodq) Use rocksdb::WriteBatch ?
     batch.Delete(iter->key());
   }
-
+  delete iter;
   if (batch.Count() > 0) {
     rocksdb::Status s = ptr->db()->Write(rocksdb::WriteOptions(), &batch);
     if (!s.ok()) {
