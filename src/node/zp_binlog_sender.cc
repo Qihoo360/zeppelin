@@ -253,9 +253,6 @@ Status ZPBinlogSendTaskPool::AddNewTask(const std::string &table_name,
     RemoveTask(task_ptr->name());
   }
   s = AddTask(task_ptr);
-  if (!s.ok()) {
-    delete task_ptr;
-  }
   LOG(INFO) << "Add BinlogTask for Table:" << task_ptr->name()
     << ", partition: " << task_ptr->partition_id()
     << ", target: " << task_ptr->node()
@@ -263,6 +260,9 @@ Status ZPBinlogSendTaskPool::AddNewTask(const std::string &table_name,
     << ", filenum: " << task_ptr->filenum()
     << ", ioffset: " << task_ptr->offset()
     << ", result: " << s.ToString(); 
+  if (!s.ok()) {
+    delete task_ptr;
+  }
   return s;
 }
 
