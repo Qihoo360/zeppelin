@@ -1,4 +1,5 @@
 # Zeppelin
+[![Build Status](https://travis-ci.org/Qihoo360/zeppelin.svg?branch=master)](https://travis-ci.org/Qihoo360/zeppelin)
 Yet another huge kv storage
 
 ### Wiki
