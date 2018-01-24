@@ -17,4 +17,4 @@ language: cpp
 script:
   - git submodule init
   - git submodule update
-  - make
+  - make PROCESSOR_NUMS=2
