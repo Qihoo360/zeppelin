@@ -36,7 +36,7 @@ After build and setup, you need to access the service through Zeppeln Client, Se
 
 [DataServer Design](http://catkang.github.io/2018/01/16/zeppelin-node.html)
 
-[MetaServer Design](http://catkang.github.io/2018/01/16/zeppelin-meta.html)
+[MetaServer Design](http://catkang.github.io/2018/01/19/zeppelin-meta.html)
 
 #### Latest Release
 [1.2.3](https://github.com/Qihoo360/zeppelin/releases)
