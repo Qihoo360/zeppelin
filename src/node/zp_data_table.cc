@@ -84,7 +84,7 @@ int Table::KeyToPartitionId(const std::string& key) {
   std::string hash_tag(key);
 
   size_t l_brace = key.find(kLBrace);
-  if (l_brace != std::string::npos) {
+  if (l_brace == 0) {
     // key := ... + kTagBracket + hash_tag + kTagBracket + ...
     size_t r_brace = key.find(kRBrace, l_brace + 1);
     if (r_brace != std::string::npos) {

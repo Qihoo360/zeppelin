@@ -77,8 +77,8 @@ enum CmdType {
   kRemoveMetaNodeCmd,
 };
 
-const std::string kLBrace = "{";
-const std::string kRBrace = "}";
+const std::string kLBrace = "#ZPLBRACE%#";
+const std::string kRBrace = "#ZPRBRACE%#";
 
 class Cmd {
  public:
