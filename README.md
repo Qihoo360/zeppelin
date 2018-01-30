@@ -39,4 +39,4 @@ After build and setup, you need to access the service through Zeppeln Client, Se
 [MetaServer Design](http://catkang.github.io/2018/01/19/zeppelin-meta.html)
 
 #### Latest Release
-[1.2.3](https://github.com/Qihoo360/zeppelin/releases)
+[1.2.4](https://github.com/Qihoo360/zeppelin/releases)
