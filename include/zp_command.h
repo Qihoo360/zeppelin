@@ -57,6 +57,7 @@ enum CmdType {
   kInfoCmd,
   kSyncCmd,
   kMgetCmd,
+  kMsetCmd,
   kFlushDBCmd,
   // Meta related
   kPingCmd,

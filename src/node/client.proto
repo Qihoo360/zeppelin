@@ -14,6 +14,7 @@ enum Type {
   WRITEBATCH = 10;
   LISTBYTAG = 11;
   DELETEBYTAG = 12;
+  MSET = 13;
 }
 
 enum SyncType {
@@ -136,6 +137,8 @@ message CmdRequest {
     required string hash_tag = 2;
   }
   optional DeletebyTag deleteby_tag = 11;
+
+  repeated Set mset = 12;
 }
 
 message CmdResponse {

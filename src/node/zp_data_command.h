@@ -198,6 +198,28 @@ class MgetCmd : public Cmd  {
   }
 };
 
+class MsetCmd : public Cmd  {
+ public:
+  explicit MsetCmd(int flag) : Cmd(flag, kMsetCmd) {}
+  virtual std::string name() const {
+    return "Mset";
+  }
+  virtual void Do(const google::protobuf::Message *req,
+      google::protobuf::Message *res, void* partition) const;
+  virtual std::string ExtractTable(const google::protobuf::Message *req) const {
+    const client::CmdRequest* request =
+      static_cast<const client::CmdRequest*>(req);
+    std::string table_name;
+    if (request->mset_size() > 0) {
+      table_name = request->mset(0).table_name();
+    }
+    return table_name;
+  }
+  virtual int ExtractPartition(const google::protobuf::Message *req) const {
+    return 0;  // unuseful
+  }
+};
+
 class FlushDBCmd : public Cmd  {
  public:
   explicit FlushDBCmd(int flag) : Cmd(flag, kFlushDBCmd) {}
