@@ -215,9 +215,6 @@ class MsetCmd : public Cmd  {
     }
     return table_name;
   }
-  virtual int ExtractPartition(const google::protobuf::Message *req) const {
-    return 0;  // unuseful
-  }
 };
 
 class FlushDBCmd : public Cmd  {
