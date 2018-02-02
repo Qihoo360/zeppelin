@@ -196,6 +196,8 @@ class ZPMetaServer  {
   // Migrate related
   ZPMetaMigrateRegister* migrate_register_;
   void ProcessMigrateIfNeed();
+  bool CheckNodeOffset(const std::string& table,
+      int partition_id, const ZPMeta::Node& node);
 
   // Statistic related
   QueryStatistic statistic;

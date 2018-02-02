@@ -653,6 +653,21 @@ Status ZPMetaServer::CancelMigrate() {
   return migrate_register_->Cancel();
 }
 
+bool ZPMetaServer::CheckNodeOffset(const std::string& table,
+    int partition_id, const ZPMeta::Node& node) {
+  // Check offset
+  NodeOffset offset;
+  Status s = info_store_->GetNodeOffset(node,
+      table, partition_id, &offset);
+  if (!s.ok()) {
+    LOG(WARNING) << "CheckNodeOffset offset failed: " << s.ToString()
+      << ", table: " << table
+      << ", partition: " << partition_id
+      << ", node: " << node.ip() << ":" << node.port();
+  }
+  return s.ok();
+}
+
 void ZPMetaServer::ProcessMigrateIfNeed() {
   // Get next
   std::vector<ZPMeta::RelationCmdUnit> diffs;
@@ -672,6 +687,18 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
     const ZPMeta::Node& left_node = diff.left();
     const std::string& table_name = diff.table();
     int partition = diff.partition();
+
+    LOG(INFO) << "Begin One Migrate, table: " << diff.table()
+      << "partition id: " << diff.partition()
+      << "left node: " << left_node.ip() << ":" << left_node.port()
+      << "right node: " << right_node.ip() << ":" << right_node.port();
+
+    // Check node offset to avoid useless epoch change
+    if (!CheckNodeOffset(diff.table(), diff.partition(), left_node)
+        || !CheckNodeOffset(diff.table(), diff.partition(), right_node)) {
+      LOG(WARNING) << "Migrate check node offset failed";
+      continue;
+    }
 
     // Add slave task
     UpdateTask task_addslave, task_handover;
