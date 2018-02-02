@@ -40,10 +40,7 @@ bool ZPPingThread::CheckOffsetDelta(const std::string table_name,
   return false;
 }
 
-slash::Status ZPPingThread::Send(bool all) {
-  if (all) {
-    LOG(INFO) << "send all offset in ping";
-  }
+slash::Status ZPPingThread::Send() {
   ZPMeta::MetaCmd request;
   int64_t meta_epoch = zp_data_server->meta_epoch();
   ZPMeta::MetaCmd_Ping* ping = request.mutable_ping();
@@ -55,9 +52,10 @@ slash::Status ZPPingThread::Send(bool all) {
 
   TablePartitionOffsets all_offset;
   zp_data_server->DumpTableBinlogOffsets("", &all_offset);
+  tmp_last_offsets_.clear();
   for (auto& item : all_offset) {
     for (auto& p : item.second) {
-      if (!all && !CheckOffsetDelta(item.first, p.first, p.second)) {
+      if (!CheckOffsetDelta(item.first, p.first, p.second)) {
         // no change happend
         continue;
       }
@@ -66,6 +64,9 @@ slash::Status ZPPingThread::Send(bool all) {
       offset->set_partition(p.first);
       offset->set_filenum(p.second.filenum);
       offset->set_offset(p.second.offset);
+      
+      tmp_last_offsets_[item.first][p.first]
+        = BinlogOffset(p.second.filenum, p.second.offset);
     }
   }
 
@@ -76,16 +77,7 @@ slash::Status ZPPingThread::Send(bool all) {
     << ") with Epoch: " << meta_epoch
     << " offset content: [" << text_format << "]";
 
-  Status s = cli_->Send(&request);
-
-  // Update last_offsets only when send succ
-  if (s.ok()) {
-    for (auto& off : ping->offset()) {
-      last_offsets_[off.table_name()][off.partition()]
-        = BinlogOffset(off.filenum(), off.offset());
-    }
-  }
-  return s;
+  return cli_->Send(&request);
 }
 
 slash::Status ZPPingThread::RecvProc() {
@@ -119,12 +111,12 @@ void* ZPPingThread::ThreadMain() {
     // Connect with heartbeat port
     LOG(INFO) << "Ping will connect ("<< meta_ip << ":" << meta_port << ")";
     s = cli_->Connect(meta_ip, meta_port);
-    bool is_first = true;  // First Ping after connect should send full message
     if (s.ok()) {
       DLOG(INFO) << "Ping connect ("<< meta_ip << ":" << meta_port << ") ok!";
       gettimeofday(&now, NULL);
       last_interaction = now;
       last_offsets_.clear();  // should resend full dose offset after reconnect
+      LOG(INFO) << "Will send all offset in ping";
       cli_->set_send_timeout(1000);
       cli_->set_recv_timeout(1000);
 
@@ -139,7 +131,7 @@ void* ZPPingThread::ThreadMain() {
         sleep(kPingInterval);
 
         // Send ping to meta
-        s = Send(is_first);
+        s = Send();
         if (!s.ok()) {
           LOG(WARNING) << "Ping send to ("<< meta_ip << ":" << meta_port
             << ") failed! caz: " << s.ToString();
@@ -156,8 +148,11 @@ void* ZPPingThread::ThreadMain() {
           continue;
         }
 
-        if (is_first) {
-          is_first = false;
+        // Update last_offsets only when succ
+        for (auto& tlo_t : tmp_last_offsets_) {
+          for (auto& tlo_p : tlo_t.second) {
+            last_offsets_[tlo_t.first][tlo_p.first] = tlo_p.second;
+          }
         }
 
         gettimeofday(&last_interaction, NULL);
