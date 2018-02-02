@@ -274,9 +274,7 @@ void MgetCmd::Do(const google::protobuf::Message *req,
   // One error all error
   Cmd* sub_cmd = zp_data_server->CmdGet(client::Type::GET);
   client::CmdRequest sub_req;
-  sub_req.set_type(client::Type::GET);
   client::CmdResponse sub_res;
-  sub_res.set_type(client::Type::GET);
   for (auto& key : request->mget().keys()) {
     std::shared_ptr<Partition> partition = zp_data_server->GetTablePartition(
         request->mget().table_name(), key);
@@ -290,6 +288,8 @@ void MgetCmd::Do(const google::protobuf::Message *req,
     // convert to multi sub command, then execute
     sub_req.Clear();
     sub_res.Clear();
+    sub_req.set_type(client::Type::GET);
+    sub_res.set_type(client::Type::GET);
     client::CmdRequest_Get* get = sub_req.mutable_get();
     get->set_table_name(request->mget().table_name());
     get->set_key(key);
@@ -306,6 +306,47 @@ void MgetCmd::Do(const google::protobuf::Message *req,
       mget->set_value(sub_res.get().value());
     } else {
       mget->set_value("");
+    }
+  }
+  response->set_code(client::StatusCode::kOk);
+}
+
+void MsetCmd::Do(const google::protobuf::Message *req,
+    google::protobuf::Message *res, void* ptr) const {
+  const client::CmdRequest* request =
+    static_cast<const client::CmdRequest*>(req);
+  client::CmdResponse* response = static_cast<client::CmdResponse*>(res);
+  response->Clear();
+  response->set_type(client::Type::MSET);
+
+  // One error all error
+  Cmd* sub_set_cmd = zp_data_server->CmdGet(client::Type::SET);
+  client::CmdRequest sub_req;
+  client::CmdResponse sub_res;
+  for (int i = 0; i < request->mset_size(); i++) {
+    const client::CmdRequest_Set& sub_set_req = request->mset(i);
+    std::shared_ptr<Partition> partition = zp_data_server->GetTablePartition(
+        sub_set_req.table_name(), sub_set_req.key());
+    if (partition == NULL) {
+      LOG(WARNING) << "command failed: Mset, no partition for key:" <<
+        sub_set_req.key();
+      response->set_code(client::StatusCode::kError);
+      response->set_msg("no partition: " + sub_set_req.key());
+      return;
+    }
+
+    // convert to multi sub set command, then execute
+    sub_req.Clear();
+    sub_res.Clear();
+    sub_req.set_type(client::Type::SET);
+    sub_res.set_type(client::Type::SET);
+    auto set_ctx = sub_req.mutable_set();
+    set_ctx->CopyFrom(sub_set_req);
+    partition->DoCommand(sub_set_cmd, sub_req, &sub_res);
+    if (sub_res.code() != client::StatusCode::kOk) {
+      response->set_code(sub_res.code());
+      response->set_msg(sub_res.msg());
+      return;
     }
   }
   response->set_code(client::StatusCode::kOk);

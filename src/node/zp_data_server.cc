@@ -489,6 +489,7 @@ void ZPDataServer::PlusLatencyStat(
         break;
       case kSetCmd:
       case kDelCmd:
+      case kMsetCmd:
         // write cmd
         pstat->write_queries++;
         if (pstat->write_queries == 0) {pstat->write_queries = 1; }
@@ -673,6 +674,11 @@ void ZPDataServer::InitClientCmdTable() {
       kCmdFlagsKv | kCmdFlagsRead | kCmdFlagsMultiPartition);
   cmds_.insert(std::pair<int, Cmd*>(
         static_cast<int>(client::Type::MGET), mgetptr));
+  // MsetCmd
+  Cmd* msetptr = new MsetCmd(
+      kCmdFlagsKv | kCmdFlagsWrite | kCmdFlagsMultiPartition);
+  cmds_.insert(std::pair<int, Cmd*>(
+        static_cast<int>(client::Type::MSET), msetptr));
   // FlushDBCmd
   Cmd* flushdbptr = new FlushDBCmd(
       kCmdFlagsAdmin | kCmdFlagsWrite | kCmdFlagsSuspend);
