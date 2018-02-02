@@ -179,6 +179,9 @@ void ZPBinlogSendTask::BuildLeaseSyncRequest(int64_t lease_time,
   client::Node *node = msg->mutable_from();
   node->set_ip(zp_data_server->local_ip());
   node->set_port(zp_data_server->local_port());
+  client::SyncOffset *sync_offset = msg->mutable_sync_offset();
+  sync_offset->set_filenum(pre_filenum_);
+  sync_offset->set_offset(pre_offset_);
 
   client::SyncLease* lease = msg->mutable_sync_lease();
   lease->set_table_name(table_name_);

@@ -737,8 +737,7 @@ bool Partition::GetBinlogOffset(BinlogOffset* boffset) const {
 }
 
 // Required: hold read mutex of state_rw_
-bool Partition::CheckSyncOption(const PartitionSyncOption& option,
-    bool has_offset) {
+bool Partition::CheckSyncOption(const PartitionSyncOption& option) {
   // Check from node
   if (option.from_node != slash::IpPortString(master_node_.ip,
         master_node_.port)) {
@@ -764,9 +763,6 @@ bool Partition::CheckSyncOption(const PartitionSyncOption& option,
   last_sync_time_ = slash::NowMicros();
 
   // Check offset
-  if (!has_offset) {
-    return true;
-  }
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
   logger_->GetProducerStatus(&cur_filenum, &cur_offset);
@@ -851,7 +847,7 @@ void Partition::DoBinlogSkip(const PartitionSyncOption& option,
 void Partition::DoBinlogLeaseRenew(const PartitionSyncOption& option,
     uint64_t lease) {
   slash::RWLock l(&state_rw_, false);
-  if (!CheckSyncOption(option, false)) {
+  if (!CheckSyncOption(option)) {
     return;
   }
   sync_lease_ = lease;

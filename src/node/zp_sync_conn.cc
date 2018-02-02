@@ -84,7 +84,8 @@ int ZPSyncConn::DealMessage() {
         slease.table_name(),
         slease.partition_id(),
         slash::IpPortString(request_.from().ip(), request_.from().port()),
-        0, 0);
+        request_.sync_offset().filenum(),
+        request_.sync_offset().offset());
     arg = new ZPBinlogReceiveTask(
         option,
         slease.lease());

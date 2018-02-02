@@ -258,7 +258,7 @@ class Partition  {
   void BecomeSingle();
   void BecomeMaster();
   void BecomeSlave();
-  bool CheckSyncOption(const PartitionSyncOption& option, bool has_offset = true);
+  bool CheckSyncOption(const PartitionSyncOption& option);
 
   // DB related
   rocksdb::DBNemo *db_;
