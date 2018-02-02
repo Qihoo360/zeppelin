@@ -75,12 +75,8 @@ ZPBinlogSendTask::ZPBinlogSendTask(uint64_t seq, const std::string &table,
   }
 
 ZPBinlogSendTask::~ZPBinlogSendTask() {
-  if (reader_) {
-    delete reader_;
-  }
-  if (queue_) {
-    delete queue_;
-  }
+  delete reader_;
+  delete queue_;
 }
 
 Status ZPBinlogSendTask::Init() {

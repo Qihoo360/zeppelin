@@ -48,7 +48,7 @@ const int kConditionCronInterval= 3000; // millisecond
 /* Sync related */
 // TrySync Delay time := kRecoverSyncDelayCronCount * (kNodeCronInterval * kNodeCronWaitCount)
 const int kRecoverSyncDelayCronCount = 7;
-const int kStuckRecoverSyncDelayCronCount = 450; // for slave stuck out of kConnected
+const int kStuckRecoverSyncDelayCronCount = 300; // for slave stuck out of kConnected
 const int kTrySyncInterval = 5000;  // mili seconds
 const int kBinlogSendInterval = 1;
 const int kBinlogRedundantLease = 10;  // some more lease time for redundance

@@ -137,7 +137,7 @@ bool ZPMetaConditionCron::ChecknProcess(const OffsetCondition& condition,
       }
       break; // Met ClostToNotEqual here
     case ConditionType::kEqual:
-      if (left_offset != right_offset) {
+      if (left_offset > right_offset) {
         return false;  // Not yet
       }
       break; // Met Equal here
