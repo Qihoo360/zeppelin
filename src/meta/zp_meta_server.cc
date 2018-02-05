@@ -671,8 +671,7 @@ bool ZPMetaServer::CheckNodeOffset(const std::string& table,
 void ZPMetaServer::ProcessMigrateIfNeed() {
   // Get next
   std::vector<ZPMeta::RelationCmdUnit> diffs;
-  int remain_diff_count = g_zp_conf->migrate_count_once();
-  Status s = migrate_register_->GetN(remain_diff_count, &diffs);
+  Status s = migrate_register_->GetN(g_zp_conf->migrate_count_once(), &diffs);
   if (!s.ok()) {
     if (!s.IsNotFound()) {
       LOG(WARNING) << "Get next N migrate diffs failed, error: "
@@ -682,6 +681,7 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
   }
   LOG(INFO) << "Begin Process " << diffs.size() << " migrate item";
 
+  int remain_diff_count = diffs.size();
   for (const auto& diff : diffs) {
     const ZPMeta::Node& right_node = diff.right();
     const ZPMeta::Node& left_node = diff.left();
@@ -689,14 +689,20 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
     int partition = diff.partition();
 
     LOG(INFO) << "Begin One Migrate, table: " << diff.table()
-      << "partition id: " << diff.partition()
-      << "left node: " << left_node.ip() << ":" << left_node.port()
-      << "right node: " << right_node.ip() << ":" << right_node.port();
+      << ", partition id: " << diff.partition()
+      << ", left node: " << left_node.ip() << ":" << left_node.port()
+      << ", right node: " << right_node.ip() << ":" << right_node.port();
 
     // Check node offset to avoid useless epoch change
-    if (!CheckNodeOffset(diff.table(), diff.partition(), left_node)
-        || !CheckNodeOffset(diff.table(), diff.partition(), right_node)) {
-      LOG(WARNING) << "Migrate check node offset failed";
+    if (!CheckNodeOffset(diff.table(), diff.partition(), left_node)) {
+      LOG(WARNING) << "Migrate check left node offset failed. "
+        << ", left node: " << left_node.ip() << ":" << left_node.port();
+      continue;
+    }
+    if (IsCharged(diff.table(), diff.partition(), right_node)
+        && !CheckNodeOffset(diff.table(), diff.partition(), right_node)) {
+      LOG(WARNING) << "Migrate check right node offset failed. "
+        << ", right node: " << right_node.ip() << ":" << right_node.port();
       continue;
     }
 
@@ -798,7 +804,7 @@ void ZPMetaServer::ProcessMigrateIfNeed() {
     remain_diff_count--;
   }
   // Something wrong happended, put reference back
-  if (!s.ok()) {
+  if (remain_diff_count) {
     migrate_register_->PutN(remain_diff_count);
   }
 }
