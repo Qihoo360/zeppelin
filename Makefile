@@ -1,6 +1,5 @@
 CXX= g++
-PROTOC = protoc
-LDFLAGS= -lpthread -lprotobuf -lglog -lz -lbz2 -lsnappy -lrt
+LDFLAGS= -lpthread -lglog -lz -lbz2 -lsnappy -lrt
 CXXFLAGS= -g -std=c++11 -fno-builtin-memcmp -msse -msse4.2 
 PROFILING_FLAGS= -pg
 OPT=
@@ -70,8 +69,13 @@ NEMODB_PATH = $(THIRD_PATH)/nemo-rocksdb
 endif
 LIBNEMODB = $(NEMODB_PATH)/lib/libnemodb$(DEBUG_SUFFIX).a
 
+PROTODIR = $(THIRD_PATH)/protobuf
+LIBPROTOBUF = $(PROTODIR)/_install/lib/libprotobuf.a
+PROTOC = $(PROTODIR)/_install/bin/protoc
+
 INCLUDE_PATH = -I. -I$(SLASH_PATH) -I$(PINK_PATH) -I$(FLOYD_PATH) \
-							 -I$(NEMODB_PATH) -I$(ROCKSDB_PATH)/include
+							 -I$(NEMODB_PATH) -I$(ROCKSDB_PATH)/include \
+							 -I$(PROTODIR)/_install/include
 
 # ---------------End Dependences----------------
 
@@ -134,7 +138,7 @@ ZP_NODE = zp-node$(DEBUG_SUFFIX)
 
 .PHONY: distclean clean dbg all proto_gens
 
-%.pb.cc %.pb.h: %.proto
+%.pb.cc %.pb.h: %.proto $(PROTOC)
 	$(AM_V_GEN)
 	$(AM_V_at)$(PROTOC) -I$(dir $<) --cpp_out=$(dir $<) $<
 
@@ -154,12 +158,12 @@ dbg: $(ZP_META) $(ZP_NODE)
 proto: $(META_PROTO_GENS) $(NODE_PROTO_GENS)
 
 $(ZP_META): $(META_PROTO_OBJ) $(NODE_PROTO_OBJ) $(COMMON_OBJS) $(META_OBJS) \
-				$(LIBFLOYD) $(LIBPINK) $(LIBSLASH) $(LIBROCKSDB)
+				$(LIBFLOYD) $(LIBPINK) $(LIBSLASH) $(LIBROCKSDB) $(LIBPROTOBUF)
 	$(AM_V_at)rm -f $@
 	$(AM_V_at)$(AM_LINK)
 
 $(ZP_NODE): $(META_PROTO_OBJ) $(NODE_PROTO_OBJ) $(COMMON_OBJS) $(NODE_OBJS) \
-				$(LIBNEMODB) $(LIBPINK) $(LIBSLASH) $(LIBROCKSDB)
+				$(LIBNEMODB) $(LIBPINK) $(LIBSLASH) $(LIBROCKSDB) $(LIBPROTOBUF)
 	$(AM_V_at)rm -f $@
 	$(AM_V_at)$(AM_LINK)
 
@@ -179,6 +183,9 @@ $(LIBFLOYD):
 	$(AM_V_at)make -C $(FLOYD_PATH)/floyd DEBUG_LEVEL=$(DEBUG_LEVEL) \
 					ROCKSDB_PATH=$(ROCKSDB_PATH) SLASH_PATH=$(SLASH_PATH) PINK_PATH=$(PINK_PATH)
 
+$(LIBPROTOBUF) $(PROTOC):
+	cd $(PROTODIR); autoreconf -if; ./configure --prefix=$(PROTODIR)/_install --disable-shared; make install; echo '*' > $(PROTODIR)/.gitignore
+
 clean:
 	$(AM_V_at)echo "Cleaning"
 	$(AM_V_at)rm -rf $(OUTPUT)
@@ -194,3 +201,4 @@ distclean: clean
 	$(AM_V_at)make -C $(SLASH_PATH)/slash clean
 	$(AM_V_at)make -C $(NEMODB_PATH) clean
 	$(AM_V_at)make -C $(ROCKSDB_PATH) clean
+	$(AM_V_at)make -C $(PROTODIR) clean

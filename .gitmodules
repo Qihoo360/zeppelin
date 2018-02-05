@@ -13,3 +13,6 @@
 [submodule "third/rocksdb"]
 	path = third/rocksdb
 	url = https://github.com/facebook/rocksdb.git
+[submodule "third/protobuf"]
+	path = third/protobuf
+	url = https://github.com/google/protobuf.git
