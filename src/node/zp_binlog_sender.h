@@ -100,6 +100,10 @@ class ZPBinlogSendTask  {
   void BuildLeaseSyncRequest(int64_t lease_time,
       client::SyncRequest* msg) const;
   void BuildCommonSyncRequest(client::SyncRequest *msg) const;
+  void Fallback2PreOffset() {
+    filenum_ = pre_filenum_;
+    offset_ = pre_offset_;
+  }
 
  private:
   uint64_t sequence_;
@@ -127,6 +131,7 @@ class ZPBinlogSendTask  {
     pre_filenum_ = filenum_;
     pre_offset_ = offset_;
   }
+
 };
 
 //

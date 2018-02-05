@@ -176,8 +176,8 @@ void ZPBinlogSendTask::BuildLeaseSyncRequest(int64_t lease_time,
   node->set_ip(zp_data_server->local_ip());
   node->set_port(zp_data_server->local_port());
   client::SyncOffset *sync_offset = msg->mutable_sync_offset();
-  sync_offset->set_filenum(pre_filenum_);
-  sync_offset->set_offset(pre_offset_);
+  sync_offset->set_filenum(filenum_);
+  sync_offset->set_offset(offset_);
 
   client::SyncLease* lease = msg->mutable_sync_lease();
   lease->set_table_name(table_name_);
@@ -537,6 +537,11 @@ void* ZPBinlogSendThread::ThreadMain() {
       // Check if need to switch task
       if (slash::NowMicros() - time_begin > kBinlogTimeSlice * 1000000) {
         // Switch Task
+        if (!task->send_next) {
+          // Binlog items read last time hasn't be sent successfully
+          // So fallback to the pre offset to wait until next timeslice
+          task->Fallback2PreOffset();
+        }
         RenewPeerLease(task);
         break;
       }
