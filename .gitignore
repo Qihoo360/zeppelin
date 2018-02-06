@@ -40,6 +40,7 @@ tools/dump_meta
 tools/empty_trash
 tools/distribution
 tools/checknfix
+tools/binlog_reader
 
 zp-node
 zp-meta

@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <google/protobuf/text_format.h>
 
-#include "include/zp_meta.pb.h"
+#include "src/meta/zp_meta.pb.h"
 
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"

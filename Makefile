@@ -5,10 +5,10 @@ PROFILING_FLAGS= -pg
 OPT=
 
 # DEBUG_LEVEL can have two values:
-# * DEBUG_LEVEL=2; this is the ultimate debug mode. It will compile pika
+# * DEBUG_LEVEL=2; this is the ultimate debug mode. It will compile zeppelin
 # without any optimizations. To compile with level 2, issue `make dbg`
 # * DEBUG_LEVEL=0; this is the debug level we use for release. If you're
-# running pika in production you most definitely want to compile pika
+# running zeppelin in production you most definitely want to compile zeppelin
 # with debug level 0. To compile with level 0, run `make`,
 
 # Set the default DEBUG_LEVEL to 0
