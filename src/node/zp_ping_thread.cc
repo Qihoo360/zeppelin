@@ -50,10 +50,9 @@ slash::Status ZPPingThread::Send() {
   node->set_port(zp_data_server->local_port());
   request.set_type(ZPMeta::Type::PING);
 
-  TablePartitionOffsets all_offset;
-  zp_data_server->DumpTableBinlogOffsets("", &all_offset);
-  tmp_last_offsets_.clear();
-  for (auto& item : all_offset) {
+  current_offsets_.clear();
+  zp_data_server->DumpTableBinlogOffsets("", &current_offsets_);
+  for (auto& item : current_offsets_) {
     for (auto& p : item.second) {
       if (!CheckOffsetDelta(item.first, p.first, p.second)) {
         // no change happend
@@ -64,9 +63,21 @@ slash::Status ZPPingThread::Send() {
       offset->set_partition(p.first);
       offset->set_filenum(p.second.filenum);
       offset->set_offset(p.second.offset);
-      
-      tmp_last_offsets_[item.first][p.first]
-        = BinlogOffset(p.second.filenum, p.second.offset);
+    }
+  }
+
+  // Tell meta if we are not in charge of some partition any more
+  for (auto& last_item : last_offsets_) {
+    for (auto& last_p : last_item.second) {
+      if (current_offsets_.find(last_item.first) == current_offsets_.end()
+          || (current_offsets_[last_item.first].find(last_p.first)
+            == current_offsets_[last_item.first].end())) {
+        ZPMeta::SyncOffset *offset = ping->add_offset();
+        offset->set_table_name(last_item.first);
+        offset->set_partition(last_p.first);
+        offset->set_filenum(-1);
+        offset->set_offset(-1);
+      }
     }
   }
 
@@ -149,11 +160,8 @@ void* ZPPingThread::ThreadMain() {
         }
 
         // Update last_offsets only when succ
-        for (auto& tlo_t : tmp_last_offsets_) {
-          for (auto& tlo_p : tlo_t.second) {
-            last_offsets_[tlo_t.first][tlo_p.first] = tlo_p.second;
-          }
-        }
+        last_offsets_.clear();
+        last_offsets_ = current_offsets_;
 
         gettimeofday(&last_interaction, NULL);
         DLOG(INFO) << "Ping recv from ("<< meta_ip << ":" << meta_port

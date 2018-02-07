@@ -668,10 +668,18 @@ Status ZPMetaInfoStore::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
     std::string offset_key = NodeOffsetKey(po.table_name(), po.partition());
     DLOG(INFO) << "update offset"
       << ", node: " << node
-      << ", key: " << offset_key
+      << ", table partition: " << offset_key
       << ", offset: " << po.filenum() << "_" << po.offset();
-    node_infos_[node].offsets[offset_key] = NodeOffset(po.filenum(),
-        po.offset());
+    if (po.filenum() == -1 || po.offset() == -1) {
+      // Not in charge any more
+      LOG(INFO) << "Node not in charge any more: "
+        << ", node: " << node
+        << ", table partiton: " << offset_key;
+      node_infos_.erase(offset_key);
+    } else {
+      node_infos_[node].offsets[offset_key] = NodeOffset(po.filenum(),
+          po.offset());
+    }
   }
 
   if (not_found) {

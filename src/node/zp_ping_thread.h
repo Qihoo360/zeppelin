@@ -32,7 +32,7 @@ class ZPPingThread : public pink::Thread  {
  private:
   pink::PinkCli *cli_;
   TablePartitionOffsets last_offsets_;
-  TablePartitionOffsets tmp_last_offsets_;
+  TablePartitionOffsets current_offsets_;
 
   bool CheckOffsetDelta(const std::string table_name,
       int partition_id, const BinlogOffset &new_offset);
