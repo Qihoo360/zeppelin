@@ -174,8 +174,9 @@ void Table::DumpPartitionBinlogOffsets(std::map<int, BinlogOffset> *offset) {
   slash::RWLock l(&partition_rw_, false);
   BinlogOffset tboffset;
   for (auto& pair : partitions_) {
-    (pair.second)->GetBinlogOffsetWithLock(&tboffset);
-    offset->insert(std::pair<int, BinlogOffset>(pair.first, tboffset));
+    if ((pair.second)->GetBinlogOffsetWithLock(&tboffset)) {
+      offset->insert(std::pair<int, BinlogOffset>(pair.first, tboffset));
+    }
   }
 }
 
