@@ -664,19 +664,35 @@ Status ZPMetaInfoStore::UpdateNodeInfo(const ZPMeta::MetaCmd_Ping &ping) {
   }
 
   // Update offset
-  for (const auto& po : ping.offset()) {
+  bool has_clear = false;
+  for (int pindex = 0; pindex < ping.offset_size(); ++pindex) {
+    const auto& po = ping.offset(pindex);
     std::string offset_key = NodeOffsetKey(po.table_name(), po.partition());
-    DLOG(INFO) << "update offset"
-      << ", node: " << node
-      << ", table partition: " << offset_key
-      << ", offset: " << po.filenum() << "_" << po.offset();
-    if (po.filenum() == -1 || po.offset() == -1) {
+    if (po.table_name().empty() || po.partition() == -1) {
+      if (!has_clear
+          && node_infos_.find(node) != node_infos_.end()) {
+        node_infos_.at(node).offsets.clear();
+        LOG(INFO) << "Clear all node offsets: "
+          << " node: " << node;
+        // Traverse offset list from the beginning
+        // Since the order of protobuf repeated elements are not preserved
+        pindex = -1;
+        has_clear = true;
+        continue; 
+      }
+    } else if (po.filenum() == -1 || po.offset() == -1) {
       // Not in charge any more
       LOG(INFO) << "Node not in charge any more: "
-        << ", node: " << node
+        << "node: " << node
         << ", table partiton: " << offset_key;
-      node_infos_.erase(offset_key);
+      if (node_infos_.find(node) != node_infos_.end()) {
+        node_infos_.at(node).offsets.erase(offset_key);
+      }
     } else {
+      DLOG(INFO) << "update offset"
+        << "node: " << node
+        << ", table partition: " << offset_key
+        << ", offset: " << po.filenum() << "_" << po.offset();
       node_infos_[node].offsets[offset_key] = NodeOffset(po.filenum(),
           po.offset());
     }
@@ -745,7 +761,7 @@ Status ZPMetaInfoStore::GetNodeOffset(const ZPMeta::Node& node,
   if (node_infos_.find(ip_port) == node_infos_.end()) {
     return Status::NotFound("node not exist");
   }
-  //LOG(INFO) << "node: " << node.ip() << ":" << node.port();
+  DLOG(INFO) << "node: " << node.ip() << ":" << node.port();
   //node_infos_.at(ip_port).Dump();
   return node_infos_.at(ip_port).GetOffset(table, partition_id, noffset);
 }

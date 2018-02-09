@@ -50,6 +50,16 @@ slash::Status ZPPingThread::Send() {
   node->set_port(zp_data_server->local_port());
   request.set_type(ZPMeta::Type::PING);
 
+  // Notice meta clear all offset of mine
+  if (last_offsets_.empty()) {
+    ZPMeta::SyncOffset *offset = ping->add_offset();
+    offset->set_table_name("");
+    offset->set_partition(-1);
+    offset->set_filenum(-1);
+    offset->set_offset(-1);
+  }
+
+  // Update meta
   current_offsets_.clear();
   zp_data_server->DumpTableBinlogOffsets("", &current_offsets_);
   for (auto& item : current_offsets_) {
@@ -66,7 +76,7 @@ slash::Status ZPPingThread::Send() {
     }
   }
 
-  // Tell meta if we are not in charge of some partition any more
+  // Notice meta if we are not in charge of some partition any more
   for (auto& last_item : last_offsets_) {
     for (auto& last_p : last_item.second) {
       if (current_offsets_.find(last_item.first) == current_offsets_.end()
